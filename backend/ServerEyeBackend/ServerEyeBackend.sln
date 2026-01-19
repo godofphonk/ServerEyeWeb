@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.API", "ServerEye.API\ServerEye.API.csproj", "{A2D1997C-0460-43ED-8CBD-22FFB479E0FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.Core", "ServerEye.Core\ServerEye.Core.csproj", "{816C6818-2C20-4EAC-A00F-304E4D8BD661}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.Infrastracture", "ServerEye.Infrastracture\ServerEye.Infrastracture.csproj", "{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A2D1997C-0460-43ED-8CBD-22FFB479E0FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2D1997C-0460-43ED-8CBD-22FFB479E0FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2D1997C-0460-43ED-8CBD-22FFB479E0FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2D1997C-0460-43ED-8CBD-22FFB479E0FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{816C6818-2C20-4EAC-A00F-304E4D8BD661}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{816C6818-2C20-4EAC-A00F-304E4D8BD661}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{816C6818-2C20-4EAC-A00F-304E4D8BD661}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{816C6818-2C20-4EAC-A00F-304E4D8BD661}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

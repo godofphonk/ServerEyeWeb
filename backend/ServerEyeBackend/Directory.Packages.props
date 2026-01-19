@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+    </PackageVersion>
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0">
+    </PackageVersion>
+  </ItemGroup>
+</Project>

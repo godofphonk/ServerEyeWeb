@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+    <ItemGroup>
+      <Folder Include="DTOs\" />
+      <Folder Include="Services\" />
+    </ItemGroup>
+
+</Project>
