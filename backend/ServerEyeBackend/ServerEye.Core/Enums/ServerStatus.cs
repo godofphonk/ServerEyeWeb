@@ -1,6 +1,6 @@
 namespace ServerEye.Core.Enums;
 
-public enum UserStatus
+public enum ServerStatus
 {
     None,
     Active = 1,
