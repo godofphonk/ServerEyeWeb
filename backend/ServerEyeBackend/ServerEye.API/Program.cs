@@ -1,8 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Infrastracture;
+using ServerEye.Infrastracture.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
+
+builder.Services.AddScoped<IServerRepository, ServerRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddOpenApi();
 

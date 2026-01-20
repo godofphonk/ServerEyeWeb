@@ -8,5 +8,5 @@ public partial class User
     public string Email { get; set; } = string.Empty;
 
     public Role Role { get; set; } = null!;
-    public IReadOnlyCollection<ServerEntity> UserServers { get; set; } = [];
+    public Guid ServerId { get; set; }
 }
