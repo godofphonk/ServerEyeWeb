@@ -86,6 +86,7 @@ dotnet_diagnostic.SA1513.severity = none
 dotnet_diagnostic.SA1516.severity = none
 dotnet_diagnostic.SA1517.severity = none
 dotnet_diagnostic.SA1518.severity = none
+dotnet_diagnostic.SA1028.severity = none
 
 ##########################################
 # Language Rules
@@ -213,6 +214,7 @@ dotnet_remove_unnecessary_suppression_exclusions = none:warning
 [*.{cs,csx,cake}]
 csharp_style_unused_value_expression_statement_preference = discard_variable:suggestion
 dotnet_diagnostic.IDE0058.severity = suggestion
+dotnet_diagnostic.IDE0055.severity = suggestion
 csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 dotnet_diagnostic.IDE0059.severity = suggestion
 
