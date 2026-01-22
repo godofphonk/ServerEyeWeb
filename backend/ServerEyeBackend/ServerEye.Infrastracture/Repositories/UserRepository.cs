@@ -41,15 +41,15 @@ public class UserRepository(ServerEyeDbContext context) : IUserRepository
             .AddAsync(user);
         await this.context.SaveChangesAsync();
     }
-    public async Task UpdateUserAsync(Guid id, string? username, string? password, string? mail)
+    public async Task UpdateUserAsync(User user)
     {
         await this.context
             .Users
-            .Where(u => u.Id == id)
+            .Where(u => u.Id == user.Id)
             .ExecuteUpdateAsync(u => u
-                .SetProperty(x => x.UserName, username)
-                .SetProperty(x => x.Password, password)
-                .SetProperty(x => x.Email, mail));
+                .SetProperty(x => x.UserName, user.UserName)
+                .SetProperty(x => x.Password, user.Password)
+                .SetProperty(x => x.Email, user.Email));
         await this.context.SaveChangesAsync();
     }
     public async Task DeleteAsync(Guid id)

@@ -80,6 +80,7 @@ dotnet_diagnostic.IDE1005.severity = none
 dotnet_diagnostic.IDE1006.severity = none
 dotnet_diagnostic.IDE1007.severity = none
 dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.IDE0305.severity = none
 
 # StyleCop Analyzer - disable blank line rules
 dotnet_diagnostic.SA1510.severity = none

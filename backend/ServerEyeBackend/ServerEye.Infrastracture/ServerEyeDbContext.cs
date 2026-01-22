@@ -7,7 +7,6 @@ public sealed class ServerEyeDbContext : DbContext
 {
     public ServerEyeDbContext(DbContextOptions<ServerEyeDbContext> options)
         : base(options) => this.Database.EnsureCreated();
-    public DbSet<Role> Roles => this.Set<Role>();
     public DbSet<User> Users => this.Set<User>();
     public DbSet<ServerEntity> Servers => this.Set<ServerEntity>();
 

@@ -115,3 +115,19 @@ test-results.xml
 
 # Local development
 .local/
+
+# Work documentation
+workdocs/
+
+# .NET
+**/bin/
+**/obj/
+**/Properties/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.vs/
+
+# Local development settings
+appsettings.Development.json
