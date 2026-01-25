@@ -38,32 +38,12 @@ export default function DashboardPage() {
   const loadServers = async () => {
     try {
       setIsLoadingServers(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.get<{servers: Server[]}>('/servers');
-      // setServers(response.servers || []);
-      
-      // Mock data for now
-      const mockServers: Server[] = [
-        {
-          id: '1',
-          userId: user?.id || '1',
-          name: 'Production Server',
-          hostname: 'prod-server-01',
-          ipAddress: '192.168.1.100',
-          os: 'Ubuntu 22.04',
-          status: 'online',
-          apiKey: 'mock-key-1',
-          lastHeartbeat: new Date().toISOString(),
-          tags: ['production', 'web'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      setServers(mockServers);
+      const response = await apiClient.get<{servers: Server[]}>('/servers');
+      setServers(response.servers || []);
       
       // Load metrics for each server
-      if (mockServers.length > 0) {
-        for (const server of mockServers) {
+      if (response.servers && response.servers.length > 0) {
+        for (const server of response.servers) {
           loadServerMetrics(server.id);
         }
       }
@@ -77,28 +57,8 @@ export default function DashboardPage() {
 
   const loadServerMetrics = async (serverId: string) => {
     try {
-      // TODO: Replace with actual API call
-      // const serverMetrics = await apiClient.get<Metric[]>(`/metrics/${serverId}/latest`);
-      // setMetrics(prev => ({ ...prev, [serverId]: serverMetrics || [] }));
-      
-      // Mock metrics for now
-      const mockMetrics: Metric[] = [
-        {
-          serverId,
-          type: 'cpu_usage',
-          value: 45.2,
-          unit: '%',
-          timestamp: new Date().toISOString()
-        },
-        {
-          serverId,
-          type: 'memory_usage',
-          value: 68.5,
-          unit: '%',
-          timestamp: new Date().toISOString()
-        }
-      ];
-      setMetrics(prev => ({ ...prev, [serverId]: mockMetrics }));
+      const serverMetrics = await apiClient.get<Metric[]>(`/metrics/${serverId}/latest`);
+      setMetrics(prev => ({ ...prev, [serverId]: serverMetrics || [] }));
     } catch (error) {
       console.error(`Failed to load metrics for server ${serverId}:`, error);
       // Set empty array for servers without metrics
