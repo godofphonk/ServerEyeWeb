@@ -13,6 +13,19 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+// Backend User DTO types
+export interface BackendUser {
+  id: string;
+  userName: string;
+  email: string;
+  serverId?: string;
+}
+
+export interface BackendAuthResponse {
+  user: BackendUser;
+  token: string;
+}
+
 // Server types
 export interface Server {
   id: string;

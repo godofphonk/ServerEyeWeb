@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/types';
+import { User, BackendUser, BackendAuthResponse } from '@/types';
+import {apiClient} from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
+  getOAuthURL: (provider: string) => Promise<string>;
   isAuthenticated: boolean;
 }
 
@@ -28,12 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('accessToken');
       if (token) {
-        // TODO: Implement token validation with your backend
-        // For now, just check if token exists
+        // Verify token with backend and get user data
+        const response = await apiClient.get<BackendUser>('/users/me');
+        const user: BackendUser = response;
+        
         setUser({
-          id: '1',
-          email: 'user@example.com',
-          username: 'user',
+          id: user.id,
+          email: user.email,
+          username: user.userName,
           role: 'user',
           createdAt: new Date().toISOString()
         });
@@ -47,39 +52,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    // TODO: Implement actual login with your backend
-    // For demo purposes, simulate login
-    const mockUser: User = {
-      id: '1',
-      email,
-      username: email.split('@')[0],
-      role: 'user',
-      createdAt: new Date().toISOString()
-    };
-    
-    const mockToken = 'mock-jwt-token';
-    localStorage.setItem('accessToken', mockToken);
-    setUser(mockUser);
+    try {
+      const response = await apiClient.post<BackendAuthResponse>('/users/login', {
+        email,
+        login: email,
+        password
+      });
+
+      const { user, token } = response;
+      
+      localStorage.setItem('accessToken', token);
+      setUser({
+        id: user.id,
+        email: user.email,
+        username: user.userName,
+        role: 'user',
+        createdAt: new Date().toISOString()
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
   };
 
   const register = async (email: string, username: string, password: string) => {
-    // TODO: Implement actual registration with your backend
-    const mockUser: User = {
-      id: '1',
-      email,
-      username,
-      role: 'user',
-      createdAt: new Date().toISOString()
-    };
-    
-    const mockToken = 'mock-jwt-token';
-    localStorage.setItem('accessToken', mockToken);
-    setUser(mockUser);
+    try {
+      const response = await apiClient.post<BackendAuthResponse>('/users/register', {
+        userName: username,
+        email,
+        password
+      });
+
+      const { user, token } = response;
+      
+      localStorage.setItem('accessToken', token);
+      setUser({
+        id: user.id,
+        email: user.email,
+        username: user.userName,
+        role: 'user',
+        createdAt: new Date().toISOString()
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Registration failed');
+    }
   };
 
   const logout = async () => {
     localStorage.removeItem('accessToken');
     setUser(null);
+  };
+
+  const loginWithOAuth = async (provider: string, code: string, state: string) => {
+    try {
+      const response = await apiClient.post<BackendAuthResponse>('/users/oauth/' + provider, {
+        code,
+        state
+      });
+
+      const { user, token } = response;
+      
+      localStorage.setItem('accessToken', token);
+      setUser({
+        id: user.id,
+        email: user.email,
+        username: user.userName,
+        role: 'user',
+        createdAt: new Date().toISOString()
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'OAuth authentication failed');
+    }
+  };
+
+  const getOAuthURL = async (provider: string): Promise<string> => {
+    try {
+      const response = await apiClient.get<{ url: string }>(`/users/oauth/${provider}/url`);
+      return response.url;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to get OAuth URL');
+    }
   };
 
   // Don't render children until mounted (client-side only)
@@ -97,6 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        loginWithOAuth,
+        getOAuthURL,
         isAuthenticated: !!user,
       }}
     >
