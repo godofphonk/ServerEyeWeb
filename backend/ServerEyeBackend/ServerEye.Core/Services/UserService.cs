@@ -55,14 +55,14 @@ public class UserService(IUserRepository userRepository) : IUserService
         }).ToList();
     }
 
-    public async Task<UserData> CreateUserAsync(UserRequestDto requestDto)
+    public async Task<UserData> CreateUserAsync(UserRegisterDto userRegisterDto)
     {
-        ArgumentNullException.ThrowIfNull(requestDto);
+        ArgumentNullException.ThrowIfNull(userRegisterDto);
         var user = new User()
         {
-            Email = requestDto.Email,
-            UserName = requestDto.UserName,
-            Password = requestDto.Password,
+            Email = userRegisterDto.Email,
+            UserName = userRegisterDto.UserName,
+            Password = userRegisterDto.Password,
         };
         await this.userRepository.AddAsync(user);
         return new UserData
@@ -73,17 +73,17 @@ public class UserService(IUserRepository userRepository) : IUserService
         };
     }
 
-    public async Task<UserData> UpdateUserAsync(UserRequestDto requestDto)
+    public async Task<UserData> UpdateUserAsync(Guid id, UserUpdateDto updateDto)
     {
-        ArgumentNullException.ThrowIfNull(requestDto);
+        ArgumentNullException.ThrowIfNull(updateDto);
         var existingUser = await this.userRepository
-                               .GetByIdAsync(requestDto.UserId)
-                           ?? throw new KeyNotFoundException($"User with ID {requestDto.UserId} not found");
+                               .GetByIdAsync(id)
+                           ?? throw new KeyNotFoundException($"User with ID {id} not found");
 
-        existingUser.UserName = requestDto.UserName;
-        existingUser.Email = requestDto.Email;
-        existingUser.Password = requestDto.Password;
-        existingUser.ServerId = requestDto.ServerId;
+        existingUser.UserName = updateDto.UserName;
+        existingUser.Email = updateDto.Email;
+        existingUser.Password = updateDto.Password;
+        existingUser.ServerId = updateDto.ServerId;
 
         await this.userRepository.UpdateUserAsync(existingUser);
 
@@ -97,4 +97,24 @@ public class UserService(IUserRepository userRepository) : IUserService
     }
 
     public async Task DeleteUserAsync(Guid id) => await this.userRepository.DeleteAsync(id);
+
+    public async Task<UserData> LoginUserAsync(UserLoginDto userLoginDto)
+    {
+        ArgumentNullException.ThrowIfNull(userLoginDto);
+
+        var ifuserexist = await this.userRepository.GetByEmailAsync(userLoginDto.Email) ??
+                              throw new KeyNotFoundException($"User with email {userLoginDto.Email} not found");
+
+        if (ifuserexist.Password != userLoginDto.Password)
+        {
+            throw new KeyNotFoundException($"User with email {userLoginDto.Email} not found");
+        }
+        return new UserData()
+        {
+            Id = ifuserexist.Id,
+            Email = ifuserexist.Email,
+            UserName = ifuserexist.UserName,
+            ServerId = ifuserexist.ServerId,
+        };
+    }
 }
