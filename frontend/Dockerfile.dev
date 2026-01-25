@@ -6,9 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
-# Copy source
+# Copy source code
 COPY . .
 
 EXPOSE 3000
