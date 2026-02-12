@@ -1,0 +1,96 @@
+namespace ServerEye.Infrastracture.Repositories;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using ServerEye.Core.Entities;
+using ServerEye.Core.Interfaces.Repository;
+
+public sealed class RefreshTokenRepository(ServerEyeDbContext context) : IRefreshTokenRepository
+{
+    private readonly ServerEyeDbContext context = context;
+
+    public async Task<List<RefreshToken>> GetAllAsync() => await this.context
+            .RefreshTokens
+            .AsNoTracking()
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+    public async Task<RefreshToken?> GetByIdAsync(Guid id) => await this.context
+            .RefreshTokens
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
+
+    public async Task<RefreshToken?> GetByTokenAsync(string token)
+    {
+        if (string.IsNullOrEmpty(token))
+        {
+            return null;
+        }
+
+        return await this.context
+            .RefreshTokens
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Token == token && !x.IsRevoked && x.ExpiresAt > DateTime.UtcNow)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<RefreshToken?> GetByUserIdAsync(Guid userId) => await this.context
+            .RefreshTokens
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && !x.IsRevoked && x.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+
+    public async Task AddAsync(RefreshToken entity)
+    {
+        EntityEntry<RefreshToken> entityEntry = await this.context.RefreshTokens.AddAsync(entity);
+        await this.context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task<RefreshToken> UpdateAsync(RefreshToken entity)
+    {
+        this.context.RefreshTokens.Update(entity);
+        await this.context.SaveChangesAsync().ConfigureAwait(false);
+        return entity;
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        RefreshToken? entity = await this.GetByIdAsync(id);
+        if (entity != null)
+        {
+            this.context.RefreshTokens.Remove(entity);
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+
+    public async Task RevokeAllUserTokensAsync(Guid userId)
+    {
+        List<RefreshToken> userTokens = await this.context.RefreshTokens
+            .Where(x => x.UserId == userId && !x.IsRevoked)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        foreach (RefreshToken token in userTokens)
+        {
+            token.IsRevoked = true;
+        }
+
+        await this.context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public async Task RevokeTokenAsync(Guid tokenId)
+    {
+        RefreshToken? token = await this.context.RefreshTokens
+            .FirstOrDefaultAsync(x => x.Id == tokenId)
+            .ConfigureAwait(false);
+
+        if (token != null)
+        {
+            token.IsRevoked = true;
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+}

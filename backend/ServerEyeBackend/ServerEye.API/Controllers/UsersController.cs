@@ -1,44 +1,140 @@
 namespace ServerEye.API.Controllers;
 
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.DTOs.UserDto;
 using ServerEye.Core.Interfaces.Services;
 
 [ApiController]
 [Route("api/[controller]")]
-#pragma warning disable CA1515
-public class UsersController(IUserService userService) : ControllerBase
-#pragma warning restore CA1515
+[EnableCors("AllowFrontend")]
+public class UsersController(IUserService userService, IValidator<UserRegisterDto> registerValidator,
+    IValidator<UserLoginDto> loginValidator, IValidator<UserUpdateDto> updateValidator) : ControllerBase
 {
     private readonly IUserService userService = userService;
+    private readonly IValidator<UserRegisterDto> registerValidator = registerValidator;
+    private readonly IValidator<UserLoginDto> loginValidator = loginValidator;
+    private readonly IValidator<UserUpdateDto> updateValidator = updateValidator;
 
     [HttpGet]
-    public async Task<ActionResult> GetAllUsersAsync() =>
-        this.Ok(await this.userService.GetAllUsersAsync());
+    public async Task<ActionResult> GetAllUsersAsync() => await this.ExecuteWithErrorHandling(this.userService.GetAllUsersAsync, "GetAllUsers");
 
     [HttpGet("{id}")]
-    public async Task<ActionResult> GetUserByIdAsync(Guid id) =>
-        this.Ok(await this.userService.GetUserByIdAsync(id));
+    public async Task<ActionResult> GetUserByIdAsync(Guid id) => await this.ExecuteWithErrorHandling(() => this.userService.GetUserByIdAsync(id), "GetUserById");
 
     [HttpGet("by-email/{email}")]
-    public async Task<ActionResult> GetUserByEmailAsync(string email) =>
-        this.Ok(await this.userService.GetUserByEmailAsync(email));
+    public async Task<ActionResult> GetUserByEmailAsync(string email) => await this.ExecuteWithErrorHandling(() => this.userService.GetUserByEmailAsync(email), "GetUserByEmail");
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult> GetCurrentUserAsync()
+    {
+        var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            Console.WriteLine($"[DEBUG] /users/me - Invalid user identifier in token. UserIdClaim: '{userIdClaim}'");
+            return this.Unauthorized(new { message = "Invalid user identifier" });
+        }
+
+        Console.WriteLine($"[DEBUG] /users/me - Successfully authenticated user: {userId}");
+        return await this.ExecuteWithErrorHandling(() => this.userService.GetUserByIdAsync(userId), "GetCurrentUser");
+    }
 
     [HttpPost("register")]
-    public async Task<ActionResult> CreateUser([FromBody] UserRegisterDto userRegisterDto) =>
-        this.Ok(await this.userService.CreateUserAsync(userRegisterDto));
+    public async Task<ActionResult> CreateUser([FromBody] UserRegisterDto userRegisterDto)
+    {
+        ArgumentNullException.ThrowIfNull(userRegisterDto);
+
+        // Log incoming request for debugging
+        Console.WriteLine($"Registration request - UserName: '{userRegisterDto.UserName}', Email: '{userRegisterDto.Email}', Password length: {userRegisterDto.Password?.Length ?? 0}");
+
+        var validationResult = await this.registerValidator.ValidateAsync(userRegisterDto);
+        if (!validationResult.IsValid)
+        {
+            Console.WriteLine($"Validation failed: {string.Join(", ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"))}");
+            return this.BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
+        }
+
+        Console.WriteLine($"Registration attempt for email: {userRegisterDto.Email}, username: {userRegisterDto.UserName}");
+
+        var result = await this.ExecuteWithErrorHandling(() => this.userService.CreateUserAsync(userRegisterDto), "CreateUser");
+
+        Console.WriteLine($"Registration successful for user: {userRegisterDto.Email}");
+        return result;
+    }
 
     [HttpPost("login")]
-    public async Task<ActionResult> LoginUser([FromBody] UserLoginDto userLoginDto) =>
-        this.Ok(await this.userService.LoginUserAsync(userLoginDto));
+    public async Task<ActionResult> LoginUser([FromBody] UserLoginDto userLoginDto)
+    {
+        ArgumentNullException.ThrowIfNull(userLoginDto);
+
+        var validationResult = await this.loginValidator.ValidateAsync(userLoginDto);
+        if (!validationResult.IsValid)
+        {
+            return this.BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
+        }
+
+        Console.WriteLine($"Login attempt for email: {userLoginDto.Email}");
+
+        var result = await this.ExecuteWithErrorHandling(() => this.userService.LoginUserAsync(userLoginDto), "LoginUser");
+
+        Console.WriteLine($"Login successful for user: {userLoginDto.Email}");
+        return result;
+    }
     [HttpPut("{id}")]
-    public async Task<ActionResult> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto) =>
-        this.Ok(await this.userService.UpdateUserAsync(id, userUpdateDto));
+    public async Task<ActionResult> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto)
+    {
+        ArgumentNullException.ThrowIfNull(userUpdateDto);
+
+        var validationResult = await this.updateValidator.ValidateAsync(userUpdateDto);
+        if (!validationResult.IsValid)
+        {
+            return this.BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
+        }
+
+        return await this.ExecuteWithErrorHandling(() => this.userService.UpdateUserAsync(id, userUpdateDto), "UpdateUser");
+    }
 
     [HttpDelete]
-    public async Task<ActionResult> DeleteUser(Guid id)
+    public async Task<ActionResult> DeleteUser(Guid id) =>
+        await this.ExecuteWithErrorHandling(
+            async () =>
+            {
+                await this.userService.DeleteUserAsync(id);
+                return true;
+            },
+            "DeleteUser",
+            true);
+
+    private async Task<ActionResult> ExecuteWithErrorHandling<T>(Func<Task<T>> operation, string operationName, bool returnNoContent = false)
     {
-        await this.userService.DeleteUserAsync(id);
-        return this.NoContent();
+        try
+        {
+            var result = await operation();
+            return returnNoContent ? this.NoContent() : this.Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Argument error in {operationName}: {ex.Message}");
+            return this.BadRequest(new { message = "Invalid input parameters" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Invalid operation in {operationName}: {ex.Message}");
+            return this.StatusCode(409, new { message = ex.Message }); // Conflict for duplicate email
+        }
+        catch (DbUpdateException ex)
+        {
+            Console.WriteLine($"Database error in {operationName}: {ex.Message}");
+            return this.StatusCode(500, new { message = "Database operation failed" });
+        }
+        catch (TimeoutException ex)
+        {
+            Console.WriteLine($"Timeout in {operationName}: {ex.Message}");
+            return this.StatusCode(504, new { message = "Request timeout" });
+        }
     }
 }

@@ -9,6 +9,7 @@ public sealed class ServerEyeDbContext : DbContext
         : base(options) => this.Database.EnsureCreated();
     public DbSet<User> Users => this.Set<User>();
     public DbSet<ServerEntity> Servers => this.Set<ServerEntity>();
+    public DbSet<RefreshToken> RefreshTokens => this.Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder?.Entity<ServerEntity>()

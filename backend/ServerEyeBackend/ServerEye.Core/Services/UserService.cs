@@ -1,14 +1,18 @@
 namespace ServerEye.Core.Services;
 
 using ServerEye.Core.DTOs;
+using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public class UserService(IUserRepository userRepository) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
+    private readonly IJwtService jwtService = jwtService;
+    private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
@@ -55,21 +59,57 @@ public class UserService(IUserRepository userRepository) : IUserService
         }).ToList();
     }
 
-    public async Task<UserData> CreateUserAsync(UserRegisterDto userRegisterDto)
+    public async Task<AuthResponseDto> CreateUserAsync(UserRegisterDto userRegisterDto)
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
+        
+        // Check if user with this email already exists
+        var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email);
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException($"User with email {userRegisterDto.Email} already exists.");
+        }
+        
+        var hashedPassword = this.passwordHasher.HashPassword(userRegisterDto.Password);
+        
         var user = new User()
         {
             Email = userRegisterDto.Email,
             UserName = userRegisterDto.UserName,
-            Password = userRegisterDto.Password,
+            Password = hashedPassword,
         };
+        
         await this.userRepository.AddAsync(user);
-        return new UserData
+        
+        // Generate tokens
+        var accessToken = this.jwtService.GenerateAccessToken(user);
+        var refreshToken = this.jwtService.GenerateRefreshToken(user);
+        
+        // Save refresh token
+        var refreshTokenEntity = new RefreshToken
         {
-            Id = user.Id,
-            Email = user.Email,
-            UserName = user.UserName,
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+        
+        await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
+        
+        return new AuthResponseDto
+        {
+            User = new AuthUserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                ServerId = user.ServerId,
+            },
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = 1800 // 30 minutes
         };
     }
 
@@ -82,7 +122,13 @@ public class UserService(IUserRepository userRepository) : IUserService
 
         existingUser.UserName = updateDto.UserName;
         existingUser.Email = updateDto.Email;
-        existingUser.Password = updateDto.Password;
+        
+        // Only update password if provided
+        if (!string.IsNullOrEmpty(updateDto.Password))
+        {
+            existingUser.Password = this.passwordHasher.HashPassword(updateDto.Password);
+        }
+        
         existingUser.ServerId = updateDto.ServerId;
 
         await this.userRepository.UpdateUserAsync(existingUser);
@@ -98,23 +144,45 @@ public class UserService(IUserRepository userRepository) : IUserService
 
     public async Task DeleteUserAsync(Guid id) => await this.userRepository.DeleteAsync(id);
 
-    public async Task<UserData> LoginUserAsync(UserLoginDto userLoginDto)
+    public async Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
 
-        var ifuserexist = await this.userRepository.GetByEmailAsync(userLoginDto.Email) ??
-                              throw new KeyNotFoundException($"User with email {userLoginDto.Email} not found");
-
-        if (ifuserexist.Password != userLoginDto.Password)
+        var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email);
+        if (user == null || !this.passwordHasher.VerifyPassword(userLoginDto.Password, user.Password))
         {
-            throw new KeyNotFoundException($"User with email {userLoginDto.Email} not found");
+            throw new KeyNotFoundException($"Invalid email or password");
         }
-        return new UserData()
+        
+        // Generate tokens
+        var accessToken = this.jwtService.GenerateAccessToken(user);
+        var refreshToken = this.jwtService.GenerateRefreshToken(user);
+        
+        // Save refresh token
+        var refreshTokenEntity = new RefreshToken
         {
-            Id = ifuserexist.Id,
-            Email = ifuserexist.Email,
-            UserName = ifuserexist.UserName,
-            ServerId = ifuserexist.ServerId,
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+        
+        await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
+        
+        return new AuthResponseDto
+        {
+            User = new AuthUserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                ServerId = user.ServerId,
+            },
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = 1800 // 30 minutes
         };
     }
 }

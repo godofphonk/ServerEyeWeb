@@ -81,6 +81,35 @@ dotnet_diagnostic.IDE1006.severity = none
 dotnet_diagnostic.IDE1007.severity = none
 dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.IDE0305.severity = none
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.CA1812.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.CA2227.severity = none
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0301.severity = none
+dotnet_diagnostic.SA1210.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.SA1413.severity = none
+dotnet_diagnostic.IDE0009.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1724.severity = none
+dotnet_diagnostic.CA1031.severity = none
+dotnet_diagnostic.SA1208.severity = none
+dotnet_diagnostic.IDE0007.severity = none
+dotnet_diagnostic.CA1819.severity = none
+dotnet_diagnostic.CA1873.severity = none
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.IDE0053.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0065.severity = none
+dotnet_diagnostic.SA1200.severity = none
+dotnet_diagnostic.IDE0022.severity = none
+dotnet_diagnostic.SA1649.severity = none
+dotnet_diagnostic.SA1309.severity = none
 
 # StyleCop Analyzer - disable blank line rules
 dotnet_diagnostic.SA1510.severity = none
@@ -89,6 +118,7 @@ dotnet_diagnostic.SA1516.severity = none
 dotnet_diagnostic.SA1517.severity = none
 dotnet_diagnostic.SA1518.severity = none
 dotnet_diagnostic.SA1028.severity = none
+dotnet_diagnostic.SA1101.severity = none
 
 ##########################################
 # Language Rules

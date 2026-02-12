@@ -7,5 +7,5 @@ public partial class User
     public string Password { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
 
-    public Guid ServerId { get; set; }
+    public Guid ServerId { get; set; } = Guid.Empty;
 }

@@ -1,0 +1,26 @@
+@ServerEye.API_HostAddress = http://localhost:5246
+
+### Register User
+POST {{ServerEye.API_HostAddress}}/api/users/register
+Content-Type: application/json
+
+{
+  "userName": "testuser",
+  "email": "test@example.com",
+  "password": "Test123!@#"
+}
+
+### Login User
+POST {{ServerEye.API_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Test123!@#"
+}
+
+### Get All Users
+GET {{ServerEye.API_HostAddress}}/api/users
+
+### Get User by Email
+GET {{ServerEye.API_HostAddress}}/api/users/by-email/test@example.com

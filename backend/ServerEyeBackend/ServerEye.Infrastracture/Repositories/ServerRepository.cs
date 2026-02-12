@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 
-public class ServerRepository(ServerEyeDbContext context) : IServerRepository
+public sealed class ServerRepository(ServerEyeDbContext context) : IServerRepository
 {
     private readonly ServerEyeDbContext context = context;
 
