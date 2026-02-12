@@ -24,6 +24,8 @@ export interface BackendUser {
 export interface BackendAuthResponse {
   user: BackendUser;
   token: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 // Server types

@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
   const [servers, setServers] = useState<Server[]>([]);
   const [metrics, setMetrics] = useState<Record<string, Metric[]>>({});

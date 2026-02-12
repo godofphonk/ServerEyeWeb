@@ -1,41 +1,26 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: '/api/proxy',
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true,
     });
 
     this.setupInterceptors();
   }
 
   private setupInterceptors() {
-    // Request interceptor - add auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = this.getAccessToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor - handle errors
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          this.clearTokens();
+        if (error.response?.status === 401 && typeof window !== 'undefined') {
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -43,26 +28,6 @@ class ApiClient {
     );
   }
 
-  private getAccessToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken');
-    }
-    return null;
-  }
-
-  public setAccessToken(token: string) {
-    if (typeof window !== 'undefined' && token) {
-      localStorage.setItem('accessToken', token);
-    }
-  }
-
-  public clearTokens() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-    }
-  }
-
-  // Generic HTTP methods
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config);
     return response.data;

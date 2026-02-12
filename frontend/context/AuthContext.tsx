@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, BackendUser, BackendAuthResponse } from '@/types';
-import {apiClient} from "@/lib/api";
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { User, BackendUser } from '@/types';
+import { apiClient } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -10,9 +10,11 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
   getOAuthURL: (provider: string) => Promise<string>;
   isAuthenticated: boolean;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,125 +22,131 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-    checkAuth();
-  }, []);
+  const mapBackendUser = (backendUser: BackendUser): User => ({
+    id: backendUser.id,
+    email: backendUser.email,
+    username: backendUser.userName,
+    role: 'user',
+    createdAt: new Date().toISOString(),
+  });
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        // Verify token with backend and get user data
-        const response = await apiClient.get<BackendUser>('/users/me');
-        const user: BackendUser = response;
-        
-        setUser({
-          id: user.id,
-          email: user.email,
-          username: user.userName,
-          role: 'user',
-          createdAt: new Date().toISOString()
-        });
+      const res = await fetch('/api/auth/session', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(mapBackendUser(data.user));
+          return;
+        }
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      localStorage.removeItem('accessToken');
+      setUser(null);
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await apiClient.post<BackendAuthResponse>('/users/login', {
-        email,
-        login: email,
-        password
-      });
+    console.log('AuthContext login - attempting login with:', { email, passwordLength: password.length });
+    
+    const loginUrl = '/api/auth/login2?t=' + Date.now();
+    console.log('AuthContext login - full URL:', window.location.origin + loginUrl);
+    
+    const res = await fetch(loginUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Auth-Bypass': Date.now().toString()
+      },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    });
 
-      const { user, token } = response;
-      
-      localStorage.setItem('accessToken', token);
-      setUser({
-        id: user.id,
-        email: user.email,
-        username: user.userName,
-        role: 'user',
-        createdAt: new Date().toISOString()
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+    console.log('AuthContext login - response status:', res.status, res.statusText);
+    console.log('AuthContext login - response headers:', Object.fromEntries(res.headers.entries()));
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.log('AuthContext login - error response:', errorData);
+      throw new Error(errorData.message || 'Login failed');
     }
+
+    const data = await res.json();
+    console.log('AuthContext login - success response:', { hasUser: !!data.user, userId: data.user?.id });
+    
+    if (!data.user?.id) {
+      throw new Error('Invalid login response');
+    }
+
+    setUser(mapBackendUser(data.user));
+    console.log('AuthContext login - user set successfully');
   };
 
   const register = async (email: string, username: string, password: string) => {
-    try {
-      const response = await apiClient.post<BackendAuthResponse>('/users/register', {
-        userName: username,
-        email,
-        password
-      });
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userName: username, email, password }),
+    });
 
-      const { user, token } = response;
-      
-      localStorage.setItem('accessToken', token);
-      setUser({
-        id: user.id,
-        email: user.email,
-        username: user.userName,
-        role: 'user',
-        createdAt: new Date().toISOString()
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Registration failed');
     }
+
+    const data = await res.json();
+    if (!data.user?.id) {
+      throw new Error('Invalid registration response');
+    }
+
+    setUser(mapBackendUser(data.user));
   };
 
   const logout = async () => {
-    localStorage.removeItem('accessToken');
-    setUser(null);
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Ignore logout API errors
+    } finally {
+      setUser(null);
+    }
   };
 
-  const loginWithOAuth = async (provider: string, code: string, state: string) => {
-    try {
-      const response = await apiClient.post<BackendAuthResponse>('/users/oauth/' + provider, {
-        code,
-        state
-      });
+  const refreshTokens = useCallback(async () => {
+    await checkAuth();
+  }, [checkAuth]);
 
-      const { user, token } = response;
-      
-      localStorage.setItem('accessToken', token);
-      setUser({
-        id: user.id,
-        email: user.email,
-        username: user.userName,
-        role: 'user',
-        createdAt: new Date().toISOString()
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'OAuth authentication failed');
+  const loginWithOAuth = async (provider: string, code: string, state: string) => {
+    const res = await apiClient.post<{ user: BackendUser }>(`/users/oauth/${provider}`, {
+      code,
+      state,
+    });
+
+    if (!res?.user?.id) {
+      throw new Error('Invalid OAuth response');
     }
+
+    setUser(mapBackendUser(res.user));
   };
 
   const getOAuthURL = async (provider: string): Promise<string> => {
-    try {
-      const response = await apiClient.get<{ url: string }>(`/users/oauth/${provider}/url`);
-      return response.url;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to get OAuth URL');
-    }
+    const res = await apiClient.get<{ url: string }>(`/users/oauth/${provider}/url`);
+    return res.url;
   };
-
-  // Don't render children until mounted (client-side only)
-  if (!isMounted) {
-    return <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-white">Loading...</div>
-    </div>;
-  }
 
   return (
     <AuthContext.Provider
@@ -148,9 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        refreshToken: refreshTokens,
         loginWithOAuth,
         getOAuthURL,
         isAuthenticated: !!user,
+        checkAuth,
       }}
     >
       {children}
