@@ -91,7 +91,7 @@ export default function ServerDetailPage() {
   };
 
   const loadDashboardMetrics = async () => {
-    return await apiClient.get<DashboardMetrics>(`/metrics/${serverId}/dashboard`);
+    return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics`);
   };
 
   const loadHistoricalMetrics = async () => {
@@ -114,7 +114,7 @@ export default function ServerDetailPage() {
     }
 
     return await apiClient.get<MetricsResponse>(
-      `/metrics/${serverId}/tiered?start=${start.toISOString()}&end=${end.toISOString()}`
+      `/servers/${serverId}/metrics/history?start=${start.toISOString()}&end=${end.toISOString()}`
     );
   };
 

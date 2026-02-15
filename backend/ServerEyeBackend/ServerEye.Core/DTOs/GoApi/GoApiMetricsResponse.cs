@@ -21,4 +21,7 @@ public class GoApiMetricsResponse
 
     [JsonPropertyName("total_points")]
     public int TotalPoints { get; set; }
+
+    [JsonPropertyName("status")]
+    public GoApiServerStatus? Status { get; set; }
 }

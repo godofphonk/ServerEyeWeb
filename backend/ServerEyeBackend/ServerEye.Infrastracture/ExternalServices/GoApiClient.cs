@@ -116,12 +116,9 @@ public class GoApiClient : IGoApiClient
     {
         try
         {
-            var serverId = serverKey.Replace("key_", "srv_", StringComparison.Ordinal);
-            var now = DateTime.UtcNow;
-            var start = now.AddMinutes(-5);
-            var url = $"/api/servers/{Uri.EscapeDataString(serverId)}/metrics/realtime?duration=5m";
+            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics";
 
-            this.logger.LogInformation("Validating server key by checking metrics (public endpoint): {Url}", url);
+            this.logger.LogInformation("Validating server key with Go API: {Url}", url);
 
             var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
@@ -140,10 +137,10 @@ public class GoApiClient : IGoApiClient
                 {
                     ServerId = metricsResponse.ServerId,
                     ServerKey = serverKey,
-                    Hostname = "Unknown",
-                    OperatingSystem = "Unknown",
-                    AgentVersion = "Unknown",
-                    LastSeen = DateTime.UtcNow
+                    Hostname = metricsResponse.Status?.Hostname ?? "Unknown",
+                    OperatingSystem = metricsResponse.Status?.OperatingSystem ?? "Unknown",
+                    AgentVersion = metricsResponse.Status?.AgentVersion ?? "Unknown",
+                    LastSeen = metricsResponse.Status?.LastSeen ?? DateTime.UtcNow
                 };
             }
 

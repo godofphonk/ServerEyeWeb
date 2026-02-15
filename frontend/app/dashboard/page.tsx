@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   const loadServerMetrics = async (serverId: string) => {
     try {
-      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/metrics/${serverId}/dashboard`);
+      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics`);
       setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
     } catch (error) {
       console.error(`Failed to load metrics for server ${serverId}:`, error);
