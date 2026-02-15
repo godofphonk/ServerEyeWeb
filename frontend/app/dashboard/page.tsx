@@ -6,7 +6,7 @@ import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
-import { MonitoredServer, DashboardMetrics } from "@/types";
+import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
   const [servers, setServers] = useState<MonitoredServer[]>([]);
-  const [metrics, setMetrics] = useState<Record<string, DashboardMetrics>>({});
+  const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
   const [isLoadingServers, setIsLoadingServers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: MonitoredServer | null }>({
@@ -59,10 +59,47 @@ export default function DashboardPage() {
 
   const loadServerMetrics = async (serverId: string) => {
     try {
+      // Try dashboard endpoint first
       const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
       setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
-    } catch (error) {
-      console.error(`Failed to load metrics for server ${serverId}:`, error);
+    } catch (dashboardError: any) {
+      console.error(`Dashboard endpoint failed for server ${serverId}:`, dashboardError);
+      console.error(`Dashboard error details:`, dashboardError?.response?.data);
+      
+      try {
+        // Fallback to realtime endpoint
+        console.log(`Trying realtime endpoint for server ${serverId}`);
+        const realtimeMetrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=300`);
+        
+        // Convert realtime to dashboard format
+        const dashboardFormat: DashboardMetrics = {
+          current: {
+            cpu: realtimeMetrics.cpu || 0,
+            memory: realtimeMetrics.memory || 0,
+            disk: realtimeMetrics.disk || 0,
+            network: realtimeMetrics.network || 0,
+            load: realtimeMetrics.load || 0,
+            temperature: realtimeMetrics.temperature || 0,
+          },
+          trends: {
+            cpu: 0,
+            memory: 0,
+            disk: 0,
+            network: 0,
+            load: 0,
+            temperature: 0,
+          },
+          timestamp: new Date().toISOString(),
+        };
+        
+        setMetrics(prev => ({ ...prev, [serverId]: dashboardFormat }));
+      } catch (realtimeError: any) {
+        console.error(`Realtime endpoint also failed for server ${serverId}:`, realtimeError);
+        console.error(`Realtime error details:`, realtimeError?.response?.data);
+        
+        // Set empty metrics to prevent continuous loading
+        setMetrics(prev => ({ ...prev, [serverId]: null }));
+      }
     }
   };
 
@@ -99,13 +136,19 @@ export default function DashboardPage() {
 
   const getMetricValue = (serverId: string, type: 'cpu' | 'memory' | 'disk'): string => {
     const dashboardMetrics = metrics[serverId];
+    
+    // Check if metrics failed to load
+    if (dashboardMetrics === null) {
+      return "Error";
+    }
+    
     if (!dashboardMetrics?.current) return "N/A";
     
     const value = dashboardMetrics.current[type];
     
     switch(type) {
       case 'cpu':
-        return `${Math.round(value)}°C`;
+        return `${Math.round(value)}%`;
       case 'memory':
       case 'disk':
         return `${Math.round(value)}%`;
@@ -129,7 +172,7 @@ export default function DashboardPage() {
     });
     
     if (serverCount === 0) return "N/A";
-    return `${Math.round(totalCpu / serverCount)}°C`;
+    return `${Math.round(totalCpu / serverCount)}%`;
   };
 
   if (loading || !isAuthenticated) {
@@ -260,17 +303,28 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-1">CPU</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'cpu')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'cpu')}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Memory</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'memory')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'memory')}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Disk</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'disk')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'disk')}
+                            </p>
                           </div>
                         </div>
+                        {metrics[server.serverId] === null && (
+                          <div className="mt-2 text-xs text-red-400">
+                            Metrics unavailable - server may be offline
+                          </div>
+                        )}
                         <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
                           <span>Access: {server.accessLevel}</span>
                           <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>

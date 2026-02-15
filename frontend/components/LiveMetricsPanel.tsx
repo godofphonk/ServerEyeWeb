@@ -97,43 +97,43 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
           >
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">CPU Temp</p>
-              <p className={`text-2xl font-bold ${getMetricColor(lastMessage.cpu, 'cpu')}`}>
-                {lastMessage.cpu.toFixed(1)}°C
+              <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.cpu || 0, 'cpu')}`}>
+                {(lastMessage?.cpu || 0).toFixed(1)}°C
               </p>
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">Memory</p>
-              <p className={`text-2xl font-bold ${getMetricColor(lastMessage.memory, 'memory')}`}>
-                {lastMessage.memory.toFixed(1)}%
+              <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.memory || 0, 'memory')}`}>
+                {(lastMessage?.memory || 0).toFixed(1)}%
               </p>
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">Disk</p>
-              <p className={`text-2xl font-bold ${getMetricColor(lastMessage.disk, 'disk')}`}>
-                {lastMessage.disk.toFixed(1)}%
+              <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.disk || 0, 'disk')}`}>
+                {(lastMessage?.disk || 0).toFixed(1)}%
               </p>
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">Network</p>
               <p className="text-2xl font-bold text-blue-400">
-                {lastMessage.network.toFixed(2)} MB/s
+                {(lastMessage?.network || 0).toFixed(2)} MB/s
               </p>
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">Temperature</p>
-              <p className={`text-2xl font-bold ${getMetricColor(lastMessage.temperature, 'temperature')}`}>
-                {lastMessage.temperature.toFixed(1)}°C
+              <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.temperature || 0, 'temperature')}`}>
+                {(lastMessage?.temperature || 0).toFixed(1)}°C
               </p>
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
               <p className="text-xs text-gray-400 mb-1">Load</p>
               <p className="text-2xl font-bold text-purple-400">
-                {lastMessage.load.toFixed(2)}
+                {(lastMessage?.load || 0).toFixed(2)}
               </p>
             </div>
           </motion.div>
@@ -151,7 +151,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
 
       {lastMessage && (
         <div className="mt-4 text-xs text-gray-500 text-center">
-          Last update: {new Date(lastMessage.timestamp).toLocaleTimeString()}
+          Last update: {new Date(lastMessage?.timestamp || new Date().toISOString()).toLocaleTimeString()}
         </div>
       )}
     </Card>

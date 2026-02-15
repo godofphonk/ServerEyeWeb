@@ -1,134 +1,90 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { LiveMetrics, WebSocketTokenResponse } from '@/types';
 import { apiClient } from '@/lib/api';
 
-interface UseWebSocketOptions {
+interface UseMetricsPollingOptions {
   serverId: string;
-  onMessage?: (data: LiveMetrics) => void;
-  onError?: (error: Event) => void;
-  onClose?: () => void;
+  onMessage?: (data: any) => void;
+  onError?: (error: string) => void;
   enabled?: boolean;
+  interval?: number; // в секундах
 }
 
 export function useWebSocket({ 
   serverId, 
   onMessage, 
-  onError, 
-  onClose,
-  enabled = true 
-}: UseWebSocketOptions) {
+  onError,
+  enabled = true,
+  interval = 30 // по умолчанию каждые 30 секунд
+}: UseMetricsPollingOptions) {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<LiveMetrics | null>(null);
+  const [lastMessage, setLastMessage] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const tokenExpiryRef = useRef<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout>();
+  const isPollingRef = useRef(false);
 
-  const connect = useCallback(async () => {
-    if (!enabled) return;
+  const pollMetrics = useCallback(async () => {
+    if (!enabled || isPollingRef.current) return;
+
+    isPollingRef.current = true;
 
     try {
-      const tokenResponse = await apiClient.post<WebSocketTokenResponse>(
-        `/servers/${serverId}/metrics/live-token`,
-        {}
-      );
-
-      tokenExpiryRef.current = new Date(tokenResponse.expiresAt);
-
-      const ws = new WebSocket(tokenResponse.wsUrl);
-
-      ws.onopen = () => {
-        console.log('[WebSocket] Connected to live metrics');
-        setIsConnected(true);
-        setError(null);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data: LiveMetrics = JSON.parse(event.data);
-          setLastMessage(data);
-          onMessage?.(data);
-        } catch (err) {
-          console.error('[WebSocket] Failed to parse message:', err);
-        }
-      };
-
-      ws.onerror = (event) => {
-        console.error('[WebSocket] Error:', event);
-        setError('WebSocket connection error');
-        onError?.(event);
-      };
-
-      ws.onclose = () => {
-        console.log('[WebSocket] Connection closed');
-        setIsConnected(false);
-        wsRef.current = null;
-        onClose?.();
-
-        if (enabled) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('[WebSocket] Reconnecting...');
-            connect();
-          }, 5000);
-        }
-      };
-
-      wsRef.current = ws;
-
-      const tokenRefreshInterval = setInterval(() => {
-        if (tokenExpiryRef.current) {
-          const timeUntilExpiry = tokenExpiryRef.current.getTime() - Date.now();
-          if (timeUntilExpiry < 5 * 60 * 1000) {
-            console.log('[WebSocket] Token expiring soon, reconnecting...');
-            disconnect();
-            connect();
-          }
-        }
-      }, 60000);
-
-      return () => {
-        clearInterval(tokenRefreshInterval);
-      };
-    } catch (err) {
-      console.error('[WebSocket] Failed to get token:', err);
-      setError('Failed to connect to live metrics');
+      console.log(`[Metrics] Polling metrics for server ${serverId}`);
+      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=5m`);
       
-      if (enabled) {
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, 10000);
-      }
+      setLastMessage(metrics);
+      setIsConnected(true);
+      setError(null);
+      onMessage?.(metrics);
+    } catch (err: any) {
+      console.error('[Metrics] Failed to poll:', err);
+      setError('Failed to fetch metrics');
+      onError?.(err.message);
+    } finally {
+      isPollingRef.current = false;
     }
-  }, [serverId, enabled, onMessage, onError, onClose]);
+  }, [serverId, enabled, onMessage, onError]);
 
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
+  const startPolling = useCallback(() => {
+    if (!enabled) return;
+
+    console.log(`[Metrics] Starting polling every ${interval}s`);
+    
+    // Первоначальный запрос
+    pollMetrics();
+    
+    // Последующие запросы
+    intervalRef.current = setInterval(() => {
+      pollMetrics();
+    }, interval * 1000);
+  }, [enabled, interval, pollMetrics]);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = undefined;
     }
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
     setIsConnected(false);
+    isPollingRef.current = false;
+    console.log('[Metrics] Stopped polling');
   }, []);
 
   useEffect(() => {
     if (enabled) {
-      connect();
+      startPolling();
+    } else {
+      stopPolling();
     }
 
     return () => {
-      disconnect();
+      stopPolling();
     };
-  }, [enabled, connect, disconnect]);
+  }, [enabled, startPolling, stopPolling]);
 
   return {
     isConnected,
     lastMessage,
     error,
-    reconnect: connect,
-    disconnect,
+    reconnect: pollMetrics,
+    disconnect: stopPolling,
   };
 }

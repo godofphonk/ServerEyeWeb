@@ -91,7 +91,38 @@ export default function ServerDetailPage() {
   };
 
   const loadDashboardMetrics = async () => {
-    return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
+    try {
+      return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
+    } catch (dashboardError: any) {
+      console.error(`Dashboard endpoint failed for server ${serverId}:`, dashboardError);
+      
+      // Fallback to realtime endpoint
+      console.log(`Trying realtime endpoint for server ${serverId}`);
+      const realtimeMetrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=300`);
+      
+      // Convert realtime to dashboard format
+      const dashboardFormat: DashboardMetrics = {
+        current: {
+          cpu: realtimeMetrics.cpu || 0,
+          memory: realtimeMetrics.memory || 0,
+          disk: realtimeMetrics.disk || 0,
+          network: realtimeMetrics.network || 0,
+          load: realtimeMetrics.load || 0,
+          temperature: realtimeMetrics.temperature || 0,
+        },
+        trends: {
+          cpu: 0,
+          memory: 0,
+          disk: 0,
+          network: 0,
+          load: 0,
+          temperature: 0,
+        },
+        timestamp: new Date().toISOString(),
+      };
+      
+      return dashboardFormat;
+    }
   };
 
   const loadHistoricalMetrics = async () => {
@@ -114,7 +145,7 @@ export default function ServerDetailPage() {
     }
 
     return await apiClient.get<MetricsResponse>(
-      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}`
+      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1h`
     );
   };
 
@@ -238,7 +269,7 @@ export default function ServerDetailPage() {
                     label="CPU Temperature"
                     value={dashboardMetrics.current.cpu}
                     unit="°C"
-                    trend={dashboardMetrics.trends.cpu}
+                    trend={dashboardMetrics.trends?.cpu}
                     color="blue"
                   />
                   <CurrentMetricsCard
@@ -246,7 +277,7 @@ export default function ServerDetailPage() {
                     label="Memory Usage"
                     value={dashboardMetrics.current.memory}
                     unit="%"
-                    trend={dashboardMetrics.trends.memory}
+                    trend={dashboardMetrics.trends?.memory}
                     color="purple"
                   />
                   <CurrentMetricsCard
@@ -254,7 +285,7 @@ export default function ServerDetailPage() {
                     label="Disk Usage"
                     value={dashboardMetrics.current.disk}
                     unit="%"
-                    trend={dashboardMetrics.trends.disk}
+                    trend={dashboardMetrics.trends?.disk}
                     color="pink"
                   />
                   <CurrentMetricsCard
@@ -262,7 +293,7 @@ export default function ServerDetailPage() {
                     label="Network"
                     value={dashboardMetrics.current.network}
                     unit="MB/s"
-                    trend={dashboardMetrics.trends.network}
+                    trend={dashboardMetrics.trends?.network}
                     color="green"
                   />
                   <CurrentMetricsCard
@@ -270,7 +301,7 @@ export default function ServerDetailPage() {
                     label="CPU Load"
                     value={dashboardMetrics.current.load}
                     unit=""
-                    trend={dashboardMetrics.trends.load}
+                    trend={dashboardMetrics.trends?.load}
                     color="yellow"
                   />
                   <CurrentMetricsCard
@@ -278,7 +309,7 @@ export default function ServerDetailPage() {
                     label="Temperature"
                     value={dashboardMetrics.current.temperature}
                     unit="°C"
-                    trend={dashboardMetrics.trends.temperature}
+                    trend={dashboardMetrics.trends?.temperature}
                     color="red"
                   />
                 </>

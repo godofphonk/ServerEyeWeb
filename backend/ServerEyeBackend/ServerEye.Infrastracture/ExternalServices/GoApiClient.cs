@@ -86,32 +86,6 @@ public class GoApiClient : IGoApiClient
         }
     }
 
-    public async Task<GoApiMetricsResponse?> GetDashboardMetricsAsync(string serverId)
-    {
-        try
-        {
-            var url = $"/api/servers/{serverId}/metrics/dashboard";
-
-            this.logger.LogInformation("Requesting dashboard metrics from Go API: {Url}", url);
-
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error calling Go API for dashboard metrics");
-            return null;
-        }
-    }
-
     public async Task<GoApiServerInfo?> ValidateServerKeyAsync(string serverKey)
     {
         try
@@ -175,6 +149,22 @@ public class GoApiClient : IGoApiClient
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error calling Go API for server info");
+            return null;
+        }
+    }
+
+    public async Task<GoApiMetricsResponse?> GetDashboardMetricsAsync(string serverId)
+    {
+        try
+        {
+            // Dashboard should show current/realtime metrics, not historical data
+            // Use realtime endpoint with short duration (5 minutes) for dashboard
+            this.logger.LogInformation("Getting dashboard metrics (realtime) for server {ServerId}", serverId);
+            return await this.GetRealtimeMetricsAsync(serverId, TimeSpan.FromMinutes(5));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error calling Go API for dashboard metrics");
             return null;
         }
     }

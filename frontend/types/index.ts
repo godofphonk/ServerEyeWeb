@@ -101,6 +101,32 @@ export interface MetricsDataPoint {
   load: MetricValue;
 }
 
+export interface HistoricalMetricsResponse {
+  server_id: string;
+  start_time: string;
+  end_time: string;
+  granularity: string;
+  data_points: {
+    timestamp: string;
+    cpu_avg: number;
+    cpu_max: number;
+    cpu_min: number;
+    memory_avg: number;
+    memory_max: number;
+    memory_min: number;
+    disk_avg: number;
+    disk_max: number;
+    network_avg: number;
+    network_max: number;
+    temp_avg: number;
+    temp_max: number;
+    load_avg: number;
+    load_max: number;
+    sample_count: number;
+  }[];
+  total_points: number;
+}
+
 export interface MetricsResponse {
   serverId: string;
   timeRange: {

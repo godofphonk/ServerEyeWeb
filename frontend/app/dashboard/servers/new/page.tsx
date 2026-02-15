@@ -27,8 +27,8 @@ export default function AddServerPage() {
       return;
     }
 
-    if (!apiKey.startsWith("srv_")) {
-      setError("Invalid API key format. Key must start with 'srv_'");
+    if (!apiKey.startsWith("srv_") && !apiKey.startsWith("key_")) {
+      setError("Invalid API key format. Key must start with 'srv_' or 'key_'");
       return;
     }
 
