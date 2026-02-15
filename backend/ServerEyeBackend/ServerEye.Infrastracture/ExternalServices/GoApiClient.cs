@@ -58,26 +58,13 @@ public class GoApiClient : IGoApiClient
     {
         try
         {
-            var url = $"/api/servers/{serverId}/metrics/realtime";
+            var actualDuration = duration ?? TimeSpan.FromMinutes(5);
+            var endTime = DateTime.UtcNow;
+            var startTime = endTime.Subtract(actualDuration);
 
-            if (duration.HasValue)
-            {
-                var durationStr = $"{(int)duration.Value.TotalMinutes}m";
-                url += $"?duration={durationStr}";
-            }
+            this.logger.LogInformation("Requesting realtime metrics for server {ServerId} from {Start} to {End}", serverId, startTime, endTime);
 
-            this.logger.LogInformation("Requesting realtime metrics from Go API: {Url}", url);
-
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
+            return await this.GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {
@@ -157,10 +144,11 @@ public class GoApiClient : IGoApiClient
     {
         try
         {
-            // Dashboard should show current/realtime metrics, not historical data
-            // Use realtime endpoint with short duration (5 minutes) for dashboard
-            this.logger.LogInformation("Getting dashboard metrics (realtime) for server {ServerId}", serverId);
-            return await this.GetRealtimeMetricsAsync(serverId, TimeSpan.FromMinutes(5));
+            var endTime = DateTime.UtcNow;
+            var startTime = endTime.AddMinutes(-5);
+
+            this.logger.LogInformation("Getting dashboard metrics for server {ServerId} (last 5 minutes)", serverId);
+            return await this.GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {

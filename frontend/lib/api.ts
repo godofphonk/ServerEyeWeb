@@ -5,12 +5,11 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: '/api/proxy',
+      baseURL: 'http://localhost:5246/api',
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true,
     });
 
     this.setupInterceptors();

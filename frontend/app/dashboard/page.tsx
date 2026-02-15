@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/lib/api';
 import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { motion } from "framer-motion";
@@ -12,7 +12,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading, checkAuth } = useAuth();
+  // Temporarily disable AuthContext to prevent conflicts
+  // const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
   const [servers, setServers] = useState<MonitoredServer[]>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
@@ -23,29 +24,30 @@ export default function DashboardPage() {
     server: null,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Auto-login for development - disabled to prevent infinite loops
-  // useEffect(() => {
-  //   const initAuth = async () => {
-  //     if (!checkAuthToken()) {
-  //       console.log('[Dashboard] No token found, attempting auto-login...');
-  //       await autoLoginForDev();
-  //     }
-  //   };
-  //   initAuth();
-  // }, []);
+  // Auto-login for development - CORS is fixed!
+  const autoLoginAttempted = useRef(false);
+  
+  useEffect(() => {
+    const initAuth = async () => {
+      if (!checkAuthToken() && !autoLoginAttempted.current) {
+        autoLoginAttempted.current = true;
+        console.log('[Dashboard] No token found, attempting auto-login...');
+        const success = await autoLoginForDev();
+        setIsLoggedIn(success);
+      } else if (checkAuthToken()) {
+        setIsLoggedIn(true);
+      }
+    };
+    initAuth();
+  }, []);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, loading, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
+    if (isLoggedIn) {
       loadServers();
     }
-  }, [isAuthenticated]);
+  }, [isLoggedIn]);
 
   const loadServers = async () => {
     try {
@@ -191,7 +193,7 @@ export default function DashboardPage() {
     return `${Math.round(totalCpu / serverCount)}%`;
   };
 
-  if (loading || !isAuthenticated) {
+  if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white">Loading...</div>
@@ -210,7 +212,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-                <p className="text-gray-400">Welcome back, {user?.username}</p>
+                <p className="text-gray-400">Welcome back, User</p>
               </div>
               <div className="flex gap-4">
                 <Button

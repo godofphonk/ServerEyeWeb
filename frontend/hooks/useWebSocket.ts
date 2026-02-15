@@ -32,11 +32,12 @@ export function useWebSocket({
     console.log('[Metrics] Starting fetch for server:', serverId);
 
     try {
-      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=5m`);
-      console.log('[Metrics] Success! Got metrics:', metrics);
+      // Use C# backend endpoint for real metrics
+      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/dashboard`);
+      console.log('[Metrics] Success! Got real metrics:', metrics);
       
-      // Process the metrics data
-      let processedData = {
+      // Process real metrics data from C# backend
+      const processedData = {
         cpu: metrics.summary?.avgCpu || 0,
         memory: metrics.summary?.avgMemory || 0,
         disk: metrics.summary?.avgDisk || 0,
@@ -45,26 +46,12 @@ export function useWebSocket({
         temperature: metrics.summary?.avgTemperature || 0,
         timestamp: new Date().toISOString(),
         serverId: metrics.serverId,
-        serverName: metrics.serverName
+        serverName: metrics.serverName,
+        dataPoints: metrics.dataPoints || [],
+        totalPoints: metrics.totalPoints || 0
       };
       
-      // If all metrics are 0, use mock data for demo
-      if (processedData.cpu === 0 && processedData.memory === 0 && processedData.disk === 0) {
-        console.log('[Metrics] All metrics are 0, using demo data');
-        processedData = {
-          cpu: 25 + Math.random() * 50, // 25-75%
-          memory: 40 + Math.random() * 40, // 40-80%
-          disk: 30 + Math.random() * 50, // 30-80%
-          network: Math.random() * 100, // 0-100 Mbps
-          load: 0.5 + Math.random() * 2, // 0.5-2.5
-          temperature: 40 + Math.random() * 35, // 40-75°C
-          timestamp: new Date().toISOString(),
-          serverId: metrics.serverId,
-          serverName: metrics.serverName
-        };
-      }
-      
-      console.log('[Metrics] Processed data:', processedData);
+      console.log('[Metrics] Processed real data:', processedData);
       
       setLastMessage(processedData);
       setIsConnected(true);
@@ -74,24 +61,10 @@ export function useWebSocket({
       console.error('[Metrics] Failed to fetch:', err);
       console.log('[Metrics] Error status:', err.response?.status);
       
-      // If 401, provide mock data for testing
+      // Handle errors
       if (err.response?.status === 401) {
-        console.log('[Metrics] Detected 401, using mock data');
-        const mockData = {
-          cpu: Math.random() * 80,
-          memory: Math.random() * 90,
-          disk: Math.random() * 85,
-          network: Math.random() * 100,
-          load: Math.random() * 2,
-          temperature: 45 + Math.random() * 30,
-          timestamp: new Date().toISOString()
-        };
-        
-        setLastMessage(mockData);
-        setIsConnected(true);
-        setError(null);
-        onMessage?.(mockData);
-        console.log('[Metrics] Using mock data due to 401, data:', mockData);
+        setError('Authentication required');
+        onError?.('Authentication required');
       } else {
         setError('Failed to fetch metrics');
         onError?.(err.message);
