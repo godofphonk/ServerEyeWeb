@@ -12,14 +12,10 @@ public class GoApiClient : IGoApiClient
     private readonly HttpClient httpClient;
     private readonly ILogger<GoApiClient> logger;
 
-    public GoApiClient(HttpClient httpClient, GoApiSettings settings, ILogger<GoApiClient> logger)
+    public GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger)
     {
         this.httpClient = httpClient;
         this.logger = logger;
-
-        this.httpClient.BaseAddress = settings.BaseUrl;
-        this.httpClient.DefaultRequestHeaders.Add("X-API-Key", settings.ApiKey);
-        this.httpClient.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
     }
 
     public async Task<GoApiMetricsResponse?> GetMetricsAsync(string serverId, DateTime start, DateTime endTime, string? granularity = null)
@@ -120,12 +116,14 @@ public class GoApiClient : IGoApiClient
     {
         try
         {
-            var url = "/api/servers/validate-key";
-            var payload = new { server_key = serverKey };
+            var serverId = serverKey.Replace("key_", "srv_", StringComparison.Ordinal);
+            var now = DateTime.UtcNow;
+            var start = now.AddMinutes(-5);
+            var url = $"/api/servers/{Uri.EscapeDataString(serverId)}/metrics/realtime?duration=5m";
 
-            this.logger.LogInformation("Validating server key with Go API");
+            this.logger.LogInformation("Validating server key by checking metrics (public endpoint): {Url}", url);
 
-            var response = await this.httpClient.PostAsJsonAsync(url, payload);
+            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -134,7 +132,22 @@ public class GoApiClient : IGoApiClient
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiServerInfo>();
+            var metricsResponse = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
+            
+            if (metricsResponse?.ServerId != null)
+            {
+                return new GoApiServerInfo
+                {
+                    ServerId = metricsResponse.ServerId,
+                    ServerKey = serverKey,
+                    Hostname = "Unknown",
+                    OperatingSystem = "Unknown",
+                    AgentVersion = "Unknown",
+                    LastSeen = DateTime.UtcNow
+                };
+            }
+
+            return null;
         }
         catch (Exception ex)
         {

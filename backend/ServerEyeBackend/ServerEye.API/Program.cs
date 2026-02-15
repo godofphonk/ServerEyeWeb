@@ -79,8 +79,13 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddSingleton(goApiSettings);
 builder.Services.AddSingleton(cacheSettings);
 
-// Configure HttpClient for Go API
-builder.Services.AddHttpClient<IGoApiClient, ServerEye.Infrastracture.ExternalServices.GoApiClient>();
+// Configure HttpClient for Go API (endpoints are public, no API key needed)
+builder.Services.AddHttpClient<IGoApiClient, ServerEye.Infrastracture.ExternalServices.GoApiClient>((serviceProvider, client) =>
+{
+    var settings = serviceProvider.GetRequiredService<ServerEye.Core.Configuration.GoApiSettings>();
+    client.BaseAddress = settings.BaseUrl;
+    client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
+});
 
 // Register repositories
 builder.Services.AddScoped<IServerRepository, ServerRepository>();
