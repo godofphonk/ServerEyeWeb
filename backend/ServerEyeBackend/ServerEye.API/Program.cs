@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ServerEye.API.Configuration;
 using ServerEye.API.Controllers;
 using ServerEye.API.Validators;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services;
@@ -19,6 +20,9 @@ var configuration = builder.Configuration;
 var jwtSettings = configuration.GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
 var securitySettings = configuration.GetSection("Security").Get<SecuritySettings>() ?? new SecuritySettings();
 var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() ?? new CorsSettings();
+var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() ?? new GoApiSettings();
+var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>() ?? new CacheSettings();
+var redisSettings = configuration.GetSection("Redis").Get<RedisSettings>() ?? new RedisSettings();
 
 // Configure CORS with settings
 builder.Services.AddCors(options =>
@@ -64,10 +68,28 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Configure Redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisSettings.ConnectionString;
+    options.InstanceName = redisSettings.InstanceName;
+});
+
+// Register settings as singletons
+builder.Services.AddSingleton(goApiSettings);
+builder.Services.AddSingleton(cacheSettings);
+
+// Configure HttpClient for Go API
+builder.Services.AddHttpClient<IGoApiClient, ServerEye.Infrastracture.ExternalServices.GoApiClient>();
+
+// Register repositories
 builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IMonitoredServerRepository, ServerEye.Infrastracture.Repositories.MonitoredServerRepository>();
+builder.Services.AddScoped<IUserServerAccessRepository, ServerEye.Infrastracture.Repositories.UserServerAccessRepository>();
 
+// Register services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService>(provider =>
@@ -76,6 +98,9 @@ builder.Services.AddScoped<IJwtService>(provider =>
         .GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
     return new JwtService(jwtSettings);
 });
+builder.Services.AddScoped<IMetricsCacheService, ServerEye.Infrastracture.Caching.MetricsCacheService>();
+builder.Services.AddScoped<IServerAccessService, ServerAccessService>();
+builder.Services.AddScoped<IMetricsService, MetricsService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
 
