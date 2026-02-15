@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { LiveMetrics } from '@/types';
 import { Card } from '@/components/ui/Card';
@@ -16,7 +16,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
   const [metricsHistory, setMetricsHistory] = useState<LiveMetrics[]>([]);
   const maxHistoryLength = 60; // Keep last 60 data points
 
-  const { isConnected, lastMessage, error } = useWebSocket({
+  const { isConnected, lastMessage, error, fetchMetrics, isLoading } = useWebSocket({
     serverId,
     enabled,
     onMessage: (data) => {
@@ -29,6 +29,12 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
       });
     },
   });
+
+  useEffect(() => {
+    if (enabled && fetchMetrics) {
+      fetchMetrics();
+    }
+  }, [serverId, enabled]); // Remove fetchMetrics to prevent infinite loop
 
   const getMetricColor = (value: number, type: 'cpu' | 'memory' | 'disk' | 'temperature') => {
     switch (type) {
@@ -83,6 +89,15 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
               </span>
             </>
           )}
+          
+          <button
+            onClick={fetchMetrics}
+            disabled={isLoading}
+            className="p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+            title="Обновить метрики"
+          >
+            <RefreshCw className={`w-4 h-4 text-blue-400 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 

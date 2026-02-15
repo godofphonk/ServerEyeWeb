@@ -5,7 +5,7 @@ const nextConfig = {
     domains: [],
   },
   // Enable fast refresh
-  reactStrictMode: true,
+  reactStrictMode: false,
   // Optimize for development
   swcMinify: true,
   // Fast refresh options

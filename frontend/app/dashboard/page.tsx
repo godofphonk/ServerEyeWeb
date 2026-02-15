@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api';
+import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api";
 import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +23,17 @@ export default function DashboardPage() {
     server: null,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Auto-login for development - disabled to prevent infinite loops
+  // useEffect(() => {
+  //   const initAuth = async () => {
+  //     if (!checkAuthToken()) {
+  //       console.log('[Dashboard] No token found, attempting auto-login...');
+  //       await autoLoginForDev();
+  //     }
+  //   };
+  //   initAuth();
+  // }, []);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -82,12 +94,12 @@ export default function DashboardPage() {
             temperature: realtimeMetrics.temperature || 0,
           },
           trends: {
-            cpu: 0,
-            memory: 0,
-            disk: 0,
-            network: 0,
-            load: 0,
-            temperature: 0,
+            cpu: '0',
+            memory: '0',
+            disk: '0',
+            network: '0',
+            load: '0',
+            temperature: '0',
           },
           timestamp: new Date().toISOString(),
         };
@@ -107,6 +119,10 @@ export default function DashboardPage() {
     setIsRefreshing(true);
     await loadServers();
     setIsRefreshing(false);
+  };
+
+  const handleRefreshMetrics = async (serverId: string) => {
+    await loadServerMetrics(serverId);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, server: MonitoredServer) => {
@@ -327,7 +343,19 @@ export default function DashboardPage() {
                         )}
                         <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
                           <span>Access: {server.accessLevel}</span>
-                          <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
+                          <div className="flex items-center gap-2">
+                            <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRefreshMetrics(server.serverId);
+                              }}
+                              className="p-1 rounded hover:bg-gray-700 transition-colors"
+                              title="Обновить метрики"
+                            >
+                              <RefreshCw className="w-3 h-3 text-gray-400 hover:text-blue-400" />
+                            </button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
