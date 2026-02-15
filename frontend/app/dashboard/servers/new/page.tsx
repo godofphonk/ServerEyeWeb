@@ -36,21 +36,14 @@ export default function AddServerPage() {
     setError("");
     
     try {
-      // TODO: Replace with actual API call
-      // await apiClient.post('/servers', {
-      //   name: serverName,
-      //   apiKey: apiKey,
-      //   hostname: "",
-      //   ipAddress: "",
-      //   os: "",
-      //   tags: []
-      // });
+      await apiClient.post('/monitoredservers/add', {
+        serverKey: apiKey,
+      });
       
-      console.log('Creating server:', { name: serverName, apiKey });
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Failed to add server:", error);
-      setError(error?.message || "Failed to add server. Please check your API key.");
+      setError(error?.response?.data?.message || error?.message || "Failed to add server. Please check your API key.");
     } finally {
       setIsLoading(false);
     }

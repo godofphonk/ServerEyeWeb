@@ -28,7 +28,7 @@ export interface BackendAuthResponse {
   expiresIn: number;
 }
 
-// Server types
+// Server types (legacy - keep for backward compatibility)
 export interface Server {
   id: string;
   userId: string;
@@ -44,7 +44,30 @@ export interface Server {
   updatedAt: string;
 }
 
-// Metrics types
+// Backend API Server types (new)
+export type AccessLevel = 'Owner' | 'Admin' | 'Viewer';
+
+export interface MonitoredServer {
+  id: string;
+  serverId: string; // srv_xxxxx format
+  hostname: string;
+  operatingSystem: string;
+  accessLevel: AccessLevel;
+  addedAt: string;
+  lastSeen: string;
+  isActive: boolean;
+}
+
+export interface AddServerRequest {
+  serverKey: string;
+}
+
+export interface ShareServerRequest {
+  userEmail: string;
+  accessLevel: 'Admin' | 'Viewer';
+}
+
+// Metrics types (legacy)
 export interface Metric {
   serverId: string;
   type: string;
@@ -57,6 +80,83 @@ export interface Metric {
 export interface MetricsHistory {
   metrics: Metric[];
   total: number;
+}
+
+// Backend API Metrics types (new)
+export interface MetricValue {
+  avg: number;
+  max: number;
+  min: number;
+}
+
+export interface MetricsDataPoint {
+  timestamp: string;
+  cpu: MetricValue;
+  memory: MetricValue;
+  disk: MetricValue;
+  network: MetricValue;
+  temperature: MetricValue;
+  load: MetricValue;
+}
+
+export interface MetricsResponse {
+  serverId: string;
+  timeRange: {
+    start: string;
+    end: string;
+  };
+  granularity: string;
+  data: MetricsDataPoint[];
+  totalPoints: number;
+}
+
+export interface CurrentMetrics {
+  cpu: number;
+  memory: number;
+  disk: number;
+  network: number;
+  temperature: number;
+  load: number;
+}
+
+export interface MetricTrends {
+  cpu: string;
+  memory: string;
+  disk: string;
+  network: string;
+  temperature: string;
+  load: string;
+}
+
+export interface MetricAlert {
+  type: 'warning' | 'error';
+  message: string;
+  timestamp: string;
+}
+
+export interface DashboardMetrics {
+  serverId: string;
+  current: CurrentMetrics;
+  trends: MetricTrends;
+  alerts: MetricAlert[];
+}
+
+// WebSocket types
+export interface WebSocketTokenResponse {
+  token: string;
+  wsUrl: string;
+  expiresAt: string;
+}
+
+export interface LiveMetrics {
+  serverId: string;
+  timestamp: string;
+  cpu: number;
+  memory: number;
+  disk: number;
+  network: number;
+  temperature: number;
+  load: number;
 }
 
 // Subscription types

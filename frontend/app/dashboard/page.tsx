@@ -6,18 +6,18 @@ import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
-import { Server, Metric } from "@/types";
+import { MonitoredServer, DashboardMetrics } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
-  const [servers, setServers] = useState<Server[]>([]);
-  const [metrics, setMetrics] = useState<Record<string, Metric[]>>({});
+  const [servers, setServers] = useState<MonitoredServer[]>([]);
+  const [metrics, setMetrics] = useState<Record<string, DashboardMetrics>>({});
   const [isLoadingServers, setIsLoadingServers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: Server | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: MonitoredServer | null }>({
     isOpen: false,
     server: null,
   });
@@ -38,13 +38,13 @@ export default function DashboardPage() {
   const loadServers = async () => {
     try {
       setIsLoadingServers(true);
-      const response = await apiClient.get<{servers: Server[]}>('/servers');
-      setServers(response.servers || []);
+      const response = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+      setServers(response || []);
       
       // Load metrics for each server
-      if (response.servers && response.servers.length > 0) {
-        for (const server of response.servers) {
-          loadServerMetrics(server.id);
+      if (response && response.length > 0) {
+        for (const server of response) {
+          loadServerMetrics(server.serverId);
         }
       }
     } catch (error) {
@@ -57,12 +57,10 @@ export default function DashboardPage() {
 
   const loadServerMetrics = async (serverId: string) => {
     try {
-      const serverMetrics = await apiClient.get<Metric[]>(`/metrics/${serverId}/latest`);
-      setMetrics(prev => ({ ...prev, [serverId]: serverMetrics || [] }));
+      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
+      setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
     } catch (error) {
       console.error(`Failed to load metrics for server ${serverId}:`, error);
-      // Set empty array for servers without metrics
-      setMetrics(prev => ({ ...prev, [serverId]: [] }));
     }
   };
 
@@ -72,7 +70,7 @@ export default function DashboardPage() {
     setIsRefreshing(false);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, server: Server) => {
+  const handleDeleteClick = (e: React.MouseEvent, server: MonitoredServer) => {
     e.stopPropagation(); // Prevent navigation to server details
     setDeleteModal({ isOpen: true, server });
   };
@@ -82,9 +80,7 @@ export default function DashboardPage() {
     
     try {
       setIsDeleting(true);
-      // TODO: Replace with actual API call
-      // await apiClient.delete(`/servers/${deleteModal.server.id}`);
-      console.log('Deleting server:', deleteModal.server.id);
+      await apiClient.delete(`/monitoredservers/${deleteModal.server.serverId}`);
       setDeleteModal({ isOpen: false, server: null });
       await loadServers(); // Reload servers list
     } catch (error) {
@@ -99,35 +95,21 @@ export default function DashboardPage() {
     setDeleteModal({ isOpen: false, server: null });
   };
 
-  const getMetricValue = (serverId: string, type: string): string => {
-    const serverMetrics = metrics[serverId] || [];
+  const getMetricValue = (serverId: string, type: 'cpu' | 'memory' | 'disk'): string => {
+    const dashboardMetrics = metrics[serverId];
+    if (!dashboardMetrics?.current) return "N/A";
     
-    // Map display types to actual metric types
-    let metricType = type;
+    const value = dashboardMetrics.current[type];
+    
     switch(type) {
       case 'cpu':
-        metricType = 'cpu_temperature';
-        break;
+        return `${Math.round(value)}°C`;
       case 'memory':
-        metricType = 'memory_usage';
-        break;
       case 'disk':
-        metricType = 'disk_usage';
-        break;
+        return `${Math.round(value)}%`;
+      default:
+        return "N/A";
     }
-    
-    const metric = serverMetrics.find(m => m.type === metricType);
-    if (!metric) return "N/A";
-    
-    // Format value based on type
-    if (metricType === 'memory_usage' || metricType === 'disk_usage') {
-      return `${Math.round(metric.value)}%`;
-    }
-    if (metricType === 'cpu_temperature') {
-      return `${Math.round(metric.value)}°C`;
-    }
-    
-    return `${metric.value}${metric.unit || ''}`;
   };
 
   const getAverageCpu = (): string => {
@@ -137,10 +119,9 @@ export default function DashboardPage() {
     let serverCount = 0;
     
     servers.forEach(server => {
-      const serverMetrics = metrics[server.id] || [];
-      const cpuMetric = serverMetrics.find(m => m.type === 'cpu_temperature');
-      if (cpuMetric) {
-        totalCpu += cpuMetric.value;
+      const dashboardMetrics = metrics[server.serverId];
+      if (dashboardMetrics?.current?.cpu) {
+        totalCpu += dashboardMetrics.current.cpu;
         serverCount++;
       }
     });
@@ -193,8 +174,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
               { label: "Total Servers", value: servers.length, icon: ServerIcon, color: "blue" },
-              { label: "Online", value: servers.filter(s => s.status === 'online').length, icon: Activity, color: "green" },
-              { label: "Offline", value: servers.filter(s => s.status === 'offline').length, icon: Activity, color: "red" },
+              { label: "Active", value: servers.filter(s => s.isActive).length, icon: Activity, color: "green" },
+              { label: "Inactive", value: servers.filter(s => !s.isActive).length, icon: Activity, color: "red" },
               { label: "Avg CPU", value: getAverageCpu(), icon: Cpu, color: "purple" },
             ].map((stat, i) => (
               <motion.div
@@ -248,20 +229,20 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    onClick={() => router.push(`/servers/${server.id}`)}
+                    onClick={() => router.push(`/servers/${server.serverId}`)}
                     className="cursor-pointer"
                   >
                     <Card hover>
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>{server.name}</CardTitle>
-                            <p className="text-sm text-gray-400 mt-1">{server.hostname}</p>
+                            <CardTitle>{server.hostname}</CardTitle>
+                            <p className="text-sm text-gray-400 mt-1">{server.operatingSystem}</p>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${server.status === 'online' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                              <span className="text-sm capitalize">{server.status}</span>
+                              <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                              <span className="text-sm capitalize">{server.isActive ? 'active' : 'inactive'}</span>
                             </div>
                             <button
                               onClick={(e) => handleDeleteClick(e, server)}
@@ -277,26 +258,21 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-1">CPU</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'cpu')}</p>
+                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'cpu')}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Memory</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'memory')}</p>
+                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'memory')}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Disk</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'disk')}</p>
+                            <p className="text-lg font-semibold">{getMetricValue(server.serverId, 'disk')}</p>
                           </div>
                         </div>
-                        {server.tags && server.tags.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {server.tags.map((tag, i) => (
-                              <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-xs">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                          <span>Access: {server.accessLevel}</span>
+                          <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
+                        </div>
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -326,7 +302,7 @@ export default function DashboardPage() {
               
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-300">
-                  Are you sure you want to delete <span className="font-semibold text-white">{deleteModal.server?.name}</span>?
+                  Are you sure you want to delete <span className="font-semibold text-white">{deleteModal.server?.hostname}</span>?
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   All metrics and data associated with this server will be permanently deleted.
