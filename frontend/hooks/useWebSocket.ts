@@ -29,7 +29,7 @@ export function useWebSocket({
 
     try {
       const tokenResponse = await apiClient.post<WebSocketTokenResponse>(
-        `/servers/${serverId}/metrics/live-token`,
+        `/metrics/${serverId}/live-token`,
         {}
       );
 
