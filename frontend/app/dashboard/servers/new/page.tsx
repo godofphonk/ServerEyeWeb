@@ -38,6 +38,7 @@ export default function AddServerPage() {
     try {
       await apiClient.post('/monitoredservers/add', {
         serverKey: apiKey,
+        serverName: serverName.trim(),
       });
       
       router.push("/dashboard");

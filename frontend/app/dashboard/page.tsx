@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   const loadServerMetrics = async (serverId: string) => {
     try {
-      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics`);
+      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
       setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
     } catch (error) {
       console.error(`Failed to load metrics for server ${serverId}:`, error);
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>{server.serverId}</CardTitle>
+                            <CardTitle>{server.serverName || server.hostname || server.serverId}</CardTitle>
                             <p className="text-sm text-gray-400 mt-1">{server.operatingSystem || 'Unknown OS'}</p>
                           </div>
                           <div className="flex items-center gap-3">

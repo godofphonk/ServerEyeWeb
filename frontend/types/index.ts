@@ -56,10 +56,12 @@ export interface MonitoredServer {
   addedAt: string;
   lastSeen: string;
   isActive: boolean;
+  serverName?: string; // Custom server name
 }
 
 export interface AddServerRequest {
   serverKey: string;
+  serverName?: string;
 }
 
 export interface ShareServerRequest {

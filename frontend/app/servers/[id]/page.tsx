@@ -91,7 +91,7 @@ export default function ServerDetailPage() {
   };
 
   const loadDashboardMetrics = async () => {
-    return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics`);
+    return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
   };
 
   const loadHistoricalMetrics = async () => {
@@ -114,7 +114,7 @@ export default function ServerDetailPage() {
     }
 
     return await apiClient.get<MetricsResponse>(
-      `/servers/${serverId}/metrics/history?start=${start.toISOString()}&end=${end.toISOString()}`
+      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}`
     );
   };
 
@@ -163,7 +163,7 @@ export default function ServerDetailPage() {
                 </Button>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold">{server.hostname || server.serverId}</h1>
+                    <h1 className="text-3xl font-bold">{server.serverName || server.hostname || server.serverId}</h1>
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
                       <span className="text-sm capitalize">{server.isActive ? 'Active' : 'Inactive'}</span>
