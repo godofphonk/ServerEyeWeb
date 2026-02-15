@@ -2,7 +2,6 @@ namespace ServerEye.Core.Services;
 
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.Metrics;
-using ServerEye.Core.DTOs.WebSocket;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -12,7 +11,6 @@ public class MetricsService : IMetricsService
     private readonly IMetricsCacheService cacheService;
     private readonly IMonitoredServerRepository serverRepository;
     private readonly IUserServerAccessRepository accessRepository;
-    private readonly IWebSocketTokenService webSocketTokenService;
     private readonly ILogger<MetricsService> logger;
 
     public MetricsService(
@@ -20,14 +18,12 @@ public class MetricsService : IMetricsService
         IMetricsCacheService cacheService,
         IMonitoredServerRepository serverRepository,
         IUserServerAccessRepository accessRepository,
-        IWebSocketTokenService webSocketTokenService,
         ILogger<MetricsService> logger)
     {
         this.goApiClient = goApiClient;
         this.cacheService = cacheService;
         this.serverRepository = serverRepository;
         this.accessRepository = accessRepository;
-        this.webSocketTokenService = webSocketTokenService;
         this.logger = logger;
     }
 
@@ -109,26 +105,6 @@ public class MetricsService : IMetricsService
         this.logger.LogInformation("Retrieved dashboard metrics for server {ServerId}", serverId);
 
         return response;
-    }
-
-    public async Task<WebSocketTokenResponse> GenerateWebSocketTokenAsync(Guid userId, string serverId)
-    {
-        await this.ValidateAccessAsync(userId, serverId);
-
-        var ttl = TimeSpan.FromMinutes(30);
-        var token = this.webSocketTokenService.GenerateToken(userId, serverId, ttl);
-        var expiresAt = DateTime.UtcNow.Add(ttl);
-
-        var wsUrl = new Uri($"ws://localhost:8080/ws?token={token}");
-
-        this.logger.LogInformation("Generated WebSocket token for user {UserId} and server {ServerId}", userId, serverId);
-
-        return new WebSocketTokenResponse
-        {
-            Token = token,
-            WsUrl = wsUrl,
-            ExpiresAt = expiresAt
-        };
     }
 
     private async Task ValidateAccessAsync(Guid userId, string serverId)

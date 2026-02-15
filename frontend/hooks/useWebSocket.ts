@@ -21,31 +21,44 @@ export function useWebSocket({
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const isPollingRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   const pollMetrics = useCallback(async () => {
-    if (!enabled || isPollingRef.current) return;
+    if (!enabled || isPollingRef.current || !isMountedRef.current) return;
 
     isPollingRef.current = true;
 
     try {
-      console.log(`[Metrics] Polling metrics for server ${serverId}`);
       const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=5m`);
       
-      setLastMessage(metrics);
-      setIsConnected(true);
-      setError(null);
-      onMessage?.(metrics);
+      if (isMountedRef.current) {
+        setLastMessage(metrics);
+        setIsConnected(true);
+        setError(null);
+        onMessage?.(metrics);
+      }
     } catch (err: any) {
       console.error('[Metrics] Failed to poll:', err);
-      setError('Failed to fetch metrics');
-      onError?.(err.message);
+      if (isMountedRef.current) {
+        setError('Failed to fetch metrics');
+        onError?.(err.message);
+      }
     } finally {
       isPollingRef.current = false;
     }
   }, [serverId, enabled, onMessage, onError]);
 
   const startPolling = useCallback(() => {
-    if (!enabled) return;
+    // Отключаем polling - бэкенд возвращает 500 ошибки
+    console.log('[Metrics] Polling disabled - backend returns 500 errors');
+    return;
+
+    if (!enabled || !isMountedRef.current) return;
+
+    // Очистить предыдущий интервал если есть
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
     console.log(`[Metrics] Starting polling every ${interval}s`);
     
@@ -65,17 +78,17 @@ export function useWebSocket({
     }
     setIsConnected(false);
     isPollingRef.current = false;
-    console.log('[Metrics] Stopped polling');
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (enabled) {
       startPolling();
-    } else {
-      stopPolling();
     }
 
     return () => {
+      isMountedRef.current = false;
       stopPolling();
     };
   }, [enabled, startPolling, stopPolling]);

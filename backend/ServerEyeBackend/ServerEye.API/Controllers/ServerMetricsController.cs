@@ -3,7 +3,6 @@ namespace ServerEye.API.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Metrics;
-using ServerEye.Core.DTOs.WebSocket;
 using ServerEye.Core.Interfaces.Services;
 using System.Security.Claims;
 
@@ -111,27 +110,6 @@ public class ServerMetricsController : ControllerBase
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error getting dashboard metrics");
-            return this.StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    [HttpPost("live-token")]
-    public async Task<ActionResult<WebSocketTokenResponse>> GenerateLiveToken(string serverId)
-    {
-        try
-        {
-            var userId = this.GetUserId();
-            var tokenResponse = await this.metricsService.GenerateWebSocketTokenAsync(userId, serverId);
-            return this.Ok(tokenResponse);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            this.logger.LogWarning(ex, "Unauthorized access to generate live token");
-            return this.Forbid();
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error generating live token");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }

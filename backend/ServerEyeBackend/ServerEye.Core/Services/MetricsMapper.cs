@@ -8,7 +8,7 @@ public static class MetricsMapper
 {
     public static MetricsResponse MapToResponse(GoApiMetricsResponse goResponse, Server server, bool isCached)
     {
-        var dataPoints = goResponse.DataPoints.Select(MapDataPoint).ToList();
+        var dataPoints = goResponse.DataPoints?.Select(MapDataPoint).ToList() ?? new List<DataPoint>();
 
         return new MetricsResponse
         {
@@ -19,7 +19,7 @@ public static class MetricsMapper
             Granularity = goResponse.Granularity,
             DataPoints = dataPoints,
             TotalPoints = goResponse.TotalPoints,
-            Summary = CalculateSummary(goResponse.DataPoints, goResponse.StartTime, goResponse.EndTime),
+            Summary = CalculateSummary(goResponse.DataPoints ?? new List<GoApiDataPoint>(), goResponse.StartTime, goResponse.EndTime),
             IsCached = isCached,
             CachedAt = isCached ? DateTime.UtcNow : null
         };
