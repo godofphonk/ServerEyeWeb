@@ -39,11 +39,13 @@ export default function DashboardPage() {
     try {
       setIsLoadingServers(true);
       const response = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+      console.log('[Dashboard] Servers response:', response);
       setServers(response || []);
       
       // Load metrics for each server
       if (response && response.length > 0) {
         for (const server of response) {
+          console.log('[Dashboard] Loading metrics for:', server.serverId);
           loadServerMetrics(server.serverId);
         }
       }
@@ -225,7 +227,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {servers.map((server, i) => (
                   <motion.div
-                    key={server.id}
+                    key={server.serverId}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
@@ -236,8 +238,8 @@ export default function DashboardPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>{server.hostname}</CardTitle>
-                            <p className="text-sm text-gray-400 mt-1">{server.operatingSystem}</p>
+                            <CardTitle>{server.serverId}</CardTitle>
+                            <p className="text-sm text-gray-400 mt-1">{server.operatingSystem || 'Unknown OS'}</p>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">

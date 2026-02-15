@@ -79,8 +79,11 @@ export default function ServerDetailPage() {
   };
 
   const loadServerInfo = async () => {
+    console.log('[ServerDetail] Looking for serverId:', serverId);
     const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+    console.log('[ServerDetail] Available servers:', servers);
     const serverData = servers.find(s => s.serverId === serverId);
+    console.log('[ServerDetail] Found server:', serverData);
     if (!serverData) {
       throw new Error('Server not found');
     }
@@ -160,7 +163,7 @@ export default function ServerDetailPage() {
                 </Button>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold">{server.hostname}</h1>
+                    <h1 className="text-3xl font-bold">{server.hostname || server.serverId}</h1>
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
                       <span className="text-sm capitalize">{server.isActive ? 'Active' : 'Inactive'}</span>
