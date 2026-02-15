@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -135,7 +135,7 @@ namespace ServerEye.Infrastracture.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_UserServerAccesses_UserId_ServerId",
                 table: "UserServerAccesses",
-                columns: new[] { "UserId", "ServerId" },
+                columns: ["UserId", "ServerId"],
                 unique: true);
         }
 

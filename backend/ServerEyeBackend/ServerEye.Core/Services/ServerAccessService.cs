@@ -13,6 +13,7 @@ public class ServerAccessService : IServerAccessService
     private readonly IUserServerAccessRepository accessRepository;
     private readonly IUserRepository userRepository;
     private readonly IGoApiClient goApiClient;
+    private readonly IEncryptionService encryptionService;
     private readonly ILogger<ServerAccessService> logger;
 
     public ServerAccessService(
@@ -20,12 +21,14 @@ public class ServerAccessService : IServerAccessService
         IUserServerAccessRepository accessRepository,
         IUserRepository userRepository,
         IGoApiClient goApiClient,
+        IEncryptionService encryptionService,
         ILogger<ServerAccessService> logger)
     {
         this.serverRepository = serverRepository;
         this.accessRepository = accessRepository;
         this.userRepository = userRepository;
         this.goApiClient = goApiClient;
+        this.encryptionService = encryptionService;
         this.logger = logger;
     }
 
@@ -102,11 +105,13 @@ public class ServerAccessService : IServerAccessService
             };
         }
 
+        var encryptedKey = this.encryptionService.Encrypt(serverKey);
+
         var newServer = new Server
         {
             Id = Guid.NewGuid(),
             ServerId = serverInfo.ServerId,
-            ServerKey = serverKey,
+            ServerKey = encryptedKey,
             Hostname = serverInfo.Hostname,
             OperatingSystem = serverInfo.OperatingSystem,
             AgentVersion = serverInfo.AgentVersion,

@@ -12,6 +12,7 @@ public class MetricsService : IMetricsService
     private readonly IMetricsCacheService cacheService;
     private readonly IMonitoredServerRepository serverRepository;
     private readonly IUserServerAccessRepository accessRepository;
+    private readonly IWebSocketTokenService webSocketTokenService;
     private readonly ILogger<MetricsService> logger;
 
     public MetricsService(
@@ -19,12 +20,14 @@ public class MetricsService : IMetricsService
         IMetricsCacheService cacheService,
         IMonitoredServerRepository serverRepository,
         IUserServerAccessRepository accessRepository,
+        IWebSocketTokenService webSocketTokenService,
         ILogger<MetricsService> logger)
     {
         this.goApiClient = goApiClient;
         this.cacheService = cacheService;
         this.serverRepository = serverRepository;
         this.accessRepository = accessRepository;
+        this.webSocketTokenService = webSocketTokenService;
         this.logger = logger;
     }
 
@@ -112,8 +115,9 @@ public class MetricsService : IMetricsService
     {
         await this.ValidateAccessAsync(userId, serverId);
 
-        var token = GenerateToken(userId, serverId, TimeSpan.FromMinutes(30));
-        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(30));
+        var ttl = TimeSpan.FromMinutes(30);
+        var token = this.webSocketTokenService.GenerateToken(userId, serverId, ttl);
+        var expiresAt = DateTime.UtcNow.Add(ttl);
 
         var wsUrl = new Uri($"ws://localhost:8080/ws?token={token}");
 
@@ -125,13 +129,6 @@ public class MetricsService : IMetricsService
             WsUrl = wsUrl,
             ExpiresAt = expiresAt
         };
-    }
-
-    private static string GenerateToken(Guid userId, string serverId, TimeSpan expiration)
-    {
-        var payload = $"{userId}:{serverId}:{DateTime.UtcNow.Add(expiration):O}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(payload);
-        return Convert.ToBase64String(bytes);
     }
 
     private async Task ValidateAccessAsync(Guid userId, string serverId)

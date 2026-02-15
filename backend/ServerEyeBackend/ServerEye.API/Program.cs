@@ -98,6 +98,20 @@ builder.Services.AddScoped<IJwtService>(provider =>
         .GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
     return new JwtService(jwtSettings);
 });
+
+// Encryption service
+var encryptionSettings = configuration.GetSection("Encryption").Get<ServerEye.Core.Configuration.EncryptionSettings>() ?? new ServerEye.Core.Configuration.EncryptionSettings();
+builder.Services.AddSingleton(encryptionSettings);
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
+
+// WebSocket token service
+builder.Services.AddScoped<IWebSocketTokenService>(provider =>
+{
+    var jwtSettings = provider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
+        .GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
+    return new WebSocketTokenService(jwtSettings);
+});
+
 builder.Services.AddScoped<IMetricsCacheService, ServerEye.Infrastracture.Caching.MetricsCacheService>();
 builder.Services.AddScoped<IServerAccessService, ServerAccessService>();
 builder.Services.AddScoped<IMetricsService, MetricsService>();
