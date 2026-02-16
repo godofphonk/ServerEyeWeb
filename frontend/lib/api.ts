@@ -6,7 +6,7 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: 'http://localhost:5246/api',
-      timeout: 15000,
+      timeout: 30000, // Increased to 30s
       headers: {
         'Content-Type': 'application/json',
       },
@@ -23,6 +23,9 @@ class ApiClient {
           const token = localStorage.getItem('jwt_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log('[API] Adding JWT token to request:', config.url);
+          } else {
+            console.log('[API] No JWT token found for request:', config.url);
           }
         }
         return config;
