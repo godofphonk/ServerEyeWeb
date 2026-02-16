@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { usehttpPolling } from '@/hooks/usehttpPolling';
 import { LiveMetrics } from '@/types';
 import { Card } from '@/components/ui/Card';
+import { MetricsNotification } from '@/components/MetricsNotification';
 
 interface LiveMetricsPanelProps {
   serverId: string;
@@ -14,9 +15,10 @@ interface LiveMetricsPanelProps {
 
 export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetricsPanelProps) {
   const [metricsHistory, setMetricsHistory] = useState<LiveMetrics[]>([]);
+  const [apiMessage, setApiMessage] = useState<string | null>(null);
   const maxHistoryLength = 60; // Keep last 60 data points
 
-  const { isConnected, lastMessage, error, fetchMetrics, isLoading } = useWebSocket({
+  const { isConnected, lastMessage, error, fetchMetrics, isLoading } = usehttpPolling({
     serverId,
     enabled,
     onMessage: (data) => {
@@ -27,6 +29,11 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
         }
         return newHistory;
       });
+      
+      // Show API message if present
+      if (data.message) {
+        setApiMessage(data.message);
+      }
     },
   });
 
@@ -111,9 +118,9 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
             className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
           >
             <div className="bg-white/5 rounded-lg p-4">
-              <p className="text-xs text-gray-400 mb-1">CPU Temp</p>
+              <p className="text-xs text-gray-400 mb-1">CPU</p>
               <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.cpu || 0, 'cpu')}`}>
-                {(lastMessage?.cpu || 0).toFixed(1)}°C
+                {(lastMessage?.cpu || 0).toFixed(1)}%
               </p>
             </div>
 
@@ -139,7 +146,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
-              <p className="text-xs text-gray-400 mb-1">Temperature</p>
+              <p className="text-xs text-gray-400 mb-1">CPU Temp</p>
               <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.temperature || 0, 'temperature')}`}>
                 {(lastMessage?.temperature || 0).toFixed(1)}°C
               </p>
@@ -169,6 +176,11 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
           Last update: {new Date(lastMessage?.timestamp || new Date().toISOString()).toLocaleTimeString()}
         </div>
       )}
+      
+      <MetricsNotification 
+        message={apiMessage} 
+        onClose={() => setApiMessage(null)} 
+      />
     </Card>
   );
 }
