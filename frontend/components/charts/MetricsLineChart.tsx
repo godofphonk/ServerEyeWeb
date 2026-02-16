@@ -12,12 +12,36 @@ interface MetricsLineChartProps {
 }
 
 export default function MetricsLineChart({ data, metricType, title, color, unit = '%' }: MetricsLineChartProps) {
-  const chartData = data.map(point => ({
-    time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    avg: point[metricType].avg,
-    max: point[metricType].max,
-    min: point[metricType].min,
-  }));
+  // Early return if no data
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-gray-400">No data available</p>
+      </div>
+    );
+  }
+
+  const chartData = data.map(point => {
+    // Handle different field names (loadAverage vs load)
+    const metricData = metricType === 'load' ? point.loadAverage : point[metricType];
+    
+    if (!metricData || typeof metricData.avg === 'undefined') {
+      console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);
+      return {
+        time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        avg: 0,
+        max: 0,
+        min: 0,
+      };
+    }
+    
+    return {
+      time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      avg: metricData.avg,
+      max: metricData.max,
+      min: metricData.min,
+    };
+  });
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
