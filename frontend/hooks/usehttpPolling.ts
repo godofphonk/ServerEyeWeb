@@ -9,7 +9,7 @@ interface UseMetricsPollingOptions {
   interval?: number; // в секундах
 }
 
-export function useWebSocket({ 
+export function usehttpPolling({
   serverId, 
   onMessage, 
   onError,
@@ -43,15 +43,23 @@ export function useWebSocket({
         disk: metrics.summary?.avgDisk || 0,
         network: metrics.summary?.avgNetwork || 0,
         load: metrics.summary?.avgLoad || 0,
-        temperature: metrics.summary?.avgTemperature || 0,
+        temperature: metrics.dataPoints?.[metrics.dataPoints?.length - 1]?.temperature_details?.cpu_temperature || 
+                   metrics.dataPoints?.[metrics.dataPoints?.length - 1]?.temperature?.avg || 0,
         timestamp: new Date().toISOString(),
         serverId: metrics.serverId,
         serverName: metrics.serverName,
         dataPoints: metrics.dataPoints || [],
-        totalPoints: metrics.totalPoints || 0
+        totalPoints: metrics.totalPoints || 0,
+        message: metrics.message || null,
+        isCached: metrics.isCached || false
       };
       
       console.log('[Metrics] Processed real data:', processedData);
+      
+      // Log message if present
+      if (metrics.message) {
+        console.log('[Metrics] API Message:', metrics.message);
+      }
       
       setLastMessage(processedData);
       setIsConnected(true);
@@ -78,6 +86,7 @@ export function useWebSocket({
     isConnected,
     lastMessage,
     error,
+    isLoading,
     fetchMetrics: pollMetrics,
     reconnect: pollMetrics,
     disconnect: () => {},

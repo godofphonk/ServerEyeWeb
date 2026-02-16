@@ -52,11 +52,39 @@ export default function ServerDetailPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
+  // Load server info only once
   useEffect(() => {
-    if (isAuthenticated && serverId) {
-      loadServerData();
+    if (isAuthenticated && serverId && !server) {
+      loadServerInfo().then(setServer).catch(console.error);
     }
-  }, [isAuthenticated, serverId, timeRange]);
+  }, [isAuthenticated, serverId]);
+
+  // Load metrics when server is loaded or timeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server) {
+      loadMetrics();
+    }
+  }, [isAuthenticated, serverId, timeRange, server]);
+
+  const loadMetrics = async () => {
+    try {
+      setLoading(true);
+      console.log('[ServerDetail] Loading metrics for timeRange:', timeRange);
+      
+      const [dashboardData, metricsData] = await Promise.all([
+        loadDashboardMetrics(),
+        loadHistoricalMetrics()
+      ]);
+
+      setDashboardMetrics(dashboardData);
+      setHistoricalMetrics(metricsData);
+      console.log('[ServerDetail] Metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load metrics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadServerData = async () => {
     try {
@@ -79,11 +107,11 @@ export default function ServerDetailPage() {
   };
 
   const loadServerInfo = async () => {
-    console.log('[ServerDetail] Looking for serverId:', serverId);
+    const start = performance.now();
+    console.log('[ServerDetail] Loading server info for:', serverId);
     const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
-    console.log('[ServerDetail] Available servers:', servers);
     const serverData = servers.find(s => s.serverId === serverId);
-    console.log('[ServerDetail] Found server:', serverData);
+    console.log(`[ServerDetail] Server info loaded in ${(performance.now() - start).toFixed(0)}ms`);
     if (!serverData) {
       throw new Error('Server not found');
     }
@@ -91,41 +119,39 @@ export default function ServerDetailPage() {
   };
 
   const loadDashboardMetrics = async () => {
-    try {
-      return await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
-    } catch (dashboardError: any) {
-      console.error(`Dashboard endpoint failed for server ${serverId}:`, dashboardError);
-      
-      // Fallback to realtime endpoint
-      console.log(`Trying realtime endpoint for server ${serverId}`);
-      const realtimeMetrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=300`);
-      
-      // Convert realtime to dashboard format
-      const dashboardFormat: DashboardMetrics = {
-        current: {
-          cpu: realtimeMetrics.cpu || 0,
-          memory: realtimeMetrics.memory || 0,
-          disk: realtimeMetrics.disk || 0,
-          network: realtimeMetrics.network || 0,
-          load: realtimeMetrics.load || 0,
-          temperature: realtimeMetrics.temperature || 0,
-        },
-        trends: {
-          cpu: 0,
-          memory: 0,
-          disk: 0,
-          network: 0,
-          load: 0,
-          temperature: 0,
-        },
-        timestamp: new Date().toISOString(),
-      };
-      
-      return dashboardFormat;
-    }
+    const start = performance.now();
+    console.log('[ServerDetail] Loading dashboard metrics...');
+    const response = await apiClient.get<any>(`/servers/${serverId}/metrics/dashboard`);
+    console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
+    
+    // Transform API response to expected format
+    const result: DashboardMetrics = {
+      current: {
+        cpu: response.summary?.avgCpu || 0,
+        memory: response.summary?.avgMemory || 0,
+        disk: response.summary?.avgDisk || 0,
+        network: response.dataPoints?.[response.dataPoints.length - 1]?.network?.avg || 0,
+        load: response.dataPoints?.[response.dataPoints.length - 1]?.loadAverage?.avg || 0,
+        temperature: response.dataPoints?.[response.dataPoints.length - 1]?.temperature_details?.cpu_temperature || 
+                   response.dataPoints?.[response.dataPoints.length - 1]?.temperature?.avg || 0,
+      },
+      trends: {
+        cpu: response.summary?.avgCpu || 0,
+        memory: response.summary?.avgMemory || 0,
+        disk: response.summary?.avgDisk || 0,
+        network: 0,
+        load: 0,
+        temperature: 0,
+      },
+      timestamp: response.endTime || new Date().toISOString(),
+      alerts: []
+    };
+    
+    return result;
   };
 
   const loadHistoricalMetrics = async () => {
+    const perfStart = performance.now();
     const end = new Date();
     const start = new Date();
     
@@ -144,9 +170,19 @@ export default function ServerDetailPage() {
         break;
     }
 
-    return await apiClient.get<MetricsResponse>(
+    console.log(`[ServerDetail] Loading historical metrics for ${timeRange}...`);
+    const response = await apiClient.get<any>(
       `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1h`
     );
+    console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`, response);
+    
+    // Transform API response - use dataPoints instead of data
+    const result: MetricsResponse = {
+      data: response.dataPoints || [],
+      summary: response.summary || null
+    };
+    
+    return result;
   };
 
   const handleRefresh = async () => {
@@ -265,10 +301,10 @@ export default function ServerDetailPage() {
               {dashboardMetrics?.current && (
                 <>
                   <CurrentMetricsCard
-                    icon={Thermometer}
-                    label="CPU Temperature"
+                    icon={Cpu}
+                    label="CPU Usage"
                     value={dashboardMetrics.current.cpu}
-                    unit="°C"
+                    unit="%"
                     trend={dashboardMetrics.trends?.cpu}
                     color="blue"
                   />
@@ -305,8 +341,8 @@ export default function ServerDetailPage() {
                     color="yellow"
                   />
                   <CurrentMetricsCard
-                    icon={Activity}
-                    label="Temperature"
+                    icon={Thermometer}
+                    label="CPU Temperature"
                     value={dashboardMetrics.current.temperature}
                     unit="°C"
                     trend={dashboardMetrics.trends?.temperature}
@@ -345,9 +381,9 @@ export default function ServerDetailPage() {
                   <MetricsLineChart
                     data={historicalMetrics.data}
                     metricType="cpu"
-                    title="CPU Temperature"
+                    title="CPU Usage"
                     color="#3b82f6"
-                    unit="°C"
+                    unit="%"
                   />
                 </div>
               </Card>
@@ -395,18 +431,6 @@ export default function ServerDetailPage() {
                     metricType="load"
                     title="CPU Load"
                     color="#f59e0b"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsAreaChart
-                    data={historicalMetrics.data}
-                    metricType="temperature"
-                    title="System Temperature"
-                    color="#ef4444"
-                    unit="°C"
                   />
                 </div>
               </Card>
