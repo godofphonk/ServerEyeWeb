@@ -50,6 +50,14 @@ public class MetricsService : IMetricsService
         response.IsCached = true;
         response.CachedAt = DateTime.UtcNow;
 
+        if (!string.IsNullOrEmpty(response.Message))
+        {
+            this.logger.LogInformation(
+                "Go API message for server {ServerId}: {Message}",
+                serverId,
+                response.Message);
+        }
+
         this.logger.LogInformation(
             "Retrieved metrics for server {ServerId} from {Start} to {End}, granularity: {Granularity}, cached: {IsCached}",
             serverId,
@@ -70,6 +78,14 @@ public class MetricsService : IMetricsService
         var goResponse = await this.goApiClient.GetRealtimeMetricsAsync(serverId, duration) ?? throw new InvalidOperationException("Failed to retrieve realtime metrics from Go API");
 
         var response = MetricsMapper.MapToResponse(goResponse, server, false);
+
+        if (!string.IsNullOrEmpty(response.Message))
+        {
+            this.logger.LogInformation(
+                "Go API message for server {ServerId}: {Message}",
+                serverId,
+                response.Message);
+        }
 
         this.logger.LogInformation(
             "Retrieved realtime metrics for server {ServerId}, duration: {Duration}",
@@ -101,6 +117,14 @@ public class MetricsService : IMetricsService
 
         response.IsCached = true;
         response.CachedAt = DateTime.UtcNow;
+
+        if (!string.IsNullOrEmpty(response.Message))
+        {
+            this.logger.LogInformation(
+                "Go API message for server {ServerId}: {Message}",
+                serverId,
+                response.Message);
+        }
 
         this.logger.LogInformation("Retrieved dashboard metrics for server {ServerId}", serverId);
 

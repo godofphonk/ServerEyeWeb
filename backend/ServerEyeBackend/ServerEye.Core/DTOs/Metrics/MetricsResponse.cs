@@ -10,6 +10,7 @@ public class MetricsResponse
     public List<DataPoint> DataPoints { get; set; } = new();
     public int TotalPoints { get; set; }
     public MetricsSummary Summary { get; set; } = new();
+    public string? Message { get; set; }
     public bool IsCached { get; set; }
     public DateTime? CachedAt { get; set; }
 }

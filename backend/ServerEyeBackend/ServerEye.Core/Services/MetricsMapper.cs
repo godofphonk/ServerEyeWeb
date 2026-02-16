@@ -20,6 +20,7 @@ public static class MetricsMapper
             DataPoints = dataPoints,
             TotalPoints = goResponse.TotalPoints,
             Summary = CalculateSummary(goResponse.DataPoints ?? new List<GoApiDataPoint>(), goResponse.StartTime, goResponse.EndTime),
+            Message = goResponse.Message,
             IsCached = isCached,
             CachedAt = isCached ? DateTime.UtcNow : null
         };
