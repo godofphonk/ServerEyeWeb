@@ -91,6 +91,15 @@ export interface MetricValue {
   min: number;
 }
 
+export interface TemperatureDetails {
+  cpu_temperature: number;
+  gpu_temperature: number;
+  system_temperature: number;
+  storage_temperatures: any[] | null;
+  highest_temperature: number;
+  temperature_unit: 'celsius' | 'fahrenheit';
+}
+
 export interface MetricsDataPoint {
   timestamp: string;
   cpu: MetricValue;
@@ -98,7 +107,8 @@ export interface MetricsDataPoint {
   disk: MetricValue;
   network: MetricValue;
   temperature: MetricValue;
-  load: MetricValue;
+  loadAverage: MetricValue; // API returns loadAverage, not load
+  temperature_details?: TemperatureDetails | null; // Detailed temperature info
 }
 
 export interface HistoricalMetricsResponse {
@@ -129,6 +139,7 @@ export interface HistoricalMetricsResponse {
 
 export interface MetricsResponse {
   serverId: string;
+  serverName?: string;
   timeRange: {
     start: string;
     end: string;
@@ -136,6 +147,10 @@ export interface MetricsResponse {
   granularity: string;
   data: MetricsDataPoint[];
   totalPoints: number;
+  message?: string | null;
+  isCached?: boolean;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface CurrentMetrics {
@@ -148,12 +163,12 @@ export interface CurrentMetrics {
 }
 
 export interface MetricTrends {
-  cpu: string;
-  memory: string;
-  disk: string;
-  network: string;
-  temperature: string;
-  load: string;
+  cpu: number;
+  memory: number;
+  disk: number;
+  network: number;
+  temperature: number;
+  load: number;
 }
 
 export interface MetricAlert {
@@ -163,10 +178,12 @@ export interface MetricAlert {
 }
 
 export interface DashboardMetrics {
-  serverId: string;
+  serverId?: string;
   current: CurrentMetrics;
   trends: MetricTrends;
-  alerts: MetricAlert[];
+  alerts?: MetricAlert[];
+  timestamp?: string;
+  summary?: any;
 }
 
 // WebSocket types

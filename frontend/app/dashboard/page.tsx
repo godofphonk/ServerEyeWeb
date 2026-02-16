@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { motion } from "framer-motion";
@@ -25,32 +25,73 @@ export default function DashboardPage() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
 
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
+  const loadServersRef = useRef<(() => Promise<void>) | null>(null);
   
-  useEffect(() => {
-    const initAuth = async () => {
-      if (!checkAuthToken() && !autoLoginAttempted.current) {
-        autoLoginAttempted.current = true;
-        console.log('[Dashboard] No token found, attempting auto-login...');
-        const success = await autoLoginForDev();
-        setIsLoggedIn(success);
-      } else if (checkAuthToken()) {
-        setIsLoggedIn(true);
-      }
-    };
-    initAuth();
-  }, []);
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      loadServers();
+  const loadServerMetrics = useCallback(async (serverId: string) => {
+    console.log(`[Dashboard] loadServerMetrics called for ${serverId}, loadingMetrics:`, Array.from(loadingMetrics));
+    if (loadingMetrics.has(serverId)) {
+      console.log(`[Dashboard] Already loading metrics for ${serverId}, skipping...`);
+      return;
     }
-  }, [isLoggedIn]);
-
-  const loadServers = async () => {
+    
+    console.log(`[Dashboard] Calling loadServerMetrics for server ${serverId}`);
+    setLoadingMetrics(prev => new Set(prev).add(serverId));
+    
     try {
+      // Use optimized tiered endpoint
+      const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered`);
+      
+      // Transform API response to expected format
+      const dashboardMetrics: DashboardMetrics = {
+        current: {
+          cpu: response.summary?.avgCpu || 0,
+          memory: response.summary?.avgMemory || 0,
+          disk: response.summary?.avgDisk || 0,
+          network: response.dataPoints?.[response.dataPoints?.length - 1]?.network?.avg || 0,
+          load: response.dataPoints?.[response.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+          temperature: response.dataPoints?.[response.dataPoints?.length - 1]?.temperature_details?.cpu_temperature || 
+                   response.dataPoints?.[response.dataPoints?.length - 1]?.temperature?.avg || 0,
+        },
+        trends: {
+          cpu: response.summary?.avgCpu || 0,
+          memory: response.summary?.avgMemory || 0,
+          disk: response.summary?.avgDisk || 0,
+          network: 0,
+          load: 0,
+          temperature: 0,
+        },
+        timestamp: response.endTime || new Date().toISOString(),
+      };
+      
+      setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
+      console.log(`[Dashboard] Successfully loaded metrics for server ${serverId}`, dashboardMetrics);
+    } catch (error: any) {
+      console.error(`Failed to load metrics for server ${serverId}:`, error);
+      // Set empty metrics to prevent continuous loading
+      setMetrics(prev => ({ ...prev, [serverId]: null }));
+    } finally {
+      setLoadingMetrics(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(serverId);
+        return newSet;
+      });
+      console.log(`[Dashboard] Finished loading metrics for server ${serverId}`);
+    }
+  }, [loadingMetrics]);
+
+  const loadServers = useCallback(async () => {
+    console.log('[Dashboard] loadServers called, isLoadingServers:', isLoadingServers);
+    if (isLoadingServers) {
+      console.log('[Dashboard] Already loading servers, skipping...');
+      return;
+    }
+    
+    try {
+      console.log('[Dashboard] Setting isLoadingServers to true');
       setIsLoadingServers(true);
       const response = await apiClient.get<MonitoredServer[]>('/monitoredservers');
       console.log('[Dashboard] Servers response:', response);
@@ -67,59 +108,43 @@ export default function DashboardPage() {
       console.error("Failed to load servers:", error);
       setServers([]);
     } finally {
+      console.log('[Dashboard] Setting isLoadingServers to false');
       setIsLoadingServers(false);
     }
-  };
+  }, [isLoadingServers, loadServerMetrics]);
 
-  const loadServerMetrics = async (serverId: string) => {
-    try {
-      // Try dashboard endpoint first
-      const dashboardMetrics = await apiClient.get<DashboardMetrics>(`/servers/${serverId}/metrics/dashboard`);
-      setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
-    } catch (dashboardError: any) {
-      console.error(`Dashboard endpoint failed for server ${serverId}:`, dashboardError);
-      console.error(`Dashboard error details:`, dashboardError?.response?.data);
-      
-      try {
-        // Fallback to realtime endpoint
-        console.log(`Trying realtime endpoint for server ${serverId}`);
-        const realtimeMetrics = await apiClient.get<any>(`/servers/${serverId}/metrics/realtime?duration=300`);
-        
-        // Convert realtime to dashboard format
-        const dashboardFormat: DashboardMetrics = {
-          current: {
-            cpu: realtimeMetrics.cpu || 0,
-            memory: realtimeMetrics.memory || 0,
-            disk: realtimeMetrics.disk || 0,
-            network: realtimeMetrics.network || 0,
-            load: realtimeMetrics.load || 0,
-            temperature: realtimeMetrics.temperature || 0,
-          },
-          trends: {
-            cpu: '0',
-            memory: '0',
-            disk: '0',
-            network: '0',
-            load: '0',
-            temperature: '0',
-          },
-          timestamp: new Date().toISOString(),
-        };
-        
-        setMetrics(prev => ({ ...prev, [serverId]: dashboardFormat }));
-      } catch (realtimeError: any) {
-        console.error(`Realtime endpoint also failed for server ${serverId}:`, realtimeError);
-        console.error(`Realtime error details:`, realtimeError?.response?.data);
-        
-        // Set empty metrics to prevent continuous loading
-        setMetrics(prev => ({ ...prev, [serverId]: null }));
+  // Store the latest loadServers function in ref
+  loadServersRef.current = loadServers;
+  
+  useEffect(() => {
+    const initAuth = async () => {
+      if (!checkAuthToken() && !autoLoginAttempted.current) {
+        autoLoginAttempted.current = true;
+        console.log('[Dashboard] No token found, attempting auto-login...');
+        const success = await autoLoginForDev();
+        setIsLoggedIn(success);
+      } else if (checkAuthToken()) {
+        setIsLoggedIn(true);
       }
+    };
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoadingServers(false);
     }
-  };
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadServersRef.current?.();
+    }
+  }, [isLoggedIn]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadServers();
+    await loadServersRef.current?.();
     setIsRefreshing(false);
   };
 
@@ -139,7 +164,7 @@ export default function DashboardPage() {
       setIsDeleting(true);
       await apiClient.delete(`/monitoredservers/${deleteModal.server.serverId}`);
       setDeleteModal({ isOpen: false, server: null });
-      await loadServers(); // Reload servers list
+      await loadServersRef.current?.(); // Reload servers list
     } catch (error) {
       console.error("Failed to delete server:", error);
       alert("Failed to delete server. Please try again.");
