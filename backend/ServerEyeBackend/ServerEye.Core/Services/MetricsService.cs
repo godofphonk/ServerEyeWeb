@@ -29,21 +29,52 @@ public class MetricsService : IMetricsService
 
     public async Task<MetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime start, DateTime endTime, string? granularity = null)
     {
-        await this.ValidateAccessAsync(userId, serverId);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        this.logger.LogInformation("[PERF] GetMetricsAsync started for server {ServerId}", serverId);
 
+        var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
+        await this.ValidateAccessAsync(userId, serverId);
+        accessCheckTime.Stop();
+        this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
+
+        var dbQueryTime = System.Diagnostics.Stopwatch.StartNew();
         var server = await this.serverRepository.GetByServerIdAsync(serverId) ?? throw new InvalidOperationException("Server not found");
+        dbQueryTime.Stop();
+        this.logger.LogInformation("[PERF] Database query took {Ms}ms", dbQueryTime.ElapsedMilliseconds);
 
         var cacheKey = $"metrics:{serverId}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}:{granularity ?? "auto"}";
         var ttl = this.cacheService.CalculateTTL(start, endTime);
 
+        var cacheTime = System.Diagnostics.Stopwatch.StartNew();
         var response = await this.cacheService.GetOrSetAsync(
             cacheKey,
             async () =>
             {
-                var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start, endTime, granularity) ?? throw new InvalidOperationException("Failed to retrieve metrics from Go API");
-                return MetricsMapper.MapToResponse(goResponse, server, false);
+                this.logger.LogInformation("[PERF] Cache miss - fetching from Go API");
+                var goApiTime = System.Diagnostics.Stopwatch.StartNew();
+                var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start, endTime, granularity);
+                goApiTime.Stop();
+                
+                if (goResponse == null)
+                {
+                    this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
+                    throw new InvalidOperationException("Failed to retrieve metrics from Go API");
+                }
+                
+                if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
+                {
+                    this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
+                }
+                
+                var mapTime = System.Diagnostics.Stopwatch.StartNew();
+                var mapped = MetricsMapper.MapToResponse(goResponse, server, false);
+                mapTime.Stop();
+                this.logger.LogInformation("[PERF] Mapping took {Ms}ms", mapTime.ElapsedMilliseconds);
+                
+                return mapped;
             },
             ttl);
+        cacheTime.Stop();
 
         ArgumentNullException.ThrowIfNull(response);
 
@@ -58,13 +89,16 @@ public class MetricsService : IMetricsService
                 response.Message);
         }
 
+        stopwatch.Stop();
         this.logger.LogInformation(
-            "Retrieved metrics for server {ServerId} from {Start} to {End}, granularity: {Granularity}, cached: {IsCached}",
+            "[PERF] GetMetricsAsync completed in {TotalMs}ms (access: {AccessMs}ms, db: {DbMs}ms, cache: {CacheMs}ms) for server {ServerId}, granularity: {Granularity}, data points: {Points}",
+            stopwatch.ElapsedMilliseconds,
+            accessCheckTime.ElapsedMilliseconds,
+            dbQueryTime.ElapsedMilliseconds,
+            cacheTime.ElapsedMilliseconds,
             serverId,
-            start,
-            endTime,
             granularity ?? "auto",
-            response.IsCached);
+            response.DataPoints?.Count ?? 0);
 
         return response;
     }

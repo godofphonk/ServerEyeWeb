@@ -20,6 +20,7 @@ public class GoApiClient : IGoApiClient
 
     public async Task<GoApiMetricsResponse?> GetMetricsAsync(string serverId, DateTime start, DateTime endTime, string? granularity = null)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -31,25 +32,50 @@ public class GoApiClient : IGoApiClient
                 url += $"&granularity={granularity}";
             }
 
-            this.logger.LogInformation("Requesting metrics from Go API: {Url}", url);
+            this.logger.LogInformation("[PERF] Requesting metrics from Go API: {Url}", url);
 
             var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var requestTime = stopwatch.ElapsedMilliseconds;
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                this.logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
                 return null;
             }
 
             var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
-            this.logger.LogInformation("Successfully retrieved {Points} data points", result?.TotalPoints ?? 0);
+            stopwatch.Stop();
+            var totalTime = stopwatch.ElapsedMilliseconds;
+
+            if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
+            {
+                this.logger.LogWarning(
+                    "[PERF] Go API returned empty data after {Ms}ms for server {ServerId}",
+                    totalTime,
+                    serverId);
+                return result;
+            }
+
+            this.logger.LogInformation(
+                "[PERF] Successfully retrieved {Points} data points in {Ms}ms (request: {RequestMs}ms, parse: {ParseMs}ms)",
+                result.TotalPoints,
+                totalTime,
+                requestTime,
+                totalTime - requestTime);
 
             return result;
         }
+        catch (TaskCanceledException ex)
+        {
+            stopwatch.Stop();
+            this.logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
+            return null;
+        }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for metrics");
+            stopwatch.Stop();
+            this.logger.LogError(ex, "[PERF] Error calling Go API for metrics after {Ms}ms", stopwatch.ElapsedMilliseconds);
             return null;
         }
     }
