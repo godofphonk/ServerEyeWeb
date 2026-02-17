@@ -79,6 +79,7 @@ public class MetricsService : IMetricsService
                     Message = goResponse.Message,
                     Status = goResponse.Status,
                     TemperatureDetails = goResponse.TemperatureDetails,
+                    NetworkDetails = goResponse.NetworkDetails,
                     IsCached = false,
                     CachedAt = null
                 };

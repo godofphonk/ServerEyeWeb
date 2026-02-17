@@ -30,4 +30,7 @@ public class GoApiMetricsResponse
 
     [JsonPropertyName("temperature_details")]
     public TemperatureDetails? TemperatureDetails { get; set; }
+
+    [JsonPropertyName("network_details")]
+    public NetworkDetails? NetworkDetails { get; set; }
 }
