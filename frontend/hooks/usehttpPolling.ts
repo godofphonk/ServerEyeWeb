@@ -33,18 +33,21 @@ export function usehttpPolling({
 
     try {
       // Use C# backend endpoint for real metrics
-      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/dashboard`);
+      const end = new Date();
+      const start = new Date(end.getTime() - 5 * 60 * 1000);
+      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`);
       console.log('[Metrics] Success! Got real metrics:', metrics);
       
       // Process real metrics data from C# backend
+      const lastDataPoint = metrics.dataPoints?.[metrics.dataPoints?.length - 1];
       const processedData = {
-        cpu: metrics.summary?.avgCpu || 0,
-        memory: metrics.summary?.avgMemory || 0,
-        disk: metrics.summary?.avgDisk || 0,
-        network: metrics.summary?.avgNetwork || 0,
-        load: metrics.summary?.avgLoad || 0,
-        temperature: metrics.dataPoints?.[metrics.dataPoints?.length - 1]?.temperature_details?.cpu_temperature || 
-                   metrics.dataPoints?.[metrics.dataPoints?.length - 1]?.temperature?.avg || 0,
+        cpu: metrics.summary?.avgCpu || lastDataPoint?.cpu?.avg || 0,
+        memory: metrics.summary?.avgMemory || lastDataPoint?.memory?.avg || 0,
+        disk: metrics.summary?.avgDisk || lastDataPoint?.disk?.avg || 0,
+        network: lastDataPoint?.network?.avg || 0, // Используем последнюю точку данных для network
+        load: lastDataPoint?.loadAverage?.avg || 0,
+        temperature: lastDataPoint?.temperature_details?.cpu_temperature || 
+                   lastDataPoint?.temperature?.avg || 0,
         timestamp: new Date().toISOString(),
         serverId: metrics.serverId,
         serverName: metrics.serverName,

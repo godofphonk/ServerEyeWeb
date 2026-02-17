@@ -5,15 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
-  Activity, 
-  Cpu, 
-  HardDrive, 
-  Network, 
-  Thermometer, 
-  Gauge,
   Share2,
   RefreshCw,
-  Clock,
   AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -26,11 +19,9 @@ import {
 } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import CurrentMetricsCard from "@/components/charts/CurrentMetricsCard";
-import MetricsLineChart from "@/components/charts/MetricsLineChart";
-import MetricsAreaChart from "@/components/charts/MetricsAreaChart";
 import LiveMetricsPanel from "@/components/LiveMetricsPanel";
 import ShareServerModal from "@/components/ShareServerModal";
+import MetricsTabs from "@/components/tabs/MetricsTabs";
 
 export default function ServerDetailPage() {
   const router = useRouter();
@@ -121,7 +112,9 @@ export default function ServerDetailPage() {
   const loadDashboardMetrics = async () => {
     const start = performance.now();
     console.log('[ServerDetail] Loading dashboard metrics...');
-    const response = await apiClient.get<any>(`/servers/${serverId}/metrics/dashboard`);
+    const end = new Date();
+    const startTime = new Date(end.getTime() - 5 * 60 * 1000);
+    const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered?start=${startTime.toISOString()}&end=${end.toISOString()}&granularity=1m`);
     console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
     
     // Transform API response to expected format
@@ -178,8 +171,20 @@ export default function ServerDetailPage() {
     
     // Transform API response - use dataPoints instead of data
     const result: MetricsResponse = {
+      serverId: serverId,
+      serverName: response.serverName,
+      timeRange: {
+        start: response.startTime || new Date().toISOString(),
+        end: response.endTime || new Date().toISOString()
+      },
+      granularity: response.granularity || '1m',
       data: response.dataPoints || [],
-      summary: response.summary || null
+      totalPoints: response.totalPoints || 0,
+      summary: response.summary || null,
+      message: response.message || null,
+      isCached: response.isCached || false,
+      startTime: response.startTime,
+      endTime: response.endTime
     };
     
     return result;
@@ -294,154 +299,14 @@ export default function ServerDetailPage() {
             <LiveMetricsPanel serverId={serverId} enabled={server?.isActive} />
           </div>
 
-          {/* Current Metrics */}
+          {/* Metrics Tabs */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-6">Current Metrics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dashboardMetrics?.current && (
-                <>
-                  <CurrentMetricsCard
-                    icon={Cpu}
-                    label="CPU Usage"
-                    value={dashboardMetrics.current.cpu}
-                    unit="%"
-                    trend={dashboardMetrics.trends?.cpu}
-                    color="blue"
-                  />
-                  <CurrentMetricsCard
-                    icon={HardDrive}
-                    label="Memory Usage"
-                    value={dashboardMetrics.current.memory}
-                    unit="%"
-                    trend={dashboardMetrics.trends?.memory}
-                    color="purple"
-                  />
-                  <CurrentMetricsCard
-                    icon={HardDrive}
-                    label="Disk Usage"
-                    value={dashboardMetrics.current.disk}
-                    unit="%"
-                    trend={dashboardMetrics.trends?.disk}
-                    color="pink"
-                  />
-                  <CurrentMetricsCard
-                    icon={Network}
-                    label="Network"
-                    value={dashboardMetrics.current.network}
-                    unit="MB/s"
-                    trend={dashboardMetrics.trends?.network}
-                    color="green"
-                  />
-                  <CurrentMetricsCard
-                    icon={Cpu}
-                    label="CPU Load"
-                    value={dashboardMetrics.current.load}
-                    unit=""
-                    trend={dashboardMetrics.trends?.load}
-                    color="yellow"
-                  />
-                  <CurrentMetricsCard
-                    icon={Thermometer}
-                    label="CPU Temperature"
-                    value={dashboardMetrics.current.temperature}
-                    unit="°C"
-                    trend={dashboardMetrics.trends?.temperature}
-                    color="red"
-                  />
-                </>
-              )}
-            </div>
+            <MetricsTabs 
+              dashboardMetrics={dashboardMetrics}
+              historicalMetrics={historicalMetrics}
+              server={server}
+            />
           </div>
-
-          {/* Time Range Selector */}
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Historical Metrics</h2>
-            <div className="flex gap-2">
-              {(['1h', '6h', '24h', '7d'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    timeRange === range
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {range.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Charts */}
-          {historicalMetrics?.data && historicalMetrics.data.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsLineChart
-                    data={historicalMetrics.data}
-                    metricType="cpu"
-                    title="CPU Usage"
-                    color="#3b82f6"
-                    unit="%"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsAreaChart
-                    data={historicalMetrics.data}
-                    metricType="memory"
-                    title="Memory Usage"
-                    color="#a855f7"
-                    unit="%"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsAreaChart
-                    data={historicalMetrics.data}
-                    metricType="disk"
-                    title="Disk Usage"
-                    color="#ec4899"
-                    unit="%"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsLineChart
-                    data={historicalMetrics.data}
-                    metricType="network"
-                    title="Network Traffic"
-                    color="#10b981"
-                    unit="MB/s"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="h-80">
-                  <MetricsLineChart
-                    data={historicalMetrics.data}
-                    metricType="load"
-                    title="CPU Load"
-                    color="#f59e0b"
-                  />
-                </div>
-              </Card>
-            </div>
-          ) : (
-            <Card className="p-12 text-center">
-              <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2">No Historical Data</h3>
-              <p className="text-gray-400">Metrics data will appear here once available.</p>
-            </Card>
-          )}
         </div>
       </div>
 
