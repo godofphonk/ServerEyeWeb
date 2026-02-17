@@ -105,64 +105,19 @@ public class MetricsService : IMetricsService
 
     public async Task<MetricsResponse> GetRealtimeMetricsAsync(Guid userId, string serverId, TimeSpan? duration = null)
     {
-        await this.ValidateAccessAsync(userId, serverId);
-
-        var server = await this.serverRepository.GetByServerIdAsync(serverId) ?? throw new InvalidOperationException("Server not found");
-
-        var goResponse = await this.goApiClient.GetRealtimeMetricsAsync(serverId, duration) ?? throw new InvalidOperationException("Failed to retrieve realtime metrics from Go API");
-
-        var response = MetricsMapper.MapToResponse(goResponse, server, false);
-
-        if (!string.IsNullOrEmpty(response.Message))
-        {
-            this.logger.LogInformation(
-                "Go API message for server {ServerId}: {Message}",
-                serverId,
-                response.Message);
-        }
-
-        this.logger.LogInformation(
-            "Retrieved realtime metrics for server {ServerId}, duration: {Duration}",
-            serverId,
-            duration?.ToString() ?? "default");
-
-        return response;
+        var actualDuration = duration ?? TimeSpan.FromMinutes(5);
+        var end = DateTime.UtcNow;
+        var start = end - actualDuration;
+        
+        return await this.GetMetricsAsync(userId, serverId, start, end, "1m");
     }
 
     public async Task<MetricsResponse> GetDashboardMetricsAsync(Guid userId, string serverId)
     {
-        await this.ValidateAccessAsync(userId, serverId);
-
-        var server = await this.serverRepository.GetByServerIdAsync(serverId) ?? throw new InvalidOperationException("Server not found");
-
-        var cacheKey = $"dashboard:{serverId}";
-        var ttl = TimeSpan.FromMinutes(5);
-
-        var response = await this.cacheService.GetOrSetAsync(
-            cacheKey,
-            async () =>
-            {
-                var goResponse = await this.goApiClient.GetDashboardMetricsAsync(serverId) ?? throw new InvalidOperationException("Failed to retrieve dashboard metrics from Go API");
-                return MetricsMapper.MapToResponse(goResponse, server, false);
-            },
-            ttl);
-
-        ArgumentNullException.ThrowIfNull(response);
-
-        response.IsCached = true;
-        response.CachedAt = DateTime.UtcNow;
-
-        if (!string.IsNullOrEmpty(response.Message))
-        {
-            this.logger.LogInformation(
-                "Go API message for server {ServerId}: {Message}",
-                serverId,
-                response.Message);
-        }
-
-        this.logger.LogInformation("Retrieved dashboard metrics for server {ServerId}", serverId);
-
-        return response;
+        var end = DateTime.UtcNow;
+        var start = end - TimeSpan.FromMinutes(5);
+        
+        return await this.GetMetricsAsync(userId, serverId, start, end, "1m");
     }
 
     private async Task ValidateAccessAsync(Guid userId, string serverId)
