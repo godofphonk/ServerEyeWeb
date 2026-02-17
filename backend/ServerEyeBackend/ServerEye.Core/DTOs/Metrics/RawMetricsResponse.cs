@@ -1,33 +1,19 @@
-namespace ServerEye.Core.DTOs.GoApi;
+namespace ServerEye.Core.DTOs.Metrics;
 
-using System.Text.Json.Serialization;
+using ServerEye.Core.DTOs.GoApi;
 
-public class GoApiMetricsResponse
+public class RawMetricsResponse
 {
-    [JsonPropertyName("server_id")]
     public string ServerId { get; set; } = string.Empty;
-
-    [JsonPropertyName("start_time")]
+    public string ServerName { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
-
-    [JsonPropertyName("end_time")]
     public DateTime EndTime { get; set; }
-
-    [JsonPropertyName("granularity")]
     public string Granularity { get; set; } = string.Empty;
-
-    [JsonPropertyName("data_points")]
     public List<GoApiDataPoint> DataPoints { get; set; } = new();
-
-    [JsonPropertyName("total_points")]
     public int TotalPoints { get; set; }
-
-    [JsonPropertyName("message")]
     public string? Message { get; set; }
-
-    [JsonPropertyName("status")]
     public GoApiServerStatus? Status { get; set; }
-
-    [JsonPropertyName("temperature_details")]
+    public bool IsCached { get; set; }
+    public DateTime? CachedAt { get; set; }
     public TemperatureDetails? TemperatureDetails { get; set; }
 }

@@ -27,7 +27,7 @@ public class MetricsService : IMetricsService
         this.logger = logger;
     }
 
-    public async Task<MetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime start, DateTime endTime, string? granularity = null)
+    public async Task<RawMetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime start, DateTime endTime, string? granularity = null)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation("[PERF] GetMetricsAsync started for server {ServerId}", serverId);
@@ -66,12 +66,24 @@ public class MetricsService : IMetricsService
                     this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
                 }
                 
-                var mapTime = System.Diagnostics.Stopwatch.StartNew();
-                var mapped = MetricsMapper.MapToResponse(goResponse, server, false);
-                mapTime.Stop();
-                this.logger.LogInformation("[PERF] Mapping took {Ms}ms", mapTime.ElapsedMilliseconds);
+                // Return raw Go API response without mapping
+                var rawResponse = new RawMetricsResponse
+                {
+                    ServerId = goResponse.ServerId,
+                    ServerName = server.Hostname,
+                    StartTime = goResponse.StartTime,
+                    EndTime = goResponse.EndTime,
+                    Granularity = goResponse.Granularity,
+                    DataPoints = goResponse.DataPoints ?? new(),
+                    TotalPoints = goResponse.TotalPoints,
+                    Message = goResponse.Message,
+                    Status = goResponse.Status,
+                    TemperatureDetails = goResponse.TemperatureDetails,
+                    IsCached = false,
+                    CachedAt = null
+                };
                 
-                return mapped;
+                return rawResponse;
             },
             ttl);
         cacheTime.Stop();
@@ -103,7 +115,7 @@ public class MetricsService : IMetricsService
         return response;
     }
 
-    public async Task<MetricsResponse> GetRealtimeMetricsAsync(Guid userId, string serverId, TimeSpan? duration = null)
+    public async Task<RawMetricsResponse> GetRealtimeMetricsAsync(Guid userId, string serverId, TimeSpan? duration = null)
     {
         var actualDuration = duration ?? TimeSpan.FromMinutes(5);
         var end = DateTime.UtcNow;
@@ -112,7 +124,7 @@ public class MetricsService : IMetricsService
         return await this.GetMetricsAsync(userId, serverId, start, end, "1m");
     }
 
-    public async Task<MetricsResponse> GetDashboardMetricsAsync(Guid userId, string serverId)
+    public async Task<RawMetricsResponse> GetDashboardMetricsAsync(Guid userId, string serverId)
     {
         var end = DateTime.UtcNow;
         var start = end - TimeSpan.FromMinutes(5);
