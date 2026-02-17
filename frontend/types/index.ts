@@ -100,6 +100,24 @@ export interface TemperatureDetails {
   temperature_unit: 'celsius' | 'fahrenheit';
 }
 
+export interface NetworkInterface {
+  name: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_packets: number;
+  tx_packets: number;
+  rx_speed_mbps: number;
+  tx_speed_mbps: number;
+  status: 'up' | 'down';
+}
+
+export interface NetworkDetails {
+  interfaces: NetworkInterface[];
+  total_rx: number;
+  total_tx: number;
+  timestamp: string;
+}
+
 export interface MetricsDataPoint {
   timestamp: string;
   cpu: MetricValue;

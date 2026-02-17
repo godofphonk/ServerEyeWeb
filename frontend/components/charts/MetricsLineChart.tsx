@@ -2,6 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { MetricsDataPoint } from '@/types';
+import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
 interface MetricsLineChartProps {
   data: MetricsDataPoint[];
@@ -9,9 +10,10 @@ interface MetricsLineChartProps {
   title: string;
   color: string;
   unit?: string;
+  timeRange?: string;
 }
 
-export default function MetricsLineChart({ data, metricType, title, color, unit = '%' }: MetricsLineChartProps) {
+export default function MetricsLineChart({ data, metricType, title, color, unit = '%', timeRange = '1h' }: MetricsLineChartProps) {
   // Early return if no data
   if (!data || data.length === 0) {
     return (
@@ -35,7 +37,7 @@ export default function MetricsLineChart({ data, metricType, title, color, unit 
     if (!metricData || typeof metricData.avg === 'undefined') {
       console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);
       return {
-        time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        time: formatTimeByRange(point.timestamp, timeRange),
         avg: 0,
         max: 0,
         min: 0,
@@ -43,7 +45,7 @@ export default function MetricsLineChart({ data, metricType, title, color, unit 
     }
     
     return {
-      time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      time: formatTimeByRange(point.timestamp, timeRange),
       avg: metricData.avg,
       max: metricData.max,
       min: metricData.min,
@@ -85,6 +87,7 @@ export default function MetricsLineChart({ data, metricType, title, color, unit 
             dataKey="time" 
             stroke="#9ca3af"
             style={{ fontSize: '12px' }}
+            tickCount={getTickCountByRange(timeRange)}
           />
           <YAxis 
             stroke="#9ca3af"

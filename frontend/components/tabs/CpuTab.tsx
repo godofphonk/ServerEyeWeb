@@ -4,19 +4,35 @@ import { Cpu, Activity, Thermometer, Zap, Gauge } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';
+import TimeRangeSelector from '@/components/TimeRangeSelector';
 import { DashboardMetrics, MetricsResponse } from '@/types';
 
 interface CpuTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
+  cpuUsageHistoricalMetrics: MetricsResponse | null;
+  cpuLoadHistoricalMetrics: MetricsResponse | null;
+  cpuUsageTimeRange?: string;
+  cpuLoadTimeRange?: string;
+  onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
-export default function CpuTab({ dashboardMetrics, historicalMetrics }: CpuTabProps) {
+export default function CpuTab({ 
+  dashboardMetrics, 
+  historicalMetrics, 
+  cpuUsageHistoricalMetrics, 
+  cpuLoadHistoricalMetrics, 
+  cpuUsageTimeRange = '1h', 
+  cpuLoadTimeRange = '1h', 
+  onCpuUsageTimeRangeChange, 
+  onCpuLoadTimeRangeChange 
+}: CpuTabProps) {
   return (
     <div className="space-y-6">
       {/* CPU Overview Cards */}
       <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
           <Cpu className="w-5 h-5 text-blue-400" />
           CPU Overview
         </h3>
@@ -61,29 +77,55 @@ export default function CpuTab({ dashboardMetrics, historicalMetrics }: CpuTabPr
 
       {/* CPU Charts */}
       {historicalMetrics?.data && historicalMetrics.data.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Activity className="w-5 h-5 text-green-400" />
+            CPU Performance
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-400">CPU Usage</h4>
+              {onCpuUsageTimeRangeChange && (
+                <TimeRangeSelector 
+                  timeRange={cpuUsageTimeRange} 
+                  onTimeRangeChange={onCpuUsageTimeRangeChange} 
+                />
+              )}
+            </div>
             <div className="h-80">
               <MetricsLineChart
-                data={historicalMetrics.data}
+                data={cpuUsageHistoricalMetrics?.data || historicalMetrics?.data}
                 metricType="cpu"
-                title="CPU Usage"
+                title=""
                 color="#3b82f6"
                 unit="%"
+                timeRange={cpuUsageTimeRange}
               />
             </div>
           </Card>
 
           <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-400">CPU Load</h4>
+              {onCpuLoadTimeRangeChange && (
+                <TimeRangeSelector 
+                  timeRange={cpuLoadTimeRange} 
+                  onTimeRangeChange={onCpuLoadTimeRangeChange} 
+                />
+              )}
+            </div>
             <div className="h-80">
               <MetricsLineChart
-                data={historicalMetrics.data}
+                data={cpuLoadHistoricalMetrics?.data || historicalMetrics?.data}
                 metricType="load"
-                title="CPU Load"
+                title=""
                 color="#f59e0b"
+                timeRange={cpuLoadTimeRange}
               />
             </div>
           </Card>
+          </div>
         </div>
       ) : (
         <Card className="p-12 text-center">

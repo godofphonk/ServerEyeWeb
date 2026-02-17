@@ -48,6 +48,7 @@ export function usehttpPolling({
         load: lastDataPoint?.load_avg || 0,
         temperature: lastDataPoint?.temp_avg || 0,
         gpu_temperature: metrics.temperatureDetails?.gpu_temperature || 0, // Используем temperatureDetails из C# Backend
+        networkDetails: metrics.networkDetails || null, // Добавляем networkDetails из C# Backend
         timestamp: new Date().toISOString(),
         serverId: metrics.serverId,
         serverName: metrics.serverName,

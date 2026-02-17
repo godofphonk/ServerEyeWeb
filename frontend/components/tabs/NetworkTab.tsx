@@ -4,19 +4,24 @@ import { Wifi, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';
-import { DashboardMetrics, MetricsResponse } from '@/types';
+import TimeRangeSelector from '@/components/TimeRangeSelector';
+import { DashboardMetrics, MetricsResponse, NetworkDetails, NetworkInterface } from '@/types';
 
 interface NetworkTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
+  networkDetails?: NetworkDetails | null;
+  timeRange?: string;
+  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
-export default function NetworkTab({ dashboardMetrics, historicalMetrics }: NetworkTabProps) {
+export default function NetworkTab({ dashboardMetrics, historicalMetrics, networkDetails, timeRange = '1h', onTimeRangeChange }: NetworkTabProps) {
+  console.log('[NetworkTab] networkDetails:', networkDetails);
   return (
     <div className="space-y-6">
       {/* Network Overview Cards */}
       <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
           <Wifi className="w-5 h-5 text-green-400" />
           Network Overview
         </h3>
@@ -63,13 +68,23 @@ export default function NetworkTab({ dashboardMetrics, historicalMetrics }: Netw
       {historicalMetrics?.data && historicalMetrics.data.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-400">Network Traffic</h4>
+              {onTimeRangeChange && (
+                <TimeRangeSelector 
+                  timeRange={timeRange} 
+                  onTimeRangeChange={onTimeRangeChange} 
+                />
+              )}
+            </div>
             <div className="h-80">
               <MetricsLineChart
                 data={historicalMetrics.data}
                 metricType="network"
-                title="Network Traffic"
+                title=""
                 color="#10b981"
                 unit="MB/s"
+                timeRange={timeRange}
               />
             </div>
           </Card>
@@ -79,39 +94,33 @@ export default function NetworkTab({ dashboardMetrics, historicalMetrics }: Netw
               <CardTitle>Network Interfaces</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="p-3 bg-gray-800 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">eth0</span>
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Active</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-400">Down:</span>
-                      <span className="ml-2">{((dashboardMetrics?.current?.network || 0) * 10).toFixed(1)} MB/s</span>
+              <div className="space-y-4 max-h-64 overflow-y-auto">
+                {networkDetails?.interfaces && networkDetails.interfaces.length > 0 ? (
+                  networkDetails.interfaces.map((networkInterface: NetworkInterface) => (
+                    <div key={networkInterface.name} className="p-3 bg-gray-800 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">{networkInterface.name}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          networkInterface.status === 'up' 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {networkInterface.status === 'up' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">
+                        <span>RX: {((networkInterface.rx_bytes || 0) / 1024 / 1024).toFixed(1)} MB</span>
+                        <span className="mx-2">•</span>
+                        <span>TX: {((networkInterface.tx_bytes || 0) / 1024 / 1024).toFixed(1)} MB</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-400">Up:</span>
-                      <span className="ml-2">{((dashboardMetrics?.current?.network || 0) * 3).toFixed(1)} MB/s</span>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <Wifi className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No network interfaces available</p>
                   </div>
-                </div>
-                <div className="p-3 bg-gray-800 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">wlan0</span>
-                    <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded">Inactive</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-400">Down:</span>
-                      <span className="ml-2">0 MB/s</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Up:</span>
-                      <span className="ml-2">0 MB/s</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

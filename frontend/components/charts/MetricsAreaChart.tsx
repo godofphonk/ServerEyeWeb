@@ -2,6 +2,7 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MetricsDataPoint } from '@/types';
+import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
 interface MetricsAreaChartProps {
   data: MetricsDataPoint[];
@@ -9,9 +10,10 @@ interface MetricsAreaChartProps {
   title: string;
   color: string;
   unit?: string;
+  timeRange?: string;
 }
 
-export default function MetricsAreaChart({ data, metricType, title, color, unit = '%' }: MetricsAreaChartProps) {
+export default function MetricsAreaChart({ data, metricType, title, color, unit = '%', timeRange = '1h' }: MetricsAreaChartProps) {
   const chartData = data.map(point => {
     // Handle different field names (loadAverage vs load, cpu_frequency)
     let metricData;
@@ -26,13 +28,13 @@ export default function MetricsAreaChart({ data, metricType, title, color, unit 
     if (!metricData || typeof metricData.avg === 'undefined') {
       console.warn(`[MetricsAreaChart] Missing data for metric ${metricType}:`, point);
       return {
-        time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        time: formatTimeByRange(point.timestamp, timeRange),
         value: 0,
       };
     }
     
     return {
-      time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      time: formatTimeByRange(point.timestamp, timeRange),
       value: metricData.avg,
     };
   });
@@ -67,6 +69,7 @@ export default function MetricsAreaChart({ data, metricType, title, color, unit 
             dataKey="time" 
             stroke="#9ca3af"
             style={{ fontSize: '12px' }}
+            tickCount={getTickCountByRange(timeRange)}
           />
           <YAxis 
             stroke="#9ca3af"

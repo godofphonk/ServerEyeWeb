@@ -4,14 +4,17 @@ import { Database, HardDrive, Activity, TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';
+import TimeRangeSelector from '@/components/TimeRangeSelector';
 import { DashboardMetrics, MetricsResponse } from '@/types';
 
 interface StorageTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
+  timeRange?: string;
+  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
-export default function StorageTab({ dashboardMetrics, historicalMetrics }: StorageTabProps) {
+export default function StorageTab({ dashboardMetrics, historicalMetrics, timeRange = '1h', onTimeRangeChange }: StorageTabProps) {
   return (
     <div className="space-y-6">
       {/* Storage Overview Cards */}
@@ -63,13 +66,23 @@ export default function StorageTab({ dashboardMetrics, historicalMetrics }: Stor
       {historicalMetrics?.data && historicalMetrics.data.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-400">Disk Usage</h4>
+              {onTimeRangeChange && (
+                <TimeRangeSelector 
+                  timeRange={timeRange} 
+                  onTimeRangeChange={onTimeRangeChange} 
+                />
+              )}
+            </div>
             <div className="h-80">
               <MetricsLineChart
                 data={historicalMetrics.data}
                 metricType="disk"
-                title="Disk Usage"
+                title=""
                 color="#ec4899"
                 unit="%"
+                timeRange={timeRange}
               />
             </div>
           </Card>

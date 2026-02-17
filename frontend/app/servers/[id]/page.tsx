@@ -9,8 +9,10 @@ import {
   RefreshCw,
   AlertCircle
 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+// Temporarily disable AuthContext to prevent conflicts
+// import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/api";
+import { isAuthenticated as checkAuthToken, autoLoginForDev } from "@/lib/auth";
 import { 
   MonitoredServer, 
   DashboardMetrics, 
@@ -27,15 +29,44 @@ export default function ServerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const serverId = params.id as string;
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   
   const [server, setServer] = useState<MonitoredServer | null>(null);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
   const [historicalMetrics, setHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuHistoricalMetrics, setCpuHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuUsageHistoricalMetrics, setCpuUsageHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuLoadHistoricalMetrics, setCpuLoadHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [memoryHistoricalMetrics, setMemoryHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [networkHistoricalMetrics, setNetworkHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [diskHistoricalMetrics, setDiskHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [networkDetails, setNetworkDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('1h');
+  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuTimeRange, setCpuTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [networkTimeRange, setNetworkTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [diskTimeRange, setDiskTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Auto-login for development
+  useEffect(() => {
+    const initAuth = async () => {
+      if (!checkAuthToken()) {
+        console.log('[ServerDetail] No token found, attempting auto-login...');
+        const success = await autoLoginForDev();
+        setIsAuthenticated(success);
+      } else {
+        setIsAuthenticated(true);
+      }
+      setAuthLoading(false);
+    };
+    initAuth();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -57,23 +88,155 @@ export default function ServerDetailPage() {
     }
   }, [isAuthenticated, serverId, timeRange, server]);
 
+  // Load CPU metrics when cpuTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && cpuTimeRange) {
+      loadCpuMetrics();
+    }
+  }, [isAuthenticated, serverId, server, cpuTimeRange]);
+
+  // Load CPU Usage metrics when cpuUsageTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && cpuUsageTimeRange) {
+      loadCpuUsageMetrics();
+    }
+  }, [isAuthenticated, serverId, server, cpuUsageTimeRange]);
+
+  // Load CPU Load metrics when cpuLoadTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && cpuLoadTimeRange) {
+      loadCpuLoadMetrics();
+    }
+  }, [isAuthenticated, serverId, server, cpuLoadTimeRange]);
+
+  // Load Memory metrics when memoryTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && memoryTimeRange) {
+      loadMemoryMetrics();
+    }
+  }, [isAuthenticated, serverId, server, memoryTimeRange]);
+
+  // Load Network metrics when networkTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && networkTimeRange) {
+      loadNetworkMetrics();
+    }
+  }, [isAuthenticated, serverId, server, networkTimeRange]);
+
+  // Load Disk metrics when diskTimeRange changes
+  useEffect(() => {
+    if (isAuthenticated && serverId && server && diskTimeRange) {
+      loadDiskMetrics();
+    }
+  }, [isAuthenticated, serverId, server, diskTimeRange]);
+
   const loadMetrics = async () => {
     try {
       setLoading(true);
       console.log('[ServerDetail] Loading metrics for timeRange:', timeRange);
       
-      const [dashboardData, metricsData] = await Promise.all([
+      // Загружаем dashboard metrics и сохраняем полный API ответ
+      const [dashboardMetrics, apiResponse] = await Promise.all([
         loadDashboardMetrics(),
-        loadHistoricalMetrics()
+        apiClient.get<any>(`/servers/${serverId}/metrics/tiered`)
+      ]);
+      
+      // Загружаем исторические данные для каждого типа метрик отдельно
+      const [cpuMetrics, memoryMetrics, networkMetrics, diskMetrics] = await Promise.all([
+        loadHistoricalMetrics(cpuTimeRange),
+        loadHistoricalMetrics(memoryTimeRange),
+        loadHistoricalMetrics(networkTimeRange),
+        loadHistoricalMetrics(diskTimeRange)
       ]);
 
-      setDashboardMetrics(dashboardData);
-      setHistoricalMetrics(metricsData);
+      console.log('[ServerDetail] API response keys:', Object.keys(apiResponse));
+      console.log('[ServerDetail] networkDetails in API response:', apiResponse.networkDetails);
+      
+      setDashboardMetrics(dashboardMetrics);
+      setHistoricalMetrics(cpuMetrics); // Временно используем CPU как основной
+      setCpuHistoricalMetrics(cpuMetrics);
+      setMemoryHistoricalMetrics(memoryMetrics);
+      setNetworkHistoricalMetrics(networkMetrics);
+      setDiskHistoricalMetrics(diskMetrics);
+      
+      // Устанавливаем networkDetails из полного API ответа
+      if (apiResponse.networkDetails) {
+        console.log('[ServerDetail] Setting networkDetails:', apiResponse.networkDetails);
+        setNetworkDetails(apiResponse.networkDetails);
+      } else {
+        console.log('[ServerDetail] No networkDetails in API response');
+      }
       console.log('[ServerDetail] Metrics loaded successfully');
     } catch (error) {
       console.error("Failed to load metrics:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCpuMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading CPU metrics for cpuTimeRange:', cpuTimeRange);
+      const cpuMetrics = await loadHistoricalMetrics(cpuTimeRange);
+      setCpuHistoricalMetrics(cpuMetrics);
+      console.log('[ServerDetail] CPU metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load CPU metrics:", error);
+    }
+  };
+
+  const loadCpuUsageMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading CPU Usage metrics for cpuUsageTimeRange:', cpuUsageTimeRange);
+      const cpuUsageMetrics = await loadHistoricalMetrics(cpuUsageTimeRange);
+      setCpuUsageHistoricalMetrics(cpuUsageMetrics);
+      console.log('[ServerDetail] CPU Usage metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load CPU Usage metrics:", error);
+    }
+  };
+
+  const loadCpuLoadMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading CPU Load metrics for cpuLoadTimeRange:', cpuLoadTimeRange);
+      const cpuLoadMetrics = await loadHistoricalMetrics(cpuLoadTimeRange);
+      setCpuLoadHistoricalMetrics(cpuLoadMetrics);
+      console.log('[ServerDetail] CPU Load metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load CPU Load metrics:", error);
+    }
+  };
+
+  const loadMemoryMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading Memory metrics for memoryTimeRange:', memoryTimeRange);
+      const memoryMetrics = await loadHistoricalMetrics(memoryTimeRange);
+      setMemoryHistoricalMetrics(memoryMetrics);
+      console.log('[ServerDetail] Memory metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load Memory metrics:", error);
+    }
+  };
+
+  const loadNetworkMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading Network metrics for networkTimeRange:', networkTimeRange);
+      const networkMetrics = await loadHistoricalMetrics(networkTimeRange);
+      setNetworkHistoricalMetrics(networkMetrics);
+      console.log('[ServerDetail] Network metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load Network metrics:", error);
+    }
+  };
+
+  const loadDiskMetrics = async () => {
+    try {
+      console.log('[ServerDetail] Loading Disk metrics for diskTimeRange:', diskTimeRange);
+      const diskMetrics = await loadHistoricalMetrics(diskTimeRange);
+      setDiskHistoricalMetrics(diskMetrics);
+      console.log('[ServerDetail] Disk metrics loaded successfully');
+    } catch (error) {
+      console.error("Failed to load Disk metrics:", error);
     }
   };
 
@@ -116,6 +279,8 @@ export default function ServerDetailPage() {
     const startTime = new Date(end.getTime() - 5 * 60 * 1000);
     const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered?start=${startTime.toISOString()}&end=${end.toISOString()}&granularity=1m`);
     console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
+    console.log('[ServerDetail] Full API response keys:', Object.keys(response));
+    console.log('[ServerDetail] networkDetails in response:', response.networkDetails);
     
     // Transform API response to expected format
     const lastDataPoint = response.dataPoints?.[response.dataPoints.length - 1];
@@ -144,12 +309,80 @@ export default function ServerDetailPage() {
     return result;
   };
 
-  const loadHistoricalMetrics = async () => {
+  // Функция для округления timestamp до заданной гранулярности
+  const roundToGranularity = (date: Date, granularityMinutes: number): number => {
+    const ms = date.getTime();
+    const granularityMs = granularityMinutes * 60 * 1000;
+    return Math.floor(ms / granularityMs) * granularityMs;
+  };
+
+  // Функция для заполнения пропущенных данных нулями
+  const fillMissingDataPoints = (dataPoints: any[], start: Date, end: Date, granularityMinutes: number) => {
+    // Округляем start и end до гранулярности
+    const startRounded = roundToGranularity(start, granularityMinutes);
+    const endRounded = roundToGranularity(end, granularityMinutes);
+    
+    if (!dataPoints || dataPoints.length === 0) {
+      // Если данных нет вообще, создаем пустой массив с нулями
+      const result = [];
+      let current = startRounded;
+      while (current <= endRounded) {
+        result.push({
+          timestamp: new Date(current).toISOString(),
+          cpu_avg: 0, cpu_max: 0, cpu_min: 0,
+          memory_avg: 0, memory_max: 0, memory_min: 0,
+          disk_avg: 0, disk_max: 0, disk_min: 0,
+          network_avg: 0, network_max: 0, network_min: 0,
+          temp_avg: 0, temp_max: 0, temp_min: 0,
+          load_avg: 0, load_max: 0, load_min: 0,
+          sample_count: 0
+        });
+        current += granularityMinutes * 60 * 1000;
+      }
+      return result;
+    }
+
+    // Создаем карту существующих точек с округленными timestamp
+    const dataMap = new Map();
+    dataPoints.forEach(point => {
+      const timestamp = roundToGranularity(new Date(point.timestamp), granularityMinutes);
+      dataMap.set(timestamp, point);
+    });
+
+    // Заполняем все временные слоты
+    const result = [];
+    let current = startRounded;
+    while (current <= endRounded) {
+      const existingPoint = dataMap.get(current);
+      
+      if (existingPoint) {
+        result.push(existingPoint);
+      } else {
+        // Добавляем нулевые данные для пропущенных точек
+        result.push({
+          timestamp: new Date(current).toISOString(),
+          cpu_avg: 0, cpu_max: 0, cpu_min: 0,
+          memory_avg: 0, memory_max: 0, memory_min: 0,
+          disk_avg: 0, disk_max: 0, disk_min: 0,
+          network_avg: 0, network_max: 0, network_min: 0,
+          temp_avg: 0, temp_max: 0, temp_min: 0,
+          load_avg: 0, load_max: 0, load_min: 0,
+          sample_count: 0
+        });
+      }
+      
+      current += granularityMinutes * 60 * 1000;
+    }
+
+    return result;
+  };
+
+  const loadHistoricalMetrics = async (range: '1h' | '6h' | '24h' | '7d' | '30d' = '1h') => {
     const perfStart = performance.now();
     const end = new Date();
     const start = new Date();
     
-    switch(timeRange) {
+    switch(range) {
       case '1h':
         start.setHours(start.getHours() - 1);
         break;
@@ -162,16 +395,68 @@ export default function ServerDetailPage() {
       case '7d':
         start.setDate(start.getDate() - 7);
         break;
+      case '30d':
+        start.setDate(start.getDate() - 30);
+        break;
     }
 
-    console.log(`[ServerDetail] Loading historical metrics for ${timeRange}...`);
+    // Determine granularity based on time range
+    let granularity = '1h';
+    switch(range) {
+      case '1h':
+        granularity = '1m';
+        break;
+      case '6h':
+        granularity = '5m';
+        break;
+      case '24h':
+        granularity = '15m';
+        break;
+      case '7d':
+        granularity = '1h';
+        break;
+      case '30d':
+        granularity = '6h';
+        break;
+    }
+
+    console.log(`[ServerDetail] Loading historical metrics for ${range}...`);
+    console.log(`[ServerDetail] Time range: ${start.toISOString()} to ${end.toISOString()}`);
+    console.log(`[ServerDetail] Local time: ${start.toLocaleString()} to ${end.toLocaleString()}`);
+    console.log(`[ServerDetail] Granularity: ${granularity}`);
     const response = await apiClient.get<any>(
-      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1h`
+      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=${granularity}`
     );
-    console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`, response);
+    console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`);
+    console.log(`[ServerDetail] Data points count: ${response.dataPoints?.length || 0}`);
+    if (response.dataPoints?.length > 0) {
+      console.log(`[ServerDetail] First point: ${response.dataPoints[0].timestamp}`);
+      console.log(`[ServerDetail] Last point: ${response.dataPoints[response.dataPoints.length - 1].timestamp}`);
+      
+      // Проверяем если данных меньше ожидаемых
+      const expectedPoints = range === '1h' ? 60 : 
+                           range === '6h' ? 72 : 
+                           range === '24h' ? 96 : 
+                           range === '7d' ? 168 : 120;
+      
+      if (response.dataPoints.length < expectedPoints * 0.1) { // Меньше 10% от ожидаемых
+        console.warn(`[ServerDetail] Limited data available: ${response.dataPoints.length}/${expectedPoints} points`);
+      }
+    }
+    
+    // Определяем гранулярность в минутах для заполнения
+    const granularityMinutes = granularity === '1m' ? 1 :
+                               granularity === '5m' ? 5 :
+                               granularity === '15m' ? 15 :
+                               granularity === '1h' ? 60 :
+                               granularity === '6h' ? 360 : 1;
+    
+    // Заполняем пропущенные данные нулями
+    const filledDataPoints = fillMissingDataPoints(response.dataPoints || [], start, end, granularityMinutes);
+    console.log(`[ServerDetail] After filling: ${filledDataPoints.length} points`);
     
     // Transform API response - convert flat structure to nested for charts
-    const transformedDataPoints = (response.dataPoints || []).map((point: any) => ({
+    const transformedDataPoints = filledDataPoints.map((point: any) => ({
       timestamp: point.timestamp,
       cpu: { avg: point.cpu_avg, max: point.cpu_max, min: point.cpu_min },
       memory: { avg: point.memory_avg, max: point.memory_max, min: point.memory_min },
@@ -316,7 +601,28 @@ export default function ServerDetailPage() {
             <MetricsTabs 
               dashboardMetrics={dashboardMetrics}
               historicalMetrics={historicalMetrics}
+              cpuHistoricalMetrics={cpuHistoricalMetrics}
+              cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
+              cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
+              memoryHistoricalMetrics={memoryHistoricalMetrics}
+              networkHistoricalMetrics={networkHistoricalMetrics}
+              diskHistoricalMetrics={diskHistoricalMetrics}
               server={server}
+              timeRange={timeRange}
+              cpuTimeRange={cpuTimeRange}
+              cpuUsageTimeRange={cpuUsageTimeRange}
+              cpuLoadTimeRange={cpuLoadTimeRange}
+              memoryTimeRange={memoryTimeRange}
+              networkTimeRange={networkTimeRange}
+              diskTimeRange={diskTimeRange}
+              onTimeRangeChange={setTimeRange}
+              onCpuTimeRangeChange={setCpuTimeRange}
+              onCpuUsageTimeRangeChange={setCpuUsageTimeRange}
+              onCpuLoadTimeRangeChange={setCpuLoadTimeRange}
+              onMemoryTimeRangeChange={setMemoryTimeRange}
+              onNetworkTimeRangeChange={setNetworkTimeRange}
+              onDiskTimeRangeChange={setDiskTimeRange}
+              networkDetails={networkDetails}
             />
           </div>
         </div>
