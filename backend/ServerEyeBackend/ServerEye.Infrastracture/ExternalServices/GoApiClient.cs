@@ -44,7 +44,13 @@ public class GoApiClient : IGoApiClient
                 return null;
             }
 
-            var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            };
+            
+            var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>(options);
             stopwatch.Stop();
             var totalTime = stopwatch.ElapsedMilliseconds;
 
