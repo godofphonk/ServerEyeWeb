@@ -5,7 +5,7 @@ import { MetricsDataPoint } from '@/types';
 
 interface MetricsLineChartProps {
   data: MetricsDataPoint[];
-  metricType: 'cpu' | 'memory' | 'disk' | 'network' | 'temperature' | 'load';
+  metricType: 'cpu' | 'memory' | 'disk' | 'network' | 'temperature' | 'load' | 'cpu_frequency';
   title: string;
   color: string;
   unit?: string;
@@ -22,8 +22,15 @@ export default function MetricsLineChart({ data, metricType, title, color, unit 
   }
 
   const chartData = data.map(point => {
-    // Handle different field names (loadAverage vs load)
-    const metricData = metricType === 'load' ? point.loadAverage : point[metricType];
+    // Handle different field names (loadAverage vs load, cpu_frequency)
+    let metricData;
+    if (metricType === 'load') {
+      metricData = point.loadAverage;
+    } else if (metricType === 'cpu_frequency') {
+      metricData = point.cpu_frequency;
+    } else {
+      metricData = point[metricType];
+    }
     
     if (!metricData || typeof metricData.avg === 'undefined') {
       console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);

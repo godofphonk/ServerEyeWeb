@@ -108,6 +108,7 @@ export interface MetricsDataPoint {
   network: MetricValue;
   temperature: MetricValue;
   loadAverage: MetricValue; // API returns loadAverage, not load
+  cpu_frequency?: MetricValue; // CPU frequency in MHz
   temperature_details?: TemperatureDetails | null; // Detailed temperature info
 }
 
@@ -147,6 +148,22 @@ export interface MetricsResponse {
   granularity: string;
   data: MetricsDataPoint[];
   totalPoints: number;
+  summary?: {
+    avgCpu?: number;
+    avgMemory?: number;
+    avgDisk?: number;
+    avgNetwork?: number;
+    avgLoad?: number;
+    avgTemperature?: number;
+    minCpu?: number;
+    maxCpu?: number;
+    minMemory?: number;
+    maxMemory?: number;
+    minDisk?: number;
+    maxDisk?: number;
+    totalDataPoints?: number;
+    timeRange?: string;
+  } | null;
   message?: string | null;
   isCached?: boolean;
   startTime?: string;
@@ -159,6 +176,7 @@ export interface CurrentMetrics {
   disk: number;
   network: number;
   temperature: number;
+  gpu_temperature?: number;
   load: number;
 }
 

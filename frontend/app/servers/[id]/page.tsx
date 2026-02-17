@@ -118,15 +118,16 @@ export default function ServerDetailPage() {
     console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
     
     // Transform API response to expected format
+    const lastDataPoint = response.dataPoints?.[response.dataPoints.length - 1];
     const result: DashboardMetrics = {
       current: {
-        cpu: response.summary?.avgCpu || 0,
-        memory: response.summary?.avgMemory || 0,
-        disk: response.summary?.avgDisk || 0,
-        network: response.dataPoints?.[response.dataPoints.length - 1]?.network?.avg || 0,
-        load: response.dataPoints?.[response.dataPoints.length - 1]?.loadAverage?.avg || 0,
-        temperature: response.dataPoints?.[response.dataPoints.length - 1]?.temperature_details?.cpu_temperature || 
-                   response.dataPoints?.[response.dataPoints.length - 1]?.temperature?.avg || 0,
+        cpu: response.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
+        memory: response.summary?.avgMemory || lastDataPoint?.memory_avg || 0,
+        disk: response.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
+        network: lastDataPoint?.network_avg || 0,
+        load: lastDataPoint?.load_avg || 0,
+        temperature: lastDataPoint?.temp_avg || 0,
+        gpu_temperature: response.temperatureDetails?.gpu_temperature || 0,
       },
       trends: {
         cpu: response.summary?.avgCpu || 0,
@@ -169,7 +170,18 @@ export default function ServerDetailPage() {
     );
     console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`, response);
     
-    // Transform API response - use dataPoints instead of data
+    // Transform API response - convert flat structure to nested for charts
+    const transformedDataPoints = (response.dataPoints || []).map((point: any) => ({
+      timestamp: point.timestamp,
+      cpu: { avg: point.cpu_avg, max: point.cpu_max, min: point.cpu_min },
+      memory: { avg: point.memory_avg, max: point.memory_max, min: point.memory_min },
+      disk: { avg: point.disk_avg, max: point.disk_max, min: point.disk_min },
+      network: { avg: point.network_avg, max: point.network_max, min: point.network_min || point.network_avg },
+      temperature: { avg: point.temp_avg, max: point.temp_max, min: point.temp_min || point.temp_avg },
+      loadAverage: { avg: point.load_avg, max: point.load_max, min: point.load_min || point.load_avg },
+      sampleCount: point.sample_count
+    }));
+
     const result: MetricsResponse = {
       serverId: serverId,
       serverName: response.serverName,
@@ -178,7 +190,7 @@ export default function ServerDetailPage() {
         end: response.endTime || new Date().toISOString()
       },
       granularity: response.granularity || '1m',
-      data: response.dataPoints || [],
+      data: transformedDataPoints,
       totalPoints: response.totalPoints || 0,
       summary: response.summary || null,
       message: response.message || null,

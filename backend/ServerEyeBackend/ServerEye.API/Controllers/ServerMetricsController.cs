@@ -21,7 +21,7 @@ public class ServerMetricsController : ControllerBase
     }
 
     [HttpGet("tiered")]
-    public async Task<ActionResult<MetricsResponse>> GetTieredMetrics(string serverId, [FromQuery] MetricsRequest request)
+    public async Task<ActionResult<RawMetricsResponse>> GetTieredMetrics(string serverId, [FromQuery] MetricsRequest request)
     {
         try
         {
@@ -47,7 +47,7 @@ public class ServerMetricsController : ControllerBase
     }
 
     [HttpGet("realtime")]
-    public async Task<ActionResult<MetricsResponse>> GetRealtimeMetrics(string serverId, [FromQuery] string? duration = null)
+    public async Task<ActionResult<RawMetricsResponse>> GetRealtimeMetrics(string serverId, [FromQuery] string? duration = null)
     {
         try
         {
@@ -89,7 +89,7 @@ public class ServerMetricsController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult<MetricsResponse>> GetDashboardMetrics(string serverId)
+    public async Task<ActionResult<RawMetricsResponse>> GetDashboardMetrics(string serverId)
     {
         try
         {

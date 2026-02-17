@@ -41,13 +41,13 @@ export function usehttpPolling({
       // Process real metrics data from C# backend
       const lastDataPoint = metrics.dataPoints?.[metrics.dataPoints?.length - 1];
       const processedData = {
-        cpu: metrics.summary?.avgCpu || lastDataPoint?.cpu?.avg || 0,
-        memory: metrics.summary?.avgMemory || lastDataPoint?.memory?.avg || 0,
-        disk: metrics.summary?.avgDisk || lastDataPoint?.disk?.avg || 0,
-        network: lastDataPoint?.network?.avg || 0, // Используем последнюю точку данных для network
-        load: lastDataPoint?.loadAverage?.avg || 0,
-        temperature: lastDataPoint?.temperature_details?.cpu_temperature || 
-                   lastDataPoint?.temperature?.avg || 0,
+        cpu: metrics.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
+        memory: metrics.summary?.avgMemory || lastDataPoint?.memory_avg || 0,
+        disk: metrics.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
+        network: lastDataPoint?.network_avg || 0, // Используем последнюю точку данных для network
+        load: lastDataPoint?.load_avg || 0,
+        temperature: lastDataPoint?.temp_avg || 0,
+        gpu_temperature: metrics.temperatureDetails?.gpu_temperature || 0, // Используем temperatureDetails из C# Backend
         timestamp: new Date().toISOString(),
         serverId: metrics.serverId,
         serverName: metrics.serverName,

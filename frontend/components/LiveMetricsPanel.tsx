@@ -153,9 +153,9 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
             </div>
 
             <div className="bg-white/5 rounded-lg p-4">
-              <p className="text-xs text-gray-400 mb-1">Load</p>
-              <p className="text-2xl font-bold text-purple-400">
-                {(lastMessage?.load || 0).toFixed(2)}
+              <p className="text-xs text-gray-400 mb-1">GPU Temp</p>
+              <p className={`text-2xl font-bold ${getMetricColor(lastMessage?.gpu_temperature || 0, 'temperature')}`}>
+                {(lastMessage?.gpu_temperature || 0).toFixed(1)}°C
               </p>
             </div>
           </motion.div>

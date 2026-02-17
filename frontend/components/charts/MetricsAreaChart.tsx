@@ -5,17 +5,37 @@ import { MetricsDataPoint } from '@/types';
 
 interface MetricsAreaChartProps {
   data: MetricsDataPoint[];
-  metricType: 'cpu' | 'memory' | 'disk' | 'network' | 'temperature' | 'load';
+  metricType: 'cpu' | 'memory' | 'disk' | 'network' | 'temperature' | 'load' | 'cpu_frequency';
   title: string;
   color: string;
   unit?: string;
 }
 
 export default function MetricsAreaChart({ data, metricType, title, color, unit = '%' }: MetricsAreaChartProps) {
-  const chartData = data.map(point => ({
-    time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    value: point[metricType].avg,
-  }));
+  const chartData = data.map(point => {
+    // Handle different field names (loadAverage vs load, cpu_frequency)
+    let metricData;
+    if (metricType === 'load') {
+      metricData = point.loadAverage;
+    } else if (metricType === 'cpu_frequency') {
+      metricData = point.cpu_frequency;
+    } else {
+      metricData = point[metricType];
+    }
+    
+    if (!metricData || typeof metricData.avg === 'undefined') {
+      console.warn(`[MetricsAreaChart] Missing data for metric ${metricType}:`, point);
+      return {
+        time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        value: 0,
+      };
+    }
+    
+    return {
+      time: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      value: metricData.avg,
+    };
+  });
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
