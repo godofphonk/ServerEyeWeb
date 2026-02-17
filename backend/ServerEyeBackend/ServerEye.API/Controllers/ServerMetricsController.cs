@@ -25,8 +25,27 @@ public class ServerMetricsController : ControllerBase
     {
         try
         {
+            this.logger.LogInformation(
+                "GetTieredMetrics called: ServerId={ServerId}, Start={Start}, End={End}, Granularity={Granularity}",
+                serverId,
+                request.Start,
+                request.End,
+                request.Granularity);
+            
             var userId = this.GetUserId();
-            var metrics = await this.metricsService.GetMetricsAsync(userId, serverId, request.Start, request.End, request.Granularity);
+            
+            // Handle nullable parameters
+            DateTime? start = request.Start;
+            DateTime? end = request.End;
+            string? granularity = request.Granularity;
+            
+            // If no parameters provided, use default behavior (like dashboard)
+            if (!start.HasValue && !end.HasValue && string.IsNullOrEmpty(granularity))
+            {
+                this.logger.LogInformation("No parameters provided, using default behavior");
+            }
+            
+            var metrics = await this.metricsService.GetMetricsAsync(userId, serverId, start, end, granularity);
             return this.Ok(metrics);
         }
         catch (UnauthorizedAccessException ex)

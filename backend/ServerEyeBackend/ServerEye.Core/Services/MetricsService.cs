@@ -27,10 +27,15 @@ public class MetricsService : IMetricsService
         this.logger = logger;
     }
 
-    public async Task<RawMetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime start, DateTime endTime, string? granularity = null)
+    public async Task<RawMetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime? start, DateTime? endTime, string? granularity = null)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        this.logger.LogInformation("[PERF] GetMetricsAsync started for server {ServerId}", serverId);
+        this.logger.LogInformation(
+            "[PERF] GetMetricsAsync started for server {ServerId} with Start={Start}, End={End}, Granularity={Granularity}",
+            serverId,
+            start,
+            endTime,
+            granularity);
 
         var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
         await this.ValidateAccessAsync(userId, serverId);
@@ -42,8 +47,15 @@ public class MetricsService : IMetricsService
         dbQueryTime.Stop();
         this.logger.LogInformation("[PERF] Database query took {Ms}ms", dbQueryTime.ElapsedMilliseconds);
 
-        var cacheKey = $"metrics:{serverId}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}:{granularity ?? "auto"}";
-        var ttl = this.cacheService.CalculateTTL(start, endTime);
+        // Handle null parameters - use default behavior for dashboard
+        if (!start.HasValue && !endTime.HasValue)
+        {
+            this.logger.LogInformation("No time range provided, using dashboard default behavior");
+            return await this.GetDashboardMetricsAsync(userId, serverId);
+        }
+
+        var cacheKey = $"metrics:{serverId}:{start!.Value:yyyyMMddHHmmss}:{endTime!.Value:yyyyMMddHHmmss}:{granularity ?? "auto"}";
+        var ttl = this.cacheService.CalculateTTL(start!.Value, endTime!.Value);
 
         var cacheTime = System.Diagnostics.Stopwatch.StartNew();
         var response = await this.cacheService.GetOrSetAsync(
@@ -52,7 +64,7 @@ public class MetricsService : IMetricsService
             {
                 this.logger.LogInformation("[PERF] Cache miss - fetching from Go API");
                 var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start, endTime, granularity);
+                var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start!.Value, endTime!.Value, granularity);
                 goApiTime.Stop();
                 
                 if (goResponse == null)

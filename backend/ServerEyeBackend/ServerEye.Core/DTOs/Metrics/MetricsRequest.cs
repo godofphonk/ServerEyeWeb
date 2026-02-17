@@ -5,10 +5,10 @@ using System.Text.Json.Serialization;
 public class MetricsRequest
 {
     [JsonPropertyName("start")]
-    public DateTime Start { get; set; }
+    public DateTime? Start { get; set; }
 
     [JsonPropertyName("end")]
-    public DateTime End { get; set; }
+    public DateTime? End { get; set; }
 
     [JsonPropertyName("granularity")]
     public string? Granularity { get; set; }

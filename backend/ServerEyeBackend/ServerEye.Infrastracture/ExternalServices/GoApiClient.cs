@@ -47,7 +47,7 @@ public class GoApiClient : IGoApiClient
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                PropertyNamingPolicy = null
             };
             
             var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>(options);
