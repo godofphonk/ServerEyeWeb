@@ -17,4 +17,5 @@ public class RawMetricsResponse
     public DateTime? CachedAt { get; set; }
     public TemperatureDetails? TemperatureDetails { get; set; }
     public NetworkDetails? NetworkDetails { get; set; }
+    public DiskDetails? DiskDetails { get; set; }
 }

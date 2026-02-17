@@ -33,4 +33,7 @@ public class GoApiMetricsResponse
 
     [JsonPropertyName("network_details")]
     public NetworkDetails? NetworkDetails { get; set; }
+
+    [JsonPropertyName("disk_details")]
+    public DiskDetails? DiskDetails { get; set; }
 }
