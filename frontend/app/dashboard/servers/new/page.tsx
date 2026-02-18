@@ -27,8 +27,8 @@ export default function AddServerPage() {
       return;
     }
 
-    if (!apiKey.startsWith("srv_")) {
-      setError("Invalid API key format. Key must start with 'srv_'");
+    if (!apiKey.startsWith("srv_") && !apiKey.startsWith("key_")) {
+      setError("Invalid API key format. Key must start with 'srv_' or 'key_'");
       return;
     }
 
@@ -36,21 +36,15 @@ export default function AddServerPage() {
     setError("");
     
     try {
-      // TODO: Replace with actual API call
-      // await apiClient.post('/servers', {
-      //   name: serverName,
-      //   apiKey: apiKey,
-      //   hostname: "",
-      //   ipAddress: "",
-      //   os: "",
-      //   tags: []
-      // });
+      await apiClient.post('/monitoredservers/add', {
+        serverKey: apiKey,
+        serverName: serverName.trim(),
+      });
       
-      console.log('Creating server:', { name: serverName, apiKey });
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Failed to add server:", error);
-      setError(error?.message || "Failed to add server. Please check your API key.");
+      setError(error?.response?.data?.message || error?.message || "Failed to add server. Please check your API key.");
     } finally {
       setIsLoading(false);
     }

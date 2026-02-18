@@ -5,22 +5,39 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: '/api/proxy',
-      timeout: 15000,
+      baseURL: 'http://localhost:5246/api',
+      timeout: 30000, // Increased to 30s
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true,
     });
 
     this.setupInterceptors();
   }
 
   private setupInterceptors() {
+    // Add JWT token to all requests
+    this.client.interceptors.request.use(
+      (config) => {
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('jwt_token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('[API] Adding JWT token to request:', config.url);
+          } else {
+            console.log('[API] No JWT token found for request:', config.url);
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
+          localStorage.removeItem('jwt_token');
           window.location.href = '/login';
         }
         return Promise.reject(error);

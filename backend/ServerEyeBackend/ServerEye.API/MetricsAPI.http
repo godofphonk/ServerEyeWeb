@@ -1,0 +1,73 @@
+@baseUrl = http://localhost:5000
+@token = your_jwt_token_here
+
+### Register User
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "testuser",
+  "email": "test@example.com",
+  "password": "Test123!@#"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Test123!@#"
+}
+
+### Get User Servers
+GET {{baseUrl}}/api/monitoredservers
+Authorization: Bearer {{token}}
+
+### Add Server
+POST {{baseUrl}}/api/monitoredservers/add
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverKey": "srv_key_abc123xyz"
+}
+
+### Remove Server
+DELETE {{baseUrl}}/api/monitoredservers/srv_a3d881f1
+Authorization: Bearer {{token}}
+
+### Share Server
+POST {{baseUrl}}/api/monitoredservers/srv_a3d881f1/share
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "serverId": "srv_a3d881f1",
+  "targetUserEmail": "friend@example.com",
+  "accessLevel": 2
+}
+
+### Get Tiered Metrics
+GET {{baseUrl}}/api/servers/srv_a3d881f1/metrics/tiered?start=2026-02-15T15:00:00Z&end=2026-02-15T16:00:00Z
+Authorization: Bearer {{token}}
+
+### Get Tiered Metrics with Granularity
+GET {{baseUrl}}/api/servers/srv_a3d881f1/metrics/tiered?start=2026-02-15T00:00:00Z&end=2026-02-15T23:59:59Z&granularity=1h
+Authorization: Bearer {{token}}
+
+### Get Realtime Metrics
+GET {{baseUrl}}/api/servers/srv_a3d881f1/metrics/realtime
+Authorization: Bearer {{token}}
+
+### Get Realtime Metrics with Duration
+GET {{baseUrl}}/api/servers/srv_a3d881f1/metrics/realtime?duration=1h
+Authorization: Bearer {{token}}
+
+### Get Dashboard Metrics
+GET {{baseUrl}}/api/servers/srv_a3d881f1/metrics/dashboard
+Authorization: Bearer {{token}}
+
+### Generate WebSocket Token
+POST {{baseUrl}}/api/servers/srv_a3d881f1/metrics/live-token
+Authorization: Bearer {{token}}
