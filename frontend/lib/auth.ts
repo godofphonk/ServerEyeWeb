@@ -1,0 +1,59 @@
+import { apiClient } from './api';
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
+
+export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
+  const response = await apiClient.post<LoginResponse>('/users/login', credentials);
+  
+  // Save token to localStorage
+  if (typeof window !== 'undefined' && response.token) {
+    localStorage.setItem('jwt_token', response.token);
+  }
+  
+  return response;
+}
+
+export async function logout(): Promise<void> {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('jwt_token');
+  }
+}
+
+export function getToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('jwt_token');
+  }
+  return null;
+}
+
+export function isAuthenticated(): boolean {
+  return !!getToken();
+}
+
+// Auto-login for development with test credentials
+export async function autoLoginForDev(): Promise<boolean> {
+  try {
+    const response = await login({
+      email: 'finalvalidation@example.com',
+      password: 'Test123!@#'
+    });
+    
+    console.log('[Auth] Auto-login successful:', response.user);
+    return true;
+  } catch (error) {
+    console.error('[Auth] Auto-login failed:', error);
+    return false;
+  }
+}

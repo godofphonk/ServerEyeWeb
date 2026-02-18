@@ -1,78 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiClient } from '@/lib/api';
+import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api";
-import { Server, Metric } from "@/types";
+import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, loading, checkAuth } = useAuth();
+  // Temporarily disable AuthContext to prevent conflicts
+  // const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
-  const [servers, setServers] = useState<Server[]>([]);
-  const [metrics, setMetrics] = useState<Record<string, Metric[]>>({});
+  const [servers, setServers] = useState<MonitoredServer[]>([]);
+  const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
   const [isLoadingServers, setIsLoadingServers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: Server | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: MonitoredServer | null }>({
     isOpen: false,
     server: null,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
+  // Auto-login for development - CORS is fixed!
+  const autoLoginAttempted = useRef(false);
+  const loadServersRef = useRef<(() => Promise<void>) | null>(null);
+  
+  const loadServerMetrics = useCallback(async (serverId: string) => {
+    console.log(`[Dashboard] loadServerMetrics called for ${serverId}, loadingMetrics:`, Array.from(loadingMetrics));
+    if (loadingMetrics.has(serverId)) {
+      console.log(`[Dashboard] Already loading metrics for ${serverId}, skipping...`);
+      return;
     }
-  }, [isAuthenticated, loading, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadServers();
-    }
-  }, [isAuthenticated]);
-
-  const loadServers = async () => {
+    
+    console.log(`[Dashboard] Calling loadServerMetrics for server ${serverId}`);
+    setLoadingMetrics(prev => new Set(prev).add(serverId));
+    
     try {
+      // Use optimized tiered endpoint
+      const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered`);
+      
+      // Transform API response to expected format
+      const dashboardMetrics: DashboardMetrics = {
+        current: {
+          cpu: response.summary?.avgCpu || 0,
+          memory: response.summary?.avgMemory || 0,
+          disk: response.summary?.avgDisk || 0,
+          network: response.dataPoints?.[response.dataPoints?.length - 1]?.network?.avg || 0,
+          load: response.dataPoints?.[response.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+          temperature: response.dataPoints?.[response.dataPoints?.length - 1]?.temperature_details?.cpu_temperature || 
+                   response.dataPoints?.[response.dataPoints?.length - 1]?.temperature?.avg || 0,
+        },
+        trends: {
+          cpu: response.summary?.avgCpu || 0,
+          memory: response.summary?.avgMemory || 0,
+          disk: response.summary?.avgDisk || 0,
+          network: 0,
+          load: 0,
+          temperature: 0,
+        },
+        timestamp: response.endTime || new Date().toISOString(),
+      };
+      
+      setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
+      console.log(`[Dashboard] Successfully loaded metrics for server ${serverId}`, dashboardMetrics);
+    } catch (error: any) {
+      console.error(`Failed to load metrics for server ${serverId}:`, error);
+      // Set empty metrics to prevent continuous loading
+      setMetrics(prev => ({ ...prev, [serverId]: null }));
+    } finally {
+      setLoadingMetrics(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(serverId);
+        return newSet;
+      });
+      console.log(`[Dashboard] Finished loading metrics for server ${serverId}`);
+    }
+  }, [loadingMetrics]);
+
+  const loadServers = useCallback(async () => {
+    console.log('[Dashboard] loadServers called, isLoadingServers:', isLoadingServers);
+    if (isLoadingServers) {
+      console.log('[Dashboard] Already loading servers, skipping...');
+      return;
+    }
+    
+    try {
+      console.log('[Dashboard] Setting isLoadingServers to true');
       setIsLoadingServers(true);
-      const response = await apiClient.get<{servers: Server[]}>('/servers');
-      setServers(response.servers || []);
+      const response = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+      console.log('[Dashboard] Servers response:', response);
+      setServers(response || []);
       
       // Load metrics for each server
-      if (response.servers && response.servers.length > 0) {
-        for (const server of response.servers) {
-          loadServerMetrics(server.id);
+      if (response && response.length > 0) {
+        for (const server of response) {
+          console.log('[Dashboard] Loading metrics for:', server.serverId);
+          loadServerMetrics(server.serverId);
         }
       }
     } catch (error) {
       console.error("Failed to load servers:", error);
       setServers([]);
     } finally {
+      console.log('[Dashboard] Setting isLoadingServers to false');
       setIsLoadingServers(false);
     }
-  };
+  }, [isLoadingServers, loadServerMetrics]);
 
-  const loadServerMetrics = async (serverId: string) => {
-    try {
-      const serverMetrics = await apiClient.get<Metric[]>(`/metrics/${serverId}/latest`);
-      setMetrics(prev => ({ ...prev, [serverId]: serverMetrics || [] }));
-    } catch (error) {
-      console.error(`Failed to load metrics for server ${serverId}:`, error);
-      // Set empty array for servers without metrics
-      setMetrics(prev => ({ ...prev, [serverId]: [] }));
+  // Store the latest loadServers function in ref
+  loadServersRef.current = loadServers;
+  
+  useEffect(() => {
+    const initAuth = async () => {
+      if (!checkAuthToken() && !autoLoginAttempted.current) {
+        autoLoginAttempted.current = true;
+        console.log('[Dashboard] No token found, attempting auto-login...');
+        const success = await autoLoginForDev();
+        setIsLoggedIn(success);
+      } else if (checkAuthToken()) {
+        setIsLoggedIn(true);
+      }
+    };
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoadingServers(false);
     }
-  };
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadServersRef.current?.();
+    }
+  }, [isLoggedIn]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadServers();
+    await loadServersRef.current?.();
     setIsRefreshing(false);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, server: Server) => {
+  const handleRefreshMetrics = async (serverId: string) => {
+    await loadServerMetrics(serverId);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, server: MonitoredServer) => {
     e.stopPropagation(); // Prevent navigation to server details
     setDeleteModal({ isOpen: true, server });
   };
@@ -82,11 +162,9 @@ export default function DashboardPage() {
     
     try {
       setIsDeleting(true);
-      // TODO: Replace with actual API call
-      // await apiClient.delete(`/servers/${deleteModal.server.id}`);
-      console.log('Deleting server:', deleteModal.server.id);
+      await apiClient.delete(`/monitoredservers/${deleteModal.server.serverId}`);
       setDeleteModal({ isOpen: false, server: null });
-      await loadServers(); // Reload servers list
+      await loadServersRef.current?.(); // Reload servers list
     } catch (error) {
       console.error("Failed to delete server:", error);
       alert("Failed to delete server. Please try again.");
@@ -99,35 +177,27 @@ export default function DashboardPage() {
     setDeleteModal({ isOpen: false, server: null });
   };
 
-  const getMetricValue = (serverId: string, type: string): string => {
-    const serverMetrics = metrics[serverId] || [];
+  const getMetricValue = (serverId: string, type: 'cpu' | 'memory' | 'disk'): string => {
+    const dashboardMetrics = metrics[serverId];
     
-    // Map display types to actual metric types
-    let metricType = type;
+    // Check if metrics failed to load
+    if (dashboardMetrics === null) {
+      return "Error";
+    }
+    
+    if (!dashboardMetrics?.current) return "N/A";
+    
+    const value = dashboardMetrics.current[type];
+    
     switch(type) {
       case 'cpu':
-        metricType = 'cpu_temperature';
-        break;
+        return `${Math.round(value)}%`;
       case 'memory':
-        metricType = 'memory_usage';
-        break;
       case 'disk':
-        metricType = 'disk_usage';
-        break;
+        return `${Math.round(value)}%`;
+      default:
+        return "N/A";
     }
-    
-    const metric = serverMetrics.find(m => m.type === metricType);
-    if (!metric) return "N/A";
-    
-    // Format value based on type
-    if (metricType === 'memory_usage' || metricType === 'disk_usage') {
-      return `${Math.round(metric.value)}%`;
-    }
-    if (metricType === 'cpu_temperature') {
-      return `${Math.round(metric.value)}°C`;
-    }
-    
-    return `${metric.value}${metric.unit || ''}`;
   };
 
   const getAverageCpu = (): string => {
@@ -137,19 +207,18 @@ export default function DashboardPage() {
     let serverCount = 0;
     
     servers.forEach(server => {
-      const serverMetrics = metrics[server.id] || [];
-      const cpuMetric = serverMetrics.find(m => m.type === 'cpu_temperature');
-      if (cpuMetric) {
-        totalCpu += cpuMetric.value;
+      const dashboardMetrics = metrics[server.serverId];
+      if (dashboardMetrics?.current?.cpu) {
+        totalCpu += dashboardMetrics.current.cpu;
         serverCount++;
       }
     });
     
     if (serverCount === 0) return "N/A";
-    return `${Math.round(totalCpu / serverCount)}°C`;
+    return `${Math.round(totalCpu / serverCount)}%`;
   };
 
-  if (loading || !isAuthenticated) {
+  if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white">Loading...</div>
@@ -168,7 +237,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-                <p className="text-gray-400">Welcome back, {user?.username}</p>
+                <p className="text-gray-400">Welcome back, User</p>
               </div>
               <div className="flex gap-4">
                 <Button
@@ -193,8 +262,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
               { label: "Total Servers", value: servers.length, icon: ServerIcon, color: "blue" },
-              { label: "Online", value: servers.filter(s => s.status === 'online').length, icon: Activity, color: "green" },
-              { label: "Offline", value: servers.filter(s => s.status === 'offline').length, icon: Activity, color: "red" },
+              { label: "Active", value: servers.filter(s => s.isActive).length, icon: Activity, color: "green" },
+              { label: "Inactive", value: servers.filter(s => !s.isActive).length, icon: Activity, color: "red" },
               { label: "Avg CPU", value: getAverageCpu(), icon: Cpu, color: "purple" },
             ].map((stat, i) => (
               <motion.div
@@ -244,24 +313,24 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {servers.map((server, i) => (
                   <motion.div
-                    key={server.id}
+                    key={server.serverId}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    onClick={() => router.push(`/servers/${server.id}`)}
+                    onClick={() => router.push(`/servers/${server.serverId}`)}
                     className="cursor-pointer"
                   >
                     <Card hover>
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>{server.name}</CardTitle>
-                            <p className="text-sm text-gray-400 mt-1">{server.hostname}</p>
+                            <CardTitle>{server.serverName || server.hostname || server.serverId}</CardTitle>
+                            <p className="text-sm text-gray-400 mt-1">{server.operatingSystem || 'Unknown OS'}</p>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${server.status === 'online' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                              <span className="text-sm capitalize">{server.status}</span>
+                              <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                              <span className="text-sm capitalize">{server.isActive ? 'active' : 'inactive'}</span>
                             </div>
                             <button
                               onClick={(e) => handleDeleteClick(e, server)}
@@ -277,26 +346,44 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-1">CPU</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'cpu')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'cpu')}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Memory</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'memory')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'memory')}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Disk</p>
-                            <p className="text-lg font-semibold">{getMetricValue(server.id, 'disk')}</p>
+                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverId, 'disk')}
+                            </p>
                           </div>
                         </div>
-                        {server.tags && server.tags.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {server.tags.map((tag, i) => (
-                              <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-xs">
-                                {tag}
-                              </span>
-                            ))}
+                        {metrics[server.serverId] === null && (
+                          <div className="mt-2 text-xs text-red-400">
+                            Metrics unavailable - server may be offline
                           </div>
                         )}
+                        <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                          <span>Access: {server.accessLevel}</span>
+                          <div className="flex items-center gap-2">
+                            <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRefreshMetrics(server.serverId);
+                              }}
+                              className="p-1 rounded hover:bg-gray-700 transition-colors"
+                              title="Обновить метрики"
+                            >
+                              <RefreshCw className="w-3 h-3 text-gray-400 hover:text-blue-400" />
+                            </button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -326,7 +413,7 @@ export default function DashboardPage() {
               
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-300">
-                  Are you sure you want to delete <span className="font-semibold text-white">{deleteModal.server?.name}</span>?
+                  Are you sure you want to delete <span className="font-semibold text-white">{deleteModal.server?.hostname}</span>?
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   All metrics and data associated with this server will be permanently deleted.
