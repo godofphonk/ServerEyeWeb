@@ -14,10 +14,8 @@ import {
   Wifi,
   Monitor
 } from "lucide-react";
-// Temporarily disable AuthContext to prevent conflicts
-// import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/api";
-import { isAuthenticated as checkAuthToken, autoLoginForDev } from "@/lib/auth";
 import { getServerStaticInfoCached, getServerCompleteData, getServerKey } from "@/lib/serverApi";
 import { 
   MonitoredServer, 
@@ -36,8 +34,7 @@ export default function ServerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const serverId = params.id as string;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
   
   const [server, setServer] = useState<MonitoredServer | null>(null);
   const [staticInfo, setStaticInfo] = useState<ServerStaticInfo | null>(null);
@@ -61,85 +58,73 @@ export default function ServerDetailPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Auto-login for development
+  // Redirect to login if not authenticated
   useEffect(() => {
-    const initAuth = async () => {
-      if (!checkAuthToken()) {
-        console.log('[ServerDetail] No token found, attempting auto-login...');
-        const success = await autoLoginForDev();
-        setIsAuthenticated(success);
-      } else {
-        setIsAuthenticated(true);
-      }
-      setAuthLoading(false);
-    };
-    initAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!authLoading && !user) {
+      console.log('[ServerDetail] User not authenticated, redirecting to login');
+      router.push('/login');
+      return;
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [user, authLoading, router]);
 
   // Load server info and static data only once
   useEffect(() => {
-    if (isAuthenticated && serverId && !server && !staticInfo) {
+    if (user && serverId && !server && !staticInfo) {
       loadServerData().then(({ serverData, staticData }) => {
         setServer(serverData);
         setStaticInfo(staticData);
       }).catch(console.error);
     }
-  }, [isAuthenticated, serverId, server, staticInfo]);
+  }, [user, serverId, server, staticInfo]);
 
   // Load metrics when server is loaded or timeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo) {
+    if (user && serverId && server && staticInfo) {
       loadMetrics();
     }
-  }, [isAuthenticated, serverId, timeRange, server, staticInfo]);
+  }, [user, serverId, timeRange, server, staticInfo]);
 
   // Load CPU metrics when cpuTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && cpuTimeRange) {
+    if (user && serverId && server && staticInfo && cpuTimeRange) {
       loadCpuMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, cpuTimeRange]);
+  }, [user, serverId, server, staticInfo, cpuTimeRange]);
 
   // Load CPU Usage metrics when cpuUsageTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && cpuUsageTimeRange) {
+    if (user && serverId && server && staticInfo && cpuUsageTimeRange) {
       loadCpuUsageMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, cpuUsageTimeRange]);
+  }, [user, serverId, server, staticInfo, cpuUsageTimeRange]);
 
   // Load CPU Load metrics when cpuLoadTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && cpuLoadTimeRange) {
+    if (user && serverId && server && staticInfo && cpuLoadTimeRange) {
       loadCpuLoadMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, cpuLoadTimeRange]);
+  }, [user, serverId, server, staticInfo, cpuLoadTimeRange]);
 
   // Load Memory metrics when memoryTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && memoryTimeRange) {
+    if (user && serverId && server && staticInfo && memoryTimeRange) {
       loadMemoryMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, memoryTimeRange]);
+  }, [user, serverId, server, staticInfo, memoryTimeRange]);
 
   // Load Network metrics when networkTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && networkTimeRange) {
+    if (user && serverId && server && staticInfo && networkTimeRange) {
       loadNetworkMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, networkTimeRange]);
+  }, [user, serverId, server, staticInfo, networkTimeRange]);
 
   // Load Disk metrics when diskTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && staticInfo && diskTimeRange) {
+    if (user && serverId && server && staticInfo && diskTimeRange) {
       loadDiskMetrics();
     }
-  }, [isAuthenticated, serverId, server, staticInfo, diskTimeRange]);
+  }, [user, serverId, server, staticInfo, diskTimeRange]);
 
   const loadMetrics = async () => {
     try {
