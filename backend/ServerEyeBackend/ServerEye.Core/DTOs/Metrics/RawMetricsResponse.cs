@@ -12,7 +12,8 @@ public class RawMetricsResponse
     public List<GoApiDataPoint> DataPoints { get; set; } = new();
     public int TotalPoints { get; set; }
     public string? Message { get; set; }
-    public GoApiServerStatus? Status { get; set; }
+    public string? Status { get; set; } // Changed from GoApiServerStatus to string
+    public MetricsSummary? Summary { get; set; } // Added summary
     public bool IsCached { get; set; }
     public DateTime? CachedAt { get; set; }
     public TemperatureDetails? TemperatureDetails { get; set; }
