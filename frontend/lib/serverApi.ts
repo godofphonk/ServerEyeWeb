@@ -3,7 +3,9 @@ import { ServerStaticInfo, MonitoredServer, MetricsResponse } from '@/types';
 
 // Static server info endpoint
 export async function getServerStaticInfo(serverKey: string): Promise<ServerStaticInfo> {
-  const response = await apiClient.get<ServerStaticInfo>(`/servers/by-key/${serverKey}/static-info`);
+  const goApiKey = convertToGoApiKey(serverKey);
+  console.log(`[StaticInfo] Fetching static info for serverKey: ${serverKey}, goApiKey: ${goApiKey}`);
+  const response = await apiClient.get<ServerStaticInfo>(`/servers/by-key/${goApiKey}/static-info`);
   return response;
 }
 
@@ -16,8 +18,9 @@ export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer 
   const serversWithStatic = await Promise.allSettled(
     monitoredServers.map(async (server) => {
       try {
-        // Use ServerKey from database directly
+        // Use ServerKey from database directly, fallback to serverId if needed
         const serverKey = server.serverKey || server.serverId;
+        console.log(`[ServersWithStatic] Server: ${server.serverId}, serverKey: ${server.serverKey}, using: ${serverKey}`);
         const staticInfo = await getServerStaticInfo(serverKey);
         
         return {
@@ -41,6 +44,15 @@ export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer 
     .map(result => result.value);
 }
 
+// Helper function to convert serverKey for Go API
+export function convertToGoApiKey(serverKey: string): string {
+  // If serverKey starts with 'srv_', extract the part after it
+  if (serverKey.startsWith('srv_')) {
+    return serverKey.substring(4); // Remove 'srv_' prefix
+  }
+  return serverKey;
+}
+
 // Helper function to get serverKey from serverId
 export async function getServerKey(serverId: string): Promise<string> {
   const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
@@ -50,7 +62,7 @@ export async function getServerKey(serverId: string): Promise<string> {
     throw new Error(`Server key not found for serverId: ${serverId}`);
   }
   
-  return server.serverKey;
+  return convertToGoApiKey(server.serverKey);
 }
 
 // Get server static info with caching
@@ -105,8 +117,10 @@ export async function getServerMetrics(serverKey: string, options?: {
     granularity: granularity,
   });
   
+  const goApiKey = convertToGoApiKey(serverKey);
+  console.log(`[ServerMetrics] Fetching metrics for serverKey: ${serverKey}, goApiKey: ${goApiKey}`);
   const response = await apiClient.get<any>(
-    `/servers/by-key/${serverKey}/metrics?${params.toString()}`
+    `/servers/by-key/${goApiKey}/metrics?${params.toString()}`
   );
   
   return response;
