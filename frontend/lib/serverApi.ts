@@ -3,9 +3,8 @@ import { ServerStaticInfo, MonitoredServer, MetricsResponse } from '@/types';
 
 // Static server info endpoint
 export async function getServerStaticInfo(serverKey: string): Promise<ServerStaticInfo> {
-  const goApiKey = convertToGoApiKey(serverKey);
-  console.log(`[StaticInfo] Fetching static info for serverKey: ${serverKey}, goApiKey: ${goApiKey}`);
-  const response = await apiClient.get<ServerStaticInfo>(`/servers/by-key/${goApiKey}/static-info`);
+  console.log(`[StaticInfo] Fetching static info for serverKey: ${serverKey}`);
+  const response = await apiClient.get<ServerStaticInfo>(`/servers/by-key/${serverKey}/static-info`);
   return response;
 }
 
@@ -62,7 +61,7 @@ export async function getServerKey(serverId: string): Promise<string> {
     throw new Error(`Server key not found for serverId: ${serverId}`);
   }
   
-  return convertToGoApiKey(server.serverKey);
+  return server.serverKey;
 }
 
 // Get server static info with caching
@@ -117,10 +116,9 @@ export async function getServerMetrics(serverKey: string, options?: {
     granularity: granularity,
   });
   
-  const goApiKey = convertToGoApiKey(serverKey);
-  console.log(`[ServerMetrics] Fetching metrics for serverKey: ${serverKey}, goApiKey: ${goApiKey}`);
+  console.log(`[ServerMetrics] Fetching metrics for serverKey: ${serverKey}`);
   const response = await apiClient.get<any>(
-    `/servers/by-key/${goApiKey}/metrics?${params.toString()}`
+    `/servers/by-key/${serverKey}/metrics?${params.toString()}`
   );
   
   return response;
