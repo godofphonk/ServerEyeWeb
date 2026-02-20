@@ -10,7 +10,7 @@ import { DashboardMetrics, MetricsResponse } from '@/types';
 interface StorageTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
-  timeRange?: string;
+  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 

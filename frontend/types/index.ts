@@ -44,12 +44,57 @@ export interface Server {
   updatedAt: string;
 }
 
+// Static server info from new endpoint
+export interface CpuInfo {
+  model: string;
+  cores: number;
+  threads: number;
+  frequency_mhz: number;
+}
+
+export interface MemoryInfo {
+  total_gb: number;
+  type: string;
+  speed_mhz: number;
+}
+
+export interface DiskInfo {
+  device: string;
+  size_gb: number;
+  type: string;
+  model?: string;
+}
+
+export interface NetworkInterface {
+  name: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_packets: number;
+  tx_packets: number;
+  rx_speed_mbps: number;
+  tx_speed_mbps: number;
+  status: 'up' | 'down';
+}
+
+export interface ServerStaticInfo {
+  server_id: string;
+  hostname: string;
+  operating_system: string;
+  agent_version: string;
+  cpu_info: CpuInfo;
+  memory_info: MemoryInfo;
+  disk_info: DiskInfo[];
+  network_interfaces: NetworkInterface[];
+  last_updated: string;
+}
+
 // Backend API Server types (new)
 export type AccessLevel = 'Owner' | 'Admin' | 'Viewer';
 
 export interface MonitoredServer {
   id: string;
   serverId: string; // srv_xxxxx format
+  serverKey: string; // key_xxxxx format for static info endpoint
   hostname: string;
   operatingSystem: string;
   accessLevel: AccessLevel;
@@ -128,6 +173,26 @@ export interface MetricsDataPoint {
   loadAverage: MetricValue; // API returns loadAverage, not load
   cpu_frequency?: MetricValue; // CPU frequency in MHz
   temperature_details?: TemperatureDetails | null; // Detailed temperature info
+  // Raw backend fields
+  cpu_avg?: number;
+  cpu_max?: number;
+  cpu_min?: number;
+  memory_avg?: number;
+  memory_max?: number;
+  memory_min?: number;
+  disk_avg?: number;
+  disk_max?: number;
+  disk_min?: number;
+  network_avg?: number;
+  network_max?: number;
+  network_min?: number;
+  temp_avg?: number;
+  temp_max?: number;
+  temp_min?: number;
+  load_avg?: number;
+  load_max?: number;
+  load_min?: number;
+  sample_count?: number;
 }
 
 export interface HistoricalMetricsResponse {
@@ -186,6 +251,15 @@ export interface MetricsResponse {
   isCached?: boolean;
   startTime?: string;
   endTime?: string;
+  // Backend fields
+  server_id?: string;
+  server_name?: string;
+  start_time?: string;
+  end_time?: string;
+  data_points?: any[];
+  total_points?: number;
+  status?: any;
+  cached_at?: string;
 }
 
 export interface CurrentMetrics {

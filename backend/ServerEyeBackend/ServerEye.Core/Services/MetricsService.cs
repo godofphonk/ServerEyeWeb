@@ -27,6 +27,115 @@ public class MetricsService : IMetricsService
         this.logger = logger;
     }
 
+    public async Task<RawMetricsResponse> GetMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime, string? granularity = null)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        this.logger.LogInformation(
+            "[PERF] GetMetricsByKeyAsync started for server key {ServerKey} with Start={Start}, End={End}, Granularity={Granularity}",
+            serverKey,
+            start,
+            endTime,
+            granularity);
+
+        try
+        {
+            // Validate server key and get server info for access check
+            var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
+            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
+            #pragma warning disable IDE0270 // Simplify null check
+            if (serverInfo is null)
+#pragma warning restore IDE0270 // Simplify null check
+            {
+                throw new UnauthorizedAccessException("Invalid server key");
+            }
+
+            // Check user access to this server
+            await this.ValidateAccessAsync(userId, serverInfo.ServerId);
+            accessCheckTime.Stop();
+            this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
+
+            // Generate cache key based on server key (not serverId)
+            var cacheKey = $"metrics:by-key:{serverKey}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}:{granularity ?? "auto"}";
+            var ttl = this.cacheService.CalculateTTL(start, endTime);
+
+            var cacheTime = System.Diagnostics.Stopwatch.StartNew();
+            var response = await this.cacheService.GetOrSetAsync(
+                cacheKey,
+                async () =>
+                {
+                    this.logger.LogInformation("[PERF] Cache miss - fetching from Go API by key");
+                    var goApiTime = System.Diagnostics.Stopwatch.StartNew();
+                    var goResponse = await this.goApiClient.GetMetricsByKeyAsync(serverKey, start, endTime, granularity);
+                    goApiTime.Stop();
+                    
+                    if (goResponse == null)
+                    {
+                        this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
+                        throw new InvalidOperationException("Failed to retrieve metrics from Go API");
+                    }
+                    
+                    if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
+                    {
+                        this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
+                    }
+                    
+                    // Return raw Go API response without mapping
+                    var rawResponse = new RawMetricsResponse
+                    {
+                        ServerId = goResponse.ServerId,
+                        ServerName = serverInfo.Hostname,
+                        StartTime = goResponse.StartTime,
+                        EndTime = goResponse.EndTime,
+                        Granularity = goResponse.Granularity,
+                        DataPoints = goResponse.DataPoints ?? new(),
+                        TotalPoints = goResponse.TotalPoints,
+                        Message = goResponse.Message,
+                        Status = goResponse.Status,
+                        TemperatureDetails = goResponse.TemperatureDetails,
+                        NetworkDetails = goResponse.NetworkDetails,
+                        DiskDetails = goResponse.DiskDetails,
+                        IsCached = false,
+                        CachedAt = null
+                    };
+                    
+                    return rawResponse;
+                },
+                ttl);
+            cacheTime.Stop();
+
+            ArgumentNullException.ThrowIfNull(response);
+
+            response.IsCached = true;
+            response.CachedAt = DateTime.UtcNow;
+
+            if (!string.IsNullOrEmpty(response.Message))
+            {
+                this.logger.LogInformation(
+                    "Go API message for server key {ServerKey}: {Message}",
+                    serverKey,
+                    response.Message);
+            }
+
+            stopwatch.Stop();
+            this.logger.LogInformation(
+                "[PERF] GetMetricsByKeyAsync completed in {TotalMs}ms (access: {AccessMs}ms, cache: {CacheMs}ms) for server key {ServerKey}, granularity: {Granularity}, data points: {Points}",
+                stopwatch.ElapsedMilliseconds,
+                accessCheckTime.ElapsedMilliseconds,
+                cacheTime.ElapsedMilliseconds,
+                serverKey,
+                granularity ?? "auto",
+                response.DataPoints?.Count ?? 0);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            this.logger.LogError(ex, "[PERF] Error in GetMetricsByKeyAsync after {Ms}ms", stopwatch.ElapsedMilliseconds);
+            throw;
+        }
+    }
+
     public async Task<RawMetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime? start, DateTime? endTime, string? granularity = null)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();

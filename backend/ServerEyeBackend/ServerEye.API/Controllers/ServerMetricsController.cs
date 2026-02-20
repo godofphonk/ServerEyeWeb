@@ -8,7 +8,7 @@ using System.Security.Claims;
 
 [Authorize]
 [ApiController]
-[Route("api/servers/{serverId}/metrics")]
+[Route("api/servers")]
 public class ServerMetricsController : ControllerBase
 {
     private readonly IMetricsService metricsService;
@@ -20,7 +20,55 @@ public class ServerMetricsController : ControllerBase
         this.logger = logger;
     }
 
-    [HttpGet("tiered")]
+    [HttpGet("by-key/{serverKey}/metrics")]
+    public async Task<ActionResult<RawMetricsResponse>> GetMetricsByKey(string serverKey, [FromQuery] MetricsRequest request)
+    {
+        try
+        {
+            this.logger.LogInformation(
+                "GetMetricsByKey called: ServerKey={ServerKey}, Start={Start}, End={End}, Granularity={Granularity}",
+                serverKey,
+                request.Start,
+                request.End,
+                request.Granularity);
+            
+            var userId = this.GetUserId();
+            
+            // Handle nullable parameters
+            DateTime? start = request.Start;
+            DateTime? end = request.End;
+            string? granularity = request.Granularity;
+            
+            // If no parameters provided, use default behavior (last 5 minutes)
+            if (!start.HasValue && !end.HasValue && string.IsNullOrEmpty(granularity))
+            {
+                end = DateTime.UtcNow;
+                start = end.Value.AddMinutes(-5);
+                granularity = "minute";
+                this.logger.LogInformation("No parameters provided, using default: last 5 minutes with minute granularity");
+            }
+            
+            var metrics = await this.metricsService.GetMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
+            return this.Ok(metrics);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            this.logger.LogWarning(ex, "Unauthorized access to metrics by key");
+            return this.Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            this.logger.LogWarning(ex, "Invalid operation while getting metrics by key");
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error getting metrics by key");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("{serverId}/metrics/tiered")]
     public async Task<ActionResult<RawMetricsResponse>> GetTieredMetrics(string serverId, [FromQuery] MetricsRequest request)
     {
         try
@@ -65,7 +113,7 @@ public class ServerMetricsController : ControllerBase
         }
     }
 
-    [HttpGet("realtime")]
+    [HttpGet("{serverId}/metrics/realtime")]
     public async Task<ActionResult<RawMetricsResponse>> GetRealtimeMetrics(string serverId, [FromQuery] string? duration = null)
     {
         try
@@ -107,7 +155,7 @@ public class ServerMetricsController : ControllerBase
         }
     }
 
-    [HttpGet("dashboard")]
+    [HttpGet("{serverId}/metrics/dashboard")]
     public async Task<ActionResult<RawMetricsResponse>> GetDashboardMetrics(string serverId)
     {
         try

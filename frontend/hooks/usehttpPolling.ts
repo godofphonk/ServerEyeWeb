@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 
 interface UseMetricsPollingOptions {
@@ -14,11 +14,13 @@ export function usehttpPolling({
   onMessage, 
   onError,
   enabled = true,
+  interval = 30, // Default 30 seconds to respect rate limiting (100 req/min)
 }: UseMetricsPollingOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pollMetrics = useCallback(async () => {
     console.log('[Metrics] pollMetrics called for server:', serverId, 'enabled:', enabled, 'isLoading:', isLoading);
@@ -85,6 +87,26 @@ export function usehttpPolling({
       setIsLoading(false);
     }
   }, [serverId, enabled, onMessage, onError, isLoading]);
+
+  // Setup automatic polling
+  useEffect(() => {
+    if (enabled && interval > 0) {
+      // Initial fetch
+      pollMetrics();
+      
+      // Setup interval
+      intervalRef.current = setInterval(() => {
+        pollMetrics();
+      }, interval * 1000);
+      
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    }
+  }, [enabled, interval, pollMetrics]);
 
   return {
     isConnected,
