@@ -54,9 +54,9 @@ export default function MetricsAreaChart({ data, metricType, title, color, unit 
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full min-h-[200px]">
       <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <defs>
             <linearGradient id={`gradient-${metricType}`} x1="0" y1="0" x2="0" y2="1">
