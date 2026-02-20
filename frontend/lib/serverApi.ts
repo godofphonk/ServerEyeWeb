@@ -17,10 +17,16 @@ export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer 
   const serversWithStatic = await Promise.allSettled(
     monitoredServers.map(async (server) => {
       try {
-        // Use ServerKey from database directly, fallback to serverId if needed
-        const serverKey = server.serverKey || server.serverId;
-        console.log(`[ServersWithStatic] Server: ${server.serverId}, serverKey: ${server.serverKey}, using: ${serverKey}`);
-        const staticInfo = await getServerStaticInfo(serverKey);
+        // Only load static info if serverKey exists
+        if (!server.serverKey) {
+          console.log(`[ServersWithStatic] Server ${server.serverId} has no serverKey, skipping static info`);
+          return {
+            ...server,
+          };
+        }
+        
+        console.log(`[ServersWithStatic] Server: ${server.serverId}, serverKey: ${server.serverKey}`);
+        const staticInfo = await getServerStaticInfo(server.serverKey);
         
         return {
           ...server,
