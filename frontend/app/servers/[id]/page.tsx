@@ -591,11 +591,11 @@ export default function ServerDetailPage() {
                       <Cpu className="w-8 h-8 text-blue-400" />
                       <h3 className="font-semibold">CPU</h3>
                     </div>
-                    <p className="text-sm text-gray-400 mb-2">{staticInfo.cpu_info.model}</p>
+                    <p className="text-sm text-gray-400 mb-2">{staticInfo.cpu_info?.model || 'N/A'}</p>
                     <div className="space-y-1 text-sm">
-                      <p>Cores: {staticInfo.cpu_info.cores}</p>
-                      <p>Threads: {staticInfo.cpu_info.threads}</p>
-                      <p>Frequency: {staticInfo.cpu_info.frequency_mhz} MHz</p>
+                      <p>Cores: {staticInfo.cpu_info?.cores || 'N/A'}</p>
+                      <p>Threads: {staticInfo.cpu_info?.threads || 'N/A'}</p>
+                      <p>Frequency: {staticInfo.cpu_info?.frequency_mhz || 'N/A'} MHz</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -607,9 +607,9 @@ export default function ServerDetailPage() {
                       <h3 className="font-semibold">Memory</h3>
                     </div>
                     <div className="space-y-1 text-sm">
-                      <p>Total: {staticInfo.memory_info.total_gb} GB</p>
-                      <p>Type: {staticInfo.memory_info.type}</p>
-                      <p>Speed: {staticInfo.memory_info.speed_mhz} MHz</p>
+                      <p>Total: {staticInfo.memory_info?.total_gb || 'N/A'} GB</p>
+                      <p>Type: {staticInfo.memory_info?.type || 'N/A'}</p>
+                      <p>Speed: {staticInfo.memory_info?.speed_mhz || 'N/A'} MHz</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -621,7 +621,7 @@ export default function ServerDetailPage() {
                       <h3 className="font-semibold">Storage</h3>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {staticInfo.disk_info.map((disk, i) => (
+                      {(staticInfo.disk_info || []).map((disk, i) => (
                         <div key={i} className="flex justify-between">
                           <span>{disk.device}</span>
                           <span>{disk.size_gb} GB</span>
@@ -638,14 +638,14 @@ export default function ServerDetailPage() {
                       <h3 className="font-semibold">Network</h3>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {staticInfo.network_interfaces.slice(0, 3).map((iface, i) => (
+                      {(staticInfo.network_interfaces || []).slice(0, 3).map((iface, i) => (
                         <div key={i} className="flex items-center justify-between">
                           <span>{iface.name}</span>
                           <span className={`w-2 h-2 rounded-full ${iface.status === 'up' ? 'bg-green-400' : 'bg-red-400'}`} />
                         </div>
                       ))}
-                      {staticInfo.network_interfaces.length > 3 && (
-                        <p className="text-gray-400">+{staticInfo.network_interfaces.length - 3} more</p>
+                      {(staticInfo.network_interfaces || []).length > 3 && (
+                        <p className="text-gray-400">+{(staticInfo.network_interfaces || []).length - 3} more</p>
                       )}
                     </div>
                   </CardContent>
