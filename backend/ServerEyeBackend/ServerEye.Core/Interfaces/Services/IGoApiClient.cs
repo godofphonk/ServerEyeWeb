@@ -10,4 +10,5 @@ public interface IGoApiClient
     public Task<GoApiServerInfo?> ValidateServerKeyAsync(string serverKey);
     public Task<GoApiServerInfo?> GetServerInfoAsync(string serverId);
     public Task<List<GoApiServerInfo>?> GetServersListAsync();
+    public Task<GoApiStaticInfo?> GetStaticInfoAsync(string serverKey);
 }

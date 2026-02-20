@@ -146,6 +146,38 @@ public class GoApiClient : IGoApiClient
         }
     }
 
+    public async Task<GoApiStaticInfo?> GetStaticInfoAsync(string serverKey)
+    {
+        try
+        {
+            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/static-info";
+
+            this.logger.LogInformation("Requesting static info from Go API: {Url}", url);
+
+            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = null
+            };
+            
+            return await response.Content.ReadFromJsonAsync<GoApiStaticInfo>(options);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error calling Go API for static info");
+            return null;
+        }
+    }
+
     public async Task<GoApiServerInfo?> GetServerInfoAsync(string serverId)
     {
         try
