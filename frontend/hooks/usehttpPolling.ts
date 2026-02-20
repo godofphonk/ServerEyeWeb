@@ -38,7 +38,7 @@ export function usehttpPolling({
       // Use C# backend endpoint for real metrics
       const end = new Date();
       const start = new Date(end.getTime() - 5 * 60 * 1000);
-      const metrics = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`);
+      const metrics = await apiClient.get<any>(`/servers/by-key/${serverId}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`);
       console.log('[Metrics] Success! Got real metrics:', metrics);
       
       // Process real metrics data from C# backend
@@ -100,25 +100,16 @@ export function usehttpPolling({
     }
   }, [serverId, enabled, onMessage, onError, isLoading]);
 
-  // Setup automatic polling
+  // Setup automatic polling - DISABLED TEMPORARILY TO FIX INFINITE LOOP
   useEffect(() => {
-    if (enabled && interval > 0) {
-      // Initial fetch
-      pollMetrics();
-      
-      // Setup interval
-      intervalRef.current = setInterval(() => {
-        pollMetrics();
-      }, interval * 1000);
-      
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
-    }
-  }, [enabled, interval, pollMetrics]);
+    console.log('[Metrics] Polling disabled to prevent infinite loop');
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     isConnected,

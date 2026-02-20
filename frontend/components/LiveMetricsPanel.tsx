@@ -37,11 +37,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
     },
   });
 
-  useEffect(() => {
-    if (enabled && fetchMetrics) {
-      fetchMetrics();
-    }
-  }, [serverId, enabled]); // Remove fetchMetrics to prevent infinite loop
+  // Note: fetchMetrics is already called by usehttpPolling hook internally
 
   const getMetricColor = (value: number, type: 'cpu' | 'memory' | 'disk' | 'temperature') => {
     switch (type) {
