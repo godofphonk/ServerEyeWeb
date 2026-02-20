@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/api";
-import { getServerStaticInfoCached, getServerCompleteData, getServerKey } from "@/lib/serverApi";
+import { getServerStaticInfoCached, getServerCompleteData, getServerKey, getCachedMonitoredServers, getCachedMetrics } from "@/lib/serverApi";
 import { 
   MonitoredServer, 
   DashboardMetrics, 
@@ -77,180 +77,60 @@ export default function ServerDetailPage() {
     }
   }, [user, serverId, server, staticInfo]);
 
-  // Load metrics when server is loaded or timeRange changes
+  // Unified metrics loading - load all required metrics at once
   useEffect(() => {
     if (user && serverId && server && staticInfo) {
-      loadMetrics();
-    }
-  }, [user, serverId, timeRange, server, staticInfo]);
+      const loadAllMetrics = async () => {
+        try {
+          setLoading(true);
+          
+          // Load all required metrics in parallel
+          const [
+            dashboardMetrics,
+            cpuMetrics,
+            cpuUsageMetrics,
+            cpuLoadMetrics,
+            memoryMetrics,
+            networkMetrics,
+            diskMetrics
+          ] = await Promise.all([
+            loadDashboardMetrics(),
+            loadHistoricalMetrics(cpuTimeRange),
+            loadHistoricalMetrics(cpuUsageTimeRange),
+            loadHistoricalMetrics(cpuLoadTimeRange),
+            loadHistoricalMetrics(memoryTimeRange),
+            loadHistoricalMetrics(networkTimeRange),
+            loadHistoricalMetrics(diskTimeRange)
+          ]);
 
-  // Load CPU metrics when cpuTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && cpuTimeRange) {
-      loadCpuMetrics();
-    }
-  }, [user, serverId, server, staticInfo, cpuTimeRange]);
+          setDashboardMetrics(dashboardMetrics);
+          setHistoricalMetrics(cpuMetrics);
+          setCpuHistoricalMetrics(cpuMetrics);
+          setMemoryHistoricalMetrics(memoryMetrics);
+          setNetworkHistoricalMetrics(networkMetrics);
+          setDiskHistoricalMetrics(diskMetrics);
+          setCpuUsageHistoricalMetrics(cpuUsageMetrics);
+          setCpuLoadHistoricalMetrics(cpuLoadMetrics);
+        } catch (error) {
+          console.error("Failed to load metrics:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-  // Load CPU Usage metrics when cpuUsageTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && cpuUsageTimeRange) {
-      loadCpuUsageMetrics();
+      loadAllMetrics();
     }
-  }, [user, serverId, server, staticInfo, cpuUsageTimeRange]);
+  }, [user, serverId, server, staticInfo, timeRange, cpuTimeRange, cpuUsageTimeRange, cpuLoadTimeRange, memoryTimeRange, networkTimeRange, diskTimeRange]);
 
-  // Load CPU Load metrics when cpuLoadTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && cpuLoadTimeRange) {
-      loadCpuLoadMetrics();
-    }
-  }, [user, serverId, server, staticInfo, cpuLoadTimeRange]);
-
-  // Load Memory metrics when memoryTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && memoryTimeRange) {
-      loadMemoryMetrics();
-    }
-  }, [user, serverId, server, staticInfo, memoryTimeRange]);
-
-  // Load Network metrics when networkTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && networkTimeRange) {
-      loadNetworkMetrics();
-    }
-  }, [user, serverId, server, staticInfo, networkTimeRange]);
-
-  // Load Disk metrics when diskTimeRange changes
-  useEffect(() => {
-    if (user && serverId && server && staticInfo && diskTimeRange) {
-      loadDiskMetrics();
-    }
-  }, [user, serverId, server, staticInfo, diskTimeRange]);
-
-  const loadMetrics = async () => {
-    try {
-      setLoading(true);
-      console.log('[ServerDetail] Loading metrics for timeRange:', timeRange);
-      
-      // Загружаем dashboard metrics и сохраняем полный API ответ
-      const [dashboardMetrics, apiResponse] = await Promise.all([
-        loadDashboardMetrics(),
-        apiClient.get<any>(`/servers/${serverId}/metrics/tiered`)
-      ]);
-      
-      // Загружаем исторические данные для каждого типа метрик отдельно
-      const [cpuMetrics, memoryMetrics, networkMetrics, diskMetrics] = await Promise.all([
-        loadHistoricalMetrics(cpuTimeRange),
-        loadHistoricalMetrics(memoryTimeRange),
-        loadHistoricalMetrics(networkTimeRange),
-        loadHistoricalMetrics(diskTimeRange)
-      ]);
-
-      console.log('[ServerDetail] API response keys:', Object.keys(apiResponse));
-      console.log('[ServerDetail] networkDetails in API response:', apiResponse.networkDetails);
-      
-      setDashboardMetrics(dashboardMetrics);
-      setHistoricalMetrics(cpuMetrics); // Временно используем CPU как основной
-      setCpuHistoricalMetrics(cpuMetrics);
-      setMemoryHistoricalMetrics(memoryMetrics);
-      setNetworkHistoricalMetrics(networkMetrics);
-      setDiskHistoricalMetrics(diskMetrics);
-      
-      // Устанавливаем networkDetails из полного API ответа
-      if (apiResponse.networkDetails) {
-        console.log('[ServerDetail] Setting networkDetails:', apiResponse.networkDetails);
-        setNetworkDetails(apiResponse.networkDetails);
-      } else {
-        console.log('[ServerDetail] No networkDetails in API response');
-      }
-      console.log('[ServerDetail] Metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load metrics:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCpuMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading CPU metrics for cpuTimeRange:', cpuTimeRange);
-      const cpuMetrics = await loadHistoricalMetrics(cpuTimeRange);
-      setCpuHistoricalMetrics(cpuMetrics);
-      console.log('[ServerDetail] CPU metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load CPU metrics:", error);
-    }
-  };
-
-  const loadCpuUsageMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading CPU Usage metrics for cpuUsageTimeRange:', cpuUsageTimeRange);
-      const cpuUsageMetrics = await loadHistoricalMetrics(cpuUsageTimeRange);
-      setCpuUsageHistoricalMetrics(cpuUsageMetrics);
-      console.log('[ServerDetail] CPU Usage metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load CPU Usage metrics:", error);
-    }
-  };
-
-  const loadCpuLoadMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading CPU Load metrics for cpuLoadTimeRange:', cpuLoadTimeRange);
-      const cpuLoadMetrics = await loadHistoricalMetrics(cpuLoadTimeRange);
-      setCpuLoadHistoricalMetrics(cpuLoadMetrics);
-      console.log('[ServerDetail] CPU Load metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load CPU Load metrics:", error);
-    }
-  };
-
-  const loadMemoryMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading Memory metrics for memoryTimeRange:', memoryTimeRange);
-      const memoryMetrics = await loadHistoricalMetrics(memoryTimeRange);
-      setMemoryHistoricalMetrics(memoryMetrics);
-      console.log('[ServerDetail] Memory metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load Memory metrics:", error);
-    }
-  };
-
-  const loadNetworkMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading Network metrics for networkTimeRange:', networkTimeRange);
-      const networkMetrics = await loadHistoricalMetrics(networkTimeRange);
-      setNetworkHistoricalMetrics(networkMetrics);
-      console.log('[ServerDetail] Network metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load Network metrics:", error);
-    }
-  };
-
-  const loadDiskMetrics = async () => {
-    try {
-      console.log('[ServerDetail] Loading Disk metrics for diskTimeRange:', diskTimeRange);
-      const diskMetrics = await loadHistoricalMetrics(diskTimeRange);
-      setDiskHistoricalMetrics(diskMetrics);
-      console.log('[ServerDetail] Disk metrics loaded successfully');
-    } catch (error) {
-      console.error("Failed to load Disk metrics:", error);
-    }
-  };
+  // Remove individual useEffects since we're using unified one
 
   const loadServerData = async () => {
     try {
       setLoading(true);
       
-      // First find server in monitored servers list to get ServerKey
-      const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
-      const serverData = servers.find(s => s.serverId === serverId);
-      
-      if (!serverData) {
-        throw new Error('Server not found');
-      }
-      
-      // Use ServerKey from database
-      const serverKey = serverData.serverKey || serverData.serverId;
-      const staticData = await getServerStaticInfoCached(serverKey);
+      // Get server info and static data
+      const serverData = await loadServerInfo();
+      const staticData = await getServerStaticInfoCached(serverData.serverKey || serverId);
       
       return { serverData, staticData };
     } catch (error) {
@@ -263,9 +143,11 @@ export default function ServerDetailPage() {
 
   const loadServerInfo = async () => {
     const start = performance.now();
-    console.log('[ServerDetail] Loading server info for:', serverId);
-    const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+    
+    const serverKey = await getServerKey(serverId);
+    const servers = await getCachedMonitoredServers();
     const serverData = servers.find(s => s.serverId === serverId);
+    
     console.log(`[ServerDetail] Server info loaded in ${(performance.now() - start).toFixed(0)}ms`);
     if (!serverData) {
       throw new Error('Server not found');
@@ -275,18 +157,18 @@ export default function ServerDetailPage() {
 
   const loadDashboardMetrics = async () => {
     const start = performance.now();
-    console.log('[ServerDetail] Loading dashboard metrics...');
     
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
     
     const end = new Date();
     const startTime = new Date(end.getTime() - 5 * 60 * 1000);
-    const response = await apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?start=${startTime.toISOString()}&end=${end.toISOString()}&granularity=minute`);
     
-    console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
-    console.log('[ServerDetail] Full API response keys:', Object.keys(response));
-    console.log('[ServerDetail] networkDetails in response:', response.networkDetails);
+    console.log(`[DashboardMetrics] Loading dashboard metrics for ${serverKey}`);
+    
+    const response = await getCachedMetrics(serverKey, startTime.toISOString(), end.toISOString(), 'minute');
+    
+    console.log(`[DashboardMetrics] Dashboard metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`);
     
     // Transform API response to expected format
     const lastDataPoint = response.dataPoints?.[response.dataPoints.length - 1];
@@ -388,6 +270,8 @@ export default function ServerDetailPage() {
     const end = new Date();
     const start = new Date();
     
+    console.log(`[HistoricalMetrics] Loading historical metrics for range: ${range}`);
+    
     switch(range) {
       case '1h':
         start.setHours(start.getHours() - 1);
@@ -426,23 +310,14 @@ export default function ServerDetailPage() {
         break;
     }
 
-    console.log(`[ServerDetail] Loading historical metrics for ${range}...`);
-    console.log(`[ServerDetail] Time range: ${start.toISOString()} to ${end.toISOString()}`);
-    console.log(`[ServerDetail] Local time: ${start.toLocaleString()} to ${end.toLocaleString()}`);
-    console.log(`[ServerDetail] Granularity: ${granularity}`);
-    
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
     
-    const response = await apiClient.get<any>(
-      `/servers/by-key/${serverKey}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=${granularity}`
-    );
-    console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`);
-    console.log(`[ServerDetail] Data points count: ${response.dataPoints?.length || 0}`);
+    const response = await getCachedMetrics(serverKey, start.toISOString(), end.toISOString(), granularity);
+    
+    console.log(`[HistoricalMetrics] Historical metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`);
+    
     if (response.dataPoints?.length > 0) {
-      console.log(`[ServerDetail] First point: ${response.dataPoints[0].timestamp}`);
-      console.log(`[ServerDetail] Last point: ${response.dataPoints[response.dataPoints.length - 1].timestamp}`);
-      
       // Проверяем если данных меньше ожидаемых
       const expectedPoints = range === '1h' ? 60 : 
                            range === '6h' ? 72 : 
@@ -450,7 +325,7 @@ export default function ServerDetailPage() {
                            range === '7d' ? 168 : 120;
       
       if (response.dataPoints.length < expectedPoints * 0.1) { // Меньше 10% от ожидаемых
-        console.warn(`[ServerDetail] Limited data available: ${response.dataPoints.length}/${expectedPoints} points`);
+        // Ограниченные данные
       }
     }
     
@@ -681,7 +556,7 @@ export default function ServerDetailPage() {
 
           {/* Live Metrics Panel */}
           <div className="mb-8">
-            <LiveMetricsPanel serverId={serverId} enabled={server?.isActive} />
+            <LiveMetricsPanel serverId={server?.serverKey || serverId} enabled={server?.isActive} />
           </div>
 
           {/* Metrics Tabs */}
