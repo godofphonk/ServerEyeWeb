@@ -11,7 +11,7 @@ interface NetworkTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
   networkDetails?: NetworkDetails | null;
-  timeRange?: string;
+  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 

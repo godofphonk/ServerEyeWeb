@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
+import { getServersWithStaticInfo, getServerMetrics } from '@/lib/serverApi';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse } from "@/types";
+import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse, ServerStaticInfo } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -15,11 +16,11 @@ export default function DashboardPage() {
   // Temporarily disable AuthContext to prevent conflicts
   // const { user, isAuthenticated, loading, checkAuth } = useAuth();
   const router = useRouter();
-  const [servers, setServers] = useState<MonitoredServer[]>([]);
+  const [servers, setServers] = useState<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
   const [isLoadingServers, setIsLoadingServers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: MonitoredServer | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; server: MonitoredServer & { staticInfo?: ServerStaticInfo } | null }>({
     isOpen: false,
     server: null,
   });
@@ -31,19 +32,19 @@ export default function DashboardPage() {
   const autoLoginAttempted = useRef(false);
   const loadServersRef = useRef<(() => Promise<void>) | null>(null);
   
-  const loadServerMetrics = useCallback(async (serverId: string) => {
-    console.log(`[Dashboard] loadServerMetrics called for ${serverId}, loadingMetrics:`, Array.from(loadingMetrics));
-    if (loadingMetrics.has(serverId)) {
-      console.log(`[Dashboard] Already loading metrics for ${serverId}, skipping...`);
+  const loadServerMetrics = useCallback(async (serverKey: string) => {
+    console.log(`[Dashboard] loadServerMetrics called for ${serverKey}, loadingMetrics:`, Array.from(loadingMetrics));
+    if (loadingMetrics.has(serverKey)) {
+      console.log(`[Dashboard] Already loading metrics for ${serverKey}, skipping...`);
       return;
     }
     
-    console.log(`[Dashboard] Calling loadServerMetrics for server ${serverId}`);
-    setLoadingMetrics(prev => new Set(prev).add(serverId));
+    console.log(`[Dashboard] Calling loadServerMetrics for server ${serverKey}`);
+    setLoadingMetrics(prev => new Set(prev).add(serverKey));
     
     try {
-      // Use optimized tiered endpoint
-      const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered`);
+      // Use new serverKey endpoint
+      const response = await apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?granularity=minute`);
       
       // Transform API response to expected format
       const dashboardMetrics: DashboardMetrics = {
@@ -67,19 +68,19 @@ export default function DashboardPage() {
         timestamp: response.endTime || new Date().toISOString(),
       };
       
-      setMetrics(prev => ({ ...prev, [serverId]: dashboardMetrics }));
-      console.log(`[Dashboard] Successfully loaded metrics for server ${serverId}`, dashboardMetrics);
+      setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
+      console.log(`[Dashboard] Successfully loaded metrics for server ${serverKey}`, dashboardMetrics);
     } catch (error: any) {
-      console.error(`Failed to load metrics for server ${serverId}:`, error);
+      console.error(`Failed to load metrics for server ${serverKey}:`, error);
       // Set empty metrics to prevent continuous loading
-      setMetrics(prev => ({ ...prev, [serverId]: null }));
+      setMetrics(prev => ({ ...prev, [serverKey]: null }));
     } finally {
       setLoadingMetrics(prev => {
         const newSet = new Set(prev);
-        newSet.delete(serverId);
+        newSet.delete(serverKey);
         return newSet;
       });
-      console.log(`[Dashboard] Finished loading metrics for server ${serverId}`);
+      console.log(`[Dashboard] Finished loading metrics for server ${serverKey}`);
     }
   }, [loadingMetrics]);
 
@@ -93,15 +94,22 @@ export default function DashboardPage() {
     try {
       console.log('[Dashboard] Setting isLoadingServers to true');
       setIsLoadingServers(true);
-      const response = await apiClient.get<MonitoredServer[]>('/monitoredservers');
-      console.log('[Dashboard] Servers response:', response);
-      setServers(response || []);
       
-      // Load metrics for each server
-      if (response && response.length > 0) {
-        for (const server of response) {
-          console.log('[Dashboard] Loading metrics for:', server.serverId);
-          loadServerMetrics(server.serverId);
+      // Load servers with static info in parallel
+      const serversWithStatic = await getServersWithStaticInfo();
+      console.log('[Dashboard] Servers with static info:', serversWithStatic);
+      setServers(serversWithStatic || []);
+      
+      // Load metrics for each server using serverKey
+      if (serversWithStatic && serversWithStatic.length > 0) {
+        for (const server of serversWithStatic) {
+          // Use serverKey for metrics
+          if (server.serverKey) {
+            console.log('[Dashboard] Loading metrics for serverKey:', server.serverKey);
+            loadServerMetrics(server.serverKey);
+          } else {
+            console.log('[Dashboard] Skipping metrics for server without serverKey:', server.serverId);
+          }
         }
       }
     } catch (error) {
@@ -152,7 +160,7 @@ export default function DashboardPage() {
     await loadServerMetrics(serverId);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, server: MonitoredServer) => {
+  const handleDeleteClick = (e: React.MouseEvent, server: MonitoredServer & { staticInfo?: ServerStaticInfo }) => {
     e.stopPropagation(); // Prevent navigation to server details
     setDeleteModal({ isOpen: true, server });
   };
@@ -162,7 +170,7 @@ export default function DashboardPage() {
     
     try {
       setIsDeleting(true);
-      await apiClient.delete(`/monitoredservers/${deleteModal.server.serverId}`);
+      await apiClient.delete(`/monitoredservers/${deleteModal.server.id || deleteModal.server.serverId}`);
       setDeleteModal({ isOpen: false, server: null });
       await loadServersRef.current?.(); // Reload servers list
     } catch (error) {
@@ -324,9 +332,14 @@ export default function DashboardPage() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>{server.serverName || server.hostname || server.serverId}</CardTitle>
-                            <p className="text-sm text-gray-400 mt-1">{server.operatingSystem || 'Unknown OS'}</p>
-                          </div>
+                          <CardTitle>{server.staticInfo?.hostname || server.serverName || server.hostname || server.serverId}</CardTitle>
+                          <p className="text-sm text-gray-400 mt-1">{server.staticInfo?.operating_system || server.operatingSystem || 'Unknown OS'}</p>
+                          {server.staticInfo && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {server.staticInfo.cpu_info.cores} cores / {server.staticInfo.memory_info.total_gb}GB RAM
+                            </p>
+                          )}
+                        </div>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
                               <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
@@ -346,26 +359,31 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <p className="text-xs text-gray-400 mb-1">CPU</p>
-                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
-                              {getMetricValue(server.serverId, 'cpu')}
+                            <p className={`text-lg font-semibold ${metrics[server.serverKey] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverKey, 'cpu')}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Memory</p>
-                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
-                              {getMetricValue(server.serverId, 'memory')}
+                            <p className={`text-lg font-semibold ${metrics[server.serverKey] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverKey, 'memory')}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Disk</p>
-                            <p className={`text-lg font-semibold ${metrics[server.serverId] === null ? 'text-red-400' : ''}`}>
-                              {getMetricValue(server.serverId, 'disk')}
+                            <p className={`text-lg font-semibold ${metrics[server.serverKey] === null ? 'text-red-400' : ''}`}>
+                              {getMetricValue(server.serverKey, 'disk')}
                             </p>
                           </div>
                         </div>
-                        {metrics[server.serverId] === null && (
+                        {metrics[server.serverKey] === null && (
                           <div className="mt-2 text-xs text-red-400">
                             Metrics unavailable - server may be offline
+                          </div>
+                        )}
+                        {!server.serverKey && (
+                          <div className="mt-2 text-xs text-yellow-400">
+                            Server key unavailable - metrics disabled
                           </div>
                         )}
                         <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
@@ -375,7 +393,9 @@ export default function DashboardPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleRefreshMetrics(server.serverId);
+                                if (server.serverKey) {
+                                  handleRefreshMetrics(server.serverKey);
+                                }
                               }}
                               className="p-1 rounded hover:bg-gray-700 transition-colors"
                               title="Обновить метрики"

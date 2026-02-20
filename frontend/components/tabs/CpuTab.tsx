@@ -12,8 +12,8 @@ interface CpuTabProps {
   historicalMetrics: MetricsResponse | null;
   cpuUsageHistoricalMetrics: MetricsResponse | null;
   cpuLoadHistoricalMetrics: MetricsResponse | null;
-  cpuUsageTimeRange?: string;
-  cpuLoadTimeRange?: string;
+  cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
+  cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }

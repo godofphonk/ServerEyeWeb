@@ -7,17 +7,24 @@ import {
   ArrowLeft, 
   Share2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Cpu,
+  HardDrive,
+  MemoryStick,
+  Wifi,
+  Monitor
 } from "lucide-react";
 // Temporarily disable AuthContext to prevent conflicts
 // import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/api";
 import { isAuthenticated as checkAuthToken, autoLoginForDev } from "@/lib/auth";
+import { getServerStaticInfoCached, getServerCompleteData, getServerKey } from "@/lib/serverApi";
 import { 
   MonitoredServer, 
   DashboardMetrics, 
   MetricsResponse,
-  MetricAlert 
+  MetricAlert,
+  ServerStaticInfo
 } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +40,7 @@ export default function ServerDetailPage() {
   const [authLoading, setAuthLoading] = useState(true);
   
   const [server, setServer] = useState<MonitoredServer | null>(null);
+  const [staticInfo, setStaticInfo] = useState<ServerStaticInfo | null>(null);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
   const [historicalMetrics, setHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [cpuHistoricalMetrics, setCpuHistoricalMetrics] = useState<MetricsResponse | null>(null);
@@ -74,61 +82,64 @@ export default function ServerDetailPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  // Load server info only once
+  // Load server info and static data only once
   useEffect(() => {
-    if (isAuthenticated && serverId && !server) {
-      loadServerInfo().then(setServer).catch(console.error);
+    if (isAuthenticated && serverId && !server && !staticInfo) {
+      loadServerData().then(({ serverData, staticData }) => {
+        setServer(serverData);
+        setStaticInfo(staticData);
+      }).catch(console.error);
     }
-  }, [isAuthenticated, serverId]);
+  }, [isAuthenticated, serverId, server, staticInfo]);
 
   // Load metrics when server is loaded or timeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server) {
+    if (isAuthenticated && serverId && server && staticInfo) {
       loadMetrics();
     }
-  }, [isAuthenticated, serverId, timeRange, server]);
+  }, [isAuthenticated, serverId, timeRange, server, staticInfo]);
 
   // Load CPU metrics when cpuTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && cpuTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && cpuTimeRange) {
       loadCpuMetrics();
     }
-  }, [isAuthenticated, serverId, server, cpuTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, cpuTimeRange]);
 
   // Load CPU Usage metrics when cpuUsageTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && cpuUsageTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && cpuUsageTimeRange) {
       loadCpuUsageMetrics();
     }
-  }, [isAuthenticated, serverId, server, cpuUsageTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, cpuUsageTimeRange]);
 
   // Load CPU Load metrics when cpuLoadTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && cpuLoadTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && cpuLoadTimeRange) {
       loadCpuLoadMetrics();
     }
-  }, [isAuthenticated, serverId, server, cpuLoadTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, cpuLoadTimeRange]);
 
   // Load Memory metrics when memoryTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && memoryTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && memoryTimeRange) {
       loadMemoryMetrics();
     }
-  }, [isAuthenticated, serverId, server, memoryTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, memoryTimeRange]);
 
   // Load Network metrics when networkTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && networkTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && networkTimeRange) {
       loadNetworkMetrics();
     }
-  }, [isAuthenticated, serverId, server, networkTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, networkTimeRange]);
 
   // Load Disk metrics when diskTimeRange changes
   useEffect(() => {
-    if (isAuthenticated && serverId && server && diskTimeRange) {
+    if (isAuthenticated && serverId && server && staticInfo && diskTimeRange) {
       loadDiskMetrics();
     }
-  }, [isAuthenticated, serverId, server, diskTimeRange]);
+  }, [isAuthenticated, serverId, server, staticInfo, diskTimeRange]);
 
   const loadMetrics = async () => {
     try {
@@ -244,17 +255,22 @@ export default function ServerDetailPage() {
     try {
       setLoading(true);
       
-      const [serverData, dashboardData, metricsData] = await Promise.all([
-        loadServerInfo(),
-        loadDashboardMetrics(),
-        loadHistoricalMetrics()
-      ]);
-
-      setServer(serverData);
-      setDashboardMetrics(dashboardData);
-      setHistoricalMetrics(metricsData);
+      // First find server in monitored servers list to get ServerKey
+      const servers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+      const serverData = servers.find(s => s.serverId === serverId);
+      
+      if (!serverData) {
+        throw new Error('Server not found');
+      }
+      
+      // Use ServerKey from database
+      const serverKey = serverData.serverKey || serverData.serverId;
+      const staticData = await getServerStaticInfoCached(serverKey);
+      
+      return { serverData, staticData };
     } catch (error) {
       console.error("Failed to load server data:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -275,9 +291,14 @@ export default function ServerDetailPage() {
   const loadDashboardMetrics = async () => {
     const start = performance.now();
     console.log('[ServerDetail] Loading dashboard metrics...');
+    
+    // Get serverKey using helper function
+    const serverKey = await getServerKey(serverId);
+    
     const end = new Date();
     const startTime = new Date(end.getTime() - 5 * 60 * 1000);
-    const response = await apiClient.get<any>(`/servers/${serverId}/metrics/tiered?start=${startTime.toISOString()}&end=${end.toISOString()}&granularity=1m`);
+    const response = await apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?start=${startTime.toISOString()}&end=${end.toISOString()}&granularity=minute`);
+    
     console.log(`[ServerDetail] Dashboard metrics loaded in ${(performance.now() - start).toFixed(0)}ms`, response);
     console.log('[ServerDetail] Full API response keys:', Object.keys(response));
     console.log('[ServerDetail] networkDetails in response:', response.networkDetails);
@@ -424,8 +445,12 @@ export default function ServerDetailPage() {
     console.log(`[ServerDetail] Time range: ${start.toISOString()} to ${end.toISOString()}`);
     console.log(`[ServerDetail] Local time: ${start.toLocaleString()} to ${end.toLocaleString()}`);
     console.log(`[ServerDetail] Granularity: ${granularity}`);
+    
+    // Get serverKey using helper function
+    const serverKey = await getServerKey(serverId);
+    
     const response = await apiClient.get<any>(
-      `/servers/${serverId}/metrics/tiered?start=${start.toISOString()}&end=${end.toISOString()}&granularity=${granularity}`
+      `/servers/by-key/${serverKey}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=${granularity}`
     );
     console.log(`[ServerDetail] Historical metrics loaded in ${(performance.now() - perfStart).toFixed(0)}ms`);
     console.log(`[ServerDetail] Data points count: ${response.dataPoints?.length || 0}`);
@@ -532,13 +557,18 @@ export default function ServerDetailPage() {
                 </Button>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold">{server.serverName || server.hostname || server.serverId}</h1>
+                    <h1 className="text-3xl font-bold">{staticInfo?.hostname || server.serverName || server.hostname || server.serverId}</h1>
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
                       <span className="text-sm capitalize">{server.isActive ? 'Active' : 'Inactive'}</span>
                     </div>
                   </div>
-                  <p className="text-gray-400 mt-1">{server.operatingSystem}</p>
+                  <p className="text-gray-400 mt-1">{staticInfo?.operating_system || server.operatingSystem}</p>
+                  {staticInfo && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Agent v{staticInfo.agent_version} • Last updated: {new Date(staticInfo.last_updated).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3">
@@ -565,6 +595,79 @@ export default function ServerDetailPage() {
 
         {/* Content */}
         <div className="container mx-auto px-6 py-8">
+          {/* System Information */}
+          {staticInfo && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-6">System Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Cpu className="w-8 h-8 text-blue-400" />
+                      <h3 className="font-semibold">CPU</h3>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-2">{staticInfo.cpu_info.model}</p>
+                    <div className="space-y-1 text-sm">
+                      <p>Cores: {staticInfo.cpu_info.cores}</p>
+                      <p>Threads: {staticInfo.cpu_info.threads}</p>
+                      <p>Frequency: {staticInfo.cpu_info.frequency_mhz} MHz</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <MemoryStick className="w-8 h-8 text-green-400" />
+                      <h3 className="font-semibold">Memory</h3>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <p>Total: {staticInfo.memory_info.total_gb} GB</p>
+                      <p>Type: {staticInfo.memory_info.type}</p>
+                      <p>Speed: {staticInfo.memory_info.speed_mhz} MHz</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <HardDrive className="w-8 h-8 text-purple-400" />
+                      <h3 className="font-semibold">Storage</h3>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      {staticInfo.disk_info.map((disk, i) => (
+                        <div key={i} className="flex justify-between">
+                          <span>{disk.device}</span>
+                          <span>{disk.size_gb} GB</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Wifi className="w-8 h-8 text-yellow-400" />
+                      <h3 className="font-semibold">Network</h3>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      {staticInfo.network_interfaces.slice(0, 3).map((iface, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span>{iface.name}</span>
+                          <span className={`w-2 h-2 rounded-full ${iface.status === 'up' ? 'bg-green-400' : 'bg-red-400'}`} />
+                        </div>
+                      ))}
+                      {staticInfo.network_interfaces.length > 3 && (
+                        <p className="text-gray-400">+{staticInfo.network_interfaces.length - 3} more</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
           {/* Alerts */}
           {dashboardMetrics?.alerts && dashboardMetrics.alerts.length > 0 && (
             <div className="mb-6">
