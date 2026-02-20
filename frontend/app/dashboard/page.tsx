@@ -33,13 +33,10 @@ export default function DashboardPage() {
   const loadServersRef = useRef<(() => Promise<void>) | null>(null);
   
   const loadServerMetrics = useCallback(async (serverKey: string) => {
-    console.log(`[Dashboard] loadServerMetrics called for ${serverKey}, loadingMetrics:`, Array.from(loadingMetrics));
     if (loadingMetrics.has(serverKey)) {
-      console.log(`[Dashboard] Already loading metrics for ${serverKey}, skipping...`);
       return;
     }
     
-    console.log(`[Dashboard] Calling loadServerMetrics for server ${serverKey}`);
     setLoadingMetrics(prev => new Set(prev).add(serverKey));
     
     try {
@@ -80,24 +77,19 @@ export default function DashboardPage() {
         newSet.delete(serverKey);
         return newSet;
       });
-      console.log(`[Dashboard] Finished loading metrics for server ${serverKey}`);
     }
   }, [loadingMetrics]);
 
   const loadServers = useCallback(async () => {
-    console.log('[Dashboard] loadServers called, isLoadingServers:', isLoadingServers);
     if (isLoadingServers) {
-      console.log('[Dashboard] Already loading servers, skipping...');
       return;
     }
     
     try {
-      console.log('[Dashboard] Setting isLoadingServers to true');
       setIsLoadingServers(true);
       
       // Load servers with static info in parallel
       const serversWithStatic = await getServersWithStaticInfo();
-      console.log('[Dashboard] Servers with static info:', serversWithStatic);
       setServers(serversWithStatic || []);
       
       // Load metrics for each server using serverKey
@@ -105,10 +97,7 @@ export default function DashboardPage() {
         for (const server of serversWithStatic) {
           // Use serverKey for metrics
           if (server.serverKey) {
-            console.log('[Dashboard] Loading metrics for serverKey:', server.serverKey);
             loadServerMetrics(server.serverKey);
-          } else {
-            console.log('[Dashboard] Skipping metrics for server without serverKey:', server.serverId);
           }
         }
       }
@@ -116,7 +105,6 @@ export default function DashboardPage() {
       console.error("Failed to load servers:", error);
       setServers([]);
     } finally {
-      console.log('[Dashboard] Setting isLoadingServers to false');
       setIsLoadingServers(false);
     }
   }, [isLoadingServers, loadServerMetrics]);
@@ -144,14 +132,18 @@ export default function DashboardPage() {
     }
   }, [isLoggedIn]);
 
+  const loadServersCalled = useRef(false);
+  
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && !loadServersCalled.current) {
+      loadServersCalled.current = true;
       loadServersRef.current?.();
     }
   }, [isLoggedIn]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    loadServersCalled.current = false;
     await loadServersRef.current?.();
     setIsRefreshing(false);
   };
@@ -172,6 +164,7 @@ export default function DashboardPage() {
       setIsDeleting(true);
       await apiClient.delete(`/monitoredservers/${deleteModal.server.id}`);
       setDeleteModal({ isOpen: false, server: null });
+      loadServersCalled.current = false;
       await loadServersRef.current?.(); // Reload servers list
     } catch (error) {
       console.error("Failed to delete server:", error);
