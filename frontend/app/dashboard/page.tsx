@@ -43,8 +43,12 @@ export default function DashboardPage() {
     setLoadingMetrics(prev => new Set(prev).add(serverKey));
     
     try {
+      // Convert serverKey for Go API
+      const goApiKey = serverKey.startsWith('srv_') ? serverKey.substring(4) : serverKey;
+      console.log(`[Dashboard] Using goApiKey: ${goApiKey}`);
+      
       // Use new serverKey endpoint
-      const response = await apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?granularity=minute`);
+      const response = await apiClient.get<any>(`/servers/by-key/${goApiKey}/metrics?granularity=minute`);
       
       // Transform API response to expected format
       const dashboardMetrics: DashboardMetrics = {
