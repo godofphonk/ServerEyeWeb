@@ -336,7 +336,7 @@ export default function DashboardPage() {
                           <p className="text-sm text-gray-400 mt-1">{server.staticInfo?.operating_system || server.operatingSystem || 'Unknown OS'}</p>
                           {server.staticInfo && (
                             <p className="text-xs text-gray-500 mt-1">
-                              {server.staticInfo.cpu_info.cores} cores / {server.staticInfo.memory_info.total_gb}GB RAM
+                              {server.staticInfo.cpu_info?.cores || 'N/A'} cores / {server.staticInfo.memory_info?.total_gb || 'N/A'}GB RAM
                             </p>
                           )}
                         </div>
