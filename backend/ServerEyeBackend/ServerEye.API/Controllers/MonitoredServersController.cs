@@ -64,7 +64,25 @@ public class MonitoredServersController : ControllerBase
         try
         {
             var userId = this.GetUserId();
-            await this.serverAccessService.RemoveServerAsync(userId, serverId);
+            
+            // Check if it's a UUID (new format) or serverId (old format)
+            if (Guid.TryParse(serverId, out var serverGuid))
+            {
+                // It's a UUID - need to find the server by UUID first
+                var servers = await this.serverAccessService.GetUserServersAsync(userId);
+                var server = servers.FirstOrDefault(s => s.Id.ToString() == serverId);
+                if (server == null)
+                {
+                    return NotFound("Server not found");
+                }
+                await this.serverAccessService.RemoveServerAsync(userId, server.ServerId);
+            }
+            else
+            {
+                // It's a serverId string
+                await this.serverAccessService.RemoveServerAsync(userId, serverId);
+            }
+            
             return this.NoContent();
         }
         catch (UnauthorizedAccessException ex)
