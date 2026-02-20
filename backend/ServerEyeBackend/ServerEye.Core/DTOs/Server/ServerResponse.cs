@@ -6,6 +6,7 @@ public class ServerResponse
 {
     public Guid Id { get; set; }
     public string ServerId { get; set; } = string.Empty;
+    public string ServerKey { get; set; } = string.Empty;
     public string Hostname { get; set; } = string.Empty;
     public string OperatingSystem { get; set; } = string.Empty;
     public AccessLevel AccessLevel { get; set; }

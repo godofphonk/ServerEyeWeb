@@ -51,10 +51,16 @@ public class ServerAccessService : IServerAccessService
         {
             var accessLevel = await this.accessRepository.GetAccessLevelAsync(userId, server.ServerId);
 
+            // Decrypt ServerKey for frontend
+            var decryptedKey = string.IsNullOrEmpty(server.ServerKey) 
+                ? string.Empty 
+                : this.encryptionService.Decrypt(server.ServerKey);
+
             result.Add(new ServerResponse
             {
                 Id = server.Id,
                 ServerId = server.ServerId,
+                ServerKey = decryptedKey,
                 Hostname = server.Hostname,
                 OperatingSystem = server.OperatingSystem,
                 AccessLevel = accessLevel ?? AccessLevel.Viewer,
@@ -96,6 +102,7 @@ public class ServerAccessService : IServerAccessService
             {
                 Id = existingServer.Id,
                 ServerId = existingServer.ServerId,
+                ServerKey = this.encryptionService.Decrypt(existingServer.ServerKey),
                 Hostname = existingServer.Hostname,
                 OperatingSystem = existingServer.OperatingSystem,
                 AccessLevel = AccessLevel.Viewer,
@@ -137,6 +144,7 @@ public class ServerAccessService : IServerAccessService
         {
             Id = newServer.Id,
             ServerId = newServer.ServerId,
+            ServerKey = serverKey, // Return original key for new servers
             Hostname = newServer.Hostname,
             OperatingSystem = newServer.OperatingSystem,
             AccessLevel = AccessLevel.Owner,
