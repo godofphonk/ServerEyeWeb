@@ -20,13 +20,14 @@ export function usehttpPolling({
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldStop, setShouldStop] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pollMetrics = useCallback(async () => {
     console.log('[Metrics] pollMetrics called for server:', serverId, 'enabled:', enabled, 'isLoading:', isLoading);
     
-    if (!enabled || isLoading) {
-      console.log('[Metrics] Skipping fetch - enabled:', enabled, 'isLoading:', isLoading);
+    if (!enabled || isLoading || shouldStop) {
+      console.log('[Metrics] Skipping fetch - enabled:', enabled, 'isLoading:', isLoading, 'shouldStop:', shouldStop);
       return;
     }
 
@@ -65,6 +66,17 @@ export function usehttpPolling({
       // Log message if present
       if (metrics.message) {
         console.log('[Metrics] API Message:', metrics.message);
+        
+        // Stop polling if no data found
+        if (metrics.message === 'No data found in specified range') {
+          console.log('[Metrics] No data available, stopping polling');
+          setShouldStop(true);
+          setIsConnected(false);
+          setError('No data available');
+          onError?.('No data available');
+          setIsLoading(false);
+          return;
+        }
       }
       
       setLastMessage(processedData);
