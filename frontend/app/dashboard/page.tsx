@@ -170,7 +170,7 @@ export default function DashboardPage() {
     
     try {
       setIsDeleting(true);
-      await apiClient.delete(`/monitoredservers/${deleteModal.server.id || deleteModal.server.serverId}`);
+      await apiClient.delete(`/monitoredservers/${deleteModal.server.id}`);
       setDeleteModal({ isOpen: false, server: null });
       await loadServersRef.current?.(); // Reload servers list
     } catch (error) {
