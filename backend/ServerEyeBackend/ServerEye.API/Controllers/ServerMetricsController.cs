@@ -47,6 +47,14 @@ public class ServerMetricsController : ControllerBase
                 granularity = "minute";
                 this.logger.LogInformation("No parameters provided, using default: last 5 minutes with minute granularity");
             }
+            else if (!start.HasValue || !end.HasValue)
+            {
+                // If some parameters are provided but start/end are missing, set defaults
+                end ??= DateTime.UtcNow;
+                start ??= end.Value.AddMinutes(-5);
+                granularity ??= "minute";
+                this.logger.LogInformation("Partial parameters provided, using defaults for missing values");
+            }
             
             var metrics = await this.metricsService.GetMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
             return this.Ok(metrics);
