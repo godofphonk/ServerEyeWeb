@@ -8,7 +8,7 @@ import MemoryTab from './MemoryTab';
 import StorageTab from './StorageTab';
 import NetworkTab from './NetworkTab';
 import SystemTab from './SystemTab';
-import { DashboardMetrics, MetricsResponse } from '@/types';
+import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface MetricsTabsProps {
   dashboardMetrics: DashboardMetrics | null;
@@ -19,6 +19,7 @@ interface MetricsTabsProps {
   memoryHistoricalMetrics: MetricsResponse | null;
   networkHistoricalMetrics: MetricsResponse | null;
   diskHistoricalMetrics: MetricsResponse | null;
+  staticInfo: ServerStaticInfo | null;
   server: any;
   timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   cpuTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
@@ -54,6 +55,7 @@ export default function MetricsTabs({
   memoryHistoricalMetrics,
   networkHistoricalMetrics,
   diskHistoricalMetrics,
+  staticInfo,
   server, 
   timeRange, 
   cpuTimeRange,
@@ -88,6 +90,7 @@ export default function MetricsTabs({
             historicalMetrics={cpuHistoricalMetrics}
             cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
             cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
+            staticInfo={staticInfo}
             cpuUsageTimeRange={cpuUsageTimeRange}
             cpuLoadTimeRange={cpuLoadTimeRange}
             onCpuUsageTimeRangeChange={onCpuUsageTimeRangeChange}

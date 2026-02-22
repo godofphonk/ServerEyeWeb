@@ -26,7 +26,6 @@ import {
 } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import LiveMetricsPanel from "@/components/LiveMetricsPanel";
 import ShareServerModal from "@/components/ShareServerModal";
 import MetricsTabs from "@/components/tabs/MetricsTabs";
 
@@ -390,7 +389,7 @@ export default function ServerDetailPage() {
     if (response.dataPoints && response.dataPoints.length > 0) {
       console.log(`[HistoricalMetrics] First data point:`, response.dataPoints[0]);
       console.log(`[HistoricalMetrics] Last data point:`, response.dataPoints[response.dataPoints.length - 1]);
-      console.log(`[HistoricalMetrics] Load values in first 5 points:`, response.dataPoints.slice(0, 5).map(p => ({
+      console.log(`[HistoricalMetrics] Load values in first 5 points:`, response.dataPoints.slice(0, 5).map((p: any) => ({
         timestamp: p.timestamp,
         load_avg: p.load_avg,
         load_max: p.load_max,
@@ -635,11 +634,6 @@ export default function ServerDetailPage() {
             </div>
           )}
 
-          {/* Live Metrics Panel */}
-          <div className="mb-8">
-            <LiveMetricsPanel serverId={server?.serverKey || serverId} enabled={server?.isActive} />
-          </div>
-
           {/* Metrics Tabs */}
           <div className="mb-8">
             <MetricsTabs 
@@ -651,6 +645,7 @@ export default function ServerDetailPage() {
               memoryHistoricalMetrics={memoryHistoricalMetrics}
               networkHistoricalMetrics={networkHistoricalMetrics}
               diskHistoricalMetrics={diskHistoricalMetrics}
+              staticInfo={staticInfo}
               server={server}
               timeRange={timeRange}
               cpuTimeRange={cpuTimeRange}
