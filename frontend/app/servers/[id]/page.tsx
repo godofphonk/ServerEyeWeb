@@ -205,7 +205,7 @@ export default function ServerDetailPage() {
   };
 
   // Функция для заполнения пропущенных данных нулями
-  const fillMissingDataPoints = (dataPoints: any[], start: Date, end: Date, granularityMinutes: number) => {
+  const fillMissingDataPoints = (dataPoints: any[], start: Date, end: Date, granularityMinutes: number, range: string) => {
     // Округляем start и end до гранулярности
     const startRounded = roundToGranularity(start, granularityMinutes);
     const endRounded = roundToGranularity(end, granularityMinutes);
@@ -237,9 +237,48 @@ export default function ServerDetailPage() {
       dataMap.set(timestamp, point);
     });
 
-    // Заполняем все временные слоты
+    // Находим реальный период данных (когда агент был установлен)
+    const firstDataPoint = new Date(dataPoints[0].timestamp);
+    
+    console.log(`[FillMissing] Real data period starts: ${firstDataPoint.toISOString()}`);
+    console.log(`[FillMissing] Requested period: ${new Date(startRounded).toISOString()} to ${new Date(endRounded).toISOString()}`);
+    
+    // Для коротких периодов (1ч, 6ч) используем все данные как есть
+    // Для длинных периодов (24ч, 7д, 30д) заполняем нулями после реальных данных
+    const periodHours = (endRounded - startRounded) / (1000 * 60 * 60);
+    const expectedPoints = range === '1h' ? 60 : 
+                          range === '6h' ? 72 : 
+                          range === '24h' ? 96 : 
+                          range === '7d' ? 168 : 120;
+    
+    let actualStart: number = startRounded;
+    let useLongPeriodLogic = periodHours >= 24; // 24ч и больше
+    
+    console.log(`[FillMissing] Period: ${range}, hours: ${periodHours}, expected points: ${expectedPoints}`);
+    console.log(`[FillMissing] Use long period logic: ${useLongPeriodLogic}`);
+    
+    if (useLongPeriodLogic) {
+      // Для длинных периодов проверяем есть ли данные за весь период
+      const totalPeriodMs = endRounded - startRounded;
+      const dataPeriodMs = firstDataPoint.getTime() - startRounded;
+      
+      // Если агент установлен менее чем за 70% периода, используем startRounded
+      if (dataPeriodMs > totalPeriodMs * 0.7) {
+        actualStart = startRounded;
+        console.log(`[FillMissing] Long period but recent data, using requested start: ${new Date(actualStart).toISOString()}`);
+      } else {
+        actualStart = Math.max(startRounded, firstDataPoint.getTime());
+        console.log(`[FillMissing] Long period with old data, using actual start: ${new Date(actualStart).toISOString()}`);
+      }
+    } else {
+      console.log(`[FillMissing] Short period detected, using requested start: ${new Date(actualStart).toISOString()}`);
+    }
+    
+    console.log(`[FillMissing] Final fill period: ${new Date(actualStart).toISOString()} to ${new Date(endRounded).toISOString()}`);
+
+    // Заполняем все временные слоты от actualStart до endRounded
     const result = [];
-    let current = startRounded;
+    let current = actualStart;
     while (current <= endRounded) {
       const existingPoint = dataMap.get(current);
       
@@ -262,6 +301,7 @@ export default function ServerDetailPage() {
       current += granularityMinutes * 60 * 1000;
     }
 
+    console.log(`[FillMissing] Generated ${result.length} points, ${dataPoints.length} real, ${result.length - dataPoints.length} zeros`);
     return result;
   };
 
@@ -317,6 +357,47 @@ export default function ServerDetailPage() {
     
     console.log(`[HistoricalMetrics] Historical metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`);
     
+    // Детальное логирование timestamps для проверки актуальности данных
+    if (response.dataPoints && response.dataPoints.length > 0) {
+      const now = new Date();
+      const firstPoint = new Date(response.dataPoints[0].timestamp);
+      const lastPoint = new Date(response.dataPoints[response.dataPoints.length - 1].timestamp);
+      const minutesAgoFirst = Math.floor((now.getTime() - firstPoint.getTime()) / (1000 * 60));
+      const minutesAgoLast = Math.floor((now.getTime() - lastPoint.getTime()) / (1000 * 60));
+      
+      console.log(`[HistoricalMetrics] Data timestamps:`);
+      console.log(`  Now: ${now.toISOString()}`);
+      console.log(`  First: ${firstPoint.toISOString()} (${minutesAgoFirst} minutes ago)`);
+      console.log(`  Last: ${lastPoint.toISOString()} (${minutesAgoLast} minutes ago)`);
+      console.log(`  Range: ${response.dataPoints.length} points`);
+      
+      // Если данные старые (агент переустановлен), показываем только последние 5 минут
+      if (minutesAgoFirst > 10) {
+        console.log(`[HistoricalMetrics] ⚠️  Agent reinstalled! Showing only last 5 minutes of data.`);
+        
+        // Фильтруем данные - оставляем только последние 5 минут
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        const recentData = response.dataPoints.filter(point => 
+          new Date(point.timestamp) >= fiveMinutesAgo
+        );
+        
+        console.log(`[HistoricalMetrics] Filtered from ${response.dataPoints.length} to ${recentData.length} points (last 5 minutes)`);
+        response.dataPoints = recentData;
+      }
+    }
+    
+    // Детальное логирование первых и последних точек данных
+    if (response.dataPoints && response.dataPoints.length > 0) {
+      console.log(`[HistoricalMetrics] First data point:`, response.dataPoints[0]);
+      console.log(`[HistoricalMetrics] Last data point:`, response.dataPoints[response.dataPoints.length - 1]);
+      console.log(`[HistoricalMetrics] Load values in first 5 points:`, response.dataPoints.slice(0, 5).map(p => ({
+        timestamp: p.timestamp,
+        load_avg: p.load_avg,
+        load_max: p.load_max,
+        load_min: p.load_min
+      })));
+    }
+    
     if (response.dataPoints?.length > 0) {
       // Проверяем если данных меньше ожидаемых
       const expectedPoints = range === '1h' ? 60 : 
@@ -337,7 +418,7 @@ export default function ServerDetailPage() {
                                granularity === '6h' ? 360 : 1;
     
     // Заполняем пропущенные данные нулями
-    const filledDataPoints = fillMissingDataPoints(response.dataPoints || [], start, end, granularityMinutes);
+    const filledDataPoints = fillMissingDataPoints(response.dataPoints || [], start, end, granularityMinutes, range);
     console.log(`[ServerDetail] After filling: ${filledDataPoints.length} points`);
     
     // Transform API response - convert flat structure to nested for charts
