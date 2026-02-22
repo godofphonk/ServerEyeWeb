@@ -377,7 +377,7 @@ export default function ServerDetailPage() {
         
         // Фильтруем данные - оставляем только последние 5 минут
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        const recentData = response.dataPoints.filter(point => 
+        const recentData = response.dataPoints.filter((point: any) => 
           new Date(point.timestamp) >= fiveMinutesAgo
         );
         
