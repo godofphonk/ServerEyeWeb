@@ -5,13 +5,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';
 import TimeRangeSelector from '@/components/TimeRangeSelector';
-import { DashboardMetrics, MetricsResponse } from '@/types';
+import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface CpuTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
   cpuUsageHistoricalMetrics: MetricsResponse | null;
   cpuLoadHistoricalMetrics: MetricsResponse | null;
+  staticInfo: ServerStaticInfo | null;
   cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
@@ -23,6 +24,7 @@ export default function CpuTab({
   historicalMetrics, 
   cpuUsageHistoricalMetrics, 
   cpuLoadHistoricalMetrics, 
+  staticInfo,
   cpuUsageTimeRange = '1h', 
   cpuLoadTimeRange = '1h', 
   onCpuUsageTimeRangeChange, 
@@ -150,19 +152,15 @@ export default function CpuTab({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Model:</span>
-                  <span>N/A</span>
+                  <span>{staticInfo?.cpu_info?.model || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Cores:</span>
-                  <span>N/A</span>
+                  <span>{staticInfo?.cpu_info?.cores || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Base Clock:</span>
-                  <span>N/A</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Max Boost:</span>
-                  <span>N/A</span>
+                  <span className="text-gray-400">Frequency:</span>
+                  <span>{staticInfo?.cpu_info?.frequency_mhz ? `${staticInfo.cpu_info.frequency_mhz} MHz` : 'N/A'}</span>
                 </div>
               </div>
             </div>
