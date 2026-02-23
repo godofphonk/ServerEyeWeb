@@ -10,6 +10,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true, // Send cookies for authentication
     });
 
     this.setupInterceptors();
@@ -46,7 +47,9 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    console.log('[API] GET request:', url);
     const response = await this.client.get<T>(url, config);
+    console.log('[API] GET response:', response.status, url);
     return response.data;
   }
 

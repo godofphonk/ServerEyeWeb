@@ -10,11 +10,16 @@ const CACHE_DURATION = 30000; // 30 seconds
 export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
   const now = Date.now();
   
+  console.log('[ServerAPI] getCachedMonitoredServers called');
+  
   if (cachedServers && (now - cacheTimestamp) < CACHE_DURATION) {
+    console.log('[ServerAPI] Returning cached servers:', cachedServers);
     return cachedServers;
   }
   
+  console.log('[ServerAPI] Fetching servers from API...');
   cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+  console.log('[ServerAPI] Servers fetched:', cachedServers);
   cacheTimestamp = now;
   return cachedServers;
 }
