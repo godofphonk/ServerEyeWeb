@@ -12,11 +12,14 @@ interface CpuTabProps {
   historicalMetrics: MetricsResponse | null;
   cpuUsageHistoricalMetrics: MetricsResponse | null;
   cpuLoadHistoricalMetrics: MetricsResponse | null;
+  cpuTemperatureHistoricalMetrics: MetricsResponse | null;
   staticInfo: ServerStaticInfo | null;
   cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
+  cpuTemperatureTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  onCpuTemperatureTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
 export default function CpuTab({ 
@@ -24,11 +27,14 @@ export default function CpuTab({
   historicalMetrics, 
   cpuUsageHistoricalMetrics, 
   cpuLoadHistoricalMetrics, 
+  cpuTemperatureHistoricalMetrics,
   staticInfo,
   cpuUsageTimeRange = '1h', 
   cpuLoadTimeRange = '1h', 
+  cpuTemperatureTimeRange = '1h',
   onCpuUsageTimeRangeChange, 
-  onCpuLoadTimeRangeChange 
+  onCpuLoadTimeRangeChange,
+  onCpuTemperatureTimeRangeChange 
 }: CpuTabProps) {
   return (
     <div className="space-y-6">
@@ -124,6 +130,28 @@ export default function CpuTab({
                 title=""
                 color="#f59e0b"
                 timeRange={cpuLoadTimeRange}
+              />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-medium text-gray-400">CPU Temperature</h4>
+              {onCpuTemperatureTimeRangeChange && (
+                <TimeRangeSelector 
+                  timeRange={cpuTemperatureTimeRange} 
+                  onTimeRangeChange={onCpuTemperatureTimeRangeChange} 
+                />
+              )}
+            </div>
+            <div className="h-80">
+              <MetricsLineChart
+                data={cpuTemperatureHistoricalMetrics?.data || historicalMetrics?.data}
+                metricType="temperature"
+                title=""
+                color="#ef4444"
+                unit="°C"
+                timeRange={cpuTemperatureTimeRange}
               />
             </div>
           </Card>

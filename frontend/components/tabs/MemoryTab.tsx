@@ -5,16 +5,17 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsAreaChart from '@/components/charts/MetricsAreaChart';
 import TimeRangeSelector from '@/components/TimeRangeSelector';
-import { DashboardMetrics, MetricsResponse } from '@/types';
+import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface MemoryTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
+  staticInfo: ServerStaticInfo | null;
   timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
-export default function MemoryTab({ dashboardMetrics, historicalMetrics, timeRange = '1h', onTimeRangeChange }: MemoryTabProps) {
+export default function MemoryTab({ dashboardMetrics, historicalMetrics, staticInfo, timeRange = '1h', onTimeRangeChange }: MemoryTabProps) {
   return (
     <div className="space-y-6">
       {/* Memory Overview Cards */}
@@ -154,19 +155,27 @@ export default function MemoryTab({ dashboardMetrics, historicalMetrics, timeRan
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total RAM:</span>
-                  <span>16 GB</span>
+                  <span>{staticInfo?.memory_info?.total_gb || 'N/A'} GB</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Available:</span>
-                  <span>{(16 - (16 * (dashboardMetrics?.current.memory || 0) / 100)).toFixed(1)} GB</span>
+                  <span>{staticInfo?.memory_info?.total_gb ? 
+                    (staticInfo.memory_info.total_gb - (staticInfo.memory_info.total_gb * (dashboardMetrics?.current.memory || 0) / 100)).toFixed(1) : 
+                    'N/A'} GB</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Used:</span>
-                  <span>{(16 * (dashboardMetrics?.current.memory || 0) / 100).toFixed(1)} GB</span>
+                  <span>{staticInfo?.memory_info?.total_gb ? 
+                    (staticInfo.memory_info.total_gb * (dashboardMetrics?.current.memory || 0) / 100).toFixed(1) : 
+                    'N/A'} GB</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Swap Total:</span>
-                  <span>8 GB</span>
+                  <span className="text-gray-400">Type:</span>
+                  <span>{staticInfo?.memory_info?.type || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Speed:</span>
+                  <span>{staticInfo?.memory_info?.speed_mhz ? `${staticInfo.memory_info.speed_mhz} MHz` : 'N/A'}</span>
                 </div>
               </div>
             </div>
