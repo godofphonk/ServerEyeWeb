@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
-import { isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { getServersWithStaticInfo, getServerMetrics } from '@/lib/serverApi';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -13,8 +12,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function DashboardPage() {
-  // Temporarily disable AuthContext to prevent conflicts
-  // const { user, isAuthenticated, loading, checkAuth } = useAuth();
+  // Use AuthContext for authentication
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [servers, setServers] = useState<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
@@ -25,12 +24,10 @@ export default function DashboardPage() {
     server: null,
   });
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
-
+  
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
-  const loadServersRef = useRef<(() => Promise<void>) | null>(null);
   
   const loadServerMetrics = useCallback(async (serverKey: string) => {
     if (loadingMetrics.has(serverKey)) {
@@ -81,15 +78,16 @@ export default function DashboardPage() {
   }, [loadingMetrics]);
 
   const loadServers = useCallback(async () => {
-    if (isLoadingServers) {
-      return;
-    }
+    console.log('[Dashboard] loadServers called');
     
     try {
       setIsLoadingServers(true);
+      console.log('[Dashboard] Loading servers...');
       
       // Load servers with static info in parallel
+      console.log('[Dashboard] Calling getServersWithStaticInfo...');
       const serversWithStatic = await getServersWithStaticInfo();
+      console.log('[Dashboard] Servers loaded:', serversWithStatic);
       setServers(serversWithStatic || []);
       
       // Load metrics for each server using serverKey
@@ -106,42 +104,28 @@ export default function DashboardPage() {
       setServers([]);
     } finally {
       setIsLoadingServers(false);
+      console.log('[Dashboard] Loading servers finished');
     }
-  }, [isLoadingServers, loadServerMetrics]);
-
-  // Store the latest loadServers function in ref
-  loadServersRef.current = loadServers;
-  
-  useEffect(() => {
-    const initAuth = async () => {
-      if (checkAuthToken()) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-    };
-    initAuth();
-  }, []);
+  }, []); // Empty dependencies - function is stable
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    console.log('[Dashboard] Auth state changed:', { isAuthenticated, authLoading });
+    console.log('[Dashboard] useEffect dependencies:', { isAuthenticated, authLoading, loadServers: !!loadServers });
+    
+    if (!authLoading && isAuthenticated) {
+      console.log('[Dashboard] User authenticated, loading servers...');
+      loadServers();
+    } else if (!authLoading && !isAuthenticated) {
+      console.log('[Dashboard] User not authenticated, redirecting to login');
       setIsLoadingServers(false);
+      router.push('/login');
     }
-  }, [isLoggedIn]);
-
-  const loadServersCalled = useRef(false);
-  
-  useEffect(() => {
-    if (isLoggedIn && !loadServersCalled.current) {
-      loadServersCalled.current = true;
-      loadServersRef.current?.();
-    }
-  }, [isLoggedIn]);
+  }, [isAuthenticated, authLoading, router, loadServers]); // Add loadServers dependency
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    loadServersCalled.current = false;
-    await loadServersRef.current?.();
+    setIsLoadingServers(false);
+    await loadServers();
     setIsRefreshing(false);
   };
 
@@ -161,8 +145,7 @@ export default function DashboardPage() {
       setIsDeleting(true);
       await apiClient.delete(`/monitoredservers/${deleteModal.server.id}`);
       setDeleteModal({ isOpen: false, server: null });
-      loadServersCalled.current = false;
-      await loadServersRef.current?.(); // Reload servers list
+      await loadServers(); // Reload servers list
     } catch (error) {
       console.error("Failed to delete server:", error);
       alert("Failed to delete server. Please try again.");
@@ -216,10 +199,10 @@ export default function DashboardPage() {
     return `${Math.round(totalCpu / serverCount)}%`;
   };
 
-  if (!isLoggedIn) {
+  if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+        <div className="text-white">{authLoading ? 'Loading...' : 'Redirecting...'}</div>
       </div>
     );
   }

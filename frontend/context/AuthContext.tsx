@@ -33,16 +33,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
+      console.log('[AuthContext] checkAuth called');
       const res = await fetch('/api/auth/session', { credentials: 'include' });
+      console.log('[AuthContext] checkAuth response:', res.status);
       if (res.ok) {
         const data = await res.json();
+        console.log('[AuthContext] checkAuth data:', data);
         if (data.user) {
           setUser(mapBackendUser(data.user));
+          console.log('[AuthContext] User authenticated via session');
+          console.log('[AuthContext] State updated:', { user: mapBackendUser(data.user), loading: false });
+          
+          // Also save token to localStorage for apiClient
+          if (typeof window !== 'undefined') {
+            // Get token from session API response
+            try {
+              const tokenResponse = await fetch('/api/auth/token', { credentials: 'include' });
+              if (tokenResponse.ok) {
+                const tokenData = await tokenResponse.json();
+                if (tokenData.token) {
+                  localStorage.setItem('jwt_token', tokenData.token);
+                  console.log('[AuthContext] Token saved to localStorage from API, length:', tokenData.token?.length);
+                }
+              }
+            } catch (error) {
+              console.log('[AuthContext] Failed to get token from API:', error);
+            }
+          }
           return;
         }
       }
+      console.log('[AuthContext] No valid session found');
       setUser(null);
-    } catch {
+    } catch (error) {
+      console.log('[AuthContext] checkAuth error:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -90,6 +114,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(mapBackendUser(data.user));
     console.log('AuthContext login - user set successfully');
+    
+    // Also save token to localStorage for apiClient
+    if (typeof window !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      const accessTokenCookie = cookies.find(c => c.trim().startsWith('accessToken='));
+      if (accessTokenCookie) {
+        const token = accessTokenCookie.split('=')[1];
+        localStorage.setItem('jwt_token', token);
+        console.log('AuthContext login - token saved to localStorage');
+      }
+    }
   };
 
   const register = async (email: string, username: string, password: string) => {
