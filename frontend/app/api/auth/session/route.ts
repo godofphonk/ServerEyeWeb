@@ -1,8 +1,19 @@
+// SESSION ROUTE - SHOULD LOAD!
+console.log('================================');
+console.log('SESSION ROUTE FILE IS BEING LOADED!');
+console.log('================================');
+
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5246/api/';
+console.log('Session route file loaded!');
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api/';
 
 export async function GET(request: NextRequest) {
+  console.log('Session API route called via GET!');
+  console.log('API_BASE_URL:', API_BASE_URL);
+  console.log('Environment NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
+  
   try {
     const accessToken = request.cookies.get('accessToken')?.value;
     const refreshToken = request.cookies.get('refreshToken')?.value;
@@ -20,7 +31,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const backendResponse = await fetch(`${API_BASE_URL}users/me`, {
+    const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +63,7 @@ export async function GET(request: NextRequest) {
         tokenPrefix: refreshBody.token?.substring(0, 20) + '...',
         refreshTokenPrefix: refreshBody.refreshToken?.substring(0, 20) + '...'
       });
-      const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(refreshBody),
@@ -68,7 +79,7 @@ export async function GET(request: NextRequest) {
 
       if (refreshResponse.ok) {
 
-        const userResponse = await fetch(`${API_BASE_URL}users/me`, {
+        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
