@@ -42,6 +42,7 @@ export default function ServerDetailPage() {
   const [cpuHistoricalMetrics, setCpuHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [cpuUsageHistoricalMetrics, setCpuUsageHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [cpuLoadHistoricalMetrics, setCpuLoadHistoricalMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuTemperatureHistoricalMetrics, setCpuTemperatureHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [memoryHistoricalMetrics, setMemoryHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [networkHistoricalMetrics, setNetworkHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [diskHistoricalMetrics, setDiskHistoricalMetrics] = useState<MetricsResponse | null>(null);
@@ -51,6 +52,7 @@ export default function ServerDetailPage() {
   const [cpuTimeRange, setCpuTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuTemperatureTimeRange, setCpuTemperatureTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [networkTimeRange, setNetworkTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [diskTimeRange, setDiskTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');

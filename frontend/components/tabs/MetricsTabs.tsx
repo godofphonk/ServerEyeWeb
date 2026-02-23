@@ -16,6 +16,7 @@ interface MetricsTabsProps {
   cpuHistoricalMetrics: MetricsResponse | null;
   cpuUsageHistoricalMetrics: MetricsResponse | null;
   cpuLoadHistoricalMetrics: MetricsResponse | null;
+  cpuTemperatureHistoricalMetrics: MetricsResponse | null;
   memoryHistoricalMetrics: MetricsResponse | null;
   networkHistoricalMetrics: MetricsResponse | null;
   diskHistoricalMetrics: MetricsResponse | null;
@@ -25,6 +26,7 @@ interface MetricsTabsProps {
   cpuTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
+  cpuTemperatureTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   memoryTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   networkTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   diskTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
@@ -32,6 +34,7 @@ interface MetricsTabsProps {
   onCpuTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  onCpuTemperatureTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onMemoryTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onNetworkTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   onDiskTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
@@ -52,6 +55,7 @@ export default function MetricsTabs({
   cpuHistoricalMetrics,
   cpuUsageHistoricalMetrics,
   cpuLoadHistoricalMetrics,
+  cpuTemperatureHistoricalMetrics,
   memoryHistoricalMetrics,
   networkHistoricalMetrics,
   diskHistoricalMetrics,
@@ -61,6 +65,7 @@ export default function MetricsTabs({
   cpuTimeRange,
   cpuUsageTimeRange,
   cpuLoadTimeRange,
+  cpuTemperatureTimeRange,
   memoryTimeRange,
   networkTimeRange,
   diskTimeRange,
@@ -68,6 +73,7 @@ export default function MetricsTabs({
   onCpuTimeRangeChange,
   onCpuUsageTimeRangeChange,
   onCpuLoadTimeRangeChange,
+  onCpuTemperatureTimeRangeChange,
   onMemoryTimeRangeChange,
   onNetworkTimeRangeChange,
   onDiskTimeRangeChange,
@@ -90,11 +96,14 @@ export default function MetricsTabs({
             historicalMetrics={cpuHistoricalMetrics}
             cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
             cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
+            cpuTemperatureHistoricalMetrics={cpuTemperatureHistoricalMetrics}
             staticInfo={staticInfo}
             cpuUsageTimeRange={cpuUsageTimeRange}
             cpuLoadTimeRange={cpuLoadTimeRange}
+            cpuTemperatureTimeRange={cpuTemperatureTimeRange}
             onCpuUsageTimeRangeChange={onCpuUsageTimeRangeChange}
             onCpuLoadTimeRangeChange={onCpuLoadTimeRangeChange}
+            onCpuTemperatureTimeRangeChange={onCpuTemperatureTimeRangeChange}
           />
         </TabPanel>
         
@@ -102,6 +111,7 @@ export default function MetricsTabs({
           <MemoryTab 
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={memoryHistoricalMetrics}
+            staticInfo={staticInfo}
             timeRange={memoryTimeRange}
             onTimeRangeChange={onMemoryTimeRangeChange}
           />
