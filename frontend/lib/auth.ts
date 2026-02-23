@@ -41,19 +41,3 @@ export function getToken(): string | null {
 export function isAuthenticated(): boolean {
   return !!getToken();
 }
-
-// Auto-login for development with test credentials
-export async function autoLoginForDev(): Promise<boolean> {
-  try {
-    const response = await login({
-      email: 'finalvalidation@example.com',
-      password: 'Test123!@#'
-    });
-    
-    console.log('[Auth] Auto-login successful:', response.user);
-    return true;
-  } catch (error) {
-    console.error('[Auth] Auto-login failed:', error);
-    return false;
-  }
-}
