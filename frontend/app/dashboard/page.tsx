@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
-import { autoLoginForDev, isAuthenticated as checkAuthToken } from '@/lib/auth';
+import { isAuthenticated as checkAuthToken } from '@/lib/auth';
 import { getServersWithStaticInfo, getServerMetrics } from '@/lib/serverApi';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -114,13 +114,10 @@ export default function DashboardPage() {
   
   useEffect(() => {
     const initAuth = async () => {
-      if (!checkAuthToken() && !autoLoginAttempted.current) {
-        autoLoginAttempted.current = true;
-        console.log('[Dashboard] No token found, attempting auto-login...');
-        const success = await autoLoginForDev();
-        setIsLoggedIn(success);
-      } else if (checkAuthToken()) {
+      if (checkAuthToken()) {
         setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
       }
     };
     initAuth();

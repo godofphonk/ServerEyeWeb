@@ -80,7 +80,7 @@ export default function ServerDetailPage() {
 
   // Unified metrics loading - load all required metrics at once
   useEffect(() => {
-    if (user && serverId && server && staticInfo) {
+    if (user && serverId) {
       const loadAllMetrics = async () => {
         try {
           setLoading(true);
@@ -91,6 +91,7 @@ export default function ServerDetailPage() {
             cpuMetrics,
             cpuUsageMetrics,
             cpuLoadMetrics,
+            cpuTemperatureMetrics,
             memoryMetrics,
             networkMetrics,
             diskMetrics
@@ -99,6 +100,7 @@ export default function ServerDetailPage() {
             loadHistoricalMetrics(cpuTimeRange),
             loadHistoricalMetrics(cpuUsageTimeRange),
             loadHistoricalMetrics(cpuLoadTimeRange),
+            loadHistoricalMetrics(cpuTemperatureTimeRange),
             loadHistoricalMetrics(memoryTimeRange),
             loadHistoricalMetrics(networkTimeRange),
             loadHistoricalMetrics(diskTimeRange)
@@ -112,6 +114,7 @@ export default function ServerDetailPage() {
           setDiskHistoricalMetrics(diskMetrics);
           setCpuUsageHistoricalMetrics(cpuUsageMetrics);
           setCpuLoadHistoricalMetrics(cpuLoadMetrics);
+          setCpuTemperatureHistoricalMetrics(cpuTemperatureMetrics);
         } catch (error) {
           console.error("Failed to load metrics:", error);
         } finally {
@@ -121,7 +124,7 @@ export default function ServerDetailPage() {
 
       loadAllMetrics();
     }
-  }, [user, serverId, server, staticInfo, timeRange, cpuTimeRange, cpuUsageTimeRange, cpuLoadTimeRange, memoryTimeRange, networkTimeRange, diskTimeRange]);
+  }, [user, serverId, timeRange, cpuTimeRange, cpuUsageTimeRange, cpuLoadTimeRange, cpuTemperatureTimeRange, memoryTimeRange, networkTimeRange, diskTimeRange]);
 
   // Remove individual useEffects since we're using unified one
 
@@ -173,6 +176,7 @@ export default function ServerDetailPage() {
     
     // Transform API response to expected format
     const lastDataPoint = response.dataPoints?.[response.dataPoints.length - 1];
+    
     const result: DashboardMetrics = {
       current: {
         cpu: response.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
@@ -180,7 +184,7 @@ export default function ServerDetailPage() {
         disk: response.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
         network: lastDataPoint?.network_avg || 0,
         load: lastDataPoint?.load_avg || 0,
-        temperature: lastDataPoint?.temp_avg || 0,
+        temperature: response.temperatureDetails?.cpu_temperature || lastDataPoint?.temp_avg || 0,
         gpu_temperature: response.temperatureDetails?.gpu_temperature || 0,
       },
       trends: {
@@ -644,6 +648,7 @@ export default function ServerDetailPage() {
               cpuHistoricalMetrics={cpuHistoricalMetrics}
               cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
               cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
+              cpuTemperatureHistoricalMetrics={cpuTemperatureHistoricalMetrics}
               memoryHistoricalMetrics={memoryHistoricalMetrics}
               networkHistoricalMetrics={networkHistoricalMetrics}
               diskHistoricalMetrics={diskHistoricalMetrics}
@@ -653,6 +658,7 @@ export default function ServerDetailPage() {
               cpuTimeRange={cpuTimeRange}
               cpuUsageTimeRange={cpuUsageTimeRange}
               cpuLoadTimeRange={cpuLoadTimeRange}
+              cpuTemperatureTimeRange={cpuTemperatureTimeRange}
               memoryTimeRange={memoryTimeRange}
               networkTimeRange={networkTimeRange}
               diskTimeRange={diskTimeRange}
@@ -660,6 +666,7 @@ export default function ServerDetailPage() {
               onCpuTimeRangeChange={setCpuTimeRange}
               onCpuUsageTimeRangeChange={setCpuUsageTimeRange}
               onCpuLoadTimeRangeChange={setCpuLoadTimeRange}
+              onCpuTemperatureTimeRangeChange={setCpuTemperatureTimeRange}
               onMemoryTimeRangeChange={setMemoryTimeRange}
               onNetworkTimeRangeChange={setNetworkTimeRange}
               onDiskTimeRangeChange={setDiskTimeRange}

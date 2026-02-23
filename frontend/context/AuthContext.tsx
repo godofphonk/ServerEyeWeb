@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     console.log('AuthContext login - attempting login with:', { email, passwordLength: password.length });
     
-    const loginUrl = '/api/auth/login2?t=' + Date.now();
+    const loginUrl = '/api/auth/login?t=' + Date.now();
     console.log('AuthContext login - full URL:', window.location.origin + loginUrl);
     
     const res = await fetch(loginUrl, {
