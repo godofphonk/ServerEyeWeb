@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: servereyeWeb-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=ServerEyeWeb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - servereye-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: servereyeWeb-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    networks:
+      - servereye-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servereyeWeb-backend
+    ports:
+      - "5246:80"
+      - "5247:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__ServerEyeDbContext=Host=postgres;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=postgres
+      - Redis__ConnectionString=redis:6379
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - servereye-network
+
+networks:
+  servereye-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
