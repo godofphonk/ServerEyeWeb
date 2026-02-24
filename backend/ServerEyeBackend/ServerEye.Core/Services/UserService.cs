@@ -1,5 +1,6 @@
 namespace ServerEye.Core.Services;
 
+using System.Globalization;
 using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
@@ -26,6 +27,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             Email = user.Email,
             Id = user.Id,
             UserName = user.UserName,
+            Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
         };
     }
@@ -42,6 +44,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             Email = user.Email,
             Id = user.Id,
             UserName = user.UserName,
+            Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
         };
     }
@@ -55,6 +58,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             Id = user.Id,
             UserName = user.UserName,
             Email = user.Email,
+            Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
         }).ToList();
     }
