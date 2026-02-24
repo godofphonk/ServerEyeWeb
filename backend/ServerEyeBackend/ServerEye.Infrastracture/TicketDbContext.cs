@@ -11,6 +11,7 @@ public sealed class TicketDbContext : DbContext
     public DbSet<Ticket> Tickets => this.Set<Ticket>();
     public DbSet<TicketMessage> TicketMessages => this.Set<TicketMessage>();
     public DbSet<TicketAttachment> TicketAttachments => this.Set<TicketAttachment>();
+    public DbSet<Notification> Notifications => this.Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -12,17 +12,20 @@ public sealed class TicketService : ITicketService
     private readonly ITicketRepository ticketRepository;
     private readonly ITicketMessageRepository messageRepository;
     private readonly IEmailService emailService;
+    private readonly INotificationService notificationService;
     private readonly ILogger<TicketService> logger;
 
     public TicketService(
         ITicketRepository ticketRepository,
         ITicketMessageRepository messageRepository,
         IEmailService emailService,
+        INotificationService notificationService,
         ILogger<TicketService> logger)
     {
         this.ticketRepository = ticketRepository;
         this.messageRepository = messageRepository;
         this.emailService = emailService;
+        this.notificationService = notificationService;
         this.logger = logger;
     }
 
@@ -60,6 +63,15 @@ public sealed class TicketService : ITicketService
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Failed to send ticket creation email for ticket {TicketNumber}", ticketNumber);
+        }
+
+        try
+        {
+            await this.notificationService.NotifyAdminsAboutNewTicketAsync(ticket.Id, ticketNumber, dto.Subject);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Failed to create notifications for ticket {TicketNumber}", ticketNumber);
         }
 
         return this.MapToResponseDto(ticket);
@@ -133,6 +145,22 @@ public sealed class TicketService : ITicketService
             this.logger.LogError(ex, "Failed to send status update email for ticket {TicketNumber}", ticket.TicketNumber);
         }
 
+        if (ticket.UserId.HasValue)
+        {
+            try
+            {
+                await this.notificationService.NotifyUserAboutStatusChangeAsync(
+                    ticket.UserId.Value,
+                    ticket.Id,
+                    ticket.TicketNumber,
+                    GetStatusDisplay(status));
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Failed to create status change notification for ticket {TicketNumber}", ticket.TicketNumber);
+            }
+        }
+
         return this.MapToResponseDto(ticket);
     }
 
@@ -174,6 +202,22 @@ public sealed class TicketService : ITicketService
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Failed to send message notification email for ticket {TicketNumber}", ticket.TicketNumber);
+        }
+
+        if (ticket.UserId.HasValue && dto.IsStaffReply)
+        {
+            try
+            {
+                await this.notificationService.NotifyUserAboutNewMessageAsync(
+                    ticket.UserId.Value,
+                    ticket.Id,
+                    ticket.TicketNumber,
+                    dto.SenderName);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Failed to create message notification for ticket {TicketNumber}", ticket.TicketNumber);
+            }
         }
 
         return new TicketMessageDto
