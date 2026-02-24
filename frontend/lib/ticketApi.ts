@@ -21,6 +21,10 @@ export class TicketApi {
     return apiClient.get<Ticket>(`${this.baseUrl}/number/${ticketNumber}`);
   }
 
+  async getTicketById(ticketId: string): Promise<Ticket> {
+    return apiClient.get<Ticket>(`${this.baseUrl}/${ticketId}`);
+  }
+
   async getTicketsByEmail(email: string): Promise<Ticket[]> {
     return apiClient.get<Ticket[]>(`${this.baseUrl}/email/${email}`);
   }
@@ -43,6 +47,10 @@ export class TicketApi {
 
   async addTicketMessage(ticketId: string, data: AddTicketMessageRequest): Promise<Ticket> {
     return apiClient.post<Ticket>(`${this.baseUrl}/${ticketId}/messages`, data);
+  }
+
+  async getAllTickets(page: number = 1, pageSize: number = 50): Promise<Ticket[]> {
+    return apiClient.get<Ticket[]>(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
   }
 }
 

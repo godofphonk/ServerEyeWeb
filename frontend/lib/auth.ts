@@ -41,3 +41,9 @@ export function getToken(): string | null {
 export function isAuthenticated(): boolean {
   return !!getToken();
 }
+
+export function isAdmin(user: any): boolean {
+  if (!user) return false;
+  
+  return String(user.role).toLowerCase() === 'admin';
+}
