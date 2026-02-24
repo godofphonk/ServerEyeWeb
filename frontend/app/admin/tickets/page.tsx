@@ -170,6 +170,14 @@ export default function AdminTicketsPage() {
       console.log('[AdminTickets] Stats data keys:', statsData ? Object.keys(statsData) : 'null');
       console.log('[AdminTickets] StatusCounts:', statsData.statusCounts);
       console.log('[AdminTickets] StatusCounts keys:', statsData.statusCounts ? Object.keys(statsData.statusCounts) : 'null');
+      console.log('[AdminTickets] StatusCounts values:', statsData.statusCounts ? Object.values(statsData.statusCounts) : 'null');
+      
+      // Log each status count individually
+      if (statsData.statusCounts) {
+        Object.entries(statsData.statusCounts).forEach(([key, value]) => {
+          console.log(`[AdminTickets] Status ${key}: ${value}`);
+        });
+      }
       
       // Map backend response to frontend format
       const mappedStats = {
