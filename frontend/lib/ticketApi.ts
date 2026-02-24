@@ -49,8 +49,12 @@ export class TicketApi {
     return apiClient.post<Ticket>(`${this.baseUrl}/${ticketId}/messages`, data);
   }
 
-  async getAllTickets(page: number = 1, pageSize: number = 50): Promise<Ticket[]> {
-    return apiClient.get<Ticket[]>(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
+  async getAllTickets(page: number = 1, pageSize: number = 50): Promise<Ticket[] | {tickets: Ticket[], pagination: any}> {
+    return apiClient.get(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
+  }
+
+  async deleteTicket(ticketId: string): Promise<void> {
+    return apiClient.delete(`${this.baseUrl}/${ticketId}`);
   }
 }
 

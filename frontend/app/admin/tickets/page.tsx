@@ -76,27 +76,101 @@ export default function AdminTicketsPage() {
 
   const loadTickets = async () => {
     try {
+      console.log('[AdminTickets] Loading tickets with filter:', filterStatus);
+      
       let data: Ticket[];
       
       if (filterStatus === 'all') {
-        data = await ticketApi.getAllTickets();
+        console.log('[AdminTickets] Calling getAllTickets()');
+        const response = await ticketApi.getAllTickets();
+        console.log('[AdminTickets] getAllTickets response:', response);
+        console.log('[AdminTickets] getAllTickets type:', typeof response);
+        console.log('[AdminTickets] getAllTickets isArray?:', Array.isArray(response));
+        
+        // Handle paginated response {tickets: [...], pagination: {...}}
+        if (response && response.tickets && Array.isArray(response.tickets)) {
+          data = response.tickets;
+          console.log('[AdminTickets] Extracted tickets from paginated response:', data.length);
+        } else if (Array.isArray(response)) {
+          data = response;
+        } else {
+          data = [];
+        }
       } else {
+        console.log('[AdminTickets] Calling getTicketsByStatus with status:', filterStatus);
         data = await ticketApi.getTicketsByStatus(filterStatus);
+        console.log('[AdminTickets] getTicketsByStatus response:', data);
       }
       
-      setTickets(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to load tickets:', error);
+      let ticketsArray = Array.isArray(data) ? data : [];
+      console.log('[AdminTickets] Setting tickets:', ticketsArray.length, 'items');
+      
+      // Smart sorting logic:
+      // 1. New/Reopened tickets first (need attention)
+      // 2. In Progress tickets (being worked on)
+      // 3. Open tickets (waiting)
+      // 4. Resolved tickets (completed but not closed)
+      // 5. Closed tickets last
+      const statusPriority = {
+        [TicketStatus.New]: 1,
+        [TicketStatus.Reopened]: 2,
+        [TicketStatus.InProgress]: 3,
+        [TicketStatus.Open]: 4,
+        [TicketStatus.Resolved]: 5,
+        [TicketStatus.Closed]: 6
+      };
+
+      ticketsArray = ticketsArray.sort((a, b) => {
+        // First sort by status priority
+        const statusDiff = statusPriority[a.status] - statusPriority[b.status];
+        if (statusDiff !== 0) return statusDiff;
+        
+        // Then by creation date (newest first within same status)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      console.log('[AdminTickets] Tickets sorted by priority');
+      
+      // If no tickets from getAllTickets, try fallback to admin's own tickets
+      if (ticketsArray.length === 0 && user) {
+        console.log('[AdminTickets] No tickets from getAllTickets, trying fallback to admin user tickets...');
+        try {
+          const adminTickets = await ticketApi.getTicketsByUserId(user.id, 1, 50);
+          const adminTicketsArray = Array.isArray(adminTickets) ? adminTickets : [];
+          console.log('[AdminTickets] Admin fallback tickets:', adminTicketsArray.length);
+          setTickets(adminTicketsArray);
+        } catch (fallbackErr) {
+          console.error('[AdminTickets] Fallback also failed:', fallbackErr);
+          setTickets(ticketsArray);
+        }
+      } else {
+        setTickets(ticketsArray);
+      }
+    } catch (error: any) {
+      console.error('[AdminTickets] Failed to load tickets:', error);
+      console.error('[AdminTickets] Error details:', {
+        message: error.message,
+        status: error.status,
+        statusText: error.statusText,
+        response: error.response
+      });
       setTickets([]);
     }
   };
 
   const loadStats = async () => {
     try {
+      console.log('[AdminTickets] Loading ticket stats...');
       const statsData = await ticketApi.getTicketStats();
+      console.log('[AdminTickets] Stats loaded:', statsData);
       setStats(statsData);
-    } catch (error) {
-      console.error('Failed to load stats:', error);
+    } catch (error: any) {
+      console.error('[AdminTickets] Failed to load stats:', error);
+      console.error('[AdminTickets] Stats error details:', {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      });
     }
   };
 

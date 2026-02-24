@@ -13,7 +13,11 @@ import {
   Headset,
   Loader2,
   ArrowLeft,
-  XCircle
+  XCircle,
+  Trash2,
+  PlayCircle,
+  PauseCircle,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -146,7 +150,25 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleDeleteTicket = async () => {
+    if (!confirm(`Are you sure you want to delete ticket #${currentTicket.ticketNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await ticketApi.deleteTicket(currentTicket.id);
+      onTicketUpdate?.();
+      onClose();
+    } catch (error) {
+      console.error("Failed to delete ticket:", error);
+      alert("Failed to delete ticket. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -244,10 +266,88 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
                 </Button>
               </div>
 
-              {/* Status Actions */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Change Status:</span>
-                <div className="flex gap-2 flex-wrap">
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-400 mr-2">Quick Actions:</span>
+                
+                {/* Start Progress */}
+                {currentTicket.status === TicketStatus.New && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStatusChange(TicketStatus.InProgress)}
+                    disabled={isUpdatingStatus}
+                    className="gap-2"
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    Start Work
+                  </Button>
+                )}
+
+                {/* Resolve */}
+                {(currentTicket.status === TicketStatus.InProgress || currentTicket.status === TicketStatus.Open) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStatusChange(TicketStatus.Resolved)}
+                    disabled={isUpdatingStatus}
+                    className="gap-2 text-green-400 hover:text-green-300"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Mark Resolved
+                  </Button>
+                )}
+
+                {/* Close */}
+                {currentTicket.status === TicketStatus.Resolved && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStatusChange(TicketStatus.Closed)}
+                    disabled={isUpdatingStatus}
+                    className="gap-2"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Close Ticket
+                  </Button>
+                )}
+
+                {/* Reopen */}
+                {(currentTicket.status === TicketStatus.Closed || currentTicket.status === TicketStatus.Resolved) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleStatusChange(TicketStatus.Reopened)}
+                    disabled={isUpdatingStatus}
+                    className="gap-2 text-orange-400 hover:text-orange-300"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reopen
+                  </Button>
+                )}
+
+                {/* Delete */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteTicket}
+                  disabled={isLoading}
+                  className="gap-2 text-red-400 hover:text-red-300 ml-auto"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Ticket
+                </Button>
+              </div>
+
+              {/* All Status Options (collapsed) */}
+              <details className="group">
+                <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300 list-none flex items-center gap-2">
+                  <span>All Status Options</span>
+                  <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="flex gap-2 flex-wrap mt-2">
                   {Object.entries(statusConfig).map(([status, config]) => {
                     const Icon = config.icon;
                     const statusNum = Number(status) as TicketStatus;

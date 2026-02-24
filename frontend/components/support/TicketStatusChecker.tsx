@@ -135,7 +135,7 @@ export function TicketStatusChecker() {
                         >
                           <div className="flex justify-between items-start mb-1">
                             <span className="text-xs font-semibold text-gray-300">
-                              {msg.userName}
+                              {msg.senderName}
                             </span>
                             <span className="text-xs text-gray-500">
                               {new Date(msg.createdAt).toLocaleDateString()}
