@@ -371,3 +371,89 @@ export interface ServerFormData {
   os: string;
   tags: string[];
 }
+
+// Support Ticket types
+export enum TicketStatus {
+  New = 0,
+  Open = 1,
+  InProgress = 2,
+  Resolved = 3,
+  Closed = 4,
+  Reopened = 5
+}
+
+export enum TicketPriority {
+  Low = 0,
+  Medium = 1,
+  High = 2,
+  Critical = 3
+}
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  userId?: string;
+  userName: string;
+  message: string;
+  isStaffReply: boolean;
+  createdAt: string;
+}
+
+export interface Ticket {
+  id: string;
+  ticketNumber: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: TicketStatus;
+  statusDisplay: string;
+  priority: TicketPriority;
+  priorityDisplay: string;
+  createdAt: string;
+  updatedAt: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  assignedToUserName: string | null;
+  messages: TicketMessage[];
+  userId?: string;
+  messagesCount?: number;
+}
+
+export interface PaginatedTicketsResponse {
+  tickets: Ticket[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface CreateTicketRequest {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+export interface CreateTicketResponse extends Ticket {}
+
+export interface TicketStatsResponse {
+  total: number;
+  new: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+  closed: number;
+  reopened: number;
+}
+
+export interface AddTicketMessageRequest {
+  message: string;
+  isStaffReply?: boolean;
+}
+
+export interface UpdateTicketStatusRequest {
+  status: TicketStatus;
+}
