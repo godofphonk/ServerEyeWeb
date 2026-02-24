@@ -15,6 +15,12 @@ public sealed class ServerEyeDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder?.Entity<User>(entity =>
+        {
+            entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.Role).HasConversion<int>();
+        });
+
         modelBuilder?.Entity<ServerEntity>()
             .HasIndex(s => s.ServerKey)
             .IsUnique();
