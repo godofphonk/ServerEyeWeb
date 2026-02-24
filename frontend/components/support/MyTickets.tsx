@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Clock, AlertCircle, CheckCircle, XCircle, Loader2, MessageSquare, RefreshCw, MessageCircle } from "lucide-react";
+import { FileText, Clock, AlertCircle, CheckCircle, XCircle, Loader2, MessageSquare, RefreshCw, MessageCircle, Plus } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ticketApi } from "@/lib/ticketApi";
@@ -53,11 +53,16 @@ export function MyTickets() {
 
     try {
       console.log('[MyTickets] Loading tickets for user:', user.id, user.email);
+      console.log('[MyTickets] API call: getTicketsByUserId', user.id, page, pagination.pageSize);
+      
       const result = await ticketApi.getTicketsByUserId(user.id, page, pagination.pageSize);
+      console.log('[MyTickets] API response type:', typeof result);
       console.log('[MyTickets] API response:', result);
+      console.log('[MyTickets] Is array?:', Array.isArray(result));
       
       // Backend returns array directly, not paginated object
       if (Array.isArray(result)) {
+        console.log('[MyTickets] Setting tickets from array:', result.length);
         setTickets(result);
         setPagination({
           page: 1,
@@ -82,11 +87,28 @@ export function MyTickets() {
         console.log('[MyTickets] Tickets loaded:', result.tickets.length, 'total:', result.totalCount);
       } else {
         console.log('[MyTickets] Unexpected response format:', result);
-        setTickets([]);
+        console.log('[MyTickets] Trying fallback to email-based loading...');
+        
+        // Fallback to email-based loading
+        try {
+          const emailResult = await ticketApi.getTicketsByEmail(user.email);
+          console.log('[MyTickets] Email fallback result:', emailResult);
+          setTickets(Array.isArray(emailResult) ? emailResult : []);
+        } catch (emailErr) {
+          console.error('[MyTickets] Email fallback also failed:', emailErr);
+          setTickets([]);
+        }
       }
     } catch (err: any) {
-      console.error('Failed to load tickets:', err);
+      console.error('[MyTickets] Failed to load tickets:', err);
+      console.error('[MyTickets] Error details:', {
+        message: err.message,
+        status: err.status,
+        statusText: err.statusText,
+        response: err.response
+      });
       setError("Failed to load tickets");
+      setTickets([]);
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +117,27 @@ export function MyTickets() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       loadTickets(newPage);
+    }
+  };
+
+  // Debug function to create a test ticket
+  const createTestTicket = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('[MyTickets] Creating test ticket...');
+      const testTicket = await ticketApi.createTicket({
+        name: user.username,
+        email: user.email,
+        subject: `Test Ticket ${Date.now()}`,
+        message: 'This is a test ticket created for debugging purposes.'
+      });
+      console.log('[MyTickets] Test ticket created:', testTicket);
+      
+      // Reload tickets after creating
+      loadTickets();
+    } catch (err: any) {
+      console.error('[MyTickets] Failed to create test ticket:', err);
     }
   };
 
@@ -174,16 +217,28 @@ export function MyTickets() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">My Tickets</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => loadTickets()}
-              disabled={isLoading}
-              className="gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => loadTickets()}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              {/* Debug button - remove in production */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={createTestTicket}
+                className="gap-2 text-xs"
+              >
+                <Plus className="w-3 h-3" />
+                Test Ticket
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -264,7 +319,7 @@ export function MyTickets() {
                             >
                               <div className="flex justify-between items-start mb-1">
                                 <span className="text-xs font-semibold text-gray-300">
-                                  {msg.userName} {msg.isStaffReply && "(Support)"}
+                                  {msg.senderName} {msg.isStaffReply && "(Support)"}
                                 </span>
                                 <span className="text-xs text-gray-500">
                                   {new Date(msg.createdAt).toLocaleString()}
