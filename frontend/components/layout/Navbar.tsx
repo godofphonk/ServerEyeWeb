@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { isAdmin } from "@/lib/auth";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const publicLinks = [
   { href: "/", label: "Home" },
@@ -75,6 +76,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
+                <NotificationBell />
                 <Link href="/profile">
                   <Button variant="ghost" size="sm">
                     <User className="w-4 h-4 mr-2" />

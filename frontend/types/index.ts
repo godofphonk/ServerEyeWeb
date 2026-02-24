@@ -472,3 +472,37 @@ export interface AddTicketMessageRequest {
 export interface UpdateTicketStatusRequest {
   status: TicketStatus;
 }
+
+// Notification Types
+export enum NotificationType {
+  TicketCreated = 0,
+  StatusChanged = 1,
+  NewMessage = 2
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  ticketId: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationResponse {
+  notifications: Notification[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}

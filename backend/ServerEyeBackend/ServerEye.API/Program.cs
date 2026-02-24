@@ -98,6 +98,7 @@ builder.Services.AddScoped<IMonitoredServerRepository, ServerEye.Infrastracture.
 builder.Services.AddScoped<IUserServerAccessRepository, ServerEye.Infrastracture.Repositories.UserServerAccessRepository>();
 builder.Services.AddScoped<ITicketRepository, ServerEye.Infrastracture.Repositories.TicketRepository>();
 builder.Services.AddScoped<ITicketMessageRepository, ServerEye.Infrastracture.Repositories.TicketMessageRepository>();
+builder.Services.AddScoped<INotificationRepository, ServerEye.Infrastracture.Repositories.NotificationRepository>();
 
 // Register services
 builder.Services.AddScoped<IUserService, UserService>();
@@ -119,6 +120,7 @@ builder.Services.AddScoped<IServerAccessService, ServerAccessService>();
 builder.Services.AddScoped<IMetricsService, MetricsService>();
 builder.Services.AddScoped<IStaticInfoService, StaticInfoService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
