@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
-import { getServersWithStaticInfo, getServerMetrics } from '@/lib/serverApi';
+import { getServersWithStaticInfo, getServerMetrics, clearServersCache, clearMetricsCache } from '@/lib/serverApi';
 import { motion } from "framer-motion";
 import { Activity, Cpu, HardDrive, Server as ServerIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -121,7 +121,12 @@ export default function DashboardPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     setIsLoadingServers(false);
+    
+    // Clear caches and reload
+    clearServersCache();
+    clearMetricsCache();
     await loadServers();
+    
     setIsRefreshing(false);
   };
 
@@ -140,8 +145,13 @@ export default function DashboardPage() {
     try {
       setIsDeleting(true);
       await apiClient.delete(`/monitoredservers/${deleteModal.server.id}`);
+      
+      // Clear all caches and reload servers list
+      clearServersCache();
+      clearMetricsCache();
+      await loadServers();
+      
       setDeleteModal({ isOpen: false, server: null });
-      await loadServers(); // Reload servers list
     } catch (error) {
       console.error("Failed to delete server:", error);
       alert("Failed to delete server. Please try again.");

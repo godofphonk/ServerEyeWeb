@@ -112,6 +112,13 @@ export async function getServerStaticInfoCached(serverKey: string): Promise<Serv
   return data;
 }
 
+// Clear servers cache (useful after deletion)
+export function clearServersCache() {
+  cachedServers = null;
+  cacheTimestamp = 0;
+  console.log('[ServerAPI] Servers cache cleared');
+}
+
 // Clear static info cache (useful for manual refresh)
 export function clearStaticInfoCache(serverKey?: string) {
   if (serverKey) {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { ArrowLeft, CheckCircle, Server as ServerIcon, AlertCircle, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiClient } from "@/lib/api";
+import { clearServersCache, clearMetricsCache } from "@/lib/serverApi";
 
 export default function AddServerPage() {
   const router = useRouter();
@@ -40,6 +41,10 @@ export default function AddServerPage() {
         serverKey: apiKey,
         serverName: serverName.trim(),
       });
+      
+      // Clear caches so dashboard shows the new server
+      clearServersCache();
+      clearMetricsCache();
       
       router.push("/dashboard");
     } catch (error: any) {

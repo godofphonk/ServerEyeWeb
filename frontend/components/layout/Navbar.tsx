@@ -12,6 +12,7 @@ const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/docs", label: "Docs" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/install", label: "Install" },
   { href: "/support", label: "Support" },
 ];
 
@@ -19,6 +20,7 @@ const privateLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/docs", label: "Docs" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/install", label: "Install" },
   { href: "/support", label: "Support" },
 ];
 

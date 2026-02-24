@@ -12,30 +12,30 @@ const docSections = [
     title: "Getting Started",
     icon: Zap,
     articles: [
-      { title: "Quick Start Guide", href: "/docs/quick-start" },
+      { title: "Quick Start Guide", href: "/install" },
       { title: "Installation", href: "/docs/installation" },
       { title: "Configuration", href: "/docs/configuration" },
       { title: "First Steps", href: "/docs/first-steps" },
     ],
   },
   {
-    title: "API Reference",
+    title: "Agent Customizations",
     icon: Code,
     articles: [
-      { title: "Authentication", href: "/docs/api/auth" },
-      { title: "Servers API", href: "/docs/api/servers" },
-      { title: "Metrics API", href: "/docs/api/metrics" },
-      { title: "Webhooks", href: "/docs/api/webhooks" },
+      { title: "Configuration Options", href: "/docs/agent/config" },
+      { title: "Custom Metrics", href: "/docs/agent/metrics" },
+      { title: "Alert Rules", href: "/docs/agent/alerts" },
+      { title: "Plugins", href: "/docs/agent/plugins" },
     ],
   },
   {
-    title: "CLI Tools",
-    icon: Terminal,
+    title: "Project Repositories",
+    icon: Github,
     articles: [
-      { title: "CLI Installation", href: "/docs/cli/installation" },
-      { title: "CLI Commands", href: "/docs/cli/commands" },
-      { title: "Configuration File", href: "/docs/cli/config" },
-      { title: "Advanced Usage", href: "/docs/cli/advanced" },
+      { title: "View All Repositories", href: "/docs/repositories" },
+      { title: "Backend API", href: "https://github.com/godofphonk/ServerEye" },
+      { title: "Monitoring Agent", href: "https://github.com/godofphonk/ServerEye-agent" },
+      { title: "Web Dashboard", href: "https://github.com/godofphonk/ServerEye-web" },
     ],
   },
   {
@@ -97,9 +97,9 @@ export default function DocsPage() {
           {/* Quick Links */}
           <div className="grid md:grid-cols-3 gap-6 mb-16">
             {[
-              { icon: Terminal, title: "Quick Start", desc: "Get up and running in 60 seconds", href: "/docs/quick-start" },
-              { icon: Code, title: "API Reference", desc: "Complete API documentation", href: "/docs/api" },
-              { icon: Github, title: "Examples", desc: "Code examples and tutorials", href: "/docs/examples" },
+              { icon: Terminal, title: "Quick Start", desc: "Get up and running in 60 seconds", href: "/install" },
+              { icon: Code, title: "Agent Customizations", desc: "Configure and customize monitoring agent", href: "/docs/agent" },
+              { icon: Github, title: "Repositories", desc: "Explore project source code and examples", href: "/docs/repositories" },
             ].map((link, i) => (
               <motion.div
                 key={i}
@@ -107,7 +107,7 @@ export default function DocsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
               >
-                <Link href={link.href}>
+                <Link href={link.href} target={link.href.startsWith('http') ? '_blank' : '_self'} rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
                   <Card hover className="h-full">
                     <CardContent className="pt-6">
                       <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4">
@@ -146,6 +146,8 @@ export default function DocsPage() {
                         <Link
                           key={j}
                           href={article.href}
+                          target={article.href.startsWith('http') ? '_blank' : '_self'}
+                          rel={article.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                           className="block p-3 rounded-xl hover:bg-white/5 transition-colors"
                         >
                           <div className="flex items-center justify-between">
