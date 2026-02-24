@@ -18,6 +18,7 @@ export interface BackendUser {
   id: string;
   userName: string;
   email: string;
+  role?: 'user' | 'admin' | string;
   serverId?: string;
 }
 
@@ -392,9 +393,9 @@ export enum TicketPriority {
 export interface TicketMessage {
   id: string;
   ticketId: string;
-  userId?: string;
-  userName: string;
   message: string;
+  senderName: string;
+  senderEmail: string;
   isStaffReply: boolean;
   createdAt: string;
 }
@@ -451,7 +452,9 @@ export interface TicketStatsResponse {
 
 export interface AddTicketMessageRequest {
   message: string;
-  isStaffReply?: boolean;
+  senderName: string;
+  senderEmail: string;
+  isStaffReply: boolean;
 }
 
 export interface UpdateTicketStatusRequest {

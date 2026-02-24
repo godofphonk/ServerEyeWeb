@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Clock, AlertCircle, CheckCircle, XCircle, Loader2, MessageSquare, RefreshCw } from "lucide-react";
+import { FileText, Clock, AlertCircle, CheckCircle, XCircle, Loader2, MessageSquare, RefreshCw, MessageCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ticketApi } from "@/lib/ticketApi";
 import { Ticket, TicketStatus, PaginatedTicketsResponse } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { TicketChat } from "./TicketChat";
 
 const statusConfig = {
   [TicketStatus.New]: { icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
@@ -24,6 +25,8 @@ export function MyTickets() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 50,
@@ -97,6 +100,20 @@ export function MyTickets() {
 
   const toggleTicketExpansion = (ticketId: string) => {
     setExpandedTicket(expandedTicket === ticketId ? null : ticketId);
+  };
+
+  const openChat = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setIsChatOpen(true);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+    setSelectedTicket(null);
+  };
+
+  const handleTicketUpdate = () => {
+    loadTickets(pagination.page);
   };
 
   if (isLoading) {
@@ -216,17 +233,13 @@ export function MyTickets() {
                     </div>
                     
                     <Button
-                      variant="ghost"
+                      variant="primary"
                       size="sm"
-                      onClick={() => toggleTicketExpansion(ticket.id)}
-                      className="ml-4"
+                      onClick={() => openChat(ticket)}
+                      className="ml-4 gap-2"
                     >
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        ▼
-                      </motion.div>
+                      <MessageCircle className="w-4 h-4" />
+                      Open Chat
                     </Button>
                   </div>
 
@@ -302,6 +315,16 @@ export function MyTickets() {
       )}
         </CardContent>
       </Card>
+      
+      {/* Ticket Chat Modal */}
+      {selectedTicket && (
+        <TicketChat
+          ticket={selectedTicket}
+          isOpen={isChatOpen}
+          onClose={closeChat}
+          onTicketUpdate={handleTicketUpdate}
+        />
+      )}
     </>
   );
 }
