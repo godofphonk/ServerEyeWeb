@@ -5,15 +5,17 @@ using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
 using ServerEye.Core.Entities;
+using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IEmailService emailService) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IJwtService jwtService = jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
+    private readonly IEmailService emailService = emailService;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
@@ -101,6 +103,15 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         };
         
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
+        
+        try
+        {
+            await this.emailService.SendRegistrationEmailAsync(user.UserName, user.Email);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to send registration email to {user.Email}: {ex.Message}");
+        }
         
         return new AuthResponseDto
         {

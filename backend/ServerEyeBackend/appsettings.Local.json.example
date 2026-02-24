@@ -1,0 +1,16 @@
+{
+  "EmailSettings": {
+    "AwsAccessKey": "YOUR_AWS_ACCESS_KEY_HERE",
+    "AwsSecretKey": "YOUR_AWS_SECRET_KEY_HERE"
+  },
+  "ConnectionStrings": {
+    "ServerEyeDbContext": "Host=localhost;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=YOUR_PASSWORD",
+    "TicketDbContext": "Host=localhost;Port=5434;Database=ServerEyeWeb-ticket;Username=postgres;Password=YOUR_PASSWORD"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-super-secret-jwt-key-change-in-production-32-chars"
+  },
+  "Encryption": {
+    "Key": "your-32-character-encryption-key-here-change-in-prod"
+  }
+}
