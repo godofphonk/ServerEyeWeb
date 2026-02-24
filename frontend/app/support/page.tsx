@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle, Mail, Send, AlertCircle, CheckCircle } from "lucide-react";
+import { MessageCircle, Mail, Send, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -82,11 +82,14 @@ export default function SupportPage() {
                         </a>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <MessageCircle className="w-5 h-5 text-purple-400 mt-1" />
+                    <div className="flex items-start gap-3 opacity-60">
+                      <div className="relative">
+                        <MessageCircle className="w-5 h-5 text-gray-400 mt-1" />
+                        <Lock className="w-3 h-3 text-red-400 absolute -top-1 -right-1" />
+                      </div>
                       <div>
-                        <p className="font-semibold mb-1">Live Chat</p>
-                        <p className="text-sm text-gray-400">
+                        <p className="font-semibold mb-1 text-gray-400">Live Chat</p>
+                        <p className="text-sm text-gray-500">
                           Available 24/7
                         </p>
                       </div>
