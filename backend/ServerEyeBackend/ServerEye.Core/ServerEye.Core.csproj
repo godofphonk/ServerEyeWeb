@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
+    <PackageReference Include="AWSSDK.SimpleEmail" />
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>

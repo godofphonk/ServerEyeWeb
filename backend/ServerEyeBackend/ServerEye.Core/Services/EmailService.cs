@@ -2,19 +2,35 @@ namespace ServerEye.Core.Services;
 
 using System.Net;
 using System.Net.Mail;
+using Amazon.SimpleEmail;
+using Amazon.SimpleEmail.Model;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class EmailService : IEmailService
+public sealed class EmailService : IEmailService, IDisposable
 {
     private readonly EmailSettings settings;
     private readonly ILogger<EmailService> logger;
+    private readonly AmazonSimpleEmailServiceClient? sesClient;
 
     public EmailService(EmailSettings settings, ILogger<EmailService> logger)
     {
         this.settings = settings;
         this.logger = logger;
+
+        if (this.settings.UseAwsSes)
+        {
+            var config = new AmazonSimpleEmailServiceConfig
+            {
+                RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(this.settings.AwsRegion)
+            };
+
+            this.sesClient = new AmazonSimpleEmailServiceClient(
+                this.settings.AwsAccessKey,
+                this.settings.AwsSecretKey,
+                config);
+        }
     }
 
     public async Task SendTicketCreatedEmailAsync(string ticketNumber, string customerName, string customerEmail, string subject, string message)
@@ -92,29 +108,80 @@ public sealed class EmailService : IEmailService
         await this.SendEmailAsync(customerEmail, emailSubject, emailBody);
     }
 
+    public async Task SendRegistrationEmailAsync(string userName, string userEmail)
+    {
+        var emailSubject = "Welcome to ServerEye!";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Welcome to ServerEye, {userName}!</h2>
+    <p>Your account has been successfully created.</p>
+    <p>You can now log in and start monitoring your servers.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+    }
+
+    public void Dispose()
+    {
+        this.sesClient?.Dispose();
+    }
+
     private async Task SendEmailAsync(string toEmail, string subject, string body)
     {
         try
         {
-            using var smtpClient = new SmtpClient(this.settings.SmtpHost, this.settings.SmtpPort)
+            if (this.settings.UseAwsSes && this.sesClient != null)
             {
-                EnableSsl = this.settings.EnableSsl,
-                Credentials = new NetworkCredential(this.settings.SmtpUsername, this.settings.SmtpPassword)
-            };
+                var sendRequest = new SendEmailRequest
+                {
+                    Source = this.settings.FromEmail,
+                    Destination = new Destination
+                    {
+                        ToAddresses = new List<string> { toEmail }
+                    },
+                    Message = new Message
+                    {
+                        Subject = new Content(subject),
+                        Body = new Body
+                        {
+                            Html = new Content(body)
+                        }
+                    }
+                };
 
-            using var mailMessage = new MailMessage
+                var response = await this.sesClient.SendEmailAsync(sendRequest);
+                this.logger.LogInformation(
+                    "Email sent successfully via AWS SES to {Email} with subject: {Subject}, MessageId: {MessageId}",
+                    toEmail,
+                    subject,
+                    response.MessageId);
+            }
+            else
             {
-                From = new MailAddress(this.settings.FromEmail, this.settings.FromName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
-            };
+                using var smtpClient = new SmtpClient(this.settings.SmtpHost, this.settings.SmtpPort)
+                {
+                    EnableSsl = this.settings.EnableSsl,
+                    Credentials = new NetworkCredential(this.settings.SmtpUsername, this.settings.SmtpPassword)
+                };
 
-            mailMessage.To.Add(toEmail);
+                using var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(this.settings.FromEmail, this.settings.FromName),
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                };
 
-            await smtpClient.SendMailAsync(mailMessage);
+                mailMessage.To.Add(toEmail);
 
-            this.logger.LogInformation("Email sent successfully to {Email} with subject: {Subject}", toEmail, subject);
+                await smtpClient.SendMailAsync(mailMessage);
+
+                this.logger.LogInformation("Email sent successfully via SMTP to {Email} with subject: {Subject}", toEmail, subject);
+            }
         }
         catch (Exception ex)
         {
