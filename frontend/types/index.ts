@@ -441,6 +441,18 @@ export interface CreateTicketRequest {
 export interface CreateTicketResponse extends Ticket {}
 
 export interface TicketStatsResponse {
+  totalCount: number;
+  statusCounts: {
+    New: number;
+    Open: number;
+    InProgress: number;
+    Resolved: number;
+    Closed: number;
+    Reopened: number;
+  };
+}
+
+export interface TicketStatsDisplay {
   total: number;
   new: number;
   open: number;
