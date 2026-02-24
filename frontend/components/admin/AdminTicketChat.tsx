@@ -368,7 +368,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
                     );
                   })}
                 </div>
-              </div>
+              </details>
             </div>
 
             {/* Messages Area */}

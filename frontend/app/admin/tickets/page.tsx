@@ -65,10 +65,8 @@ export default function AdminTicketsPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      await Promise.all([
-        loadTickets(),
-        loadStats()
-      ]);
+      // Load tickets first (loadStats is called inside loadTickets)
+      await loadTickets();
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +144,9 @@ export default function AdminTicketsPage() {
       } else {
         setTickets(ticketsArray);
       }
+      
+      // Update stats after tickets are loaded
+      await loadStats();
     } catch (error: any) {
       console.error('[AdminTickets] Failed to load tickets:', error);
       console.error('[AdminTickets] Error details:', {
@@ -171,6 +172,35 @@ export default function AdminTicketsPage() {
         status: error.status,
         response: error.response
       });
+      
+      // Fallback: calculate stats from tickets if API fails
+      console.log('[AdminTickets] Calculating stats from tickets as fallback...');
+      if (tickets.length > 0) {
+        const fallbackStats = {
+          total: tickets.length,
+          new: tickets.filter(t => t.status === TicketStatus.New).length,
+          open: tickets.filter(t => t.status === TicketStatus.Open).length,
+          inProgress: tickets.filter(t => t.status === TicketStatus.InProgress).length,
+          resolved: tickets.filter(t => t.status === TicketStatus.Resolved).length,
+          closed: tickets.filter(t => t.status === TicketStatus.Closed).length,
+          reopened: tickets.filter(t => t.status === TicketStatus.Reopened).length
+        };
+        console.log('[AdminTickets] Fallback stats calculated:', fallbackStats);
+        setStats(fallbackStats);
+      } else {
+        // Default empty stats
+        const emptyStats = {
+          total: 0,
+          new: 0,
+          open: 0,
+          inProgress: 0,
+          resolved: 0,
+          closed: 0,
+          reopened: 0
+        };
+        console.log('[AdminTickets] Using empty stats');
+        setStats(emptyStats);
+      }
     }
   };
 
