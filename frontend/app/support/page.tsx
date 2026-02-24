@@ -10,9 +10,11 @@ import { MyTickets } from "@/components/support/MyTickets";
 import { ticketApi } from "@/lib/ticketApi";
 import { CreateTicketRequest } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/useToast";
 
 export default function SupportPage() {
   const { user, isAuthenticated } = useAuth();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'create' | 'tickets'>('create');
   const [formData, setFormData] = useState({
     name: "",
@@ -90,6 +92,11 @@ export default function SupportPage() {
       setTicketNumber(response.ticketNumber);
       setFormData({ name: "", email: "", subject: "", message: "" });
       
+      toast.success(
+        'Ticket Created',
+        `Ticket #${response.ticketNumber} has been created successfully`
+      );
+      
       // Refresh tickets list if user is on tickets tab
       if (activeTab === 'tickets') {
         // Trigger reload by updating the tab
@@ -98,9 +105,12 @@ export default function SupportPage() {
       }
     } catch (error: any) {
       setSubmitStatus('error');
-      setErrorMessage(
-        error.response?.data?.message || 
-        "Failed to create ticket. Please try again or contact support@servereye.dev"
+      const errorMessage = error.response?.data?.message || "Failed to create ticket. Please try again or contact support@servereye.dev";
+      setErrorMessage(errorMessage);
+      
+      toast.error(
+        'Creation Failed',
+        `Failed to create ticket: ${errorMessage}`
       );
     } finally {
       setIsSubmitting(false);

@@ -506,3 +506,14 @@ export interface NotificationResponse {
 export interface UnreadCountResponse {
   count: number;
 }
+
+// Toast Notification Types
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface Toast {
+  id: string;
+  type: ToastType;
+  title: string;
+  message?: string;
+  duration?: number;
+}

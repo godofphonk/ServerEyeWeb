@@ -61,4 +61,12 @@ public class NotificationRepository(TicketDbContext context) : INotificationRepo
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true))
             .ConfigureAwait(false);
     }
+
+    public async Task DeleteByTicketIdAsync(Guid ticketId)
+    {
+        await this.context.Notifications
+            .Where(n => n.TicketId == ticketId)
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+    }
 }

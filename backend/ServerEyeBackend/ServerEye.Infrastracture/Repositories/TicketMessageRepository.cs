@@ -40,4 +40,13 @@ public sealed class TicketMessageRepository : ITicketMessageRepository
             .ExecuteDeleteAsync();
         await this.context.SaveChangesAsync();
     }
+
+    public async Task DeleteByTicketIdAsync(Guid ticketId)
+    {
+        await this.context
+            .TicketMessages
+            .Where(tm => tm.TicketId == ticketId)
+            .ExecuteDeleteAsync();
+        await this.context.SaveChangesAsync();
+    }
 }

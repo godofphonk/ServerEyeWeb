@@ -9,9 +9,11 @@ import { ArrowLeft, CheckCircle, Server as ServerIcon, AlertCircle, Download } f
 import { motion } from "framer-motion";
 import { apiClient } from "@/lib/api";
 import { clearServersCache, clearMetricsCache } from "@/lib/serverApi";
+import { useToast } from "@/hooks/useToast";
 
 export default function AddServerPage() {
   const router = useRouter();
+  const toast = useToast();
   const [serverName, setServerName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,10 +48,22 @@ export default function AddServerPage() {
       clearServersCache();
       clearMetricsCache();
       
+      toast.success(
+        'Server Added',
+        `Server "${serverName.trim()}" has been successfully added`
+      );
+      
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Failed to add server:", error);
-      setError(error?.response?.data?.message || error?.message || "Failed to add server. Please check your API key.");
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to add server. Please check your API key.";
+      
+      setError(errorMessage);
+      
+      toast.error(
+        'Add Failed',
+        `Failed to add server: ${errorMessage}`
+      );
     } finally {
       setIsLoading(false);
     }

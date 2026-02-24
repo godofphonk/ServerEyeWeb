@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/Input";
 import { ticketApi } from "@/lib/ticketApi";
 import { Ticket, TicketMessage, TicketStatus } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/useToast";
 
 interface AdminTicketChatProps {
   ticket: Ticket;
@@ -43,6 +44,7 @@ const statusConfig = {
 
 export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: AdminTicketChatProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const [currentTicket, setCurrentTicket] = useState<Ticket>(ticket);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -158,11 +160,32 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
     try {
       setIsLoading(true);
       await ticketApi.deleteTicket(currentTicket.id);
+      toast.success(
+        'Ticket Deleted',
+        `Ticket #${currentTicket.ticketNumber} has been successfully deleted`
+      );
       onTicketUpdate?.();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete ticket:", error);
-      alert("Failed to delete ticket. Please try again.");
+      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
+      
+      if (errorMessage.includes('Only administrators')) {
+        toast.error(
+          'Permission Denied',
+          'You do not have permission to delete tickets'
+        );
+      } else if (errorMessage.includes('not found')) {
+        toast.error(
+          'Ticket Not Found',
+          'The ticket you are trying to delete does not exist'
+        );
+      } else {
+        toast.error(
+          'Delete Failed',
+          `Failed to delete ticket: ${errorMessage}`
+        );
+      }
     } finally {
       setIsLoading(false);
     }
