@@ -168,7 +168,22 @@ export default function AdminTicketsPage() {
       console.log('[AdminTickets] Stats loaded:', statsData);
       console.log('[AdminTickets] Stats data type:', typeof statsData);
       console.log('[AdminTickets] Stats data keys:', statsData ? Object.keys(statsData) : 'null');
-      setStats(statsData);
+      console.log('[AdminTickets] StatusCounts:', statsData.statusCounts);
+      console.log('[AdminTickets] StatusCounts keys:', statsData.statusCounts ? Object.keys(statsData.statusCounts) : 'null');
+      
+      // Map backend response to frontend format
+      const mappedStats = {
+        total: statsData.totalCount || 0,
+        new: statsData.statusCounts?.new || 0,
+        open: statsData.statusCounts?.open || 0,
+        inProgress: statsData.statusCounts?.inProgress || 0,
+        resolved: statsData.statusCounts?.resolved || 0,
+        closed: statsData.statusCounts?.closed || 0,
+        reopened: statsData.statusCounts?.reopened || 0
+      };
+      
+      console.log('[AdminTickets] Mapped stats for frontend:', mappedStats);
+      setStats(mappedStats);
     } catch (error: any) {
       console.error('[AdminTickets] Failed to load stats:', error);
       console.error('[AdminTickets] Stats error details:', {
