@@ -19,7 +19,7 @@ import {
   Users
 } from 'lucide-react';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketStatus, TicketStatsResponse } from '@/types';
+import { Ticket, TicketStatus, TicketStatsResponse, TicketStatsDisplay } from '@/types';
 import { AdminTicketChat } from '@/components/admin/AdminTicketChat';
 import { isAdmin } from '@/lib/auth';
 
@@ -36,7 +36,7 @@ export default function AdminTicketsPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [stats, setStats] = useState<TicketStatsResponse | null>(null);
+  const [stats, setStats] = useState<TicketStatsDisplay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -182,12 +182,12 @@ export default function AdminTicketsPage() {
       // Map backend response to frontend format
       const mappedStats = {
         total: statsData.totalCount || 0,
-        new: statsData.statusCounts?.new || 0,
-        open: statsData.statusCounts?.open || 0,
-        inProgress: statsData.statusCounts?.inProgress || 0,
-        resolved: statsData.statusCounts?.resolved || 0,
-        closed: statsData.statusCounts?.closed || 0,
-        reopened: statsData.statusCounts?.reopened || 0
+        new: statsData.statusCounts?.New || 0,
+        open: statsData.statusCounts?.Open || 0,
+        inProgress: statsData.statusCounts?.InProgress || 0,
+        resolved: statsData.statusCounts?.Resolved || 0,
+        closed: statsData.statusCounts?.Closed || 0,
+        reopened: statsData.statusCounts?.Reopened || 0
       };
       
       console.log('[AdminTickets] Mapped stats for frontend:', mappedStats);
@@ -293,7 +293,7 @@ export default function AdminTicketsPage() {
 
         {/* Stats Cards */}
         {stats ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="bg-gray-900 border-blue-500/20">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -302,6 +302,18 @@ export default function AdminTicketsPage() {
                     <p className="text-2xl font-bold mt-1">{stats.total}</p>
                   </div>
                   <TicketIcon className="w-8 h-8 text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-cyan-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">New</p>
+                    <p className="text-2xl font-bold mt-1">{stats.new}</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-cyan-400" />
                 </div>
               </CardContent>
             </Card>
@@ -343,7 +355,7 @@ export default function AdminTicketsPage() {
             </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="bg-gray-900 border-blue-500/20">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -352,6 +364,17 @@ export default function AdminTicketsPage() {
                     <p className="text-2xl font-bold mt-1">0</p>
                   </div>
                   <TicketIcon className="w-8 h-8 text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-cyan-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">New</p>
+                    <p className="text-2xl font-bold mt-1">0</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-cyan-400" />
                 </div>
               </CardContent>
             </Card>
