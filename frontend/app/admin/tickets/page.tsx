@@ -162,8 +162,11 @@ export default function AdminTicketsPage() {
   const loadStats = async () => {
     try {
       console.log('[AdminTickets] Loading ticket stats...');
+      console.log('[AdminTickets] Current tickets count:', tickets.length);
       const statsData = await ticketApi.getTicketStats();
       console.log('[AdminTickets] Stats loaded:', statsData);
+      console.log('[AdminTickets] Stats data type:', typeof statsData);
+      console.log('[AdminTickets] Stats data keys:', statsData ? Object.keys(statsData) : 'null');
       setStats(statsData);
     } catch (error: any) {
       console.error('[AdminTickets] Failed to load stats:', error);
@@ -252,7 +255,9 @@ export default function AdminTicketsPage() {
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <>
+            {console.log('[AdminTickets] Rendering stats cards with data:', stats)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gray-900 border-blue-500/20">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -301,6 +306,57 @@ export default function AdminTicketsPage() {
               </CardContent>
             </Card>
           </div>
+          </>
+        ) : (
+          <>
+            {console.log('[AdminTickets] Stats not available, showing placeholder. Stats value:', stats)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gray-900 border-blue-500/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Total Tickets</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                    </div>
+                    <TicketIcon className="w-8 h-8 text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-yellow-500/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Open</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                    </div>
+                    <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-purple-500/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">In Progress</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-purple-400" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-green-500/20">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Resolved</p>
+                      <p className="text-2xl font-bold mt-1">0</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
         )}
 
         {/* Filters */}
