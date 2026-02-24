@@ -40,6 +40,50 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // Check admin routes specifically
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    console.log('Middleware - Checking admin access for:', request.nextUrl.pathname);
+    console.log('Middleware - Token exists:', !!accessToken);
+    console.log('Middleware - Token length:', accessToken?.length);
+    
+    if (!accessToken) {
+      console.log('Middleware - No access token found');
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    try {
+      // Decode JWT to check role
+      const tokenParts = accessToken.split('.');
+      if (tokenParts.length !== 3) {
+        console.log('Middleware - Invalid token format');
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      
+      const payload = JSON.parse(atob(tokenParts[1]));
+      console.log('Middleware - Token payload:', payload);
+      
+      const userRole = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+      console.log('Middleware - User role:', userRole, typeof userRole);
+      
+      // Check if user is admin
+      const isAdmin = String(userRole).toLowerCase() === 'admin';
+      
+      console.log('Middleware - Is admin:', isAdmin);
+
+      if (!isAdmin) {
+        console.log('Middleware - Access denied to admin routes. Role:', userRole);
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      
+      console.log('Middleware - Admin access granted');
+    } catch (error) {
+      console.error('Middleware - Error checking admin role:', error);
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
   // If trying to access auth route with token, redirect to dashboard
   if (isAuthRoute && accessToken) {
     return NextResponse.redirect(new URL('/dashboard', request.url));

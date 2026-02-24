@@ -7,6 +7,7 @@ import { Menu, X, User, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { isAdmin } from "@/lib/auth";
 
 const publicLinks = [
   { href: "/", label: "Home" },
@@ -29,6 +30,7 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  
   const links = isAuthenticated ? privateLinks : publicLinks;
 
   const handleLogout = async () => {
@@ -79,7 +81,7 @@ export function Navbar() {
                     {user?.username}
                   </Button>
                 </Link>
-                {user?.role === 'admin' && (
+                {isAdmin(user) && (
                   <Link href="/admin/monitoring">
                     <Button variant="secondary" size="sm">
                       Admin
@@ -149,7 +151,7 @@ export function Navbar() {
                         {user?.username}
                       </Button>
                     </Link>
-                    {user?.role === 'admin' && (
+                    {isAdmin(user) && (
                       <Link href="/admin/monitoring" onClick={() => setIsMobileMenuOpen(false)}>
                         <Button variant="secondary" size="sm" fullWidth>
                           Admin Panel

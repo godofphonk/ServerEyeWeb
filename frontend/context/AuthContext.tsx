@@ -23,13 +23,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const mapBackendUser = (backendUser: BackendUser): User => ({
-    id: backendUser.id,
-    email: backendUser.email,
-    username: backendUser.userName,
-    role: 'user',
-    createdAt: new Date().toISOString(),
-  });
+  const mapBackendUser = (backendUser: BackendUser): User => {
+    // Convert backend role to frontend format
+    let role: 'user' | 'admin' = 'user';
+    if (backendUser.role) {
+      const backendRole = String(backendUser.role).toLowerCase();
+      role = backendRole === 'admin' ? 'admin' : 'user';
+    }
+    
+    const user = {
+      id: backendUser.id,
+      email: backendUser.email,
+      username: backendUser.userName,
+      role: role,
+      createdAt: new Date().toISOString(),
+    };
+    return user;
+  };
 
   const checkAuth = useCallback(async () => {
     try {
