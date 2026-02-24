@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Activity, Database, Server, Users, TrendingUp, AlertCircle, ExternalLink, BarChart3 } from 'lucide-react';
 import LogViewer from './components/LogViewer';
+import { isAdmin } from '@/lib/auth';
 
 interface SystemStats {
   total_users: number;
@@ -36,8 +37,9 @@ export default function SystemMonitoringPage() {
     if (authLoading) return;
     
     // Only admins can access
-    if (!user || user.role !== 'admin') {
+    if (!user || !isAdmin(user)) {
       console.log('[Admin] Access denied - redirecting to dashboard');
+      console.log('[Admin] User role:', user?.role, typeof user?.role);
       router.push('/dashboard');
       return;
     }
