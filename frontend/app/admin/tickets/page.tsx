@@ -86,8 +86,9 @@ export default function AdminTicketsPage() {
         console.log('[AdminTickets] getAllTickets isArray?:', Array.isArray(response));
         
         // Handle paginated response {tickets: [...], pagination: {...}}
-        if (response && response.tickets && Array.isArray(response.tickets)) {
-          data = response.tickets;
+        if (response && typeof response === 'object' && 'tickets' in response) {
+          const paginatedResponse = response as { tickets: Ticket[], pagination: any };
+          data = paginatedResponse.tickets;
           console.log('[AdminTickets] Extracted tickets from paginated response:', data.length);
         } else if (Array.isArray(response)) {
           data = response;
@@ -268,7 +269,7 @@ export default function AdminTicketsPage() {
         </div>
 
         {/* Stats Cards */}
-        {stats && (
+        {stats ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gray-900 border-blue-500/20">
               <CardContent className="p-6">
@@ -320,51 +321,51 @@ export default function AdminTicketsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gray-900 border-blue-500/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">Total Tickets</p>
-                      <p className="text-2xl font-bold mt-1">0</p>
-                    </div>
-                    <TicketIcon className="w-8 h-8 text-blue-400" />
+            <Card className="bg-gray-900 border-blue-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Total Tickets</p>
+                    <p className="text-2xl font-bold mt-1">0</p>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-yellow-500/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">Open</p>
-                      <p className="text-2xl font-bold mt-1">0</p>
-                    </div>
-                    <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  <TicketIcon className="w-8 h-8 text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-yellow-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Open</p>
+                    <p className="text-2xl font-bold mt-1">0</p>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-purple-500/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">In Progress</p>
-                      <p className="text-2xl font-bold mt-1">0</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-purple-400" />
+                  <AlertCircle className="w-8 h-8 text-yellow-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-purple-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">In Progress</p>
+                    <p className="text-2xl font-bold mt-1">0</p>
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gray-900 border-green-500/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-400">Resolved</p>
-                      <p className="text-2xl font-bold mt-1">0</p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-green-400" />
+                  <TrendingUp className="w-8 h-8 text-purple-400" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-green-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Resolved</p>
+                    <p className="text-2xl font-bold mt-1">0</p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Filters */}
