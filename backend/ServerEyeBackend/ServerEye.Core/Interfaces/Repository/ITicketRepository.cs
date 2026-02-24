@@ -16,4 +16,5 @@ public interface ITicketRepository
     public Task<Ticket> AddAsync(Ticket ticket);
     public Task UpdateAsync(Ticket ticket);
     public Task DeleteAsync(Guid id);
+    public Task DeleteAsync(Ticket ticket);
 }

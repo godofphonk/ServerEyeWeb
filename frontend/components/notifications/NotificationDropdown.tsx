@@ -7,6 +7,7 @@ import { notificationApi } from '@/lib/notificationApi';
 import { NotificationItem } from './NotificationItem';
 import { Loader2, CheckCheck, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/hooks/useToast';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface NotificationDropdownProps {
 
 export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
   const router = useRouter();
+  const toast = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
@@ -67,8 +69,22 @@ export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: No
       setNotifications(prev =>
         prev.map(n => ({ ...n, isRead: true }))
       );
-    } catch (error) {
+      
+      const unreadCount = notifications.filter(n => !n.isRead).length;
+      if (unreadCount > 0) {
+        toast.success(
+          'All Read',
+          `${unreadCount} notifications marked as read`
+        );
+      }
+    } catch (error: any) {
       console.error('[NotificationDropdown] Failed to mark all as read:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
+      
+      toast.error(
+        'Action Failed',
+        `Failed to mark notifications as read: ${errorMessage}`
+      );
     } finally {
       setIsMarkingAllRead(false);
     }

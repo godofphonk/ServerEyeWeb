@@ -237,4 +237,35 @@ public class TicketsController : ControllerBase
             return this.StatusCode(500, new { message = "Failed to retrieve stats" });
         }
     }
+
+    [HttpDelete("{ticketId:guid}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteTicket(Guid ticketId)
+    {
+        try
+        {
+            // Проверка роли пользователя - только админы могут удалять тикеты
+            var userRoleClaim = this.User.FindFirst("role")?.Value ?? this.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            if (string.IsNullOrEmpty(userRoleClaim) || userRoleClaim != "ADMIN")
+            {
+                this.logger.LogWarning("User attempted to delete ticket {TicketId} without admin rights. Role: {Role}", ticketId, userRoleClaim);
+                return this.StatusCode(403, new { message = "Only administrators can delete tickets" });
+            }
+
+            await this.ticketService.DeleteTicketAsync(ticketId);
+            this.logger.LogInformation("Ticket {TicketId} deleted successfully", ticketId);
+
+            return this.Ok(new { message = "Ticket deleted successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            this.logger.LogWarning("Ticket not found for deletion: {TicketId}", ticketId);
+            return this.NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error deleting ticket {TicketId}", ticketId);
+            return this.StatusCode(500, new { message = "Error deleting ticket", error = ex.Message });
+        }
+    }
 }

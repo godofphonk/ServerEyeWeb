@@ -20,6 +20,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { ticketApi } from "@/lib/ticketApi";
 import { Ticket, TicketMessage, TicketStatus, AddTicketMessageRequest } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/useToast";
 
 interface TicketChatProps {
   ticket: Ticket;
@@ -39,6 +40,7 @@ const statusConfig = {
 
 export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketChatProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -114,13 +116,25 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       await ticketApi.addTicketMessage(ticket.id, messageData);
       console.log('[TicketChat] Message sent successfully');
       
+      toast.info(
+        'Message Sent',
+        'Your message has been sent to the support team'
+      );
+      
       // Reload messages from backend to get the latest state
       await loadMessages();
 
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send message:", error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
+      
+      toast.error(
+        'Send Failed',
+        `Failed to send message: ${errorMessage}`
+      );
+      
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     } finally {

@@ -10,11 +10,13 @@ import { useRouter } from "next/navigation";
 import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse, ServerStaticInfo } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/hooks/useToast";
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const toast = useToast();
 
   const [servers, setServers] = useState<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
@@ -151,10 +153,20 @@ export default function DashboardPage() {
       clearMetricsCache();
       await loadServers();
       
+      toast.success(
+        'Server Deleted',
+        `Server ${deleteModal.server.hostname} has been successfully deleted`
+      );
+      
       setDeleteModal({ isOpen: false, server: null });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete server:", error);
-      alert("Failed to delete server. Please try again.");
+      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
+      
+      toast.error(
+        'Delete Failed',
+        `Failed to delete server: ${errorMessage}`
+      );
     } finally {
       setIsDeleting(false);
     }

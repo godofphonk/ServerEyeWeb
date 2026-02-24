@@ -102,4 +102,10 @@ public sealed class TicketRepository : ITicketRepository
             .ExecuteDeleteAsync();
         await this.context.SaveChangesAsync();
     }
+
+    public async Task DeleteAsync(Ticket ticket)
+    {
+        this.context.Tickets.Remove(ticket);
+        await this.context.SaveChangesAsync();
+    }
 }

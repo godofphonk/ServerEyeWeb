@@ -8,4 +8,5 @@ public interface ITicketMessageRepository
     public Task<List<TicketMessage>> GetByTicketIdAsync(Guid ticketId);
     public Task<TicketMessage> AddAsync(TicketMessage message);
     public Task DeleteAsync(Guid id);
+    public Task DeleteByTicketIdAsync(Guid ticketId);
 }

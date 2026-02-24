@@ -13,6 +13,7 @@ public sealed class TicketService : ITicketService
     private readonly ITicketMessageRepository messageRepository;
     private readonly IEmailService emailService;
     private readonly INotificationService notificationService;
+    private readonly INotificationRepository notificationRepository;
     private readonly ILogger<TicketService> logger;
 
     public TicketService(
@@ -20,12 +21,14 @@ public sealed class TicketService : ITicketService
         ITicketMessageRepository messageRepository,
         IEmailService emailService,
         INotificationService notificationService,
+        INotificationRepository notificationRepository,
         ILogger<TicketService> logger)
     {
         this.ticketRepository = ticketRepository;
         this.messageRepository = messageRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        this.notificationRepository = notificationRepository;
         this.logger = logger;
     }
 
@@ -245,6 +248,34 @@ public sealed class TicketService : ITicketService
         }
 
         return counts;
+    }
+
+    public async Task DeleteTicketAsync(Guid ticketId)
+    {
+        var ticket = await this.ticketRepository.GetByIdAsync(ticketId) 
+            ?? throw new InvalidOperationException($"Ticket with ID {ticketId} not found");
+
+        this.logger.LogInformation("Deleting ticket {TicketNumber}", ticket.TicketNumber);
+
+        try
+        {
+            // Удалить связанные сообщения
+            await this.messageRepository.DeleteByTicketIdAsync(ticketId);
+            this.logger.LogDebug("Deleted messages for ticket {TicketNumber}", ticket.TicketNumber);
+
+            // Удалить связанные уведомления
+            await this.notificationRepository.DeleteByTicketIdAsync(ticketId);
+            this.logger.LogDebug("Deleted notifications for ticket {TicketNumber}", ticket.TicketNumber);
+
+            // Удалить тикет
+            await this.ticketRepository.DeleteAsync(ticket.Id);
+            this.logger.LogInformation("Successfully deleted ticket {TicketNumber}", ticket.TicketNumber);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error deleting ticket {TicketNumber}", ticket.TicketNumber);
+            throw;
+        }
     }
 
     private static string GenerateTicketNumber()
