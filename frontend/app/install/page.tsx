@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Terminal, Package, CheckCircle, Copy, Server, Database, Activity } from "lucide-react";
+import { Download, Terminal, Package, CheckCircle, Copy, Server, Database, Activity, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
@@ -74,14 +74,18 @@ export default function InstallPage() {
               {(["linux", "macos", "windows"] as const).map((os) => (
                 <button
                   key={os}
-                  onClick={() => setSelectedOS(os)}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  onClick={() => os === "linux" && setSelectedOS(os)}
+                  disabled={os !== "linux"}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
                     selectedOS === os
                       ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "text-gray-300 hover:text-white hover:bg-white/10"
+                      : os === "linux"
+                      ? "text-gray-300 hover:text-white hover:bg-white/10"
+                      : "text-gray-500 cursor-not-allowed opacity-60"
                   }`}
                 >
                   {os.charAt(0).toUpperCase() + os.slice(1)}
+                  {os !== "linux" && <Lock className="w-4 h-4" />}
                 </button>
               ))}
             </div>

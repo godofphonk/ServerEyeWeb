@@ -18,7 +18,7 @@ const plans = [
       "Email support",
       "Community access",
     ],
-    cta: "Get Started",
+    cta: "Go to Dashboard",
     popular: false,
   },
   {
@@ -34,8 +34,8 @@ const plans = [
       "API access",
       "Team collaboration",
     ],
-    cta: "Start Free Trial",
-    popular: true,
+    cta: "Buy Now",
+    popular: false,
   },
   {
     name: "Enterprise",
@@ -51,7 +51,7 @@ const plans = [
       "On-premise option",
       "Advanced security",
     ],
-    cta: "Contact Sales",
+    cta: "Custom Plan",
     popular: false,
   },
 ];
@@ -115,9 +115,20 @@ export default function PricingPage() {
                   </CardHeader>
                   <CardContent>
                     <Button
-                      variant={plan.popular ? "primary" : "secondary"}
+                      variant={plan.name === "Pro" || plan.name === "Enterprise" ? "primary" : "secondary"}
                       fullWidth
                       className="mb-6"
+                      onClick={() => {
+                        if (plan.name === "Free") {
+                          window.location.href = "/dashboard";
+                        } else if (plan.name === "Pro") {
+                          // Handle Pro plan purchase
+                          console.log("Buy Pro plan");
+                        } else if (plan.name === "Enterprise") {
+                          // Handle Enterprise plan
+                          console.log("Custom Enterprise plan");
+                        }
+                      }}
                     >
                       {plan.cta}
                     </Button>
@@ -192,7 +203,7 @@ export default function PricingPage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/register">
                     <Button size="lg">
-                      Start Free Trial
+                      Get Started
                     </Button>
                   </Link>
                   <Link href="/contact">
