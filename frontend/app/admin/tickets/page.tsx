@@ -221,6 +221,20 @@ export default function AdminTicketsPage() {
     loadData();
   };
 
+  // Debug logging for stats
+  useEffect(() => {
+    console.log('[AdminTickets] Stats state changed:', stats);
+    console.log('[AdminTickets] Stats is available:', !!stats);
+    if (stats) {
+      console.log('[AdminTickets] Stats values:', {
+        total: stats.total,
+        open: stats.open,
+        inProgress: stats.inProgress,
+        resolved: stats.resolved
+      });
+    }
+  }, [stats]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -255,9 +269,7 @@ export default function AdminTicketsPage() {
 
         {/* Stats Cards */}
         {stats && (
-          <>
-            {console.log('[AdminTickets] Rendering stats cards with data:', stats)}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gray-900 border-blue-500/20">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -306,11 +318,8 @@ export default function AdminTicketsPage() {
               </CardContent>
             </Card>
           </div>
-          </>
         ) : (
-          <>
-            {console.log('[AdminTickets] Stats not available, showing placeholder. Stats value:', stats)}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gray-900 border-blue-500/20">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -356,7 +365,6 @@ export default function AdminTicketsPage() {
                 </CardContent>
               </Card>
             </div>
-          </>
         )}
 
         {/* Filters */}
