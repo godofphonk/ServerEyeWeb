@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { MessageCircle, Mail, Send, AlertCircle, CheckCircle, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageCircle, Mail, Send, AlertCircle, CheckCircle, Lock, Ticket, Plus, List } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { MyTickets } from "@/components/support/MyTickets";
+import { ticketApi } from "@/lib/ticketApi";
+import { CreateTicketRequest } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SupportPage() {
+  const { user, isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState<'create' | 'tickets'>('create');
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,19 +22,86 @@ export default function SupportPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
+  const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Auto-fill form with user data when authenticated
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.username,
+        email: user.email,
+      }));
+    }
+  }, [user]);
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setErrorMessage("Name is required");
+      return false;
+    }
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setErrorMessage("Valid email is required");
+      return false;
+    }
+    if (!formData.subject.trim()) {
+      setErrorMessage("Subject is required");
+      return false;
+    }
+    if (!formData.message.trim()) {
+      setErrorMessage("Message is required");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
+    setErrorMessage(null);
+    setTicketNumber(null);
+
+    if (!isAuthenticated) {
+      setErrorMessage("Please log in to create a ticket");
+      setSubmitStatus('error');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      setSubmitStatus('error');
+      return;
+    }
 
     try {
-      // TODO: Implement support ticket API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const ticketData: CreateTicketRequest = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      };
+
+      const response = await ticketApi.createTicket(ticketData);
+      console.log('[SupportPage] Ticket created:', response);
       setSubmitStatus('success');
+      setTicketNumber(response.ticketNumber);
       setFormData({ name: "", email: "", subject: "", message: "" });
-    } catch (error) {
+      
+      // Refresh tickets list if user is on tickets tab
+      if (activeTab === 'tickets') {
+        // Trigger reload by updating the tab
+        setActiveTab('create');
+        setTimeout(() => setActiveTab('tickets'), 100);
+      }
+    } catch (error: any) {
       setSubmitStatus('error');
+      setErrorMessage(
+        error.response?.data?.message || 
+        "Failed to create ticket. Please try again or contact support@servereye.dev"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -60,164 +133,190 @@ export default function SupportPage() {
           </div>
         </div>
 
+        {/* Mini Navigation */}
+        <div className="border-b border-white/10 bg-black/30 backdrop-blur-sm sticky top-0 z-20">
+          <div className="container mx-auto px-6">
+            <div className="flex items-center justify-center py-4">
+              <div className="inline-flex items-center gap-1 p-1 bg-white/5 rounded-xl">
+                <Button
+                  variant={activeTab === 'create' ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('create')}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Ticket
+                </Button>
+                <Button
+                  variant={activeTab === 'tickets' ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveTab('tickets')}
+                  className="gap-2"
+                >
+                  <List className="w-4 h-4" />
+                  My Tickets
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="container mx-auto px-6 py-16">
-          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Contact Methods */}
-            <div className="lg:col-span-1 space-y-6">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Contact Methods</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Mail className="w-5 h-5 text-blue-400 mt-1" />
-                      <div>
-                        <p className="font-semibold mb-1">Email</p>
-                        <a href="mailto:support@servereye.dev" className="text-sm text-gray-400 hover:text-blue-400">
-                          support@servereye.dev
-                        </a>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 opacity-60">
-                      <div className="relative">
-                        <MessageCircle className="w-5 h-5 text-gray-400 mt-1" />
-                        <Lock className="w-3 h-3 text-red-400 absolute -top-1 -right-1" />
-                      </div>
-                      <div>
-                        <p className="font-semibold mb-1 text-gray-400">Live Chat</p>
-                        <p className="text-sm text-gray-500">
-                          Available 24/7
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+          <div className="max-w-4xl mx-auto">
+            <AnimatePresence mode="wait">
+              {activeTab === 'create' ? (
+                <motion.div
+                  key="create"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Create a Support Ticket</CardTitle>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Fill out the form below and we'll get back to you as soon as possible
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {submitStatus === 'success' && ticketNumber && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <CheckCircle className="w-5 h-5 text-green-400" />
+                            <p className="text-sm font-semibold text-green-400">
+                              Ticket created successfully!
+                            </p>
+                          </div>
+                          <div className="ml-8 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Ticket className="w-4 h-4 text-green-400" />
+                              <p className="text-sm text-green-300">
+                                Your ticket number: <span className="font-mono font-bold">{ticketNumber}</span>
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-400">
+                              A confirmation email has been sent to {formData.email || 'your email'}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Response Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Free Plan</span>
-                        <span>24-48 hours</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Pro Plan</span>
-                        <span>4-8 hours</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Enterprise</span>
-                        <span>1 hour</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+                      {submitStatus === 'error' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl"
+                        >
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-400 mb-1">
+                                Failed to create ticket
+                              </p>
+                              <p className="text-xs text-red-300">
+                                {errorMessage || "Please try again or contact support@servereye.dev"}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
 
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Send us a message</CardTitle>
-                    <p className="text-sm text-gray-400 mt-2">
-                      Fill out the form below and we'll get back to you as soon as possible
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    {submitStatus === 'success' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3"
-                      >
-                        <CheckCircle className="w-5 h-5 text-green-400" />
-                        <p className="text-sm text-green-400">
-                          Message sent successfully! We'll get back to you soon.
-                        </p>
-                      </motion.div>
-                    )}
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <Input
+                            label="Name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                            disabled={isSubmitting}
+                          />
+                          <Input
+                            type="email"
+                            label="Email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                            disabled={isSubmitting}
+                          />
+                        </div>
 
-                    {submitStatus === 'error' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3"
-                      >
-                        <AlertCircle className="w-5 h-5 text-red-400" />
-                        <p className="text-sm text-red-400">
-                          Failed to send message. Please try again.
-                        </p>
-                      </motion.div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid md:grid-cols-2 gap-6">
                         <Input
-                          label="Name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          label="Subject"
+                          value={formData.subject}
+                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                           required
                           disabled={isSubmitting}
                         />
-                        <Input
-                          type="email"
-                          label="Email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          required
-                          disabled={isSubmitting}
-                        />
-                      </div>
 
-                      <Input
-                        label="Subject"
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        required
-                        disabled={isSubmitting}
-                      />
+                        <div>
+                          <label className="block text-sm font-medium mb-2">
+                            Message <span className="text-red-400">*</span>
+                          </label>
+                          <textarea
+                            value={formData.message}
+                            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                            required
+                            disabled={isSubmitting}
+                            rows={6}
+                            className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50"
+                            placeholder="Describe your issue or question..."
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Message <span className="text-red-400">*</span>
-                        </label>
-                        <textarea
-                          value={formData.message}
-                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          required
-                          disabled={isSubmitting}
-                          rows={6}
-                          className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50"
-                          placeholder="Describe your issue or question..."
-                        />
-                      </div>
+                        <Button type="submit" fullWidth isLoading={isSubmitting}>
+                          <Send className="w-4 h-4 mr-2" />
+                          Send Message
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
 
-                      <Button type="submit" fullWidth isLoading={isSubmitting}>
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Message
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+                  {/* Contact Info */}
+                  <div className="grid md:grid-cols-2 gap-6 mt-8">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-3">
+                          <Mail className="w-5 h-5 text-blue-400 mt-1" />
+                          <div>
+                            <p className="font-semibold mb-1">Email Support</p>
+                            <a href="mailto:support@servereye.dev" className="text-sm text-gray-400 hover:text-blue-400">
+                              support@servereye.dev
+                            </a>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-3">
+                          <MessageCircle className="w-5 h-5 text-gray-400 mt-1" />
+                          <div>
+                            <p className="font-semibold mb-1">Response Time</p>
+                            <p className="text-sm text-gray-400">
+                              Usually within 24 hours
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="tickets"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <MyTickets />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
