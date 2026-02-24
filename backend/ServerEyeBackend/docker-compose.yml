@@ -14,6 +14,21 @@ services:
     networks:
       - servereye-network
 
+  postgres-ticket:
+    image: postgres:16-alpine
+    container_name: servereyeWeb-ticket-postgres
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=ServerEyeWeb-ticket
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_ticket_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - servereye-network
+
   redis:
     image: redis:8-alpine
     container_name: servereyeWeb-redis
@@ -41,9 +56,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__ServerEyeDbContext=Host=postgres;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=postgres
+      - ConnectionStrings__TicketDbContext=Host=postgres-ticket;Port=5432;Database=ServerEyeWeb-ticket;Username=postgres;Password=postgres
       - Redis__ConnectionString=redis:6379
     depends_on:
       postgres:
+        condition: service_started
+      postgres-ticket:
         condition: service_started
       redis:
         condition: service_healthy
@@ -57,3 +75,4 @@ networks:
 
 volumes:
   postgres_data:
+  postgres_ticket_data:
