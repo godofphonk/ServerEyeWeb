@@ -42,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.user) {
           setUser(mapBackendUser(data.user));
           console.log('[AuthContext] User authenticated via session');
-          console.log('[AuthContext] State updated:', { user: mapBackendUser(data.user), loading: false });
           
           // Also save token to localStorage for apiClient
           if (typeof window !== 'undefined') {
