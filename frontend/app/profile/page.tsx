@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { apiClient } from "@/lib/api";
 
 export default function ProfilePage() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -45,12 +46,41 @@ export default function ProfilePage() {
     setMessage(null);
 
     try {
-      // TODO: Implement profile update API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Real API call to update profile - send both required fields
+      const updateData = {
+        UserName: profileData.username,  // Use PascalCase like in backend DTO
+        Email: profileData.email,       // Always include email
+      };
+      
+      // Try different endpoints
+      try {
+        await apiClient.put('/users/me', updateData);
+      } catch (error: any) {
+        if (error.response?.status === 400 && user?.id) {
+          // Try by user ID as fallback
+          await apiClient.put(`/users/${user.id}`, updateData);
+        } else {
+          throw error;
+        }
+      }
+      
       setMessage({ type: 'success', text: 'Profile updated successfully' });
       setIsEditing(false);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile' });
+      
+      // Refresh user data to get updated info
+      window.location.reload();
+    } catch (error: any) {
+      // Show specific validation errors if available
+      const errorMessage = error.response?.data?.errors 
+        ? Object.values(error.response.data.errors).flat().join(', ')
+        : error.response?.data?.message 
+        || error.response?.data?.error 
+        || 'Failed to update profile';
+      
+      setMessage({ 
+        type: 'error', 
+        text: errorMessage
+      });
     } finally {
       setIsSaving(false);
     }
@@ -73,12 +103,19 @@ export default function ProfilePage() {
     setIsSaving(true);
 
     try {
-      // TODO: Implement password change API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Real API call to change password
+      await apiClient.put('/users/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      
       setMessage({ type: 'success', text: 'Password changed successfully' });
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to change password' });
+    } catch (error: any) {
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to change password' 
+      });
     } finally {
       setIsSaving(false);
     }

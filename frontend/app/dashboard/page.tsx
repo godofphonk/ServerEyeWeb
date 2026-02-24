@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import { getServersWithStaticInfo, getServerMetrics } from '@/lib/serverApi';
 import { motion } from "framer-motion";
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   // Use AuthContext for authentication
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+
   const [servers, setServers] = useState<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
   const [isLoadingServers, setIsLoadingServers] = useState(true);
@@ -109,14 +110,9 @@ export default function DashboardPage() {
   }, []); // Empty dependencies - function is stable
 
   useEffect(() => {
-    console.log('[Dashboard] Auth state changed:', { isAuthenticated, authLoading });
-    console.log('[Dashboard] useEffect dependencies:', { isAuthenticated, authLoading, loadServers: !!loadServers });
-    
     if (!authLoading && isAuthenticated) {
-      console.log('[Dashboard] User authenticated, loading servers...');
       loadServers();
     } else if (!authLoading && !isAuthenticated) {
-      console.log('[Dashboard] User not authenticated, redirecting to login');
       setIsLoadingServers(false);
       router.push('/login');
     }
@@ -218,7 +214,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-                <p className="text-gray-400">Welcome back, User</p>
+                <p className="text-gray-400">Welcome back, {user?.username || 'User'}</p>
               </div>
               <div className="flex gap-4">
                 <Button
