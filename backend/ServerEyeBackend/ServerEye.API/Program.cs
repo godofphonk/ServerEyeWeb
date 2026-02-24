@@ -24,6 +24,7 @@ var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() ?? new C
 var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() ?? new GoApiSettings();
 var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>() ?? new CacheSettings();
 var redisSettings = configuration.GetSection("Redis").Get<RedisSettings>() ?? new RedisSettings();
+var emailSettings = configuration.GetSection("EmailSettings").Get<ServerEye.Core.Configuration.EmailSettings>() ?? new ServerEye.Core.Configuration.EmailSettings();
 
 // Configure CORS with settings
 builder.Services.AddCors(options =>
@@ -79,6 +80,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Register settings as singletons
 builder.Services.AddSingleton(goApiSettings);
 builder.Services.AddSingleton(cacheSettings);
+builder.Services.AddSingleton(emailSettings);
 
 // Configure HttpClient for Go API (endpoints are public, no API key needed)
 builder.Services.AddHttpClient<IGoApiClient, ServerEye.Infrastracture.ExternalServices.GoApiClient>((serviceProvider, client) =>
@@ -94,6 +96,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IMonitoredServerRepository, ServerEye.Infrastracture.Repositories.MonitoredServerRepository>();
 builder.Services.AddScoped<IUserServerAccessRepository, ServerEye.Infrastracture.Repositories.UserServerAccessRepository>();
+builder.Services.AddScoped<ITicketRepository, ServerEye.Infrastracture.Repositories.TicketRepository>();
+builder.Services.AddScoped<ITicketMessageRepository, ServerEye.Infrastracture.Repositories.TicketMessageRepository>();
 
 // Register services
 builder.Services.AddScoped<IUserService, UserService>();
@@ -114,6 +118,8 @@ builder.Services.AddScoped<IMetricsCacheService, ServerEye.Infrastracture.Cachin
 builder.Services.AddScoped<IServerAccessService, ServerAccessService>();
 builder.Services.AddScoped<IMetricsService, MetricsService>();
 builder.Services.AddScoped<IStaticInfoService, StaticInfoService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
 
@@ -124,6 +130,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDbContext<ServerEyeDbContext>(
     options =>
         options.UseNpgsql(configuration.GetConnectionString(nameof(ServerEyeDbContext))));
+
+builder.Services.AddDbContext<TicketDbContext>(
+    options =>
+        options.UseNpgsql(configuration.GetConnectionString(nameof(TicketDbContext))));
 
 var app = builder.Build();
 
