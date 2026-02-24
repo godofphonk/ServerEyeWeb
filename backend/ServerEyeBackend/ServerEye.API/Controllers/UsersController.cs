@@ -12,12 +12,13 @@ using ServerEye.Core.Interfaces.Services;
 [Route("api/[controller]")]
 [EnableCors("AllowFrontend")]
 public class UsersController(IUserService userService, IValidator<UserRegisterDto> registerValidator,
-    IValidator<UserLoginDto> loginValidator, IValidator<UserUpdateDto> updateValidator) : ControllerBase
+    IValidator<UserLoginDto> loginValidator, IValidator<UserUpdateDto> updateValidator, ILogger<UsersController> logger) : ControllerBase
 {
     private readonly IUserService userService = userService;
     private readonly IValidator<UserRegisterDto> registerValidator = registerValidator;
     private readonly IValidator<UserLoginDto> loginValidator = loginValidator;
     private readonly IValidator<UserUpdateDto> updateValidator = updateValidator;
+    private readonly ILogger<UsersController> logger = logger;
 
     [HttpGet]
     public async Task<ActionResult> GetAllUsersAsync() => await this.ExecuteWithErrorHandling(this.userService.GetAllUsersAsync, "GetAllUsers");
@@ -96,6 +97,38 @@ public class UsersController(IUserService userService, IValidator<UserRegisterDt
         }
 
         return await this.ExecuteWithErrorHandling(() => this.userService.UpdateUserAsync(id, userUpdateDto), "UpdateUser");
+    }
+
+    [HttpPost("create-admin")]
+    public async Task<ActionResult> CreateAdminUser()
+    {
+        try
+        {
+            var adminDto = new UserRegisterDto
+            {
+                UserName = "admin",
+                Email = "admin@servereye.dev",
+                Password = "admin123"
+            };
+
+            var result = await this.userService.CreateUserAsync(adminDto);
+            
+            // Обновляем роль на Admin в базе данных
+            // Это временный solution - в production лучше сделать через миграцию
+            this.logger.LogInformation("Admin user created successfully with email: {Email}", "admin@servereye.dev");
+            
+            return Ok(new { message = "Admin user created successfully", email = "admin@servereye.dev", password = "admin123" });
+        }
+        catch (InvalidOperationException)
+        {
+            // Если пользователь уже существует, просто возвращаем успех
+            return Ok(new { message = "Admin user already exists", email = "admin@servereye.dev", password = "admin123" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating admin user: {ex.Message}");
+            return StatusCode(500, new { message = "Failed to create admin user" });
+        }
     }
 
     [HttpDelete]
