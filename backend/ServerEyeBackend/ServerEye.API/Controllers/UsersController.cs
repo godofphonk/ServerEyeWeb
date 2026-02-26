@@ -5,16 +5,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
 using ServerEye.Core.Interfaces.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 [EnableCors("AllowFrontend")]
-public class UsersController(IUserService userService, IValidator<UserRegisterDto> registerValidator,
+public class UsersController(IUserService userService, IAuthService authService, IValidator<UserRegisterDto> registerValidator,
     IValidator<UserLoginDto> loginValidator, IValidator<UserUpdateDto> updateValidator, ILogger<UsersController> logger) : ControllerBase
 {
     private readonly IUserService userService = userService;
+    private readonly IAuthService authService = authService;
     private readonly IValidator<UserRegisterDto> registerValidator = registerValidator;
     private readonly IValidator<UserLoginDto> loginValidator = loginValidator;
     private readonly IValidator<UserUpdateDto> updateValidator = updateValidator;
@@ -23,26 +25,38 @@ public class UsersController(IUserService userService, IValidator<UserRegisterDt
     [HttpGet]
     public async Task<ActionResult> GetAllUsersAsync() => await this.ExecuteWithErrorHandling(this.userService.GetAllUsersAsync, "GetAllUsers");
 
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult> GetCurrentUser()
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var user = await this.userService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return this.NotFound(new { message = "User not found" });
+            }
+
+            return this.Ok(user);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error getting current user");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult> GetUserByIdAsync(Guid id) => await this.ExecuteWithErrorHandling(() => this.userService.GetUserByIdAsync(id), "GetUserById");
 
     [HttpGet("by-email/{email}")]
     public async Task<ActionResult> GetUserByEmailAsync(string email) => await this.ExecuteWithErrorHandling(() => this.userService.GetUserByEmailAsync(email), "GetUserByEmail");
-
-    [HttpGet("me")]
-    [Authorize]
-    public async Task<ActionResult> GetCurrentUserAsync()
-    {
-        var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-        {
-            Console.WriteLine($"[DEBUG] /users/me - Invalid user identifier in token. UserIdClaim: '{userIdClaim}'");
-            return this.Unauthorized(new { message = "Invalid user identifier" });
-        }
-
-        Console.WriteLine($"[DEBUG] /users/me - Successfully authenticated user: {userId}");
-        return await this.ExecuteWithErrorHandling(() => this.userService.GetUserByIdAsync(userId), "GetCurrentUser");
-    }
 
     [HttpPost("register")]
     public async Task<ActionResult> CreateUser([FromBody] UserRegisterDto userRegisterDto)
@@ -85,6 +99,36 @@ public class UsersController(IUserService userService, IValidator<UserRegisterDt
         Console.WriteLine($"Login successful for user: {userLoginDto.Email}");
         return result;
     }
+
+    [HttpPost("verify-email")]
+    public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDto request)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var user = await this.userService.GetUserByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return this.BadRequest(new { message = "User not found" });
+            }
+
+            var result = await this.authService.VerifyEmailAsync(user.Id, request.Code);
+            if (!result)
+            {
+                return this.BadRequest(new { message = "Invalid or expired verification code" });
+            }
+
+            Console.WriteLine($"Email verified for user: {request.Email}");
+            return this.Ok(new { message = "Email verified successfully" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error verifying email: {ex.Message}");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto)
     {

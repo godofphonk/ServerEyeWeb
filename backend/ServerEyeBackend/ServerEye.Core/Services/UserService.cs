@@ -31,6 +31,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             UserName = user.UserName,
             Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
+            IsEmailVerified = user.IsEmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
         };
     }
 
@@ -48,6 +50,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             UserName = user.UserName,
             Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
+            IsEmailVerified = user.IsEmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
         };
     }
 
@@ -62,6 +66,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             Email = user.Email,
             Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
+            IsEmailVerified = user.IsEmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
         }).ToList();
     }
 
@@ -154,6 +160,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             UserName = existingUser.UserName,
             Email = existingUser.Email,
             ServerId = existingUser.ServerId,
+            IsEmailVerified = existingUser.IsEmailVerified,
+            EmailVerifiedAt = existingUser.EmailVerifiedAt,
         };
     }
 

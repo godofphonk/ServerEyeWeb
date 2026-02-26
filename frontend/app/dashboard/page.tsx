@@ -15,9 +15,16 @@ import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBann
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
-  const { user, isAuthenticated, loading: authLoading, isEmailVerified } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, isEmailVerified, refreshUserData } = useAuth();
   const router = useRouter();
   const toast = useToast();
+
+  console.log('[Dashboard] Auth state:', { 
+    user: user?.email, 
+    isAuthenticated, 
+    isEmailVerified, 
+    authLoading 
+  });
 
   const [servers, setServers] = useState<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>>([]);
   const [metrics, setMetrics] = useState<Record<string, DashboardMetrics | null>>({});
@@ -259,12 +266,23 @@ export default function DashboardPage() {
 
         {/* Email Verification Banner */}
         <div className="container mx-auto px-6 pt-6">
+          {console.log('[Dashboard] Banner render check:', { 
+            isEmailVerified, 
+            userEmail: user?.email, 
+            shouldShow: !isEmailVerified && !!user?.email 
+          })}
           {!isEmailVerified && user?.email && (
             <EmailVerificationBanner
               email={user.email}
-              onVerified={() => {
-                // Force a page refresh to update the auth context
-                window.location.reload();
+              onVerified={async () => {
+                console.log('[Dashboard] Email verification completed - refreshing user data');
+                try {
+                  await refreshUserData();
+                } catch (error) {
+                  console.log('[Dashboard] Failed to refresh user data:', error);
+                  // Fallback to page reload
+                  window.location.reload();
+                }
               }}
             />
           )}

@@ -27,6 +27,8 @@ export function EmailVerificationModal({
   const [isResending, setIsResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
+  console.log('[EmailVerificationModal] Render - Email:', email, 'isOpen:', isOpen);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -38,14 +40,17 @@ export function EmailVerificationModal({
     setIsVerifying(true);
     
     try {
+      console.log('[EmailVerificationModal] Verifying code:', code);
       await authApi.verifyEmail({ code });
       setIsVerified(true);
+      console.log('[EmailVerificationModal] Verification successful - calling onSuccess');
       toast.success(
         'Email Verified',
         'Your email has been successfully verified!'
       );
       
       setTimeout(() => {
+        console.log('[EmailVerificationModal] Calling onSuccess callback');
         onSuccess();
         onClose();
       }, 1500);

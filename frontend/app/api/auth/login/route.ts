@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
       hasUser: !!data.user,
       expiresIn: data.expiresIn
     });
+    console.log('Login - full user data:', data.user);
+    console.log('Login - isEmailVerified from backend:', data.user?.isEmailVerified);
 
     const response = NextResponse.json({
       user: data.user,

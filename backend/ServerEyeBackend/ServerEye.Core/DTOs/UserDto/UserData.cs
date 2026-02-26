@@ -7,4 +7,6 @@ public class UserData
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public Guid ServerId { get; set; }
+    public bool IsEmailVerified { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
 }

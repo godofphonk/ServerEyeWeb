@@ -535,6 +535,15 @@ export interface ConfirmEmailChangeRequest {
   code: string;
 }
 
+// Account Deletion types
+export interface RequestAccountDeletionRequest {
+  password: string;
+}
+
+export interface ConfirmAccountDeletionRequest {
+  confirmationCode: string;
+}
+
 // Toast Notification Types
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 

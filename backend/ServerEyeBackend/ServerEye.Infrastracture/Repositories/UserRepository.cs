@@ -49,7 +49,10 @@ public sealed class UserRepository(ServerEyeDbContext context) : IUserRepository
             .ExecuteUpdateAsync(u => u
                 .SetProperty(x => x.UserName, user.UserName)
                 .SetProperty(x => x.Password, user.Password)
-                .SetProperty(x => x.Email, user.Email));
+                .SetProperty(x => x.Email, user.Email)
+                .SetProperty(x => x.IsEmailVerified, user.IsEmailVerified)
+                .SetProperty(x => x.EmailVerifiedAt, user.EmailVerifiedAt)
+                .SetProperty(x => x.PendingEmail, user.PendingEmail));
         await this.context.SaveChangesAsync();
     }
     public async Task DeleteAsync(Guid id)
