@@ -5,7 +5,9 @@ import {
   ForgotPasswordRequest, 
   ResetPasswordRequest,
   ChangeEmailRequest,
-  ConfirmEmailChangeRequest
+  ConfirmEmailChangeRequest,
+  RequestAccountDeletionRequest,
+  ConfirmAccountDeletionRequest
 } from '@/types';
 
 export const authApi = {
@@ -34,5 +36,14 @@ export const authApi = {
 
   async confirmEmailChange(data: ConfirmEmailChangeRequest) {
     return apiClient.post('/auth/confirm-email-change', data);
+  },
+
+  // Account deletion
+  async requestAccountDeletion(data: RequestAccountDeletionRequest) {
+    return apiClient.post('/auth/request-account-deletion', data);
+  },
+
+  async confirmAccountDeletion(data: ConfirmAccountDeletionRequest) {
+    return apiClient.post('/auth/confirm-account-deletion', data);
   }
 };

@@ -10,6 +10,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  clearAuthData: () => void;
+  refreshUserData: () => Promise<void>;
   refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
   getOAuthURL: (provider: string) => Promise<string>;
@@ -40,6 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       isEmailVerified: backendUser.isEmailVerified || false,
     };
+    
+    console.log('[AuthContext] mapBackendUser - Backend user:', {
+      id: backendUser.id,
+      email: backendUser.email,
+      userName: backendUser.userName,
+      role: backendUser.role,
+      isEmailVerified: backendUser.isEmailVerified,
+    });
+    console.log('[AuthContext] mapBackendUser - Mapped user:', {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    });
+    
     return user;
   };
 
@@ -52,8 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         console.log('[AuthContext] checkAuth data:', data);
         if (data.user) {
-          setUser(mapBackendUser(data.user));
+          const mappedUser = mapBackendUser(data.user);
+          setUser(mappedUser);
           console.log('[AuthContext] User authenticated via session');
+          console.log('[AuthContext] Email verification status:', mappedUser.isEmailVerified);
+          console.log('[AuthContext] isEmailVerified computed:', mappedUser?.isEmailVerified || false);
           
           // Also save token to localStorage for apiClient
           if (typeof window !== 'undefined') {
@@ -75,10 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       console.log('[AuthContext] No valid session found');
-      setUser(null);
+      clearAuthData();
     } catch (error) {
       console.log('[AuthContext] checkAuth error:', error);
-      setUser(null);
+      clearAuthData();
     } finally {
       setLoading(false);
     }
@@ -86,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     console.log('AuthContext login - attempting login with:', { email, passwordLength: password.length });
@@ -159,6 +180,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(mapBackendUser(data.user));
   };
 
+  const clearAuthData = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('refresh_token');
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    }
+    setUser(null);
+  };
+
+  const refreshUserData = async () => {
+    console.log('[AuthContext] refreshUserData called');
+    await checkAuth();
+  };
+
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -168,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore logout API errors
     } finally {
-      setUser(null);
+      clearAuthData();
     }
   };
 
@@ -194,6 +232,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.url;
   };
 
+  const isEmailVerifiedValue = user?.isEmailVerified || false;
+  console.log('[AuthContext] Provider - User:', user);
+  console.log('[AuthContext] Provider - isEmailVerified:', isEmailVerifiedValue);
+
   return (
     <AuthContext.Provider
       value={{
@@ -202,12 +244,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        clearAuthData,
+        refreshUserData,
         refreshToken: refreshTokens,
         loginWithOAuth,
         getOAuthURL,
         isAuthenticated: !!user,
         checkAuth,
-        isEmailVerified: user?.isEmailVerified || false,
+        isEmailVerified: isEmailVerifiedValue,
       }}
     >
       {children}

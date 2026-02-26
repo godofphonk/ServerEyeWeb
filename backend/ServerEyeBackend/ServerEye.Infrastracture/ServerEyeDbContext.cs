@@ -6,7 +6,9 @@ using ServerEye.Core.Entities;
 public sealed class ServerEyeDbContext : DbContext
 {
     public ServerEyeDbContext(DbContextOptions<ServerEyeDbContext> options)
-        : base(options) => this.Database.EnsureCreated();
+        : base(options)
+    {
+    }
     public DbSet<User> Users => this.Set<User>();
     public DbSet<ServerEntity> Servers => this.Set<ServerEntity>();
     public DbSet<RefreshToken> RefreshTokens => this.Set<RefreshToken>();

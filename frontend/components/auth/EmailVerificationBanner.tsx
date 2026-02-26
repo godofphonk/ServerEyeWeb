@@ -19,6 +19,9 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  console.log('[EmailVerificationBanner] Render - Email:', email);
+  console.log('[EmailVerificationBanner] Render - isDismissed:', isDismissed);
+
   const handleResend = async () => {
     setIsResending(true);
     
@@ -41,6 +44,7 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
   };
 
   const handleVerificationSuccess = () => {
+    console.log('[EmailVerificationBanner] Verification success - dismissing banner');
     onVerified();
     setIsDismissed(true);
   };

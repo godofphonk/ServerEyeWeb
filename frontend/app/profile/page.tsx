@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Lock, Save, AlertCircle, CheckCircle } from "lucide-react";
+import { User, Mail, Lock, Save, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { apiClient } from "@/lib/api";
 import { EmailChangeModal } from "@/components/auth/EmailChangeModal";
+import { DeleteAccountModal } from "@/components/auth/DeleteAccountModal";
 import { useToast } from "@/hooks/useToast";
 
 export default function ProfilePage() {
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   
   const [profileData, setProfileData] = useState({
     username: "",
@@ -327,6 +329,30 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
+          {/* Danger Zone */}
+          <Card className="mt-8 border-red-500/20">
+            <CardHeader>
+              <CardTitle className="text-red-400">Danger Zone</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-400 mb-2">Delete Account</h4>
+                  <p className="text-sm text-gray-300 mb-4">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                  <Button
+                    variant="danger"
+                    onClick={() => setShowDeleteAccountModal(true)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Account Info */}
           <Card className="mt-8">
             <CardHeader>
@@ -358,6 +384,13 @@ export default function ProfilePage() {
         onClose={() => setShowEmailChangeModal(false)}
         currentEmail={profileData.email}
         onSuccess={handleEmailChangeSuccess}
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        email={profileData.email}
       />
     </main>
   );

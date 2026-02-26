@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
     if (backendResponse.ok) {
       const userData = await backendResponse.json();
       console.log('Session check - user data received:', !!userData);
+      console.log('Session check - full user data:', userData);
+      console.log('Session check - isEmailVerified field:', userData?.isEmailVerified);
       return NextResponse.json({ user: userData });
     }
 
@@ -95,6 +97,8 @@ export async function GET(request: NextRequest) {
 
         if (userResponse.ok) {
           const userData = await userResponse.json();
+          console.log('Session check - user data after refresh:', userData);
+          console.log('Session check - isEmailVerified after refresh:', userData?.isEmailVerified);
 
           const response = NextResponse.json({ user: userData });
 
