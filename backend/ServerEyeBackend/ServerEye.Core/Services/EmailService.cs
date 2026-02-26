@@ -125,6 +125,111 @@ public sealed class EmailService : IEmailService, IDisposable
         await this.SendEmailAsync(userEmail, emailSubject, emailBody);
     }
 
+    public async Task SendEmailVerificationCodeAsync(string userName, string userEmail, string code)
+    {
+        var emailSubject = "Verify your email - ServerEye";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Email Verification</h2>
+    <p>Hello {userName},</p>
+    <p>Please use the following code to verify your email address:</p>
+    <div style='background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;'>
+        {code}
+    </div>
+    <p>This code will expire in 15 minutes.</p>
+    <p>If you didn't request this verification, please ignore this email.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+    }
+
+    public async Task SendPasswordResetEmailAsync(string userName, string userEmail, string resetToken)
+    {
+        var emailSubject = "Reset your password - ServerEye";
+        var resetLink = $"{this.settings.FrontendUrl.AbsoluteUri.TrimEnd('/')}/reset-password?token={resetToken}";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Password Reset Request</h2>
+    <p>Hello {userName},</p>
+    <p>We received a request to reset your password. Click the button below to reset it:</p>
+    <div style='text-align: center; margin: 30px 0;'>
+        <a href='{resetLink}' style='background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;'>Reset Password</a>
+    </div>
+    <p>Or copy and paste this link into your browser:</p>
+    <p style='word-break: break-all; color: #007bff;'>{resetLink}</p>
+    <p>This link will expire in 1 hour.</p>
+    <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+    }
+
+    public async Task SendPasswordChangedNotificationAsync(string userName, string userEmail)
+    {
+        var emailSubject = "Your password has been changed - ServerEye";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Password Changed Successfully</h2>
+    <p>Hello {userName},</p>
+    <p>This email confirms that your password has been successfully changed.</p>
+    <p>If you didn't make this change, please contact our support team immediately.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+    }
+
+    public async Task SendEmailChangeConfirmationAsync(string userName, string newEmail, string code)
+    {
+        var emailSubject = "Confirm your new email - ServerEye";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Email Change Confirmation</h2>
+    <p>Hello {userName},</p>
+    <p>Please use the following code to confirm your new email address:</p>
+    <div style='background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;'>
+        {code}
+    </div>
+    <p>This code will expire in 15 minutes.</p>
+    <p>If you didn't request this email change, please ignore this email and contact support.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(newEmail, emailSubject, emailBody);
+    }
+
+    public async Task SendEmailChangedNotificationAsync(string userName, string oldEmail, string newEmail)
+    {
+        var emailSubject = "Your email has been changed - ServerEye";
+        var emailBody = $@"
+<html>
+<body style='font-family: Arial, sans-serif;'>
+    <h2>Email Address Changed</h2>
+    <p>Hello {userName},</p>
+    <p>This email confirms that your email address has been changed from <strong>{oldEmail}</strong> to <strong>{newEmail}</strong>.</p>
+    <p>If you didn't make this change, please contact our support team immediately.</p>
+    <hr>
+    <p style='color: #666; font-size: 12px;'>Best regards,<br>ServerEye Team</p>
+</body>
+</html>";
+
+        await this.SendEmailAsync(oldEmail, emailSubject, emailBody);
+    }
+
     public void Dispose()
     {
         this.sesClient?.Dispose();

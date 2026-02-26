@@ -11,4 +11,8 @@ public partial class User
     public UserRole Role { get; set; } = UserRole.User;
 
     public Guid ServerId { get; set; } = Guid.Empty;
+
+    public bool IsEmailVerified { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
+    public string? PendingEmail { get; set; }
 }

@@ -9,13 +9,13 @@ using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IEmailService emailService) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IJwtService jwtService = jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
-    private readonly IEmailService emailService = emailService;
+    private readonly IAuthService authService = authService;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
@@ -106,11 +106,11 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         
         try
         {
-            await this.emailService.SendRegistrationEmailAsync(user.UserName, user.Email);
+            await this.authService.SendVerificationCodeAsync(user.Id);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to send registration email to {user.Email}: {ex.Message}");
+            Console.WriteLine($"Failed to send verification code to {user.Email}: {ex.Message}");
         }
         
         return new AuthResponseDto

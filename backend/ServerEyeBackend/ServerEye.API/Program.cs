@@ -106,8 +106,11 @@ builder.Services.AddScoped<IUserServerAccessRepository, ServerEye.Infrastracture
 builder.Services.AddScoped<ITicketRepository, ServerEye.Infrastracture.Repositories.TicketRepository>();
 builder.Services.AddScoped<ITicketMessageRepository, ServerEye.Infrastracture.Repositories.TicketMessageRepository>();
 builder.Services.AddScoped<INotificationRepository, ServerEye.Infrastracture.Repositories.NotificationRepository>();
+builder.Services.AddScoped<IEmailVerificationRepository, ServerEye.Infrastracture.Repositories.EmailVerificationRepository>();
+builder.Services.AddScoped<IPasswordResetTokenRepository, ServerEye.Infrastracture.Repositories.PasswordResetTokenRepository>();
 
 // Register services
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService>(provider =>
