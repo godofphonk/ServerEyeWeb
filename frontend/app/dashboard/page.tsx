@@ -11,10 +11,11 @@ import { MonitoredServer, DashboardMetrics, HistoricalMetricsResponse, ServerSta
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
+import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, isEmailVerified } = useAuth();
   const router = useRouter();
   const toast = useToast();
 
@@ -254,6 +255,19 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Email Verification Banner */}
+        <div className="container mx-auto px-6 pt-6">
+          {!isEmailVerified && user?.email && (
+            <EmailVerificationBanner
+              email={user.email}
+              onVerified={() => {
+                // Force a page refresh to update the auth context
+                window.location.reload();
+              }}
+            />
+          )}
         </div>
 
         {/* Stats Overview */}

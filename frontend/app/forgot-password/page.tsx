@@ -1,99 +1,154 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ArrowLeft, Mail } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { authApi } from "@/lib/authApi";
+import { useToast } from "@/hooks/useToast";
 
-export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+export default function ForgotPasswordPage() {
   const router = useRouter();
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!email.trim()) {
+      toast.error('Email Required', 'Please enter your email address');
+      return;
+    }
 
+    if (!email.includes('@')) {
+      toast.error('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
-      // TODO: Implement password reset API
-      setIsSuccess(true);
-    } catch (error) {
-      console.error('Password reset failed:', error);
+      await authApi.forgotPassword({ email: email.trim() });
+      setIsSubmitted(true);
+      
+      toast.success(
+        'Reset Link Sent',
+        'If an account with this email exists, you will receive a password reset link'
+      );
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to send reset link';
+      
+      toast.error(
+        'Request Failed',
+        errorMessage
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <Mail className="mx-auto h-12 w-12 text-blue-500" />
-            <h2 className="mt-6 text-3xl font-bold">Check your email</h2>
-            <p className="mt-2 text-gray-400">
-              We've sent a password reset link to your email address.
-            </p>
-          </div>
-          <div className="mt-8">
-            <Link
-              href="/login"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Back to login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <Link
-            href="/login"
-            className="flex items-center text-gray-400 hover:text-white transition-colors"
+    <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10" />
+      
+      <div className="relative z-10 w-full max-w-md mx-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Back button */}
+          <Button
+            variant="secondary"
+            onClick={() => router.back()}
+            className="mb-6"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to login
-          </Link>
-          <h2 className="mt-6 text-3xl font-bold">Reset your password</h2>
-          <p className="mt-2 text-gray-400">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="appearance-none rounded-md relative block w-full px-3 py-3 bg-gray-900 border border-gray-700 placeholder-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Sending...' : 'Send reset link'}
-            </button>
-          </div>
-        </form>
+          <Card>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-blue-400" />
+              </div>
+              <CardTitle className="text-2xl">Forgot Password</CardTitle>
+              <p className="text-gray-400 mt-2">
+                Enter your email address and we'll send you a link to reset your password
+              </p>
+            </CardHeader>
+
+            <CardContent>
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    disabled={isLoading}
+                  />
+
+                  <Button
+                    type="submit"
+                    fullWidth
+                    isLoading={isLoading}
+                    disabled={!email.trim()}
+                  >
+                    Send Reset Link
+                  </Button>
+                </form>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-6"
+                >
+                  <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Check Your Email</h3>
+                  <p className="text-gray-400 mb-6">
+                    We've sent a password reset link to:
+                  </p>
+                  <div className="bg-white/10 rounded-lg p-3 mb-6">
+                    <p className="font-mono text-sm">{email}</p>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Didn't receive the email? Check your spam folder or try again.
+                  </p>
+                  
+                  <div className="mt-6 space-y-3">
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      onClick={() => {
+                        setIsSubmitted(false);
+                        setEmail('');
+                      }}
+                    >
+                      Try Different Email
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      fullWidth
+                      onClick={() => router.push('/login')}
+                    >
+                      Back to Login
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

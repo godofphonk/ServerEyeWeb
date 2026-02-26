@@ -9,13 +9,17 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { apiClient } from "@/lib/api";
+import { EmailChangeModal } from "@/components/auth/EmailChangeModal";
+import { useToast } from "@/hooks/useToast";
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, isEmailVerified } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   
   const [profileData, setProfileData] = useState({
     username: "",
@@ -121,6 +125,13 @@ export default function ProfilePage() {
     }
   };
 
+  const handleEmailChangeSuccess = (newEmail: string) => {
+    setProfileData(prev => ({ ...prev, email: newEmail }));
+    if (user) {
+      user.email = newEmail; // Update user context
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -190,13 +201,58 @@ export default function ProfilePage() {
                   onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
                   disabled={!isEditing || isSaving}
                 />
-                <Input
-                  label="Email"
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  disabled={!isEditing || isSaving}
-                />
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Input
+                      label="Email"
+                      type="email"
+                      value={profileData.email}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                      disabled={!isEditing || isSaving}
+                    />
+                    {!isEditing && (
+                      <div className="absolute top-8 right-3">
+                        {isEmailVerified ? (
+                          <div className="flex items-center gap-1 text-green-400">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-xs">Verified</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-yellow-400">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-xs">Not verified</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {!isEditing && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowEmailChangeModal(true)}
+                        className="mt-2"
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Change Email
+                      </Button>
+                      {!isEmailVerified && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowEmailChangeModal(true)}
+                          className="mt-2 text-yellow-400 hover:text-yellow-300"
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Verify Now
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {isEditing && (
                   <div className="flex gap-4">
                     <Button type="submit" isLoading={isSaving}>
@@ -295,6 +351,14 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+
+      {/* Email Change Modal */}
+      <EmailChangeModal
+        isOpen={showEmailChangeModal}
+        onClose={() => setShowEmailChangeModal(false)}
+        currentEmail={profileData.email}
+        onSuccess={handleEmailChangeSuccess}
+      />
     </main>
   );
 }

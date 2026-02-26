@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, AlertTriangle, Mail } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ const privateLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isEmailVerified } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   
@@ -78,9 +78,14 @@ export function Navbar() {
               <>
                 <NotificationBell />
                 <Link href="/profile">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="relative">
                     <User className="w-4 h-4 mr-2" />
                     {user?.username}
+                    {!isEmailVerified && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+                        <AlertTriangle className="w-2 h-2 text-black" />
+                      </div>
+                    )}
                   </Button>
                 </Link>
                 {isAdmin(user) && (

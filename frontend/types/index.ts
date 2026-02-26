@@ -5,6 +5,7 @@ export interface User {
   username: string;
   role: 'user' | 'admin';
   createdAt: string;
+  isEmailVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -20,6 +21,7 @@ export interface BackendUser {
   email: string;
   role?: 'user' | 'admin' | string;
   serverId?: string;
+  isEmailVerified?: boolean;  // <-- новое поле
 }
 
 export interface BackendAuthResponse {
@@ -505,6 +507,32 @@ export interface NotificationResponse {
 
 export interface UnreadCountResponse {
   count: number;
+}
+
+// Email Verification Types
+export interface VerifyEmailRequest {
+  code: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangeEmailRequest {
+  newEmail: string;
+}
+
+export interface ConfirmEmailChangeRequest {
+  code: string;
 }
 
 // Toast Notification Types

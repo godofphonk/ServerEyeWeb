@@ -20,6 +20,10 @@
       <ProjectReference Include="..\ServerEye.Infrastracture\ServerEye.Infrastracture.csproj" />
     </ItemGroup>
 
-
+    <ItemGroup>
+      <None Update="Templates\Email\*.html">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
 
 </Project>
