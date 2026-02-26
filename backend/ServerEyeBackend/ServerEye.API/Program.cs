@@ -110,6 +110,7 @@ builder.Services.AddScoped<IEmailVerificationRepository, ServerEye.Infrastractur
 builder.Services.AddScoped<IPasswordResetTokenRepository, ServerEye.Infrastracture.Repositories.PasswordResetTokenRepository>();
 
 // Register services
+builder.Services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();

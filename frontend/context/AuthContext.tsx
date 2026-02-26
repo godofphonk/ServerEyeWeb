@@ -15,6 +15,7 @@ interface AuthContextType {
   getOAuthURL: (provider: string) => Promise<string>;
   isAuthenticated: boolean;
   checkAuth: () => Promise<void>;
+  isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: backendUser.userName,
       role: role,
       createdAt: new Date().toISOString(),
+      isEmailVerified: backendUser.isEmailVerified || false,
     };
     return user;
   };
@@ -205,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getOAuthURL,
         isAuthenticated: !!user,
         checkAuth,
+        isEmailVerified: user?.isEmailVerified || false,
       }}
     >
       {children}

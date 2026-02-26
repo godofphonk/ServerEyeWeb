@@ -8,10 +8,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { EmailVerificationModal } from "@/components/auth/EmailVerificationModal";
+import { useToast } from "@/hooks/useToast";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,6 +22,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const passwordStrength = (password: string) => {
     if (password.length === 0) return { strength: 0, label: "" };
@@ -30,6 +34,11 @@ export default function RegisterPage() {
   };
 
   const strength = passwordStrength(formData.password);
+
+  const handleVerificationSuccess = () => {
+    // User has verified email, redirect to dashboard
+    router.push('/dashboard');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +60,14 @@ export default function RegisterPage() {
       // Generate username from email (part before @)
       const username = formData.email.split('@')[0];
       await register(formData.email, username, formData.password);
-      router.push("/dashboard");
+      
+      // Show verification modal instead of redirecting
+      setShowVerificationModal(true);
+      
+      toast.info(
+        'Registration Successful',
+        'Please verify your email to continue'
+      );
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
@@ -173,6 +189,14 @@ export default function RegisterPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        email={formData.email}
+        onSuccess={handleVerificationSuccess}
+      />
     </main>
   );
 }
