@@ -11,4 +11,5 @@ public interface IEmailService
     public Task SendPasswordChangedNotificationAsync(string userName, string userEmail);
     public Task SendEmailChangeConfirmationAsync(string userName, string newEmail, string code);
     public Task SendEmailChangedNotificationAsync(string userName, string oldEmail, string newEmail);
+    public Task SendAccountDeletionConfirmationAsync(string userName, string userEmail, string code);
 }

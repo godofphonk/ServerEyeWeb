@@ -11,12 +11,14 @@ public sealed class AuthService(
     IUserRepository userRepository,
     IEmailVerificationRepository emailVerificationRepository,
     IPasswordResetTokenRepository passwordResetTokenRepository,
+    IAccountDeletionRepository accountDeletionRepository,
     IEmailService emailService,
     IPasswordHasher passwordHasher) : IAuthService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IEmailVerificationRepository emailVerificationRepository = emailVerificationRepository;
     private readonly IPasswordResetTokenRepository passwordResetTokenRepository = passwordResetTokenRepository;
+    private readonly IAccountDeletionRepository accountDeletionRepository = accountDeletionRepository;
     private readonly IEmailService emailService = emailService;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
 
@@ -179,6 +181,49 @@ public sealed class AuthService(
 
         await this.userRepository.UpdateUserAsync(user);
         await this.emailService.SendEmailChangedNotificationAsync(user.UserName, oldEmail, user.Email);
+
+        return true;
+    }
+
+    public async Task RequestAccountDeletionAsync(Guid userId, string password)
+    {
+        var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
+
+        if (!this.passwordHasher.VerifyPassword(password, user.Password))
+        {
+            throw new InvalidOperationException("Invalid password.");
+        }
+
+        await this.accountDeletionRepository.InvalidateAllByUserIdAsync(userId);
+
+        var code = GenerateVerificationCode();
+        var deletion = new AccountDeletion
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Email = user.Email,
+            ConfirmationCode = code,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await this.accountDeletionRepository.AddAsync(deletion);
+        await this.emailService.SendAccountDeletionConfirmationAsync(user.UserName, user.Email, code);
+    }
+
+    public async Task<bool> ConfirmAccountDeletionAsync(Guid userId, string code)
+    {
+        var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
+
+        var deletion = await this.accountDeletionRepository.GetByCodeAsync(code, userId);
+        if (deletion == null || deletion.IsUsed || deletion.ExpiresAt < DateTime.UtcNow)
+        {
+            return false;
+        }
+
+        deletion.IsUsed = true;
+        await this.userRepository.DeleteAsync(userId);
 
         return true;
     }

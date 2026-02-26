@@ -14,6 +14,7 @@ public sealed class ServerEyeDbContext : DbContext
     public DbSet<UserServerAccess> UserServerAccesses => this.Set<UserServerAccess>();
     public DbSet<EmailVerification> EmailVerifications => this.Set<EmailVerification>();
     public DbSet<PasswordResetToken> PasswordResetTokens => this.Set<PasswordResetToken>();
+    public DbSet<AccountDeletion> AccountDeletions => this.Set<AccountDeletion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,15 @@ public sealed class ServerEyeDbContext : DbContext
             .WithMany(s => s.UserAccesses)
             .HasForeignKey(a => a.ServerId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder?.Entity<AccountDeletion>(entity =>
+        {
+            entity.HasIndex(a => new { a.UserId, a.ConfirmationCode, a.IsUsed });
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder?.LogTo(Console.WriteLine);
