@@ -196,6 +196,20 @@ public sealed class EmailService : IEmailService, IDisposable
         await this.SendEmailAsync(oldEmail, emailSubject, emailBody);
     }
 
+    public async Task SendAccountDeletionConfirmationAsync(string userName, string userEmail, string code)
+    {
+        var emailSubject = "Account Deletion Confirmation - ServerEye";
+        var parameters = new Dictionary<string, string>
+        {
+            { "UserName", userName },
+            { "ConfirmationCode", code },
+            { "SupportEmail", this.settings.SupportEmail }
+        };
+
+        var emailBody = await this.templateService.RenderTemplateAsync("AccountDeletionConfirmation", parameters);
+        await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+    }
+
     public void Dispose()
     {
         this.sesClient?.Dispose();

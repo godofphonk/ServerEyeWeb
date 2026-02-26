@@ -345,4 +345,57 @@ public class AuthController : ControllerBase
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
+
+    [HttpPost("request-account-deletion")]
+    [Authorize]
+    public async Task<ActionResult> RequestAccountDeletion([FromBody] RequestAccountDeletionDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            await this.authService.RequestAccountDeletionAsync(userId, request.Password);
+            return this.Ok(new { message = "Account deletion confirmation code sent to your email" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error requesting account deletion");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("confirm-account-deletion")]
+    [Authorize]
+    public async Task<ActionResult> ConfirmAccountDeletion([FromBody] ConfirmAccountDeletionDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var result = await this.authService.ConfirmAccountDeletionAsync(userId, request.ConfirmationCode);
+            if (!result)
+            {
+                return this.BadRequest(new { message = "Invalid or expired confirmation code" });
+            }
+
+            return this.Ok(new { message = "Account deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error confirming account deletion");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
 }

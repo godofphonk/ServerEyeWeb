@@ -108,6 +108,7 @@ builder.Services.AddScoped<ITicketMessageRepository, ServerEye.Infrastracture.Re
 builder.Services.AddScoped<INotificationRepository, ServerEye.Infrastracture.Repositories.NotificationRepository>();
 builder.Services.AddScoped<IEmailVerificationRepository, ServerEye.Infrastracture.Repositories.EmailVerificationRepository>();
 builder.Services.AddScoped<IPasswordResetTokenRepository, ServerEye.Infrastracture.Repositories.PasswordResetTokenRepository>();
+builder.Services.AddScoped<IAccountDeletionRepository, ServerEye.Infrastracture.Repositories.AccountDeletionRepository>();
 
 // Register services
 builder.Services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();

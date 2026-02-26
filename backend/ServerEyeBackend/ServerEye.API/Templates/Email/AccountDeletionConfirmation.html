@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #dc3545; margin-top: 0;">⚠️ Account Deletion Request</h2>
+        <p>Hello <strong>{{UserName}}</strong>,</p>
+        <p>We received a request to <strong>permanently delete</strong> your ServerEye account.</p>
+        
+        <div style="background-color: #f8d7da; border: 2px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 8px;">
+            <p style="margin: 0; color: #721c24;"><strong>⚠️ WARNING:</strong> This action is <strong>irreversible</strong>. All your data, including:</p>
+            <ul style="color: #721c24; margin: 10px 0;">
+                <li>Server monitoring configurations</li>
+                <li>Historical metrics and logs</li>
+                <li>Alert settings and notifications</li>
+                <li>All personal information</li>
+            </ul>
+            <p style="margin: 0; color: #721c24;">will be <strong>permanently deleted</strong> and cannot be recovered.</p>
+        </div>
+
+        <p>If you want to proceed with account deletion, please use the following confirmation code:</p>
+        <div style="background-color: #ffffff; border: 2px solid #dc3545; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 30px 0; border-radius: 8px; color: #dc3545;">
+            {{ConfirmationCode}}
+        </div>
+        <p style="text-align: center; color: #666;">This code will expire in <strong>24 hours</strong>.</p>
+
+        <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 0; color: #0c5460;"><strong>ℹ️ Changed your mind?</strong></p>
+            <p style="margin: 5px 0 0 0; color: #0c5460;">Simply ignore this email and your account will remain active. The deletion code will expire automatically.</p>
+        </div>
+
+        <p style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 20px 0;">
+            <strong>⚠️ Security Notice:</strong> If you didn't request account deletion, please contact our support team immediately at <a href="mailto:{{SupportEmail}}" style="color: #007bff;">{{SupportEmail}}</a>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="color: #666; font-size: 12px; text-align: center;">
+            Best regards,<br>
+            <strong>ServerEye Team</strong><br>
+            <a href="mailto:{{SupportEmail}}" style="color: #007bff;">{{SupportEmail}}</a>
+        </p>
+    </div>
+</body>
+</html>

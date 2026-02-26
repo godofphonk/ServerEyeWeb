@@ -8,4 +8,6 @@ public interface IAuthService
     public Task<bool> ResetPasswordAsync(string token, string newPassword);
     public Task RequestEmailChangeAsync(Guid userId, string newEmail);
     public Task<bool> ConfirmEmailChangeAsync(Guid userId, string code);
+    public Task RequestAccountDeletionAsync(Guid userId, string password);
+    public Task<bool> ConfirmAccountDeletionAsync(Guid userId, string code);
 }
