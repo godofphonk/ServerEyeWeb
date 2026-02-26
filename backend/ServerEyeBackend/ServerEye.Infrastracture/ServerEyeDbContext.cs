@@ -12,6 +12,8 @@ public sealed class ServerEyeDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => this.Set<RefreshToken>();
     public DbSet<Server> MonitoredServers => this.Set<Server>();
     public DbSet<UserServerAccess> UserServerAccesses => this.Set<UserServerAccess>();
+    public DbSet<EmailVerification> EmailVerifications => this.Set<EmailVerification>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => this.Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,6 +21,25 @@ public sealed class ServerEyeDbContext : DbContext
         {
             entity.HasIndex(u => u.Email).IsUnique();
             entity.Property(u => u.Role).HasConversion<int>();
+        });
+
+        modelBuilder?.Entity<EmailVerification>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.Code, e.IsUsed });
+            entity.Property(e => e.Type).HasConversion<int>();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder?.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasIndex(p => new { p.UserId, p.Token, p.IsUsed });
+            entity.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder?.Entity<ServerEntity>()

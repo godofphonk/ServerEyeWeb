@@ -13,12 +13,14 @@ public class AuthController : ControllerBase
 {
     private readonly IJwtService jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository;
+    private readonly IAuthService authService;
     private readonly ILogger<AuthController> logger;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, ILogger<AuthController> logger)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, ILogger<AuthController> logger)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.authService = authService;
         this.logger = logger;
     }
 
@@ -194,6 +196,152 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error revoking token");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("verify-email")]
+    [Authorize]
+    public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var result = await this.authService.VerifyEmailAsync(userId, request.Code);
+            if (!result)
+            {
+                return this.BadRequest(new { message = "Invalid or expired verification code" });
+            }
+
+            this.logger.LogInformation("Email verified for user {UserId}", userId);
+            return this.Ok(new { message = "Email verified successfully" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error verifying email");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("resend-verification")]
+    [Authorize]
+    public async Task<ActionResult> ResendVerification()
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            await this.authService.SendVerificationCodeAsync(userId);
+            this.logger.LogInformation("Verification code resent to user {UserId}", userId);
+            return this.Ok(new { message = "Verification code sent" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error resending verification code");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDto request)
+    {
+        try
+        {
+            await this.authService.RequestPasswordResetAsync(request.Email);
+            return this.Ok(new { message = "If the email exists, a password reset link has been sent" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error processing forgot password request");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto request)
+    {
+        try
+        {
+            var result = await this.authService.ResetPasswordAsync(request.Token, request.NewPassword);
+            if (!result)
+            {
+                return this.BadRequest(new { message = "Invalid or expired reset token" });
+            }
+
+            this.logger.LogInformation("Password reset successfully");
+            return this.Ok(new { message = "Password reset successfully" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error resetting password");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("change-email")]
+    [Authorize]
+    public async Task<ActionResult> ChangeEmail([FromBody] ChangeEmailDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            await this.authService.RequestEmailChangeAsync(userId, request.NewEmail);
+            this.logger.LogInformation("Email change requested for user {UserId}", userId);
+            return this.Ok(new { message = "Verification code sent to new email" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error requesting email change");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("confirm-email-change")]
+    [Authorize]
+    public async Task<ActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var result = await this.authService.ConfirmEmailChangeAsync(userId, request.Code);
+            if (!result)
+            {
+                return this.BadRequest(new { message = "Invalid or expired verification code" });
+            }
+
+            this.logger.LogInformation("Email changed successfully for user {UserId}", userId);
+            return this.Ok(new { message = "Email changed successfully" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error confirming email change");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }

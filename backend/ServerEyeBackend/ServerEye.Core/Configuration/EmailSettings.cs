@@ -1,5 +1,7 @@
 namespace ServerEye.Core.Configuration;
 
+using System;
+
 public class EmailSettings
 {
     public string SmtpHost { get; set; } = string.Empty;
@@ -14,4 +16,5 @@ public class EmailSettings
     public string AwsRegion { get; set; } = "eu-north-1";
     public string AwsAccessKey { get; set; } = string.Empty;
     public string AwsSecretKey { get; set; } = string.Empty;
+    public Uri FrontendUrl { get; set; } = new Uri("http://localhost:3000");
 }
