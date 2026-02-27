@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/useToast";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, refreshUserData } = useAuth();
   const toast = useToast();
   const [formData, setFormData] = useState({
     email: "",
@@ -35,8 +35,24 @@ export default function RegisterPage() {
 
   const strength = passwordStrength(formData.password);
 
-  const handleVerificationSuccess = () => {
-    // User has verified email, redirect to dashboard
+  const handleVerificationSuccess = async () => {
+    // User has verified email, refresh auth context and redirect to dashboard
+    console.log('[RegisterPage] Email verified - refreshing user data');
+    
+    try {
+      // Wait a bit for backend to update the database
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh user data to get updated isEmailVerified status
+      if (refreshUserData) {
+        await refreshUserData();
+        console.log('[RegisterPage] User data refreshed successfully');
+      }
+    } catch (error) {
+      console.log('[RegisterPage] Failed to refresh user data:', error);
+    }
+    
+    console.log('[RegisterPage] Redirecting to dashboard');
     router.push('/dashboard');
   };
 
