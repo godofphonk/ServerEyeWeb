@@ -119,13 +119,65 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
         window.location.href = '/login';
       }, 2000);
     } catch (error: any) {
+      console.log('[DeleteAccountModal] Deletion error:', error);
+      console.log('[DeleteAccountModal] Error status:', error?.response?.status);
+      console.log('[DeleteAccountModal] Error data:', error?.response?.data);
+      
+      // Check if this is expected error after successful deletion
+      // 401/403 = Account deleted, token is now invalid
+      // 500 = Server error but account might be deleted
+      const isAuthError = error?.response?.status === 401 || error?.response?.status === 403;
+      const isServerError = error?.response?.status === 500;
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete account';
       
-      toast.error(
-        'Deletion Failed',
-        errorMessage
-      );
-      setStep('code');
+      if (isAuthError || (isServerError && errorMessage.includes('deleted'))) {
+        console.log('[DeleteAccountModal] Account likely deleted successfully');
+        
+        // Verify account is actually deleted by checking session
+        setTimeout(async () => {
+          try {
+            const response = await fetch('/api/auth/session', { credentials: 'include' });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.user) {
+                console.log('[DeleteAccountModal] Account still exists - deletion failed');
+                setStep('code');
+                toast.error('Deletion Failed', 'Account deletion failed. Please try again.');
+                return;
+              }
+            }
+          } catch (sessionError) {
+            console.log('[DeleteAccountModal] Session check failed (expected after deletion)');
+          }
+          
+          // Clear all authentication data using AuthContext
+          clearAuthData();
+          
+          setStep('success');
+          
+          toast.error(
+            'Account Deleted',
+            'Your account has been permanently deleted. You will be redirected to the login page.',
+            10000 // 10 seconds
+          );
+          
+          // Force redirect to login after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        }, 1000); // Wait 1 second before checking
+        
+        return; // Exit early to avoid the else block
+      } else {
+        // Real error - show to user
+        console.log('[DeleteAccountModal] Real deletion error:', errorMessage);
+        
+        toast.error(
+          'Deletion Failed',
+          errorMessage
+        );
+        setStep('code');
+      }
     } finally {
       setIsLoading(false);
     }
