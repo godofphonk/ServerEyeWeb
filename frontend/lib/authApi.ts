@@ -56,6 +56,8 @@ export const authApi = {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
       
+      console.log('[AuthAPI] Attempting account deletion with code:', data.confirmationCode);
+      
       const response = await axios.post(`${baseURL}/auth/confirm-account-deletion`, data, {
         headers: {
           'Content-Type': 'application/json',
@@ -65,10 +67,15 @@ export const authApi = {
         timeout: 30000,
       });
       
-      console.log('[AuthAPI] Account deletion successful:', response.status);
+      console.log('[AuthAPI] Account deletion successful:', response.status, response.data);
       return response.data;
     } catch (error: any) {
-      console.log('[AuthAPI] Account deletion error:', error.response?.status, error.response?.data);
+      console.log('[AuthAPI] Account deletion error details:');
+      console.log('  Status:', error.response?.status);
+      console.log('  Status Text:', error.response?.statusText);
+      console.log('  Data:', error.response?.data);
+      console.log('  Message:', error.message);
+      console.log('  Full error:', error);
       
       // Don't automatically redirect - let the component handle it
       throw error;
