@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { apiClient } from './api';
 import { 
   VerifyEmailRequest, 
@@ -44,6 +45,28 @@ export const authApi = {
   },
 
   async confirmAccountDeletion(data: ConfirmAccountDeletionRequest) {
-    return apiClient.post('/auth/confirm-account-deletion', data);
+    // Use direct axios call to avoid automatic redirect on 401
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5246/api';
+    
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+      
+      const response = await axios.post(`${baseURL}/auth/confirm-account-deletion`, data, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        withCredentials: true,
+        timeout: 30000,
+      });
+      
+      console.log('[AuthAPI] Account deletion successful:', response.status);
+      return response.data;
+    } catch (error: any) {
+      console.log('[AuthAPI] Account deletion error:', error.response?.status, error.response?.data);
+      
+      // Don't automatically redirect - let the component handle it
+      throw error;
+    }
   }
 };
