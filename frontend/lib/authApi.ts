@@ -17,6 +17,11 @@ export const authApi = {
     return apiClient.post('/auth/verify-email', data);
   },
 
+  // Email verification without authorization (for registration)
+  async verifyEmailWithoutAuth(data: VerifyEmailRequest) {
+    return apiClient.post('/users/verify-email', data);
+  },
+
   async resendVerification(data: ResendVerificationRequest) {
     return apiClient.post('/auth/resend-verification', data);
   },

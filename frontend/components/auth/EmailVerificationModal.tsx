@@ -40,8 +40,9 @@ export function EmailVerificationModal({
     setIsVerifying(true);
     
     try {
-      console.log('[EmailVerificationModal] Verifying code:', code);
-      await authApi.verifyEmail({ code });
+      console.log('[EmailVerificationModal] Verifying code:', code, 'for email:', email);
+      // Use verifyEmailWithoutAuth for registration flow (no auth required)
+      await authApi.verifyEmailWithoutAuth({ email, code });
       setIsVerified(true);
       console.log('[EmailVerificationModal] Verification successful - calling onSuccess');
       toast.success(

@@ -511,6 +511,7 @@ export interface UnreadCountResponse {
 
 // Email Verification Types
 export interface VerifyEmailRequest {
+  email: string;
   code: string;
 }
 
