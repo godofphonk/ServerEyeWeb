@@ -130,35 +130,44 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
       const isServerError = error?.response?.status === 500;
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete account';
       
-      if (isAuthError || (isServerError && errorMessage.includes('deleted'))) {
-        console.log('[DeleteAccountModal] Account likely deleted successfully');
+      // For 500 errors or auth errors, always verify if account was actually deleted
+      if (isAuthError || isServerError) {
+        console.log('[DeleteAccountModal] Checking if account was actually deleted...');
         
         // Verify account is actually deleted by checking session
         setTimeout(async () => {
           try {
             const response = await fetch('/api/auth/session', { credentials: 'include' });
+            console.log('[DeleteAccountModal] Session check response:', response.status);
+            
             if (response.ok) {
               const data = await response.json();
+              console.log('[DeleteAccountModal] Session data:', data);
+              
               if (data.user) {
                 console.log('[DeleteAccountModal] Account still exists - deletion failed');
                 setStep('code');
+                setIsLoading(false);
                 toast.error('Deletion Failed', 'Account deletion failed. Please try again.');
                 return;
               }
             }
+            
+            // If we get here, account is deleted (no user in session or 401)
+            console.log('[DeleteAccountModal] Account successfully deleted');
           } catch (sessionError) {
-            console.log('[DeleteAccountModal] Session check failed (expected after deletion)');
+            console.log('[DeleteAccountModal] Session check failed (expected after deletion):', sessionError);
           }
           
           // Clear all authentication data using AuthContext
           clearAuthData();
           
           setStep('success');
+          setIsLoading(false);
           
-          toast.error(
+          toast.success(
             'Account Deleted',
-            'Your account has been permanently deleted. You will be redirected to the login page.',
-            10000 // 10 seconds
+            'Your account has been permanently deleted. You will be redirected to the login page.'
           );
           
           // Force redirect to login after 2 seconds
