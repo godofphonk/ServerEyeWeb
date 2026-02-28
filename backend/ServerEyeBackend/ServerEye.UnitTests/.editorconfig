@@ -24,3 +24,9 @@ dotnet_diagnostic.IDE0060.severity = none
 
 # Allow null in test parameters
 dotnet_diagnostic.xUnit1012.severity = none
+
+# Allow generic Exception in tests (test simplicity)
+dotnet_diagnostic.CA2201.severity = none
+
+# Allow missing XML comments in tests
+dotnet_diagnostic.CS1591.severity = none

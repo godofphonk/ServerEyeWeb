@@ -3,18 +3,26 @@ namespace ServerEye.IntegrationTests.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
-using ServerEye.Core.DTOs.Auth;
+using ServerEye.Core.DTOs.UserDto;
 
-public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("UsersController Tests")]
+public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
     private readonly HttpClient client;
 
-    public UsersControllerTests(WebApplicationFactory<Program> factory)
+    public UsersControllerTests(TestApplicationFactory factory)
     {
         this.factory = factory;
         this.client = factory.CreateClient();
     }
+
+    public async Task InitializeAsync()
+    {
+        await this.factory.ResetDatabaseAsync();
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Register_WithValidData_ShouldReturnOk()
@@ -27,9 +35,14 @@ public class UsersControllerTests : IClassFixture<WebApplicationFactory<Program>
         };
 
         var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new Exception($"Expected 200 OK but got {response.StatusCode}. Response: {content}");
+        }
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("token");
     }
 

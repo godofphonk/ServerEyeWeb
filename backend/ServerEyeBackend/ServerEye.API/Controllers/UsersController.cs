@@ -23,6 +23,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     private readonly ILogger<UsersController> logger = logger;
 
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult> GetAllUsersAsync() => await this.ExecuteWithErrorHandling(this.userService.GetAllUsersAsync, "GetAllUsers");
 
     [HttpGet("me")]
