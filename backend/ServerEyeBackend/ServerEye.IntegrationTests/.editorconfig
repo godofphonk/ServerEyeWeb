@@ -45,3 +45,9 @@ dotnet_diagnostic.CA2007.severity = none
 
 # Allow not disposing objects in test setup
 dotnet_diagnostic.CA2000.severity = none
+
+# Allow catching general exceptions in test cleanup
+dotnet_diagnostic.CA1031.severity = none
+
+# Allow explicit initialization with default value
+dotnet_diagnostic.CA1805.severity = none

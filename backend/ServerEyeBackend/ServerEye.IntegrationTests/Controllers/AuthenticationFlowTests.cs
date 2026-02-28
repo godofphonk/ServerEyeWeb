@@ -21,6 +21,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
 
     public async Task InitializeAsync()
     {
+        await this.factory.EnsureDatabaseCreatedAsync();
         await this.factory.ResetDatabaseAsync();
     }
 

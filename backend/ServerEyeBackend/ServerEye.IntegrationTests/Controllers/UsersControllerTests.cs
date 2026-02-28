@@ -19,6 +19,7 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
 
     public async Task InitializeAsync()
     {
+        await this.factory.EnsureDatabaseCreatedAsync();
         await this.factory.ResetDatabaseAsync();
     }
 
