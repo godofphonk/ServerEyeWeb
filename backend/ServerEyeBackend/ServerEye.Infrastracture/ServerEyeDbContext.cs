@@ -79,5 +79,10 @@ public sealed class ServerEyeDbContext : DbContext
         });
     }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder?.LogTo(Console.WriteLine);
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        // Remove dangerous SQL logging to console
+        // SQL queries should be logged through proper logging infrastructure only in development
+        // optionsBuilder?.LogTo(Console.WriteLine); // REMOVED FOR SECURITY
+    }
 }
