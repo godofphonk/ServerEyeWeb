@@ -68,29 +68,21 @@ public sealed class RefreshTokenRepository(ServerEyeDbContext context) : IRefres
 
     public async Task RevokeAllUserTokensAsync(Guid userId)
     {
-        List<RefreshToken> userTokens = await this.context.RefreshTokens
+        await this.context.RefreshTokens
             .Where(x => x.UserId == userId && !x.IsRevoked)
-            .ToListAsync()
+            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsRevoked, true))
             .ConfigureAwait(false);
 
-        foreach (RefreshToken token in userTokens)
-        {
-            token.IsRevoked = true;
-        }
-
-        await this.context.SaveChangesAsync().ConfigureAwait(false);
+        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
     }
 
     public async Task RevokeTokenAsync(Guid tokenId)
     {
-        RefreshToken? token = await this.context.RefreshTokens
-            .FirstOrDefaultAsync(x => x.Id == tokenId)
+        await this.context.RefreshTokens
+            .Where(x => x.Id == tokenId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsRevoked, true))
             .ConfigureAwait(false);
 
-        if (token != null)
-        {
-            token.IsRevoked = true;
-            await this.context.SaveChangesAsync().ConfigureAwait(false);
-        }
+        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
     }
 }
