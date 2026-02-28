@@ -77,6 +77,26 @@ public sealed class ServerEyeDbContext : DbContext
                 .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // RefreshToken indexes for performance optimization
+        modelBuilder?.Entity<RefreshToken>(entity =>
+        {
+            // Index for token validation (GetByTokenAsync)
+            entity.HasIndex(r => new { r.Token, r.IsRevoked, r.ExpiresAt });
+            
+            // Index for user's active tokens (GetByUserIdAsync, RevokeAllUserTokensAsync)
+            entity.HasIndex(r => new { r.UserId, r.IsRevoked, r.ExpiresAt });
+            
+            // Additional indexes for common queries
+            entity.HasIndex(r => r.UserId);
+            entity.HasIndex(r => r.ExpiresAt);
+            entity.HasIndex(r => r.IsRevoked);
+            
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
