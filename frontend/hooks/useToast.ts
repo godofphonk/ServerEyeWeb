@@ -21,6 +21,6 @@ export function useToast() {
     },
     toast: (type: ToastType, title: string, message?: string, duration?: number) => {
       addToast(type, title, message, duration);
-    }
+    },
   };
 }

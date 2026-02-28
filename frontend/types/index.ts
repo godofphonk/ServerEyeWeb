@@ -21,7 +21,7 @@ export interface BackendUser {
   email: string;
   role?: 'user' | 'admin' | string;
   serverId?: string;
-  isEmailVerified?: boolean;  // <-- новое поле
+  isEmailVerified?: boolean; // <-- новое поле
 }
 
 export interface BackendAuthResponse {
@@ -382,14 +382,14 @@ export enum TicketStatus {
   InProgress = 2,
   Resolved = 3,
   Closed = 4,
-  Reopened = 5
+  Reopened = 5,
 }
 
 export enum TicketPriority {
   Low = 0,
   Medium = 1,
   High = 2,
-  Critical = 3
+  Critical = 3,
 }
 
 export interface TicketMessage {
@@ -479,7 +479,7 @@ export interface UpdateTicketStatusRequest {
 export enum NotificationType {
   TicketCreated = 0,
   StatusChanged = 1,
-  NewMessage = 2
+  NewMessage = 2,
 }
 
 export interface Notification {

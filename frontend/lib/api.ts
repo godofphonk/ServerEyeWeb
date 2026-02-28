@@ -19,7 +19,7 @@ class ApiClient {
   private setupInterceptors() {
     // Add JWT token to all requests
     this.client.interceptors.request.use(
-      (config) => {
+      config => {
         if (typeof window !== 'undefined') {
           const token = localStorage.getItem('jwt_token');
           if (token) {
@@ -31,18 +31,18 @@ class ApiClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      error => Promise.reject(error),
     );
 
     this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      response => response,
+      error => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           localStorage.removeItem('jwt_token');
           window.location.href = '/login';
         }
         return Promise.reject(error);
-      }
+      },
     );
   }
 

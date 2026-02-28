@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   console.log('Session API route called via GET!');
   console.log('API_BASE_URL:', API_BASE_URL);
   console.log('Environment NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
-  
+
   try {
     const accessToken = request.cookies.get('accessToken')?.value;
     const refreshToken = request.cookies.get('refreshToken')?.value;
@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
       accessTokenLength: accessToken?.length,
       hasRefreshToken: !!refreshToken,
       refreshTokenLength: refreshToken?.length,
-      allCookies: request.cookies.getAll().map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...' }))
+      allCookies: request.cookies
+        .getAll()
+        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...' })),
     });
 
     if (!accessToken) {
@@ -35,14 +37,14 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
     console.log('Session check - backend response:', {
       status: backendResponse.status,
       statusText: backendResponse.statusText,
-      ok: backendResponse.ok
+      ok: backendResponse.ok,
     });
 
     if (backendResponse.ok) {
@@ -63,7 +65,7 @@ export async function GET(request: NextRequest) {
         tokenLength: refreshBody.token?.length,
         refreshTokenLength: refreshBody.refreshToken?.length,
         tokenPrefix: refreshBody.token?.substring(0, 20) + '...',
-        refreshTokenPrefix: refreshBody.refreshToken?.substring(0, 20) + '...'
+        refreshTokenPrefix: refreshBody.refreshToken?.substring(0, 20) + '...',
       });
       const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
@@ -76,23 +78,22 @@ export async function GET(request: NextRequest) {
         status: refreshResponse.status,
         statusText: refreshResponse.statusText,
         ok: refreshResponse.ok,
-        data: refreshData
+        data: refreshData,
       });
 
       if (refreshResponse.ok) {
-
         const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${refreshData.token}`,
+            Authorization: `Bearer ${refreshData.token}`,
           },
         });
 
         console.log('Session check - user response after refresh:', {
           status: userResponse.status,
           statusText: userResponse.statusText,
-          ok: userResponse.ok
+          ok: userResponse.ok,
         });
 
         if (userResponse.ok) {

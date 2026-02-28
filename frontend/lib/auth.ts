@@ -16,12 +16,12 @@ export interface LoginResponse {
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>('/users/login', credentials);
-  
+
   // Save token to localStorage
   if (typeof window !== 'undefined' && response.token) {
     localStorage.setItem('jwt_token', response.token);
   }
-  
+
   return response;
 }
 
@@ -44,6 +44,6 @@ export function isAuthenticated(): boolean {
 
 export function isAdmin(user: any): boolean {
   if (!user) return false;
-  
+
   return String(user.role).toLowerCase() === 'admin';
 }

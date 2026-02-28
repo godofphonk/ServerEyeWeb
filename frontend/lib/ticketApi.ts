@@ -7,7 +7,7 @@ import {
   AddTicketMessageRequest,
   UpdateTicketStatusRequest,
   TicketStatus,
-  PaginatedTicketsResponse
+  PaginatedTicketsResponse,
 } from '@/types';
 
 export class TicketApi {
@@ -29,8 +29,14 @@ export class TicketApi {
     return apiClient.get<Ticket[]>(`${this.baseUrl}/email/${email}`);
   }
 
-  async getTicketsByUserId(userId: string, page: number = 1, pageSize: number = 50): Promise<Ticket[] | PaginatedTicketsResponse> {
-    return apiClient.get<Ticket[] | PaginatedTicketsResponse>(`${this.baseUrl}/user/${userId}?page=${page}&pageSize=${pageSize}`);
+  async getTicketsByUserId(
+    userId: string,
+    page: number = 1,
+    pageSize: number = 50,
+  ): Promise<Ticket[] | PaginatedTicketsResponse> {
+    return apiClient.get<Ticket[] | PaginatedTicketsResponse>(
+      `${this.baseUrl}/user/${userId}?page=${page}&pageSize=${pageSize}`,
+    );
   }
 
   async getTicketStats(): Promise<TicketStatsResponse> {
@@ -49,7 +55,10 @@ export class TicketApi {
     return apiClient.post<Ticket>(`${this.baseUrl}/${ticketId}/messages`, data);
   }
 
-  async getAllTickets(page: number = 1, pageSize: number = 50): Promise<Ticket[] | {tickets: Ticket[], pagination: any}> {
+  async getAllTickets(
+    page: number = 1,
+    pageSize: number = 50,
+  ): Promise<Ticket[] | { tickets: Ticket[]; pagination: any }> {
     return apiClient.get(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
   }
 

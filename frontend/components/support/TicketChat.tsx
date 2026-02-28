@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  MessageSquare, 
-  Send, 
-  X, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle, 
-  User, 
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  MessageSquare,
+  Send,
+  X,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  User,
   Headset,
   Loader2,
-  ArrowLeft
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { ticketApi } from "@/lib/ticketApi";
-import { Ticket, TicketMessage, TicketStatus, AddTicketMessageRequest } from "@/types";
-import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/hooks/useToast";
+  ArrowLeft,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { ticketApi } from '@/lib/ticketApi';
+import { Ticket, TicketMessage, TicketStatus, AddTicketMessageRequest } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/useToast';
 
 interface TicketChatProps {
   ticket: Ticket;
@@ -30,19 +30,19 @@ interface TicketChatProps {
 }
 
 const statusConfig = {
-  [TicketStatus.New]: { icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10" },
-  [TicketStatus.Open]: { icon: AlertCircle, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-  [TicketStatus.InProgress]: { icon: Loader2, color: "text-purple-400", bg: "bg-purple-500/10" },
-  [TicketStatus.Resolved]: { icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/10" },
-  [TicketStatus.Closed]: { icon: X, color: "text-gray-400", bg: "bg-gray-500/10" },
-  [TicketStatus.Reopened]: { icon: AlertCircle, color: "text-orange-400", bg: "bg-orange-500/10" }
+  [TicketStatus.New]: { icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  [TicketStatus.Open]: { icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+  [TicketStatus.InProgress]: { icon: Loader2, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  [TicketStatus.Resolved]: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
+  [TicketStatus.Closed]: { icon: X, color: 'text-gray-400', bg: 'bg-gray-500/10' },
+  [TicketStatus.Reopened]: { icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
 };
 
 export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketChatProps) {
   const { user } = useAuth();
   const toast = useToast();
   const [messages, setMessages] = useState<TicketMessage[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const loadMessages = async () => {
@@ -73,9 +73,12 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       console.log('[TicketChat] Loaded ticket with messages:', updatedTicket.messages?.length || 0);
       setMessages(updatedTicket.messages || []);
     } catch (error) {
-      console.error("Failed to load messages:", error);
+      console.error('Failed to load messages:', error);
       // Fallback to ticket object messages
-      console.log('[TicketChat] Using fallback messages from ticket object:', ticket.messages?.length || 0);
+      console.log(
+        '[TicketChat] Using fallback messages from ticket object:',
+        ticket.messages?.length || 0,
+      );
       setMessages(ticket.messages || []);
     } finally {
       setIsLoading(false);
@@ -87,14 +90,14 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
 
     setIsSending(true);
     const messageText = newMessage.trim();
-    setNewMessage("");
+    setNewMessage('');
 
     try {
       const messageData = {
         message: messageText,
-        senderName: user?.username || "User",
-        senderEmail: user?.email || "",
-        isStaffReply: false
+        senderName: user?.username || 'User',
+        senderEmail: user?.email || '',
+        isStaffReply: false,
       };
 
       // Add optimistic update
@@ -102,10 +105,10 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
         id: `temp-${Date.now()}`,
         ticketId: ticket.id,
         message: messageText,
-        senderName: user?.username || "User",
-        senderEmail: user?.email || "",
+        senderName: user?.username || 'User',
+        senderEmail: user?.email || '',
         isStaffReply: false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       setMessages(prev => [...prev, optimisticMessage]);
@@ -115,26 +118,21 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       console.log('[TicketChat] Sending message:', messageData);
       await ticketApi.addTicketMessage(ticket.id, messageData);
       console.log('[TicketChat] Message sent successfully');
-      
-      toast.info(
-        'Message Sent',
-        'Your message has been sent to the support team'
-      );
-      
+
+      toast.info('Message Sent', 'Your message has been sent to the support team');
+
       // Reload messages from backend to get the latest state
       await loadMessages();
 
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
     } catch (error: any) {
-      console.error("Failed to send message:", error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
-      
-      toast.error(
-        'Send Failed',
-        `Failed to send message: ${errorMessage}`
-      );
-      
+      console.error('Failed to send message:', error);
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+
+      toast.error('Send Failed', `Failed to send message: ${errorMessage}`);
+
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     } finally {
@@ -153,7 +151,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -164,9 +162,9 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "Today";
+      return 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
+      return 'Yesterday';
     } else {
       return date.toLocaleDateString();
     }
@@ -174,7 +172,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
 
   const groupMessagesByDate = (messages: TicketMessage[]) => {
     const groups: { [date: string]: TicketMessage[] } = {};
-    
+
     messages.forEach(message => {
       const date = new Date(message.createdAt).toDateString();
       if (!groups[date]) {
@@ -193,67 +191,59 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4'
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.3 }}
-            className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            transition={{ type: 'spring', duration: 0.3 }}
+            className='bg-gray-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden'
+            onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="lg:hidden"
-                >
-                  <ArrowLeft className="w-4 h-4" />
+            <div className='flex items-center justify-between p-6 border-b border-white/10'>
+              <div className='flex items-center gap-4'>
+                <Button variant='ghost' size='sm' onClick={onClose} className='lg:hidden'>
+                  <ArrowLeft className='w-4 h-4' />
                 </Button>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">{ticket.subject}</h2>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm text-gray-400">#{ticket.ticketNumber}</span>
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${statusConfig[ticket.status].bg} ${statusConfig[ticket.status].color}`}>
-                      <StatusIcon className="w-3 h-3" />
+                  <h2 className='text-xl font-semibold text-white'>{ticket.subject}</h2>
+                  <div className='flex items-center gap-3 mt-1'>
+                    <span className='text-sm text-gray-400'>#{ticket.ticketNumber}</span>
+                    <div
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${statusConfig[ticket.status].bg} ${statusConfig[ticket.status].color}`}
+                    >
+                      <StatusIcon className='w-3 h-3' />
                       {ticket.statusDisplay}
                     </div>
                   </div>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="hidden lg:flex"
-              >
-                <X className="w-5 h-5" />
+              <Button variant='ghost' size='sm' onClick={onClose} className='hidden lg:flex'>
+                <X className='w-5 h-5' />
               </Button>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className='flex-1 overflow-hidden flex flex-col'>
+              <div className='flex-1 overflow-y-auto p-6 space-y-4'>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                  <div className='flex items-center justify-center py-12'>
+                    <Loader2 className='w-6 h-6 animate-spin text-blue-400' />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400">No messages yet</p>
-                    <p className="text-sm text-gray-500 mt-2">Start the conversation</p>
+                  <div className='text-center py-12'>
+                    <MessageSquare className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+                    <p className='text-gray-400'>No messages yet</p>
+                    <p className='text-sm text-gray-500 mt-2'>Start the conversation</p>
                   </div>
                 ) : (
                   Object.entries(groupMessagesByDate(messages)).map(([date, dateMessages]) => (
-                    <div key={date} className="space-y-3">
-                      <div className="flex items-center justify-center">
-                        <span className="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full">
+                    <div key={date} className='space-y-3'>
+                      <div className='flex items-center justify-center'>
+                        <span className='text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full'>
                           {formatDate(date)}
                         </span>
                       </div>
@@ -265,27 +255,37 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                           transition={{ delay: index * 0.05 }}
                           className={`flex ${message.isStaffReply ? 'justify-start' : 'justify-end'}`}
                         >
-                          <div className={`flex items-start gap-3 max-w-[70%] ${message.isStaffReply ? 'flex-row' : 'flex-row-reverse'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              message.isStaffReply 
-                                ? 'bg-blue-500/20 text-blue-400' 
-                                : 'bg-purple-500/20 text-purple-400'
-                            }`}>
+                          <div
+                            className={`flex items-start gap-3 max-w-[70%] ${message.isStaffReply ? 'flex-row' : 'flex-row-reverse'}`}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                message.isStaffReply
+                                  ? 'bg-blue-500/20 text-blue-400'
+                                  : 'bg-purple-500/20 text-purple-400'
+                              }`}
+                            >
                               {message.isStaffReply ? (
-                                <Headset className="w-4 h-4" />
+                                <Headset className='w-4 h-4' />
                               ) : (
-                                <User className="w-4 h-4" />
+                                <User className='w-4 h-4' />
                               )}
                             </div>
-                            <div className={`space-y-1 ${message.isStaffReply ? 'items-start' : 'items-end'} flex flex-col`}>
-                              <div className={`px-4 py-2 rounded-2xl ${
-                                message.isStaffReply
-                                  ? 'bg-gray-800 text-white border border-white/5'
-                                  : 'bg-blue-600 text-white'
-                              }`}>
-                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                            <div
+                              className={`space-y-1 ${message.isStaffReply ? 'items-start' : 'items-end'} flex flex-col`}
+                            >
+                              <div
+                                className={`px-4 py-2 rounded-2xl ${
+                                  message.isStaffReply
+                                    ? 'bg-gray-800 text-white border border-white/5'
+                                    : 'bg-blue-600 text-white'
+                                }`}
+                              >
+                                <p className='text-sm whitespace-pre-wrap'>{message.message}</p>
                               </div>
-                              <div className={`flex items-center gap-2 text-xs text-gray-500 ${message.isStaffReply ? '' : 'justify-end'}`}>
+                              <div
+                                className={`flex items-center gap-2 text-xs text-gray-500 ${message.isStaffReply ? '' : 'justify-end'}`}
+                              >
                                 <span>{message.senderName}</span>
                                 <span>•</span>
                                 <span>{formatTime(message.createdAt)}</span>
@@ -301,29 +301,29 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
               </div>
 
               {/* Message Input */}
-              <div className="border-t border-white/10 p-4">
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
+              <div className='border-t border-white/10 p-4'>
+                <div className='flex items-end gap-3'>
+                  <div className='flex-1'>
                     <Input
                       ref={inputRef}
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={e => setNewMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Type your message..."
+                      placeholder='Type your message...'
                       disabled={isSending}
-                      className="bg-gray-800 border-white/10 text-white placeholder-gray-500"
+                      className='bg-gray-800 border-white/10 text-white placeholder-gray-500'
                     />
                   </div>
                   <Button
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || isSending}
-                    size="sm"
-                    className="px-4"
+                    size='sm'
+                    className='px-4'
                   >
                     {isSending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className='w-4 h-4 animate-spin' />
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className='w-4 h-4' />
                     )}
                   </Button>
                 </div>

@@ -15,11 +15,11 @@ interface EmailChangeModalProps {
   onSuccess: (newEmail: string) => void;
 }
 
-export function EmailChangeModal({ 
-  isOpen, 
-  onClose, 
-  currentEmail, 
-  onSuccess 
+export function EmailChangeModal({
+  isOpen,
+  onClose,
+  currentEmail,
+  onSuccess,
 }: EmailChangeModalProps) {
   const toast = useToast();
   const [newEmail, setNewEmail] = useState('');
@@ -31,7 +31,7 @@ export function EmailChangeModal({
 
   const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newEmail.trim()) {
       toast.error('Email Required', 'Please enter your new email address');
       return;
@@ -48,22 +48,17 @@ export function EmailChangeModal({
     }
 
     setIsLoading(true);
-    
+
     try {
       await authApi.changeEmail({ newEmail: newEmail.trim() });
       setStep('verify');
-      
-      toast.success(
-        'Verification Code Sent',
-        `A verification code has been sent to ${newEmail}`
-      );
+
+      toast.success('Verification Code Sent', `A verification code has been sent to ${newEmail}`);
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to send verification code';
-      
-      toast.error(
-        'Request Failed',
-        errorMessage
-      );
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Failed to send verification code';
+
+      toast.error('Request Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -71,35 +66,30 @@ export function EmailChangeModal({
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (verificationCode.length !== 6) {
       toast.error('Invalid Code', 'Please enter a 6-digit verification code');
       return;
     }
 
     setIsVerifying(true);
-    
+
     try {
       await authApi.confirmEmailChange({ code: verificationCode });
       setIsVerified(true);
-      
-      toast.success(
-        'Email Changed',
-        'Your email has been successfully updated'
-      );
-      
+
+      toast.success('Email Changed', 'Your email has been successfully updated');
+
       setTimeout(() => {
         onSuccess(newEmail);
         onClose();
         resetForm();
       }, 1500);
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Verification failed';
-      
-      toast.error(
-        'Verification Failed',
-        errorMessage
-      );
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Verification failed';
+
+      toast.error('Verification Failed', errorMessage);
     } finally {
       setIsVerifying(false);
     }
@@ -107,21 +97,16 @@ export function EmailChangeModal({
 
   const handleResendCode = async () => {
     setIsLoading(true);
-    
+
     try {
       await authApi.changeEmail({ newEmail: newEmail.trim() });
-      
-      toast.success(
-        'Code Resent',
-        'A new verification code has been sent to your email'
-      );
+
+      toast.success('Code Resent', 'A new verification code has been sent to your email');
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to resend code';
-      
-      toast.error(
-        'Resend Failed',
-        errorMessage
-      );
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Failed to resend code';
+
+      toast.error('Resend Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -153,44 +138,47 @@ export function EmailChangeModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-md mx-4"
+          className='w-full max-w-md mx-4'
         >
-          <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className='bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6'>
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+            <div className='flex items-center justify-between mb-6'>
+              <div className='flex items-center gap-3'>
+                <div className='w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center'>
                   {isVerified ? (
-                    <CheckCircle className="w-6 h-6 text-green-400" />
+                    <CheckCircle className='w-6 h-6 text-green-400' />
                   ) : (
-                    <Mail className="w-6 h-6 text-blue-400" />
+                    <Mail className='w-6 h-6 text-blue-400' />
                   )}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">
-                    {isVerified ? 'Email Updated!' : step === 'input' ? 'Change Email' : 'Verify New Email'}
+                  <h3 className='text-xl font-bold text-white'>
+                    {isVerified
+                      ? 'Email Updated!'
+                      : step === 'input'
+                        ? 'Change Email'
+                        : 'Verify New Email'}
                   </h3>
-                  <p className="text-sm text-gray-400">
-                    {isVerified 
+                  <p className='text-sm text-gray-400'>
+                    {isVerified
                       ? 'Your email has been successfully updated'
-                      : step === 'input' 
+                      : step === 'input'
                         ? `Current: ${currentEmail}`
-                        : `Code sent to ${newEmail}`
-                    }
+                        : `Code sent to ${newEmail}`}
                   </p>
                 </div>
               </div>
               {!isVerified && (
                 <button
                   onClick={handleClose}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className='text-gray-400 hover:text-white transition-colors'
                 >
-                  <X className="w-5 h-5" />
+                  <X className='w-5 h-5' />
                 </button>
               )}
             </div>
@@ -199,19 +187,19 @@ export function EmailChangeModal({
             {!isVerified && (
               <div>
                 {step === 'input' ? (
-                  <form onSubmit={handleSubmitEmail} className="space-y-6">
+                  <form onSubmit={handleSubmitEmail} className='space-y-6'>
                     <Input
-                      label="New Email Address"
-                      type="email"
+                      label='New Email Address'
+                      type='email'
                       value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="Enter new email address"
+                      onChange={e => setNewEmail(e.target.value)}
+                      placeholder='Enter new email address'
                       required
                       disabled={isLoading}
                     />
 
                     <Button
-                      type="submit"
+                      type='submit'
                       fullWidth
                       isLoading={isLoading}
                       disabled={!newEmail.trim()}
@@ -220,36 +208,36 @@ export function EmailChangeModal({
                     </Button>
                   </form>
                 ) : (
-                  <form onSubmit={handleVerifyCode} className="space-y-6">
+                  <form onSubmit={handleVerifyCode} className='space-y-6'>
                     {/* 6-digit code input */}
                     <div>
                       <Input
-                        label="Verification Code"
-                        type="text"
+                        label='Verification Code'
+                        type='text'
                         value={verificationCode}
-                        onChange={(e) => handleCodeChange(e.target.value)}
-                        placeholder="Enter 6-digit code"
+                        onChange={e => handleCodeChange(e.target.value)}
+                        placeholder='Enter 6-digit code'
                         maxLength={6}
-                        className="text-center text-2xl tracking-widest"
+                        className='text-center text-2xl tracking-widest'
                         required
                         disabled={isVerifying}
                       />
-                      <p className="text-xs text-gray-400 mt-2 text-center">
+                      <p className='text-xs text-gray-400 mt-2 text-center'>
                         Check your new email for the verification code
                       </p>
                     </div>
 
                     {/* Resend link */}
-                    <div className="text-center">
+                    <div className='text-center'>
                       <button
-                        type="button"
+                        type='button'
                         onClick={handleResendCode}
                         disabled={isLoading}
-                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
+                        className='text-sm text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50'
                       >
                         {isLoading ? (
-                          <span className="flex items-center gap-2">
-                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span className='flex items-center gap-2'>
+                            <RefreshCw className='w-4 h-4 animate-spin' />
                             Sending...
                           </span>
                         ) : (
@@ -259,19 +247,19 @@ export function EmailChangeModal({
                     </div>
 
                     {/* Buttons */}
-                    <div className="space-y-3">
+                    <div className='space-y-3'>
                       <Button
-                        type="submit"
+                        type='submit'
                         fullWidth
                         isLoading={isVerifying}
                         disabled={verificationCode.length !== 6}
                       >
                         Verify & Update Email
                       </Button>
-                      
+
                       <Button
-                        type="button"
-                        variant="secondary"
+                        type='button'
+                        variant='secondary'
                         fullWidth
                         onClick={() => setStep('input')}
                         disabled={isVerifying}
@@ -286,14 +274,10 @@ export function EmailChangeModal({
 
             {/* Success state */}
             {isVerified && (
-              <div className="text-center py-4">
-                <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                <p className="text-gray-300">
-                  Your email has been successfully changed to:
-                </p>
-                <p className="font-mono text-sm bg-white/10 rounded-lg p-3 mt-2">
-                  {newEmail}
-                </p>
+              <div className='text-center py-4'>
+                <CheckCircle className='w-16 h-16 text-green-400 mx-auto mb-4' />
+                <p className='text-gray-300'>Your email has been successfully changed to:</p>
+                <p className='font-mono text-sm bg-white/10 rounded-lg p-3 mt-2'>{newEmail}</p>
               </div>
             )}
           </div>

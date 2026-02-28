@@ -32,17 +32,17 @@ export function NotificationBell() {
   };
 
   return (
-    <div className="relative">
+    <div className='relative'>
       <button
         ref={bellRef}
         onClick={toggleDropdown}
-        className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-        aria-label="Notifications"
+        className='relative p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5'
+        aria-label='Notifications'
       >
-        <Bell className="w-5 h-5" />
-        
+        <Bell className='w-5 h-5' />
+
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full">
+          <span className='absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-500 rounded-full'>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
