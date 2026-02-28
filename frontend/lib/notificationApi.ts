@@ -5,8 +5,10 @@ class NotificationApi {
   private baseUrl = '/notifications';
 
   async getNotifications(page: number = 1, pageSize: number = 50): Promise<NotificationResponse> {
-    const response = await apiClient.get<Notification[] | NotificationResponse>(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
-    
+    const response = await apiClient.get<Notification[] | NotificationResponse>(
+      `${this.baseUrl}?page=${page}&pageSize=${pageSize}`,
+    );
+
     // Backend returns array directly, not paginated object
     if (Array.isArray(response)) {
       return {
@@ -17,11 +19,11 @@ class NotificationApi {
           totalCount: response.length,
           totalPages: 1,
           hasNextPage: false,
-          hasPreviousPage: false
-        }
+          hasPreviousPage: false,
+        },
       };
     }
-    
+
     return response as NotificationResponse;
   }
 

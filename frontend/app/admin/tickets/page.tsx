@@ -5,18 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { 
-  Ticket as TicketIcon, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Ticket as TicketIcon,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
   Loader2,
   Filter,
   RefreshCw,
   MessageSquare,
   TrendingUp,
-  Users
+  Users,
 } from 'lucide-react';
 import { ticketApi } from '@/lib/ticketApi';
 import { Ticket, TicketStatus, TicketStatsResponse, TicketStatsDisplay } from '@/types';
@@ -24,12 +24,37 @@ import { AdminTicketChat } from '@/components/admin/AdminTicketChat';
 import { isAdmin } from '@/lib/auth';
 
 const statusConfig = {
-  [TicketStatus.New]: { icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10", label: "New" },
-  [TicketStatus.Open]: { icon: AlertCircle, color: "text-yellow-400", bg: "bg-yellow-500/10", label: "Open" },
-  [TicketStatus.InProgress]: { icon: Loader2, color: "text-purple-400", bg: "bg-purple-500/10", label: "In Progress" },
-  [TicketStatus.Resolved]: { icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/10", label: "Resolved" },
-  [TicketStatus.Closed]: { icon: XCircle, color: "text-gray-400", bg: "bg-gray-500/10", label: "Closed" },
-  [TicketStatus.Reopened]: { icon: AlertCircle, color: "text-orange-400", bg: "bg-orange-500/10", label: "Reopened" }
+  [TicketStatus.New]: { icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'New' },
+  [TicketStatus.Open]: {
+    icon: AlertCircle,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10',
+    label: 'Open',
+  },
+  [TicketStatus.InProgress]: {
+    icon: Loader2,
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10',
+    label: 'In Progress',
+  },
+  [TicketStatus.Resolved]: {
+    icon: CheckCircle,
+    color: 'text-green-400',
+    bg: 'bg-green-500/10',
+    label: 'Resolved',
+  },
+  [TicketStatus.Closed]: {
+    icon: XCircle,
+    color: 'text-gray-400',
+    bg: 'bg-gray-500/10',
+    label: 'Closed',
+  },
+  [TicketStatus.Reopened]: {
+    icon: AlertCircle,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10',
+    label: 'Reopened',
+  },
 };
 
 export default function AdminTicketsPage() {
@@ -49,7 +74,7 @@ export default function AdminTicketsPage() {
       isAuthenticated,
       userRole: user?.role,
       userTypeof: typeof user?.role,
-      isAdmin: isAdmin(user)
+      isAdmin: isAdmin(user),
     });
 
     if (!isAuthenticated || !isAdmin(user)) {
@@ -75,19 +100,19 @@ export default function AdminTicketsPage() {
   const loadTickets = async () => {
     try {
       console.log('[AdminTickets] Loading tickets with filter:', filterStatus);
-      
+
       let data: Ticket[];
-      
+
       if (filterStatus === 'all') {
         console.log('[AdminTickets] Calling getAllTickets()');
         const response = await ticketApi.getAllTickets();
         console.log('[AdminTickets] getAllTickets response:', response);
         console.log('[AdminTickets] getAllTickets type:', typeof response);
         console.log('[AdminTickets] getAllTickets isArray?:', Array.isArray(response));
-        
+
         // Handle paginated response {tickets: [...], pagination: {...}}
         if (response && typeof response === 'object' && 'tickets' in response) {
-          const paginatedResponse = response as { tickets: Ticket[], pagination: any };
+          const paginatedResponse = response as { tickets: Ticket[]; pagination: any };
           data = paginatedResponse.tickets;
           console.log('[AdminTickets] Extracted tickets from paginated response:', data.length);
         } else if (Array.isArray(response)) {
@@ -100,10 +125,10 @@ export default function AdminTicketsPage() {
         data = await ticketApi.getTicketsByStatus(filterStatus);
         console.log('[AdminTickets] getTicketsByStatus response:', data);
       }
-      
+
       let ticketsArray = Array.isArray(data) ? data : [];
       console.log('[AdminTickets] Setting tickets:', ticketsArray.length, 'items');
-      
+
       // Smart sorting logic:
       // 1. New/Reopened tickets first (need attention)
       // 2. In Progress tickets (being worked on)
@@ -116,23 +141,25 @@ export default function AdminTicketsPage() {
         [TicketStatus.InProgress]: 3,
         [TicketStatus.Open]: 4,
         [TicketStatus.Resolved]: 5,
-        [TicketStatus.Closed]: 6
+        [TicketStatus.Closed]: 6,
       };
 
       ticketsArray = ticketsArray.sort((a, b) => {
         // First sort by status priority
         const statusDiff = statusPriority[a.status] - statusPriority[b.status];
         if (statusDiff !== 0) return statusDiff;
-        
+
         // Then by creation date (newest first within same status)
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
       console.log('[AdminTickets] Tickets sorted by priority');
-      
+
       // If no tickets from getAllTickets, try fallback to admin's own tickets
       if (ticketsArray.length === 0 && user) {
-        console.log('[AdminTickets] No tickets from getAllTickets, trying fallback to admin user tickets...');
+        console.log(
+          '[AdminTickets] No tickets from getAllTickets, trying fallback to admin user tickets...',
+        );
         try {
           const adminTickets = await ticketApi.getTicketsByUserId(user.id, 1, 50);
           const adminTicketsArray = Array.isArray(adminTickets) ? adminTickets : [];
@@ -145,7 +172,7 @@ export default function AdminTicketsPage() {
       } else {
         setTickets(ticketsArray);
       }
-      
+
       // Update stats after tickets are loaded
       await loadStats();
     } catch (error: any) {
@@ -154,7 +181,7 @@ export default function AdminTicketsPage() {
         message: error.message,
         status: error.status,
         statusText: error.statusText,
-        response: error.response
+        response: error.response,
       });
       setTickets([]);
     }
@@ -169,16 +196,22 @@ export default function AdminTicketsPage() {
       console.log('[AdminTickets] Stats data type:', typeof statsData);
       console.log('[AdminTickets] Stats data keys:', statsData ? Object.keys(statsData) : 'null');
       console.log('[AdminTickets] StatusCounts:', statsData.statusCounts);
-      console.log('[AdminTickets] StatusCounts keys:', statsData.statusCounts ? Object.keys(statsData.statusCounts) : 'null');
-      console.log('[AdminTickets] StatusCounts values:', statsData.statusCounts ? Object.values(statsData.statusCounts) : 'null');
-      
+      console.log(
+        '[AdminTickets] StatusCounts keys:',
+        statsData.statusCounts ? Object.keys(statsData.statusCounts) : 'null',
+      );
+      console.log(
+        '[AdminTickets] StatusCounts values:',
+        statsData.statusCounts ? Object.values(statsData.statusCounts) : 'null',
+      );
+
       // Log each status count individually
       if (statsData.statusCounts) {
         Object.entries(statsData.statusCounts).forEach(([key, value]) => {
           console.log(`[AdminTickets] Status ${key}: ${value}`);
         });
       }
-      
+
       // Map backend response to frontend format
       const mappedStats = {
         total: statsData.totalCount || 0,
@@ -187,9 +220,9 @@ export default function AdminTicketsPage() {
         inProgress: statsData.statusCounts?.InProgress || 0,
         resolved: statsData.statusCounts?.Resolved || 0,
         closed: statsData.statusCounts?.Closed || 0,
-        reopened: statsData.statusCounts?.Reopened || 0
+        reopened: statsData.statusCounts?.Reopened || 0,
       };
-      
+
       console.log('[AdminTickets] Mapped stats for frontend:', mappedStats);
       setStats(mappedStats);
     } catch (error: any) {
@@ -197,9 +230,9 @@ export default function AdminTicketsPage() {
       console.error('[AdminTickets] Stats error details:', {
         message: error.message,
         status: error.status,
-        response: error.response
+        response: error.response,
       });
-      
+
       // Fallback: calculate stats from tickets if API fails
       console.log('[AdminTickets] Calculating stats from tickets as fallback...');
       if (tickets.length > 0) {
@@ -210,7 +243,7 @@ export default function AdminTicketsPage() {
           inProgress: tickets.filter(t => t.status === TicketStatus.InProgress).length,
           resolved: tickets.filter(t => t.status === TicketStatus.Resolved).length,
           closed: tickets.filter(t => t.status === TicketStatus.Closed).length,
-          reopened: tickets.filter(t => t.status === TicketStatus.Reopened).length
+          reopened: tickets.filter(t => t.status === TicketStatus.Reopened).length,
         };
         console.log('[AdminTickets] Fallback stats calculated:', fallbackStats);
         setStats(fallbackStats);
@@ -223,7 +256,7 @@ export default function AdminTicketsPage() {
           inProgress: 0,
           resolved: 0,
           closed: 0,
-          reopened: 0
+          reopened: 0,
         };
         console.log('[AdminTickets] Using empty stats');
         setStats(emptyStats);
@@ -254,7 +287,7 @@ export default function AdminTicketsPage() {
         total: stats.total,
         open: stats.open,
         inProgress: stats.inProgress,
-        resolved: stats.resolved
+        resolved: stats.resolved,
       });
     }
   }, [stats]);
@@ -265,149 +298,144 @@ export default function AdminTicketsPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      <div className='min-h-screen bg-black flex items-center justify-center'>
+        <Loader2 className='w-8 h-8 animate-spin text-blue-400' />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className='min-h-screen bg-black text-white p-6'>
+      <div className='max-w-7xl mx-auto space-y-6'>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className='flex items-center justify-between'>
           <div>
-            <h1 className="text-3xl font-bold">Ticket Management</h1>
-            <p className="text-gray-400 mt-1">Manage and respond to support tickets</p>
+            <h1 className='text-3xl font-bold'>Ticket Management</h1>
+            <p className='text-gray-400 mt-1'>Manage and respond to support tickets</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={loadData}
-            className="gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
+          <Button variant='ghost' size='sm' onClick={loadData} className='gap-2'>
+            <RefreshCw className='w-4 h-4' />
             Refresh
           </Button>
         </div>
 
         {/* Stats Cards */}
         {stats ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card className="bg-gray-900 border-blue-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
+            <Card className='bg-gray-900 border-blue-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Total Tickets</p>
-                    <p className="text-2xl font-bold mt-1">{stats.total}</p>
+                    <p className='text-sm text-gray-400'>Total Tickets</p>
+                    <p className='text-2xl font-bold mt-1'>{stats.total}</p>
                   </div>
-                  <TicketIcon className="w-8 h-8 text-blue-400" />
+                  <TicketIcon className='w-8 h-8 text-blue-400' />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-900 border-cyan-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-cyan-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">New</p>
-                    <p className="text-2xl font-bold mt-1">{stats.new}</p>
+                    <p className='text-sm text-gray-400'>New</p>
+                    <p className='text-2xl font-bold mt-1'>{stats.new}</p>
                   </div>
-                  <Clock className="w-8 h-8 text-cyan-400" />
+                  <Clock className='w-8 h-8 text-cyan-400' />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-900 border-yellow-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-yellow-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Open</p>
-                    <p className="text-2xl font-bold mt-1">{stats.open}</p>
+                    <p className='text-sm text-gray-400'>Open</p>
+                    <p className='text-2xl font-bold mt-1'>{stats.open}</p>
                   </div>
-                  <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  <AlertCircle className='w-8 h-8 text-yellow-400' />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-900 border-purple-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-purple-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">In Progress</p>
-                    <p className="text-2xl font-bold mt-1">{stats.inProgress}</p>
+                    <p className='text-sm text-gray-400'>In Progress</p>
+                    <p className='text-2xl font-bold mt-1'>{stats.inProgress}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-purple-400" />
+                  <TrendingUp className='w-8 h-8 text-purple-400' />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-900 border-green-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-green-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Resolved</p>
-                    <p className="text-2xl font-bold mt-1">{stats.resolved}</p>
+                    <p className='text-sm text-gray-400'>Resolved</p>
+                    <p className='text-2xl font-bold mt-1'>{stats.resolved}</p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-400" />
+                  <CheckCircle className='w-8 h-8 text-green-400' />
                 </div>
               </CardContent>
             </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card className="bg-gray-900 border-blue-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
+            <Card className='bg-gray-900 border-blue-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Total Tickets</p>
-                    <p className="text-2xl font-bold mt-1">0</p>
+                    <p className='text-sm text-gray-400'>Total Tickets</p>
+                    <p className='text-2xl font-bold mt-1'>0</p>
                   </div>
-                  <TicketIcon className="w-8 h-8 text-blue-400" />
+                  <TicketIcon className='w-8 h-8 text-blue-400' />
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900 border-cyan-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-cyan-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">New</p>
-                    <p className="text-2xl font-bold mt-1">0</p>
+                    <p className='text-sm text-gray-400'>New</p>
+                    <p className='text-2xl font-bold mt-1'>0</p>
                   </div>
-                  <Clock className="w-8 h-8 text-cyan-400" />
+                  <Clock className='w-8 h-8 text-cyan-400' />
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900 border-yellow-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-yellow-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Open</p>
-                    <p className="text-2xl font-bold mt-1">0</p>
+                    <p className='text-sm text-gray-400'>Open</p>
+                    <p className='text-2xl font-bold mt-1'>0</p>
                   </div>
-                  <AlertCircle className="w-8 h-8 text-yellow-400" />
+                  <AlertCircle className='w-8 h-8 text-yellow-400' />
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900 border-purple-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-purple-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">In Progress</p>
-                    <p className="text-2xl font-bold mt-1">0</p>
+                    <p className='text-sm text-gray-400'>In Progress</p>
+                    <p className='text-2xl font-bold mt-1'>0</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-purple-400" />
+                  <TrendingUp className='w-8 h-8 text-purple-400' />
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900 border-green-500/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card className='bg-gray-900 border-green-500/20'>
+              <CardContent className='p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
-                    <p className="text-sm text-gray-400">Resolved</p>
-                    <p className="text-2xl font-bold mt-1">0</p>
+                    <p className='text-sm text-gray-400'>Resolved</p>
+                    <p className='text-2xl font-bold mt-1'>0</p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-400" />
+                  <CheckCircle className='w-8 h-8 text-green-400' />
                 </div>
               </CardContent>
             </Card>
@@ -417,16 +445,16 @@ export default function AdminTicketsPage() {
         {/* Filters */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
+            <div className='flex items-center gap-2'>
+              <Filter className='w-5 h-5' />
               <CardTitle>Filter by Status</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
+            <div className='flex flex-wrap gap-2'>
               <Button
                 variant={filterStatus === 'all' ? 'primary' : 'ghost'}
-                size="sm"
+                size='sm'
                 onClick={() => setFilterStatus('all')}
               >
                 All
@@ -437,11 +465,11 @@ export default function AdminTicketsPage() {
                   <Button
                     key={status}
                     variant={filterStatus === Number(status) ? 'primary' : 'ghost'}
-                    size="sm"
+                    size='sm'
                     onClick={() => setFilterStatus(Number(status) as TicketStatus)}
-                    className="gap-2"
+                    className='gap-2'
                   >
-                    <StatusIcon className="w-4 h-4" />
+                    <StatusIcon className='w-4 h-4' />
                     {config.label}
                   </Button>
                 );
@@ -457,57 +485,62 @@ export default function AdminTicketsPage() {
           </CardHeader>
           <CardContent>
             {tickets.length === 0 ? (
-              <div className="text-center py-12">
-                <TicketIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">No tickets found</p>
+              <div className='text-center py-12'>
+                <TicketIcon className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-400'>No tickets found</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {tickets.map((ticket) => {
+              <div className='space-y-3'>
+                {tickets.map(ticket => {
                   const config = statusConfig[ticket.status];
                   const StatusIcon = config.icon;
 
                   return (
                     <div
                       key={ticket.id}
-                      className="bg-gray-800/50 border border-white/10 rounded-lg p-4 hover:border-blue-500/30 transition-colors"
+                      className='bg-gray-800/50 border border-white/10 rounded-lg p-4 hover:border-blue-500/30 transition-colors'
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="text-sm text-gray-400">#{ticket.ticketNumber}</span>
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${config.bg} ${config.color}`}>
-                              <StatusIcon className="w-3 h-3" />
+                      <div className='flex items-start justify-between gap-4'>
+                        <div className='flex-1 min-w-0'>
+                          <div className='flex items-center gap-3 mb-2'>
+                            <span className='text-sm text-gray-400'>#{ticket.ticketNumber}</span>
+                            <div
+                              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${config.bg} ${config.color}`}
+                            >
+                              <StatusIcon className='w-3 h-3' />
                               {config.label}
                             </div>
-                            <span className="text-xs text-gray-500">{ticket.priorityDisplay}</span>
+                            <span className='text-xs text-gray-500'>{ticket.priorityDisplay}</span>
                           </div>
-                          
-                          <h3 className="font-semibold text-lg mb-1">{ticket.subject}</h3>
-                          <p className="text-sm text-gray-400 line-clamp-2 mb-3">{ticket.message}</p>
-                          
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
+
+                          <h3 className='font-semibold text-lg mb-1'>{ticket.subject}</h3>
+                          <p className='text-sm text-gray-400 line-clamp-2 mb-3'>
+                            {ticket.message}
+                          </p>
+
+                          <div className='flex items-center gap-4 text-xs text-gray-500'>
+                            <span className='flex items-center gap-1'>
+                              <Users className='w-3 h-3' />
                               {ticket.name} ({ticket.email})
                             </span>
                             <span>{formatDate(ticket.createdAt)}</span>
                             {(ticket.messagesCount || 0) > 0 && (
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="w-3 h-3" />
-                                {ticket.messagesCount || 0} {(ticket.messagesCount || 0) === 1 ? 'message' : 'messages'}
+                              <span className='flex items-center gap-1'>
+                                <MessageSquare className='w-3 h-3' />
+                                {ticket.messagesCount || 0}{' '}
+                                {(ticket.messagesCount || 0) === 1 ? 'message' : 'messages'}
                               </span>
                             )}
                           </div>
                         </div>
 
                         <Button
-                          variant="primary"
-                          size="sm"
+                          variant='primary'
+                          size='sm'
                           onClick={() => openChat(ticket)}
-                          className="gap-2 flex-shrink-0"
+                          className='gap-2 flex-shrink-0'
                         >
-                          <MessageSquare className="w-4 h-4" />
+                          <MessageSquare className='w-4 h-4' />
                           Respond
                         </Button>
                       </div>

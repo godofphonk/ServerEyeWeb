@@ -6,14 +6,17 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set('X-DNS-Prefetch-Control', 'on');
   if (process.env.NODE_ENV === 'production') {
-    response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=63072000; includeSubDomains; preload',
+    );
   }
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
   response.headers.set('Server', '');
-  
+
   // Skip middleware for static files and API routes
   if (
     request.nextUrl.pathname.startsWith('/_next') ||
@@ -25,18 +28,16 @@ export function middleware(request: NextRequest) {
 
   // Check for auth tokens in cookies
   const accessToken = request.cookies.get('accessToken')?.value;
-  
+
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/profile', '/servers', '/admin'];
-  const isProtectedRoute = protectedRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
+  const isProtectedRoute = protectedRoutes.some(route =>
+    request.nextUrl.pathname.startsWith(route),
   );
 
   // Auth routes that should redirect to dashboard if authenticated
   const authRoutes = ['/login', '/register'];
-  const isAuthRoute = authRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const isAuthRoute = authRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
   // If trying to access protected route without token, redirect to login
   if (isProtectedRoute && !accessToken) {
@@ -50,17 +51,18 @@ export function middleware(request: NextRequest) {
       loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }
-    
+
     try {
       // Decode JWT to check role
       const tokenParts = accessToken.split('.');
       if (tokenParts.length !== 3) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      
+
       const payload = JSON.parse(atob(tokenParts[1]));
-      const userRole = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-      
+      const userRole =
+        payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
       // Check if user is admin
       const isAdmin = String(userRole).toLowerCase() === 'admin';
 

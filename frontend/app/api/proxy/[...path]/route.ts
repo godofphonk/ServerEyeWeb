@@ -61,7 +61,9 @@ async function proxyRequest(request: NextRequest, method: string) {
 
           const response = new NextResponse(retryData, {
             status: retryResponse.status,
-            headers: { 'Content-Type': retryResponse.headers.get('Content-Type') || 'application/json' },
+            headers: {
+              'Content-Type': retryResponse.headers.get('Content-Type') || 'application/json',
+            },
           });
 
           response.cookies.set('accessToken', refreshData.token, {
@@ -88,14 +90,13 @@ async function proxyRequest(request: NextRequest, method: string) {
     const responseData = await backendResponse.text();
     return new NextResponse(responseData, {
       status: backendResponse.status,
-      headers: { 'Content-Type': backendResponse.headers.get('Content-Type') || 'application/json' },
+      headers: {
+        'Content-Type': backendResponse.headers.get('Content-Type') || 'application/json',
+      },
     });
   } catch (error) {
     console.error('Proxy API route error:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -15,7 +15,11 @@ interface NotificationDropdownProps {
   onNotificationRead: () => void;
 }
 
-export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: NotificationDropdownProps) {
+export function NotificationDropdown({
+  isOpen,
+  onClose,
+  onNotificationRead,
+}: NotificationDropdownProps) {
   const router = useRouter();
   const toast = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -45,9 +49,9 @@ export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: No
       if (!notification.isRead) {
         await notificationApi.markAsRead(notification.id);
         onNotificationRead();
-        
+
         setNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+          prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );
       }
 
@@ -65,26 +69,19 @@ export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: No
       setIsMarkingAllRead(true);
       await notificationApi.markAllAsRead();
       onNotificationRead();
-      
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, isRead: true }))
-      );
-      
+
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+
       const unreadCount = notifications.filter(n => !n.isRead).length;
       if (unreadCount > 0) {
-        toast.success(
-          'All Read',
-          `${unreadCount} notifications marked as read`
-        );
+        toast.success('All Read', `${unreadCount} notifications marked as read`);
       }
     } catch (error: any) {
       console.error('[NotificationDropdown] Failed to mark all as read:', error);
-      const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error occurred';
-      
-      toast.error(
-        'Action Failed',
-        `Failed to mark notifications as read: ${errorMessage}`
-      );
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+
+      toast.error('Action Failed', `Failed to mark notifications as read: ${errorMessage}`);
     } finally {
       setIsMarkingAllRead(false);
     }
@@ -96,52 +93,47 @@ export function NotificationDropdown({ isOpen, onClose, onNotificationRead }: No
 
   return (
     <>
-      <div 
-        className="fixed inset-0 z-40" 
-        onClick={onClose}
-      />
-      
-      <div className="absolute right-0 mt-2 w-96 bg-gray-900 border border-white/10 rounded-lg shadow-xl z-50 max-h-[600px] flex flex-col">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+      <div className='fixed inset-0 z-40' onClick={onClose} />
+
+      <div className='absolute right-0 mt-2 w-96 bg-gray-900 border border-white/10 rounded-lg shadow-xl z-50 max-h-[600px] flex flex-col'>
+        <div className='p-4 border-b border-white/10 flex items-center justify-between'>
           <div>
-            <h3 className="text-lg font-semibold text-white">Уведомления</h3>
+            <h3 className='text-lg font-semibold text-white'>Уведомления</h3>
             {unreadCount > 0 && (
-              <p className="text-sm text-gray-400">
-                {unreadCount} непрочитанных
-              </p>
+              <p className='text-sm text-gray-400'>{unreadCount} непрочитанных</p>
             )}
           </div>
-          
+
           {unreadCount > 0 && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant='ghost'
+              size='sm'
               onClick={handleMarkAllAsRead}
               disabled={isMarkingAllRead}
-              className="gap-2"
+              className='gap-2'
             >
               {isMarkingAllRead ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className='w-4 h-4 animate-spin' />
               ) : (
-                <CheckCheck className="w-4 h-4" />
+                <CheckCheck className='w-4 h-4' />
               )}
               Прочитать все
             </Button>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className='flex-1 overflow-y-auto'>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <div className='flex items-center justify-center py-12'>
+              <Loader2 className='w-6 h-6 animate-spin text-blue-400' />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <Inbox className="w-12 h-12 text-gray-600 mb-4" />
-              <p className="text-gray-400 text-center">Нет уведомлений</p>
+            <div className='flex flex-col items-center justify-center py-12 px-4'>
+              <Inbox className='w-12 h-12 text-gray-600 mb-4' />
+              <p className='text-gray-400 text-center'>Нет уведомлений</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className='divide-y divide-white/5'>
               {notifications.map(notification => (
                 <NotificationItem
                   key={notification.id}

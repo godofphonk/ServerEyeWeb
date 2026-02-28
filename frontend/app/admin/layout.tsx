@@ -4,41 +4,37 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { LayoutDashboard, Ticket, Activity } from 'lucide-react';
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const navItems = [
     {
       href: '/admin/monitoring',
       label: 'Monitoring',
-      icon: Activity
+      icon: Activity,
     },
     {
       href: '/admin/tickets',
       label: 'Tickets',
-      icon: Ticket
-    }
+      icon: Ticket,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className='min-h-screen bg-black'>
       {/* Admin Navigation */}
-      <nav className="bg-gray-900 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center gap-8 h-16">
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <LayoutDashboard className="w-5 h-5" />
+      <nav className='bg-gray-900 border-b border-white/10'>
+        <div className='max-w-7xl mx-auto px-6'>
+          <div className='flex items-center gap-8 h-16'>
+            <div className='flex items-center gap-2 text-white font-semibold'>
+              <LayoutDashboard className='w-5 h-5' />
               Admin Panel
             </div>
-            <div className="flex gap-1">
-              {navItems.map((item) => {
+            <div className='flex gap-1'>
+              {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
-                
+
                 return (
                   <Link
                     key={item.href}
@@ -49,7 +45,7 @@ export default function AdminLayout({
                         : 'text-gray-400 hover:text-white hover:bg-gray-800'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className='w-4 h-4' />
                     {item.label}
                   </Link>
                 );

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Cpu, HardDrive, Database, Wifi, Monitor } from 'lucide-react';
@@ -49,9 +49,9 @@ const tabs = [
   { id: 'system', label: 'System', icon: Monitor },
 ];
 
-export default function MetricsTabs({ 
-  dashboardMetrics, 
-  historicalMetrics, 
+export default function MetricsTabs({
+  dashboardMetrics,
+  historicalMetrics,
   cpuHistoricalMetrics,
   cpuUsageHistoricalMetrics,
   cpuLoadHistoricalMetrics,
@@ -60,8 +60,8 @@ export default function MetricsTabs({
   networkHistoricalMetrics,
   diskHistoricalMetrics,
   staticInfo,
-  server, 
-  timeRange, 
+  server,
+  timeRange,
   cpuTimeRange,
   cpuUsageTimeRange,
   cpuLoadTimeRange,
@@ -69,7 +69,7 @@ export default function MetricsTabs({
   memoryTimeRange,
   networkTimeRange,
   diskTimeRange,
-  onTimeRangeChange, 
+  onTimeRangeChange,
   onCpuTimeRangeChange,
   onCpuUsageTimeRangeChange,
   onCpuLoadTimeRangeChange,
@@ -77,21 +77,17 @@ export default function MetricsTabs({
   onMemoryTimeRangeChange,
   onNetworkTimeRangeChange,
   onDiskTimeRangeChange,
-  networkDetails 
+  networkDetails,
 }: MetricsTabsProps) {
   const [activeTab, setActiveTab] = useState('cpu');
 
   return (
-    <div className="space-y-6">
-      <TabsNavigation
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      
+    <div className='space-y-6'>
+      <TabsNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
       <TabsContent activeTab={activeTab}>
-        <TabPanel value="cpu" activeTab={activeTab}>
-          <CpuTab 
+        <TabPanel value='cpu' activeTab={activeTab}>
+          <CpuTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={cpuHistoricalMetrics}
             cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
@@ -106,9 +102,9 @@ export default function MetricsTabs({
             onCpuTemperatureTimeRangeChange={onCpuTemperatureTimeRangeChange}
           />
         </TabPanel>
-        
-        <TabPanel value="memory" activeTab={activeTab}>
-          <MemoryTab 
+
+        <TabPanel value='memory' activeTab={activeTab}>
+          <MemoryTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={memoryHistoricalMetrics}
             staticInfo={staticInfo}
@@ -116,18 +112,18 @@ export default function MetricsTabs({
             onTimeRangeChange={onMemoryTimeRangeChange}
           />
         </TabPanel>
-        
-        <TabPanel value="storage" activeTab={activeTab}>
-          <StorageTab 
+
+        <TabPanel value='storage' activeTab={activeTab}>
+          <StorageTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={diskHistoricalMetrics}
             timeRange={diskTimeRange}
             onTimeRangeChange={onDiskTimeRangeChange}
           />
         </TabPanel>
-        
-        <TabPanel value="network" activeTab={activeTab}>
-          <NetworkTab 
+
+        <TabPanel value='network' activeTab={activeTab}>
+          <NetworkTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={networkHistoricalMetrics}
             networkDetails={networkDetails}
@@ -135,9 +131,9 @@ export default function MetricsTabs({
             onTimeRangeChange={onNetworkTimeRangeChange}
           />
         </TabPanel>
-        
-        <TabPanel value="system" activeTab={activeTab}>
-          <SystemTab 
+
+        <TabPanel value='system' activeTab={activeTab}>
+          <SystemTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics}
             server={server}

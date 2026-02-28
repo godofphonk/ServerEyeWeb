@@ -1,8 +1,15 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { User, BackendUser } from '@/types';
-import { apiClient } from "@/lib/api";
+import { apiClient } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -33,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const backendRole = String(backendUser.role).toLowerCase();
       role = backendRole === 'admin' ? 'admin' : 'user';
     }
-    
+
     const user = {
       id: backendUser.id,
       email: backendUser.email,
@@ -42,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       isEmailVerified: backendUser.isEmailVerified || false,
     };
-    
+
     console.log('[AuthContext] mapBackendUser - Backend user:', {
       id: backendUser.id,
       email: backendUser.email,
@@ -57,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: user.role,
       isEmailVerified: user.isEmailVerified,
     });
-    
+
     return user;
   };
 
@@ -74,8 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(mappedUser);
           console.log('[AuthContext] User authenticated via session');
           console.log('[AuthContext] Email verification status:', mappedUser.isEmailVerified);
-          console.log('[AuthContext] isEmailVerified computed:', mappedUser?.isEmailVerified || false);
-          
+          console.log(
+            '[AuthContext] isEmailVerified computed:',
+            mappedUser?.isEmailVerified || false,
+          );
+
           // Also save token to localStorage for apiClient
           if (typeof window !== 'undefined') {
             // Get token from session API response
@@ -85,7 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const tokenData = await tokenResponse.json();
                 if (tokenData.token) {
                   localStorage.setItem('jwt_token', tokenData.token);
-                  console.log('[AuthContext] Token saved to localStorage from API, length:', tokenData.token?.length);
+                  console.log(
+                    '[AuthContext] Token saved to localStorage from API, length:',
+                    tokenData.token?.length,
+                  );
                 }
               }
             } catch (error) {
@@ -110,19 +123,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    console.log('AuthContext login - attempting login with:', { email, passwordLength: password.length });
-    
+    console.log('AuthContext login - attempting login with:', {
+      email,
+      passwordLength: password.length,
+    });
+
     const loginUrl = '/api/auth/login?t=' + Date.now();
     console.log('AuthContext login - full URL:', window.location.origin + loginUrl);
-    
+
     const res = await fetch(loginUrl, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Auth-Bypass': Date.now().toString()
+        Pragma: 'no-cache',
+        Expires: '0',
+        'X-Auth-Bypass': Date.now().toString(),
       },
       credentials: 'include',
       body: JSON.stringify({ email, password }),
@@ -138,15 +154,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await res.json();
-    console.log('AuthContext login - success response:', { hasUser: !!data.user, userId: data.user?.id });
-    
+    console.log('AuthContext login - success response:', {
+      hasUser: !!data.user,
+      userId: data.user?.id,
+    });
+
     if (!data.user?.id) {
       throw new Error('Invalid login response');
     }
 
     setUser(mapBackendUser(data.user));
     console.log('AuthContext login - user set successfully');
-    
+
     // Also save token to localStorage for apiClient
     if (typeof window !== 'undefined') {
       const cookies = document.cookie.split(';');
@@ -185,8 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('refresh_token');
       // Clear all cookies
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      document.cookie.split(';').forEach(c => {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
       });
     }
     setUser(null);

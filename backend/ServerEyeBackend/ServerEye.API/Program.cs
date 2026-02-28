@@ -208,18 +208,26 @@ builder.Services.AddExceptionHandler<ServerEye.API.Middleware.GlobalExceptionHan
 builder.Services.AddProblemDetails();
 
 // Configure Health Checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(
-        connectionString: configuration["DATABASE_CONNECTION_STRING"] 
+var serverEyeConnectionString = configuration["DATABASE_CONNECTION_STRING"] 
                          ?? configuration.GetConnectionString("ServerEyeDbContext") 
                          ?? configuration.GetConnectionString("DefaultConnection") 
-                         ?? throw new InvalidOperationException("Database connection string not found"),
+                         ?? throw new InvalidOperationException("Database connection string not found");
+
+var ticketConnectionString = configuration["TICKET_DB_CONNECTION_STRING"]
+                         ?? configuration.GetConnectionString("TicketDbContext")
+                         ?? throw new InvalidOperationException("Ticket database connection string not found");
+
+// Log connection strings for debugging
+Console.WriteLine($"ServerEye DB Connection: {serverEyeConnectionString}");
+Console.WriteLine($"Ticket DB Connection: {ticketConnectionString}");
+
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        connectionString: serverEyeConnectionString,
         name: "postgres-servereye",
         tags: ["db", "postgres", "ready"])
     .AddNpgSql(
-        connectionString: configuration["TICKET_DB_CONNECTION_STRING"]
-                         ?? configuration.GetConnectionString("TicketDbContext")
-                         ?? throw new InvalidOperationException("Ticket database connection string not found"),
+        connectionString: ticketConnectionString,
         name: "postgres-tickets",
         tags: ["db", "postgres", "ready"])
     .AddRedis(

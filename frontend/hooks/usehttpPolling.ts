@@ -10,8 +10,8 @@ interface UseMetricsPollingOptions {
 }
 
 export function usehttpPolling({
-  serverId, 
-  onMessage, 
+  serverId,
+  onMessage,
   onError,
   enabled = true,
   interval = 30, // Default 30 seconds to respect rate limiting (100 req/min)
@@ -24,10 +24,24 @@ export function usehttpPolling({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pollMetrics = useCallback(async () => {
-    console.log('[Metrics] pollMetrics called for server:', serverId, 'enabled:', enabled, 'isLoading:', isLoading);
-    
+    console.log(
+      '[Metrics] pollMetrics called for server:',
+      serverId,
+      'enabled:',
+      enabled,
+      'isLoading:',
+      isLoading,
+    );
+
     if (!enabled || isLoading || shouldStop) {
-      console.log('[Metrics] Skipping fetch - enabled:', enabled, 'isLoading:', isLoading, 'shouldStop:', shouldStop);
+      console.log(
+        '[Metrics] Skipping fetch - enabled:',
+        enabled,
+        'isLoading:',
+        isLoading,
+        'shouldStop:',
+        shouldStop,
+      );
       return;
     }
 
@@ -38,9 +52,11 @@ export function usehttpPolling({
       // Use C# backend endpoint for real metrics
       const end = new Date();
       const start = new Date(end.getTime() - 5 * 60 * 1000);
-      const metrics = await apiClient.get<any>(`/servers/by-key/${serverId}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`);
+      const metrics = await apiClient.get<any>(
+        `/servers/by-key/${serverId}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`,
+      );
       console.log('[Metrics] Success! Got real metrics:', metrics);
-      
+
       // Process real metrics data from C# backend
       const lastDataPoint = metrics.dataPoints?.[metrics.dataPoints?.length - 1];
       const processedData = {
@@ -58,15 +74,15 @@ export function usehttpPolling({
         dataPoints: metrics.dataPoints || [],
         totalPoints: metrics.totalPoints || 0,
         message: metrics.message || null,
-        isCached: metrics.isCached || false
+        isCached: metrics.isCached || false,
       };
-      
+
       console.log('[Metrics] Processed real data:', processedData);
-      
+
       // Log message if present
       if (metrics.message) {
         console.log('[Metrics] API Message:', metrics.message);
-        
+
         // Stop polling if no data found
         if (metrics.message === 'No data found in specified range') {
           console.log('[Metrics] No data available, stopping polling');
@@ -78,7 +94,7 @@ export function usehttpPolling({
           return;
         }
       }
-      
+
       setLastMessage(processedData);
       setIsConnected(true);
       setError(null);
@@ -86,7 +102,7 @@ export function usehttpPolling({
     } catch (err: any) {
       console.error('[Metrics] Failed to fetch:', err);
       console.log('[Metrics] Error status:', err.response?.status);
-      
+
       // Handle errors
       if (err.response?.status === 401) {
         setError('Authentication required');

@@ -32,15 +32,15 @@ export async function POST(request: NextRequest) {
     console.log('Login - backend response:', {
       status: backendResponse.status,
       statusText: backendResponse.statusText,
-      ok: backendResponse.ok
+      ok: backendResponse.ok,
     });
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
       console.log('Login - backend error:', errorData);
       return NextResponse.json(
-          { message: errorData.message || 'Login failed' },
-          { status: backendResponse.status }
+        { message: errorData.message || 'Login failed' },
+        { status: backendResponse.status },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       hasToken: !!data.token,
       hasRefreshToken: !!data.refreshToken,
       hasUser: !!data.user,
-      expiresIn: data.expiresIn
+      expiresIn: data.expiresIn,
     });
     console.log('Login - full user data:', data.user);
     console.log('Login - isEmailVerified from backend:', data.user?.isEmailVerified);
@@ -81,15 +81,12 @@ export async function POST(request: NextRequest) {
       accessTokenLength: data.token?.length,
       refreshTokenLength: data.refreshToken?.length,
       isProduction: process.env.NODE_ENV === 'production',
-      expiresIn: data.expiresIn
+      expiresIn: data.expiresIn,
     });
 
     return response;
   } catch (error) {
     console.error('Login API route error:', error);
-    return NextResponse.json(
-        { message: 'Internal server error' },
-        { status: 500 }
-    );
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

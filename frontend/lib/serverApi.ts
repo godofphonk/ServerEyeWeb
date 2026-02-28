@@ -9,14 +9,14 @@ const CACHE_DURATION = 30000; // 30 seconds
 // Get cached monitored servers or fetch new ones
 export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
   const now = Date.now();
-  
+
   console.log('[ServerAPI] getCachedMonitoredServers called');
-  
-  if (cachedServers && (now - cacheTimestamp) < CACHE_DURATION) {
+
+  if (cachedServers && now - cacheTimestamp < CACHE_DURATION) {
     console.log('[ServerAPI] Returning cached servers:', cachedServers);
     return cachedServers;
   }
-  
+
   console.log('[ServerAPI] Fetching servers from API...');
   cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
   console.log('[ServerAPI] Servers fetched:', cachedServers);
@@ -26,18 +26,22 @@ export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
 
 // Static server info endpoint
 export async function getServerStaticInfo(serverKey: string): Promise<ServerStaticInfo> {
-  const response = await apiClient.get<ServerStaticInfo>(`/servers/by-key/${serverKey}/static-info`);
+  const response = await apiClient.get<ServerStaticInfo>(
+    `/servers/by-key/${serverKey}/static-info`,
+  );
   return response;
 }
 
 // Get monitored servers with static info
-export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>> {
+export async function getServersWithStaticInfo(): Promise<
+  Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>
+> {
   // Get monitored servers from cache
   const monitoredServers = await getCachedMonitoredServers();
-  
+
   // For each server, use the ServerKey from database directly
   const serversWithStatic = await Promise.allSettled(
-    monitoredServers.map(async (server) => {
+    monitoredServers.map(async server => {
       try {
         // Only load static info if serverKey exists
         if (!server.serverKey) {
@@ -45,9 +49,9 @@ export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer 
             ...server,
           };
         }
-        
+
         const staticInfo = await getServerStaticInfoCached(server.serverKey);
-        
+
         return {
           ...server,
           staticInfo,
@@ -60,9 +64,9 @@ export async function getServersWithStaticInfo(): Promise<Array<MonitoredServer 
           staticInfo: undefined,
         };
       }
-    })
+    }),
   );
-  
+
   // Filter out rejected promises and return successful results
   return serversWithStatic
     .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
@@ -82,11 +86,11 @@ export function convertToGoApiKey(serverKey: string): string {
 export async function getServerKey(serverId: string): Promise<string> {
   const servers = await getCachedMonitoredServers();
   const server = servers.find(s => s.serverId === serverId);
-  
+
   if (!server || !server.serverKey) {
     throw new Error(`Server key not found for serverId: ${serverId}`);
   }
-  
+
   return server.serverKey;
 }
 
@@ -97,18 +101,18 @@ const STATIC_INFO_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export async function getServerStaticInfoCached(serverKey: string): Promise<ServerStaticInfo> {
   const cached = staticInfoCache.get(serverKey);
   const now = Date.now();
-  
+
   // Return cached data if still valid
-  if (cached && (now - cached.timestamp) < STATIC_INFO_CACHE_DURATION) {
+  if (cached && now - cached.timestamp < STATIC_INFO_CACHE_DURATION) {
     return cached.data;
   }
-  
+
   // Fetch fresh data
   const data = await getServerStaticInfo(serverKey);
-  
+
   // Update cache
   staticInfoCache.set(serverKey, { data, timestamp: now });
-  
+
   return data;
 }
 
@@ -133,27 +137,38 @@ const metricsCache = new Map<string, { data: any; timestamp: number }>();
 const METRICS_CACHE_DURATION = 10000; // 10 seconds for metrics
 
 // Get cached metrics or fetch new ones
-export async function getCachedMetrics(serverKey: string, startTime: string, endTime: string, granularity: string): Promise<any> {
+export async function getCachedMetrics(
+  serverKey: string,
+  startTime: string,
+  endTime: string,
+  granularity: string,
+): Promise<any> {
   const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
-  
+
   // Return cached data if still valid
-  if (cached && (now - cached.timestamp) < METRICS_CACHE_DURATION) {
-    console.log(`[MetricsCache] Using cached data for ${serverKey}, points: ${cached.data.dataPoints?.length || 0}`);
+  if (cached && now - cached.timestamp < METRICS_CACHE_DURATION) {
+    console.log(
+      `[MetricsCache] Using cached data for ${serverKey}, points: ${cached.data.dataPoints?.length || 0}`,
+    );
     return cached.data;
   }
-  
+
   console.log(`[MetricsCache] Fetching fresh data for ${serverKey}`);
-  
+
   // Fetch fresh data
-  const response = await apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?start=${startTime}&end=${endTime}&granularity=${granularity}`);
-  
-  console.log(`[MetricsCache] Response: ${response.dataPoints?.length || 0} points, status: ${response.status}`);
-  
+  const response = await apiClient.get<any>(
+    `/servers/by-key/${serverKey}/metrics?start=${startTime}&end=${endTime}&granularity=${granularity}`,
+  );
+
+  console.log(
+    `[MetricsCache] Response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
+  );
+
   // Update cache
   metricsCache.set(cacheKey, { data: response, timestamp: now });
-  
+
   return response;
 }
 
@@ -163,41 +178,47 @@ export function clearMetricsCache() {
 }
 
 // Get metrics using new serverKey endpoint
-export async function getServerMetrics(serverKey: string, options?: {
-  start?: Date;
-  end?: Date;
-  granularity?: string;
-}): Promise<MetricsResponse> {
+export async function getServerMetrics(
+  serverKey: string,
+  options?: {
+    start?: Date;
+    end?: Date;
+    granularity?: string;
+  },
+): Promise<MetricsResponse> {
   // Default time range (last 5 minutes)
   const end = options?.end || new Date();
   const start = options?.start || new Date(end.getTime() - 5 * 60 * 1000);
   const granularity = options?.granularity || 'minute';
-  
+
   const params = new URLSearchParams({
     start: start.toISOString(),
     end: end.toISOString(),
     granularity: granularity,
   });
-  
+
   console.log(`[ServerMetrics] Fetching metrics for serverKey: ${serverKey}`);
   const response = await apiClient.get<any>(
-    `/servers/by-key/${serverKey}/metrics?${params.toString()}`
+    `/servers/by-key/${serverKey}/metrics?${params.toString()}`,
   );
-  
+
   return response;
 }
 
 // Parallel request for both static info and metrics
-export async function getServerCompleteData(serverKey: string, options?: {
-  start?: Date;
-  end?: Date;
-  granularity?: string;
-}) {
+export async function getServerCompleteData(
+  serverKey: string,
+  options?: {
+    start?: Date;
+    end?: Date;
+    granularity?: string;
+  },
+) {
   const [staticInfo, metrics] = await Promise.all([
     getServerStaticInfoCached(serverKey),
-    getServerMetrics(serverKey, options)
+    getServerMetrics(serverKey, options),
   ]);
-  
+
   return {
     staticInfo,
     metrics,
