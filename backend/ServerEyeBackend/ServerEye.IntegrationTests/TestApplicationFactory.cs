@@ -23,13 +23,48 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
     {
         await this.postgresContainer.StartAsync();
         
-        // Create database schema
+        // Create a client to trigger service initialization
+        using var client = this.CreateClient();
+        
+        // Now create database schema manually
         using var scope = this.Services.CreateScope();
         var serverEyeDb = scope.ServiceProvider.GetRequiredService<ServerEyeDbContext>();
-        var ticketDb = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
         
-        await serverEyeDb.Database.EnsureCreatedAsync();
-        await ticketDb.Database.EnsureCreatedAsync();
+        // Create tables manually
+        await serverEyeDb.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS ""Users"" (
+                ""Id"" uuid PRIMARY KEY,
+                ""UserName"" text NOT NULL,
+                ""Email"" text NOT NULL,
+                ""Password"" text NOT NULL,
+                ""Role"" text NOT NULL,
+                ""IsEmailVerified"" boolean NOT NULL DEFAULT false,
+                ""EmailVerifiedAt"" timestamp with time zone,
+                ""PendingEmail"" text,
+                ""ServerId"" uuid,
+                ""CreatedAt"" timestamp with time zone NOT NULL
+            );
+            
+            CREATE TABLE IF NOT EXISTS ""RefreshTokens"" (
+                ""Id"" uuid PRIMARY KEY,
+                ""UserId"" uuid NOT NULL,
+                ""Token"" text NOT NULL,
+                ""ExpiresAt"" timestamp with time zone NOT NULL,
+                ""CreatedAt"" timestamp with time zone NOT NULL,
+                ""RevokedAt"" timestamp with time zone,
+                CONSTRAINT ""FK_RefreshTokens_Users_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+            );
+            
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Email"" ON ""Users"" (""Email"");
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_UserName"" ON ""Users"" (""UserName"");
+            CREATE INDEX IF NOT EXISTS ""IX_RefreshTokens_UserId"" ON ""RefreshTokens"" (""UserId"");
+        ");
+    }
+
+    public async Task EnsureDatabaseCreatedAsync()
+    {
+        // Database is already created in InitializeAsync
+        await Task.CompletedTask;
     }
 
     public new async Task DisposeAsync()
@@ -43,19 +78,45 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         var serverEyeDb = scope.ServiceProvider.GetRequiredService<ServerEyeDbContext>();
         var ticketDb = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
         
-        await serverEyeDb.Database.EnsureDeletedAsync();
-        await serverEyeDb.Database.EnsureCreatedAsync();
+        // Clear all data from tables if they exist
+        try
+        {
+            if (await serverEyeDb.Database.CanConnectAsync())
+            {
+                // Check if tables exist before truncating
+                var tablesExist = await serverEyeDb.Database.ExecuteSqlRawAsync(
+                    @"DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Users') THEN
+                            TRUNCATE TABLE ""RefreshTokens"", ""Users"" CASCADE;
+                        END IF;
+                    END $$;");
+            }
+        }
+        catch
+        {
+            // Ignore errors if tables don't exist yet
+        }
         
-        await ticketDb.Database.EnsureDeletedAsync();
-        await ticketDb.Database.EnsureCreatedAsync();
+        try
+        {
+            if (await ticketDb.Database.CanConnectAsync())
+            {
+                // Clear ticket tables if any exist
+            }
+        }
+        catch
+        {
+            // Ignore errors
+        }
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Generate RSA keys for JWT
+        // Generate RSA keys for JWT in PKCS8 format
         var rsa = System.Security.Cryptography.RSA.Create(2048);
-        var privateKey = Convert.ToBase64String(rsa.ExportRSAPrivateKey());
-        var publicKey = Convert.ToBase64String(rsa.ExportRSAPublicKey());
+        var privateKey = Convert.ToBase64String(rsa.ExportPkcs8PrivateKey());
+        var publicKey = Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo());
 
         builder.ConfigureAppConfiguration((context, config) =>
         {

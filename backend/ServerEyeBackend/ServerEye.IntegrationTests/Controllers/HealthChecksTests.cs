@@ -18,6 +18,7 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
 
     public async Task InitializeAsync()
     {
+        await this.factory.EnsureDatabaseCreatedAsync();
         await this.factory.ResetDatabaseAsync();
     }
 
