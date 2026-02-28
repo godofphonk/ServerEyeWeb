@@ -21,3 +21,27 @@ dotnet_diagnostic.CA1063.severity = none
 
 # Allow async methods without Async suffix in tests
 dotnet_diagnostic.IDE0060.severity = none
+
+# Allow string URLs in HttpClient calls (test simplicity)
+dotnet_diagnostic.CA2234.severity = none
+
+# Allow null checks in test constructors (handled by test framework)
+dotnet_diagnostic.CA1062.severity = none
+
+# Allow generic Exception in tests (test simplicity)
+dotnet_diagnostic.CA2201.severity = none
+
+# Allow missing XML comments in tests
+dotnet_diagnostic.CS1591.severity = none
+
+# Allow public types in test projects
+dotnet_diagnostic.CA1515.severity = none
+
+# Allow public fields in test base classes
+dotnet_diagnostic.CA1051.severity = none
+
+# Allow async methods without ConfigureAwait in tests
+dotnet_diagnostic.CA2007.severity = none
+
+# Allow not disposing objects in test setup
+dotnet_diagnostic.CA2000.severity = none

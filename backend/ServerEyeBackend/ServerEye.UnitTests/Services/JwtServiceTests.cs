@@ -16,17 +16,18 @@ public class JwtServiceTests
         
         this.jwtSettings = new JwtSettings
         {
+            SecretKey = "TestSecretKey123456789012345678901234567890",
             Issuer = "TestIssuer",
             Audience = "TestAudience",
-            ExpirationMinutes = 60,
-            RefreshTokenExpirationDays = 7
+            AccessTokenExpiration = TimeSpan.FromMinutes(60),
+            RefreshTokenExpiration = TimeSpan.FromDays(7)
         };
 
         var keyPair = System.Security.Cryptography.RSA.Create(2048);
         this.jwtSettings.PrivateKeyBase64 = Convert.ToBase64String(keyPair.ExportRSAPrivateKey());
         this.jwtSettings.PublicKeyBase64 = Convert.ToBase64String(keyPair.ExportRSAPublicKey());
 
-        this.sut = new JwtService(this.jwtSettings, this.loggerMock.Object);
+        this.sut = new JwtService(this.jwtSettings);
     }
 
     [Fact]
@@ -37,7 +38,14 @@ public class JwtServiceTests
         var userName = "testuser";
         var role = "USER";
 
-        var token = this.sut.GenerateToken(userId, email, userName, role, false);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = userId,
+            Email = email,
+            UserName = userName,
+            Role = Enum.Parse<ServerEye.Core.Enums.UserRole>(role)
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         token.Should().NotBeNullOrEmpty();
         var handler = new JwtSecurityTokenHandler();
@@ -52,7 +60,14 @@ public class JwtServiceTests
         var userName = "testuser";
         var role = "USER";
 
-        var token = this.sut.GenerateToken(userId, email, userName, role, false);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = userId,
+            Email = email,
+            UserName = userName,
+            Role = Enum.Parse<ServerEye.Core.Enums.UserRole>(role)
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
