@@ -8,6 +8,8 @@ services:
       - POSTGRES_DB=ServerEyeWeb
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_INITDB_ARGS=--auth-host=trust
+    command: postgres -c ssl=off
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped

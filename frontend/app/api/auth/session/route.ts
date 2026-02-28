@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 console.log('Session route file loaded!');
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 export async function GET(request: NextRequest) {
   console.log('Session API route called via GET!');

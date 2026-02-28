@@ -47,9 +47,9 @@ if (builder.Environment.IsProduction() || builder.Environment.IsStaging() || bui
 {
     var dopplerProject = Environment.GetEnvironmentVariable("DOPPLER_PROJECT") ?? "servereye";
     var dopplerConfig = Environment.GetEnvironmentVariable("DOPPLER_CONFIG") ?? builder.Environment.EnvironmentName;
-    
+
     startupLogger.LogInformation("Loading secrets from Doppler - Project: {Project}, Config: {Config}", dopplerProject, dopplerConfig);
-    
+
     try
     {
         builder.Configuration.AddDopplerSecrets(dopplerProject, dopplerConfig, startupLogger);
@@ -208,9 +208,9 @@ builder.Services.AddExceptionHandler<ServerEye.API.Middleware.GlobalExceptionHan
 builder.Services.AddProblemDetails();
 
 // Configure Health Checks
-var serverEyeConnectionString = configuration["DATABASE_CONNECTION_STRING"] 
-                         ?? configuration.GetConnectionString("ServerEyeDbContext") 
-                         ?? configuration.GetConnectionString("DefaultConnection") 
+var serverEyeConnectionString = configuration["DATABASE_CONNECTION_STRING"]
+                         ?? configuration.GetConnectionString("ServerEyeDbContext")
+                         ?? configuration.GetConnectionString("DefaultConnection")
                          ?? throw new InvalidOperationException("Database connection string not found");
 
 var ticketConnectionString = configuration["TICKET_DB_CONNECTION_STRING"]
@@ -223,11 +223,11 @@ Console.WriteLine($"Ticket DB Connection: {ticketConnectionString}");
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(
-        connectionString: serverEyeConnectionString,
+        connectionString: serverEyeConnectionString + ";TrustServerCertificate=true",
         name: "postgres-servereye",
         tags: ["db", "postgres", "ready"])
     .AddNpgSql(
-        connectionString: ticketConnectionString,
+        connectionString: ticketConnectionString + ";TrustServerCertificate=true",
         name: "postgres-tickets",
         tags: ["db", "postgres", "ready"])
     .AddRedis(
@@ -297,7 +297,7 @@ if (!builder.Services.Any(s => s.ServiceType == typeof(Microsoft.AspNetCore.Auth
     {
         var rsaForValidation = System.Security.Cryptography.RSA.Create();
         rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-        
+
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -318,9 +318,9 @@ builder.Services.AddDbContext<ServerEyeDbContext>(
     {
         // Priority: Environment variable > ConnectionStrings section
         var connectionString = configuration["DATABASE_CONNECTION_STRING"]
-                             ?? configuration.GetConnectionString("ServerEyeDbContext") 
+                             ?? configuration.GetConnectionString("ServerEyeDbContext")
                              ?? configuration.GetConnectionString("DefaultConnection");
-        
+
         startupLogger.LogDebug("ServerEyeDbContext Connection String configured");
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
@@ -338,7 +338,7 @@ builder.Services.AddDbContext<TicketDbContext>(
         // Priority: Environment variable > ConnectionStrings section
         var connectionString = configuration["TICKET_DB_CONNECTION_STRING"]
                              ?? configuration.GetConnectionString("TicketDbContext");
-        
+
         startupLogger.LogDebug("TicketDbContext Connection String configured");
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
