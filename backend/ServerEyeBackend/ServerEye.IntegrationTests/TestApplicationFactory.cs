@@ -8,6 +8,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Infrastracture;
 using Testcontainers.PostgreSql;
+using System.Globalization;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -51,7 +52,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ""Token"" text NOT NULL,
                 ""ExpiresAt"" timestamp with time zone NOT NULL,
                 ""CreatedAt"" timestamp with time zone NOT NULL,
-                ""RevokedAt"" timestamp with time zone,
+                ""IsRevoked"" boolean NOT NULL DEFAULT false,
                 CONSTRAINT ""FK_RefreshTokens_Users_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
             );
             
@@ -129,14 +130,54 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JwtSettings:RefreshTokenExpiration"] = "7.00:00:00",
                 ["JwtSettings:PrivateKeyBase64"] = privateKey,
                 ["JwtSettings:PublicKeyBase64"] = publicKey,
+                ["JWT_PRIVATE_KEY_BASE64"] = privateKey,
+                ["JWT_PUBLIC_KEY_BASE64"] = publicKey,
                 ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:TicketDbConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:Redis"] = "localhost:6379"
             });
         });
 
+        // Override environment variables for JWT keys
+        Environment.SetEnvironmentVariable("JWT_PRIVATE_KEY_BASE64", privateKey);
+        Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", publicKey);
+
         builder.ConfigureServices(services =>
         {
+            // Override JwtSettings with test keys
+            var rsa = System.Security.Cryptography.RSA.Create(2048);
+            var privateKey = Convert.ToBase64String(rsa.ExportPkcs8PrivateKey());
+            var publicKey = Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo());
+
+            var testJwtSettings = new ServerEye.Core.Services.JwtSettings
+            {
+                SecretKey = "TestSecretKey123456789012345678901234567890",
+                Issuer = "TestIssuer",
+                Audience = "TestAudience",
+                AccessTokenExpiration = TimeSpan.Parse("01:00:00", CultureInfo.InvariantCulture),
+                RefreshTokenExpiration = TimeSpan.Parse("7.00:00:00", CultureInfo.InvariantCulture),
+                PrivateKeyBase64 = privateKey,
+                PublicKeyBase64 = publicKey
+            };
+
+            services.AddSingleton(testJwtSettings);
+            
+            // Remove existing JwtService and add new one with test settings
+            var jwtServiceDescriptors = services
+                .Where(d => d.ServiceType == typeof(ServerEye.Core.Interfaces.Services.IJwtService))
+                .ToList();
+            
+            foreach (var descriptor in jwtServiceDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+            
+            services.AddSingleton<ServerEye.Core.Interfaces.Services.IJwtService>(provider =>
+            {
+                var settings = provider.GetRequiredService<ServerEye.Core.Services.JwtSettings>();
+                return new ServerEye.Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
+            });
+
             // Remove existing DbContext registrations
             var dbContextDescriptors = services
                 .Where(d => 
