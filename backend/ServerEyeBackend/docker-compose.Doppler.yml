@@ -1,0 +1,147 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: servereyeWeb-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=ServerEyeWeb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-ticket:
+    image: postgres:16-alpine
+    container_name: servereyeWeb-ticket-postgres
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=ServerEyeWeb-ticket
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_ticket_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8-alpine
+    container_name: servereyeWeb-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.Doppler
+    container_name: servereyeWeb-backend
+    ports:
+      - "5246:80"
+      - "5247:443"
+    environment:
+      # Database connection strings
+      - DATABASE_CONNECTION_STRING=Host=postgres;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=postgres
+      - TICKET_DB_CONNECTION_STRING=Host=postgres-ticket;Port=5432;Database=ServerEyeWeb-ticket;Username=postgres;Password=postgres
+      - REDIS_CONNECTION_STRING=redis:6379
+      # JWT RSA Keys from Doppler
+      - JWT_PRIVATE_KEY_BASE64=${JWT_PRIVATE_KEY_BASE64}
+      - JWT_PUBLIC_KEY_BASE64=${JWT_PUBLIC_KEY_BASE64}
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      # Health check
+      - HEALTH_CHECK_ENABLED=true
+    command: ["dotnet", "ServerEye.API.dll"]
+    volumes:
+      - ./ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-ticket:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Production backend with Doppler secrets
+  backend-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.Doppler
+    container_name: servereyeWeb-backend-prod
+    ports:
+      - "5248:80"
+      - "5249:443"
+    environment:
+      # Doppler configuration for production
+      - DOPPLER_PROJECT=servereye
+      - DOPPLER_CONFIG=production
+      - DOPPLER_TOKEN=${DOPPLER_PROD_TOKEN}
+      # ASP.NET Core configuration
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      # Security headers
+      - HEALTH_CHECK_ENABLED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-ticket:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    profiles:
+      - production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  servereye-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_ticket_data:
+    driver: local

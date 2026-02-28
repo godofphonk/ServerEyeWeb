@@ -1,3 +1,5 @@
+#pragma warning disable SA1202 // 'public' members should come before 'private' members
+
 namespace ServerEye.Core.Services;
 
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 public class JwtSettings
 {
@@ -16,6 +19,8 @@ public class JwtSettings
     public string Audience { get; set; } = string.Empty;
     public TimeSpan AccessTokenExpiration { get; set; }
     public TimeSpan RefreshTokenExpiration { get; set; }
+    public string PrivateKeyBase64 { get; set; } = string.Empty;
+    public string PublicKeyBase64 { get; set; } = string.Empty;
 }
 
 public sealed class JwtService : IJwtService
@@ -24,19 +29,64 @@ public sealed class JwtService : IJwtService
     private readonly RSA rsaPublicKey;
     private readonly RSA rsaPrivateKey;
 
-    public JwtService(JwtSettings jwtSettings)
+    public JwtService(JwtSettings jwtSettings, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(jwtSettings);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         this.jwtSettings = jwtSettings;
 
-        // Use static RSA key to ensure consistency across requests
-        this.rsaPrivateKey = StaticRsaKey;
-        this.rsaPublicKey = StaticRsaKey;
+        // Load RSA keys from Doppler or use static key for development
+        if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
+        {
+            // Production: Load keys from Doppler
+            this.rsaPrivateKey = LoadRsaKeyFromBase64(jwtSettings.PrivateKeyBase64);
+            this.rsaPublicKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
+        }
+        else
+        {
+            // Development: Use static key
+            this.rsaPrivateKey = StaticRsaKey;
+            this.rsaPublicKey = StaticRsaKey;
+        }
     }
 
     public static RSA GetStaticRsaKey => StaticRsaKey;
 
     private static RSA StaticRsaKey { get; } = RSA.Create(2048);
+
+    private static RSA LoadRsaKeyFromBase64(string base64Key)
+    {
+        try
+        {
+            var keyBytes = Convert.FromBase64String(base64Key);
+            var rsa = RSA.Create();
+            
+            // Try to import as private key first
+            try
+            {
+                rsa.ImportPkcs8PrivateKey(keyBytes, out _);
+                return rsa;
+            }
+            catch
+            {
+                // If that fails, try as public key
+                try
+                {
+                    rsa.ImportSubjectPublicKeyInfo(keyBytes, out _);
+                    return rsa;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Invalid RSA key format", ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Failed to load RSA key", ex);
+        }
+    }
 
     public string GenerateAccessToken(User user)
     {

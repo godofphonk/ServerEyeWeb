@@ -1,3 +1,5 @@
+#pragma warning disable CA1303 // Localize strings
+
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +14,9 @@ using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services;
 using ServerEye.Infrastracture;
 using ServerEye.Infrastracture.Repositories;
+using ServerEye.API.Extensions;
 using System.Text;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,10 +26,49 @@ builder.Configuration
     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
+// Debug: Log all environment variables
+Console.WriteLine("=== Environment Variables ===");
+foreach (var envVar in Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>())
+{
+    var key = envVar.Key?.ToString();
+    var value = envVar.Value?.ToString();
+    if (key != null && (key.Contains("DATABASE", StringComparison.OrdinalIgnoreCase) || key.Contains("REDIS", StringComparison.OrdinalIgnoreCase)))
+    {
+        Console.WriteLine($"{key} = {value}");
+    }
+}
+Console.WriteLine("=== End Environment Variables ===");
+
+// Add Doppler configuration for production environments
+if (builder.Environment.IsProduction() || builder.Environment.IsStaging() || builder.Environment.IsDevelopment())
+{
+    var dopplerProject = Environment.GetEnvironmentVariable("DOPPLER_PROJECT") ?? "servereye";
+    var dopplerConfig = Environment.GetEnvironmentVariable("DOPPLER_CONFIG") ?? builder.Environment.EnvironmentName;
+    
+    Console.WriteLine($"Loading secrets from Doppler - Project: {dopplerProject}, Config: {dopplerConfig}");
+    
+    try
+    {
+        builder.Configuration.AddDopplerSecrets(dopplerProject, dopplerConfig);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to load Doppler secrets: {ex.Message}");
+        Console.WriteLine("Falling back to environment variables and appsettings");
+    }
+}
+
 var configuration = builder.Configuration;
 
 // Configure settings
 var jwtSettings = configuration.GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
+
+// Load RSA keys from environment variables (Doppler)
+jwtSettings.PrivateKeyBase64 = configuration["JWT_PRIVATE_KEY_BASE64"] ?? string.Empty;
+jwtSettings.PublicKeyBase64 = configuration["JWT_PUBLIC_KEY_BASE64"] ?? string.Empty;
+
+Console.WriteLine($"JWT Private Key Loaded: {!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64)}");
+Console.WriteLine($"JWT Public Key Loaded: {!string.IsNullOrEmpty(jwtSettings.PublicKeyBase64)}");
 var securitySettings = configuration.GetSection("Security").Get<SecuritySettings>() ?? new SecuritySettings();
 var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() ?? new CorsSettings();
 var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() ?? new GoApiSettings();
@@ -80,7 +123,7 @@ builder.Services.AddAuthorization();
 // Configure Redis
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = redisSettings.ConnectionString;
+    options.Configuration = configuration["REDIS_CONNECTION_STRING"] ?? redisSettings.ConnectionString;
     options.InstanceName = redisSettings.InstanceName;
 });
 
@@ -119,7 +162,8 @@ builder.Services.AddScoped<IJwtService>(provider =>
 {
     var jwtSettings = provider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
         .GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>() ?? new ServerEye.Core.Services.JwtSettings();
-    return new JwtService(jwtSettings);
+    var configuration = provider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+    return new JwtService(jwtSettings, configuration);
 });
 
 // Encryption service
@@ -143,11 +187,26 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddDbContext<ServerEyeDbContext>(
     options =>
-        options.UseNpgsql(configuration.GetConnectionString(nameof(ServerEyeDbContext))));
+    {
+        // Priority: Environment variable > ConnectionStrings section
+        var connectionString = configuration["DATABASE_CONNECTION_STRING"]
+                             ?? configuration.GetConnectionString("ServerEyeDbContext") 
+                             ?? configuration.GetConnectionString("DefaultConnection");
+        
+        Console.WriteLine($"ServerEyeDbContext Connection String: {connectionString}");
+        options.UseNpgsql(connectionString);
+    });
 
 builder.Services.AddDbContext<TicketDbContext>(
     options =>
-        options.UseNpgsql(configuration.GetConnectionString(nameof(TicketDbContext))));
+    {
+        // Priority: Environment variable > ConnectionStrings section
+        var connectionString = configuration["TICKET_DB_CONNECTION_STRING"]
+                             ?? configuration.GetConnectionString("TicketDbContext");
+        
+        Console.WriteLine($"TicketDbContext Connection String: {connectionString}");
+        options.UseNpgsql(connectionString);
+    });
 
 var app = builder.Build();
 
