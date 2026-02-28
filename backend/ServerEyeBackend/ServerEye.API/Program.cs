@@ -238,7 +238,14 @@ builder.Services.AddDbContext<ServerEyeDbContext>(
                              ?? configuration.GetConnectionString("DefaultConnection");
         
         startupLogger.LogDebug("ServerEyeDbContext Connection String configured");
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            // Enable connection pooling optimizations
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorCodesToAdd: null);
+        });
     });
 
 builder.Services.AddDbContext<TicketDbContext>(
@@ -249,7 +256,14 @@ builder.Services.AddDbContext<TicketDbContext>(
                              ?? configuration.GetConnectionString("TicketDbContext");
         
         startupLogger.LogDebug("TicketDbContext Connection String configured");
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            // Enable connection pooling optimizations
+            npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorCodesToAdd: null);
+        });
     });
 
 var app = builder.Build();
