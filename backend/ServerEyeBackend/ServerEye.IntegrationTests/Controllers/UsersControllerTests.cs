@@ -9,12 +9,11 @@ using ServerEye.Core.DTOs.UserDto;
 public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
     private readonly TestApplicationFactory factory;
-    private readonly HttpClient client;
 
     public UsersControllerTests(TestApplicationFactory factory)
     {
         this.factory = factory;
-        this.client = factory.CreateClient();
+        // Client will be created in each test method after JWT is configured
     }
 
     public async Task InitializeAsync()
@@ -35,7 +34,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/users/register", registerDto);
         var content = await response.Content.ReadAsStringAsync();
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -57,7 +57,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -72,7 +73,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "123"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -88,7 +90,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "Test123!"
         };
 
-        await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         var loginDto = new UserLoginDto
         {
@@ -96,7 +99,7 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+        var response = await client.PostAsJsonAsync("/api/users/login", loginDto);
         var content = await response.Content.ReadAsStringAsync();
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -119,7 +122,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "Test123!"
         };
 
-        await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         var loginDto = new UserLoginDto
         {
@@ -127,7 +131,13 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
             Password = "WrongPassword123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+        var response = await client.PostAsJsonAsync("/api/users/login", loginDto);
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            throw new Exception($"Expected Unauthorized but got {response.StatusCode}. Response: {content}");
+        }
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -135,7 +145,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
     [Fact]
     public async Task GetUsers_WithoutAuthentication_ShouldReturnUnauthorized()
     {
-        var response = await this.client.GetAsync("/api/users");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/api/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -143,7 +154,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
     [Fact]
     public async Task Health_ShouldReturnHealthy()
     {
-        var response = await this.client.GetAsync("/health");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
@@ -153,7 +165,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
     [Fact]
     public async Task HealthLive_ShouldReturnHealthy()
     {
-        var response = await this.client.GetAsync("/health/live");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health/live");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
@@ -163,7 +176,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
     [Fact]
     public async Task HealthReady_ShouldReturnHealthy()
     {
-        var response = await this.client.GetAsync("/health/ready");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health/ready");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();

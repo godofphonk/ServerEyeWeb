@@ -8,12 +8,11 @@ using System.Text.Json;
 public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
     private readonly TestApplicationFactory factory;
-    private readonly HttpClient client;
 
     public HealthChecksTests(TestApplicationFactory factory)
     {
         this.factory = factory;
-        this.client = factory.CreateClient();
+        // Client will be created in each test method after JWT is configured
     }
 
     public async Task InitializeAsync()
@@ -27,7 +26,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task Health_ShouldReturnHealthyStatus()
     {
-        var response = await this.client.GetAsync("/health");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
@@ -39,7 +39,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task Health_ShouldIncludeAllChecks()
     {
-        var response = await this.client.GetAsync("/health");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health");
         var content = await response.Content.ReadAsStringAsync();
         
         var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
@@ -57,7 +58,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task Health_ShouldIncludeDuration()
     {
-        var response = await this.client.GetAsync("/health");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health");
         var content = await response.Content.ReadAsStringAsync();
         
         var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
@@ -69,7 +71,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task HealthLive_ShouldReturnHealthy()
     {
-        var response = await this.client.GetAsync("/health/live");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health/live");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
@@ -79,7 +82,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task HealthReady_ShouldReturnHealthy()
     {
-        var response = await this.client.GetAsync("/health/ready");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health/ready");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
@@ -89,7 +93,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task HealthReady_ShouldCheckDatabaseConnectivity()
     {
-        var response = await this.client.GetAsync("/health/ready");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health/ready");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -97,7 +102,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     [Fact]
     public async Task Health_ShouldReturnJsonContentType()
     {
-        var response = await this.client.GetAsync("/health");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/health");
 
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
     }
@@ -107,7 +113,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         
-        await this.client.GetAsync("/health/live");
+        using var client = this.factory.CreateClient();
+        await client.GetAsync("/health/live");
         
         stopwatch.Stop();
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(1000);
