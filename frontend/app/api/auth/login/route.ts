@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 console.log('Login route file loaded!');
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     console.log('Request body parsed:', body);
 
     console.log('About to make fetch request to:', backendUrl);
-    const backendResponse = await fetch(`${API_BASE_URL}/users/login`, {
+    const backendResponse = await fetch(backendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
