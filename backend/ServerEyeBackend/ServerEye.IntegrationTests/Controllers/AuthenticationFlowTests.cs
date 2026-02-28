@@ -56,6 +56,13 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
         var token = loginResult.GetProperty("token").GetString();
 
         token.Should().NotBeNullOrEmpty();
+        
+        // Debug: decode and print token claims
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(token);
+        Console.WriteLine($"Token Issuer: {jwtToken.Issuer}");
+        Console.WriteLine($"Token Audience: {string.Join(", ", jwtToken.Audiences)}");
+        Console.WriteLine($"Token Claims: {string.Join(", ", jwtToken.Claims.Select(c => $"{c.Type}={c.Value}"))}");
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var protectedResponse = await client.GetAsync("/api/users");

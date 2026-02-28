@@ -104,24 +104,38 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         // Configure JWT Authentication for tests
         builder.ConfigureServices(services =>
         {
-            services.AddAuthentication(options =>
+            // Check if authentication is already registered to avoid duplication
+            var authServiceDescriptor = services.FirstOrDefault(d => 
+                d.ServiceType == typeof(Microsoft.AspNetCore.Authentication.IAuthenticationService));
+            
+            if (authServiceDescriptor == null)
             {
-                options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                // Import public key the same way JwtService does
+                var publicKeyBytes = Convert.FromBase64String(TestPublicKey);
+                var rsaForValidation = System.Security.Cryptography.RSA.Create();
+                rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                
+                services.AddAuthentication(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidIssuer = "TestIssuer",
-                    ValidateAudience = true,
-                    ValidAudience = "TestAudience",
-                    ValidateLifetime = true,
-                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(TestRsa.ExportParameters(false)),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+                    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = "TestIssuer",
+                        ValidateAudience = true,
+                        ValidAudience = "TestAudience",
+                        ValidateLifetime = true,
+                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation),
+                        ClockSkew = TimeSpan.Zero,
+                        NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
+                        RoleClaimType = "role"
+                    };
+                });
+            }
             
 
             // Remove existing DbContext registrations
@@ -180,6 +194,39 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 .AddCheck("postgres-servereye", () => HealthCheckResult.Healthy("Test DB"))
                 .AddCheck("postgres-tickets", () => HealthCheckResult.Healthy("Test Tickets DB"))
                 .AddCheck("redis", () => HealthCheckResult.Healthy("Test Redis"));
+            
+            // Override JwtService with test settings to ensure token generation uses same keys as validation
+            var testJwtSettings = new ServerEye.Core.Services.JwtSettings
+            {
+                SecretKey = "TestSecretKey123456789012345678901234567890",
+                Issuer = "TestIssuer",
+                Audience = "TestAudience",
+                AccessTokenExpiration = TimeSpan.Parse("01:00:00", CultureInfo.InvariantCulture),
+                RefreshTokenExpiration = TimeSpan.Parse("7.00:00:00", CultureInfo.InvariantCulture),
+                PrivateKeyBase64 = TestPrivateKey,
+                PublicKeyBase64 = TestPublicKey
+            };
+            
+            // Remove existing JwtSettings and JwtService
+            var jwtSettingsDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServerEye.Core.Services.JwtSettings));
+            if (jwtSettingsDescriptor != null)
+            {
+                services.Remove(jwtSettingsDescriptor);
+            }
+            
+            var jwtServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServerEye.Core.Interfaces.Services.IJwtService));
+            if (jwtServiceDescriptor != null)
+            {
+                services.Remove(jwtServiceDescriptor);
+            }
+            
+            // Add test JwtSettings and JwtService
+            services.AddSingleton(testJwtSettings);
+            services.AddSingleton<ServerEye.Core.Interfaces.Services.IJwtService>(provider =>
+            {
+                var settings = provider.GetRequiredService<ServerEye.Core.Services.JwtSettings>();
+                return new ServerEye.Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
+            });
         });
 
         builder.UseEnvironment("Testing");

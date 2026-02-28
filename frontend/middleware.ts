@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  console.log('Middleware - request:', request.nextUrl.pathname);
-  
-  // Add cache-busting headers to all responses
+  // Add security headers
   const response = NextResponse.next();
-  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
+  response.headers.set('Server', '');
   
   // Skip middleware for static files and API routes
   if (
@@ -16,7 +20,6 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname.startsWith('/static')
   ) {
-    console.log('Middleware - skipping API route:', request.nextUrl.pathname);
     return response;
   }
 
@@ -42,12 +45,7 @@ export function middleware(request: NextRequest) {
 
   // Check admin routes specifically
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    console.log('Middleware - Checking admin access for:', request.nextUrl.pathname);
-    console.log('Middleware - Token exists:', !!accessToken);
-    console.log('Middleware - Token length:', accessToken?.length);
-    
     if (!accessToken) {
-      console.log('Middleware - No access token found');
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
@@ -57,29 +55,22 @@ export function middleware(request: NextRequest) {
       // Decode JWT to check role
       const tokenParts = accessToken.split('.');
       if (tokenParts.length !== 3) {
-        console.log('Middleware - Invalid token format');
         return NextResponse.redirect(new URL('/login', request.url));
       }
       
       const payload = JSON.parse(atob(tokenParts[1]));
-      console.log('Middleware - Token payload:', payload);
-      
       const userRole = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-      console.log('Middleware - User role:', userRole, typeof userRole);
       
       // Check if user is admin
       const isAdmin = String(userRole).toLowerCase() === 'admin';
-      
-      console.log('Middleware - Is admin:', isAdmin);
 
       if (!isAdmin) {
-        console.log('Middleware - Access denied to admin routes. Role:', userRole);
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
-      
-      console.log('Middleware - Admin access granted');
     } catch (error) {
-      console.error('Middleware - Error checking admin role:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Middleware - Error checking admin role:', error);
+      }
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -89,7 +80,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
