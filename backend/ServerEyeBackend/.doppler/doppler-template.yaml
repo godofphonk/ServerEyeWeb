@@ -2,30 +2,30 @@
 # This file defines all secrets needed for the ServerEye backend application
 
 # JWT Configuration
-JWT_SECRET_KEY: "your-super-secret-jwt-key-change-in-production-32-chars"
+JWT_SECRET_KEY: "CHANGE_ME_IN_PRODUCTION_SUPER_SECRET_JWT_KEY_32_CHARS"
 JWT_ISSUER: "ServerEye"
 JWT_AUDIENCE: "ServerEye-Web"
 JWT_ACCESS_TOKEN_EXPIRATION: "01:00:00"
 JWT_REFRESH_TOKEN_EXPIRATION: "7.00:00:00"
 
 # Encryption Configuration
-ENCRYPTION_KEY: "your-32-character-encryption-key-here-change-in-prod"
+ENCRYPTION_KEY: "CHANGE_ME_IN_PRODUCTION_32_CHAR_ENCRYPTION_KEY"
 
 # Database Configuration
-DATABASE_CONNECTION_STRING: "Host=localhost;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=postgres"
-TICKET_DB_CONNECTION_STRING: "Host=localhost;Port=5434;Database=ServerEyeWeb-ticket;Username=postgres;Password=postgres"
+DATABASE_CONNECTION_STRING: "CHANGE_ME_IN_PRODUCTION:Host=localhost;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=CHANGE_ME"
+TICKET_DB_CONNECTION_STRING: "CHANGE_ME_IN_PRODUCTION:Host=localhost;Port=5434;Database=ServerEyeWeb-ticket;Username=postgres;Password=CHANGE_ME"
 
 # Redis Configuration
 REDIS_CONNECTION_STRING: "localhost:6379"
 
 # Email Configuration (AWS SES)
-AWS_ACCESS_KEY: "YOUR_AWS_ACCESS_KEY_HERE"
-AWS_SECRET_KEY: "YOUR_AWS_SECRET_KEY_HERE"
+AWS_ACCESS_KEY: "CHANGE_ME_IN_PRODUCTION_AWS_ACCESS_KEY"
+AWS_SECRET_KEY: "CHANGE_ME_IN_PRODUCTION_AWS_SECRET_KEY"
 AWS_REGION: "eu-north-1"
 SMTP_HOST: "smtp.gmail.com"
 SMTP_PORT: "587"
-SMTP_USERNAME: "your-email@gmail.com"
-SMTP_PASSWORD: "your-app-password"
+SMTP_USERNAME: "CHANGE_ME_IN_PRODUCTION_EMAIL@gmail.com"
+SMTP_PASSWORD: "CHANGE_ME_IN_PRODUCTION_APP_PASSWORD"
 FROM_EMAIL: "support@servereye.dev"
 FROM_NAME: "ServerEye Support"
 SUPPORT_EMAIL: "support@servereye.dev"
