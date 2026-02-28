@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 #pragma warning disable SA1629 // Documentation text should end with a period
@@ -26,10 +27,12 @@ public static class DopplerConfigurationExtensions
     /// <param name="builder">The configuration builder</param>
     /// <param name="project">Doppler project name</param>
     /// <param name="config">Doppler config name (environment)</param>
+    /// <param name="logger">Logger instance</param>
     /// <returns>The configuration builder for chaining</returns>
-    public static IConfigurationBuilder AddDopplerSecrets(this IConfigurationBuilder builder, string project, string config)
+    public static IConfigurationBuilder AddDopplerSecrets(this IConfigurationBuilder builder, string project, string config, ILogger? logger = null)
     {
-        return builder.Add(new DopplerConfigurationSource(project, config));
+        builder.Add(new DopplerConfigurationSource(project, config, logger));
+        return builder;
     }
 }
 
@@ -40,11 +43,13 @@ public class DopplerConfigurationProvider : ConfigurationProvider
 {
     private readonly string _project;
     private readonly string _config;
+    private readonly ILogger? _logger;
 
-    public DopplerConfigurationProvider(string project, string config)
+    public DopplerConfigurationProvider(string project, string config, ILogger? logger = null)
     {
         _project = project;
         _config = config;
+        _logger = logger;
     }
 
     public override void Load()
@@ -63,7 +68,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading Doppler secrets: {ex.Message}");
+            _logger?.LogWarning(ex, "Error loading Doppler secrets");
             // Don't throw - allow fallback to other configuration sources
         }
     }
@@ -75,7 +80,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             var token = Environment.GetEnvironmentVariable("DOPPLER_TOKEN");
             if (string.IsNullOrEmpty(token))
             {
-                Console.WriteLine("DOPPLER_TOKEN environment variable not found");
+                _logger?.LogWarning("DOPPLER_TOKEN environment variable not found");
                 return null;
             }
 
@@ -88,7 +93,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Doppler API error: {response.StatusCode} - {error}");
+                _logger?.LogError("Doppler API error: {StatusCode} - {Error}", response.StatusCode, error);
                 return null;
             }
 
@@ -97,7 +102,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             
             if (dopplerResponse?.Secrets == null)
             {
-                Console.WriteLine("No secrets found in Doppler response");
+                _logger?.LogWarning("No secrets found in Doppler response");
                 return null;
             }
 
@@ -110,12 +115,12 @@ public class DopplerConfigurationProvider : ConfigurationProvider
                 secrets[key] = secret.Value;
             }
 
-            Console.WriteLine($"Loaded {secrets.Count} secrets from Doppler");
+            _logger?.LogInformation("Loaded {Count} secrets from Doppler", secrets.Count);
             return secrets;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching Doppler secrets: {ex.Message}");
+            _logger?.LogError(ex, "Error fetching Doppler secrets");
             return null;
         }
     }
@@ -164,16 +169,18 @@ public class DopplerConfigurationSource : IConfigurationSource
 {
     private readonly string _project;
     private readonly string _config;
+    private readonly ILogger? _logger;
 
-    public DopplerConfigurationSource(string project, string config)
+    public DopplerConfigurationSource(string project, string config, ILogger? logger = null)
     {
         _project = project;
         _config = config;
+        _logger = logger;
     }
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
-        return new DopplerConfigurationProvider(_project, _config);
+        return new DopplerConfigurationProvider(_project, _config, _logger);
     }
 }
 

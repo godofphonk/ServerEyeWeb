@@ -20,6 +20,10 @@ using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure logging early
+using var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.AddConsole());
+var startupLogger = loggerFactory.CreateLogger("Startup");
+
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
@@ -27,17 +31,16 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Debug: Log all environment variables
-Console.WriteLine("=== Environment Variables ===");
+startupLogger.LogInformation("Loading environment variables");
 foreach (var envVar in Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>())
 {
     var key = envVar.Key?.ToString();
     var value = envVar.Value?.ToString();
     if (key != null && (key.Contains("DATABASE", StringComparison.OrdinalIgnoreCase) || key.Contains("REDIS", StringComparison.OrdinalIgnoreCase)))
     {
-        Console.WriteLine($"{key} = {value}");
+        startupLogger.LogDebug("Environment variable: {Key} = {Value}", key, value);
     }
 }
-Console.WriteLine("=== End Environment Variables ===");
 
 // Add Doppler configuration for production environments
 if (builder.Environment.IsProduction() || builder.Environment.IsStaging() || builder.Environment.IsDevelopment())
@@ -45,16 +48,15 @@ if (builder.Environment.IsProduction() || builder.Environment.IsStaging() || bui
     var dopplerProject = Environment.GetEnvironmentVariable("DOPPLER_PROJECT") ?? "servereye";
     var dopplerConfig = Environment.GetEnvironmentVariable("DOPPLER_CONFIG") ?? builder.Environment.EnvironmentName;
     
-    Console.WriteLine($"Loading secrets from Doppler - Project: {dopplerProject}, Config: {dopplerConfig}");
+    startupLogger.LogInformation("Loading secrets from Doppler - Project: {Project}, Config: {Config}", dopplerProject, dopplerConfig);
     
     try
     {
-        builder.Configuration.AddDopplerSecrets(dopplerProject, dopplerConfig);
+        builder.Configuration.AddDopplerSecrets(dopplerProject, dopplerConfig, startupLogger);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Failed to load Doppler secrets: {ex.Message}");
-        Console.WriteLine("Falling back to environment variables and appsettings");
+        startupLogger.LogWarning(ex, "Failed to load Doppler secrets. Falling back to environment variables and appsettings");
     }
 }
 
@@ -67,8 +69,8 @@ var jwtSettings = configuration.GetSection("JwtSettings").Get<ServerEye.Core.Ser
 jwtSettings.PrivateKeyBase64 = configuration["JWT_PRIVATE_KEY_BASE64"] ?? string.Empty;
 jwtSettings.PublicKeyBase64 = configuration["JWT_PUBLIC_KEY_BASE64"] ?? string.Empty;
 
-Console.WriteLine($"JWT Private Key Loaded: {!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64)}");
-Console.WriteLine($"JWT Public Key Loaded: {!string.IsNullOrEmpty(jwtSettings.PublicKeyBase64)}");
+startupLogger.LogInformation("JWT Private Key Loaded: {IsLoaded}", !string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64));
+startupLogger.LogInformation("JWT Public Key Loaded: {IsLoaded}", !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64));
 var securitySettings = configuration.GetSection("Security").Get<SecuritySettings>() ?? new SecuritySettings();
 var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() ?? new CorsSettings();
 var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() ?? new GoApiSettings();
@@ -193,7 +195,7 @@ builder.Services.AddDbContext<ServerEyeDbContext>(
                              ?? configuration.GetConnectionString("ServerEyeDbContext") 
                              ?? configuration.GetConnectionString("DefaultConnection");
         
-        Console.WriteLine($"ServerEyeDbContext Connection String: {connectionString}");
+        startupLogger.LogDebug("ServerEyeDbContext Connection String configured");
         options.UseNpgsql(connectionString);
     });
 
@@ -204,7 +206,7 @@ builder.Services.AddDbContext<TicketDbContext>(
         var connectionString = configuration["TICKET_DB_CONNECTION_STRING"]
                              ?? configuration.GetConnectionString("TicketDbContext");
         
-        Console.WriteLine($"TicketDbContext Connection String: {connectionString}");
+        startupLogger.LogDebug("TicketDbContext Connection String configured");
         options.UseNpgsql(connectionString);
     });
 
