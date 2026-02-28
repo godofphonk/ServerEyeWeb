@@ -38,7 +38,8 @@ public sealed class TicketMessageRepository : ITicketMessageRepository
             .TicketMessages
             .Where(tm => tm.Id == id)
             .ExecuteDeleteAsync();
-        await this.context.SaveChangesAsync();
+
+        // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()
     }
 
     public async Task DeleteByTicketIdAsync(Guid ticketId)
@@ -47,6 +48,7 @@ public sealed class TicketMessageRepository : ITicketMessageRepository
             .TicketMessages
             .Where(tm => tm.TicketId == ticketId)
             .ExecuteDeleteAsync();
-        await this.context.SaveChangesAsync();
+
+        // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()
     }
 }

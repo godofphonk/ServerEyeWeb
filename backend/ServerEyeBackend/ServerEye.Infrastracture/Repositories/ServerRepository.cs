@@ -45,7 +45,7 @@ public sealed class ServerRepository(ServerEyeDbContext context) : IServerReposi
             .ExecuteUpdateAsync(u => u
                 .SetProperty(x => x.ServerName, serverName));
 
-        await this.context.SaveChangesAsync();
+        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
     }
 
     public async Task DeleteAsync(Guid id)
@@ -54,6 +54,7 @@ public sealed class ServerRepository(ServerEyeDbContext context) : IServerReposi
             .Users
             .Where(u => u.Id == id)
             .ExecuteDeleteAsync();
-        await this.context.SaveChangesAsync();
+
+        // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()
     }
 }

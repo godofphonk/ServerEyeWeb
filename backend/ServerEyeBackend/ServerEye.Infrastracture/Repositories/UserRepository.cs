@@ -53,7 +53,8 @@ public sealed class UserRepository(ServerEyeDbContext context) : IUserRepository
                 .SetProperty(x => x.IsEmailVerified, user.IsEmailVerified)
                 .SetProperty(x => x.EmailVerifiedAt, user.EmailVerifiedAt)
                 .SetProperty(x => x.PendingEmail, user.PendingEmail));
-        await this.context.SaveChangesAsync();
+
+        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
     }
     public async Task DeleteAsync(Guid id)
     {
@@ -61,7 +62,8 @@ public sealed class UserRepository(ServerEyeDbContext context) : IUserRepository
             .Users
             .Where(u => u.Id == id)
             .ExecuteDeleteAsync();
-        await this.context.SaveChangesAsync();
+
+        // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()
     }
 
     // pagination

@@ -100,7 +100,8 @@ public sealed class TicketRepository : ITicketRepository
             .Tickets
             .Where(t => t.Id == id)
             .ExecuteDeleteAsync();
-        await this.context.SaveChangesAsync();
+
+        // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()
     }
 
     public async Task DeleteAsync(Ticket ticket)
