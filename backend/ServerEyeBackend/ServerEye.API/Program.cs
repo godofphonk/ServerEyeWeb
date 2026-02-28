@@ -183,6 +183,10 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
 
+// Configure Global Exception Handler
+builder.Services.AddExceptionHandler<ServerEye.API.Middleware.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 // Configure Rate Limiting
 builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
@@ -269,6 +273,9 @@ builder.Services.AddDbContext<TicketDbContext>(
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Global Exception Handler (must be first)
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
