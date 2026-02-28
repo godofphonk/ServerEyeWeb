@@ -2,17 +2,20 @@ namespace ServerEye.UnitTests.Services;
 
 using ServerEye.Core.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 
 public class JwtServiceTests
 {
     private readonly Mock<ILogger<JwtService>> loggerMock;
+    private readonly Mock<IConfiguration> configurationMock;
     private readonly JwtSettings jwtSettings;
     private readonly JwtService sut;
 
     public JwtServiceTests()
     {
         this.loggerMock = new Mock<ILogger<JwtService>>();
+        this.configurationMock = new Mock<IConfiguration>();
         
         this.jwtSettings = new JwtSettings
         {
@@ -23,11 +26,11 @@ public class JwtServiceTests
             RefreshTokenExpiration = TimeSpan.FromDays(7)
         };
 
-        var keyPair = System.Security.Cryptography.RSA.Create(2048);
-        this.jwtSettings.PrivateKeyBase64 = Convert.ToBase64String(keyPair.ExportRSAPrivateKey());
-        this.jwtSettings.PublicKeyBase64 = Convert.ToBase64String(keyPair.ExportRSAPublicKey());
+        using var keyPair = System.Security.Cryptography.RSA.Create(2048);
+        this.jwtSettings.PrivateKeyBase64 = Convert.ToBase64String(keyPair.ExportPkcs8PrivateKey());
+        this.jwtSettings.PublicKeyBase64 = Convert.ToBase64String(keyPair.ExportSubjectPublicKeyInfo());
 
-        this.sut = new JwtService(this.jwtSettings);
+        this.sut = new JwtService(this.jwtSettings, this.configurationMock.Object);
     }
 
     [Fact]
@@ -36,14 +39,13 @@ public class JwtServiceTests
         var userId = Guid.NewGuid();
         var email = "test@example.com";
         var userName = "testuser";
-        var role = "USER";
 
         var user = new ServerEye.Core.Entities.User
         {
             Id = userId,
             Email = email,
             UserName = userName,
-            Role = Enum.Parse<ServerEye.Core.Enums.UserRole>(role)
+            Role = ServerEye.Core.Enums.UserRole.User
         };
         var token = this.sut.GenerateAccessToken(user);
 
@@ -58,14 +60,14 @@ public class JwtServiceTests
         var userId = Guid.NewGuid();
         var email = "test@example.com";
         var userName = "testuser";
-        var role = "USER";
+        var role = ServerEye.Core.Enums.UserRole.User;
 
         var user = new ServerEye.Core.Entities.User
         {
             Id = userId,
             Email = email,
             UserName = userName,
-            Role = Enum.Parse<ServerEye.Core.Enums.UserRole>(role)
+            Role = role
         };
         var token = this.sut.GenerateAccessToken(user);
 
@@ -75,14 +77,21 @@ public class JwtServiceTests
         jwtToken.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == userId.ToString());
         jwtToken.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Email && c.Value == email);
         jwtToken.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Name && c.Value == userName);
-        jwtToken.Claims.Should().Contain(c => c.Type == "role" && c.Value == role);
+        jwtToken.Claims.Should().Contain(c => c.Type == "role" && string.Equals(c.Value, role.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     public void GenerateToken_ShouldSetCorrectIssuerAndAudience()
     {
-        var userId = Guid.NewGuid();
-        var token = this.sut.GenerateToken(userId, "test@example.com", "testuser", "USER", false);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User,
+            IsEmailVerified = false
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
@@ -94,23 +103,37 @@ public class JwtServiceTests
     [Fact]
     public void GenerateToken_ShouldSetCorrectExpiration()
     {
-        var userId = Guid.NewGuid();
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User,
+            IsEmailVerified = false
+        };
         var beforeGeneration = DateTime.UtcNow;
         
-        var token = this.sut.GenerateToken(userId, "test@example.com", "testuser", "USER", false);
+        var token = this.sut.GenerateAccessToken(user);
         
         var afterGeneration = DateTime.UtcNow;
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        var expectedExpiration = beforeGeneration.AddMinutes(this.jwtSettings.ExpirationMinutes);
+        var expectedExpiration = beforeGeneration.Add(this.jwtSettings.AccessTokenExpiration);
         jwtToken.ValidTo.Should().BeCloseTo(expectedExpiration, TimeSpan.FromSeconds(5));
     }
 
     [Fact]
     public void GenerateRefreshToken_ShouldReturnNonEmptyString()
     {
-        var refreshToken = this.sut.GenerateRefreshToken();
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User
+        };
+        var refreshToken = this.sut.GenerateRefreshToken(user);
 
         refreshToken.Should().NotBeNullOrEmpty();
         refreshToken.Length.Should().BeGreaterThan(20);
@@ -119,32 +142,53 @@ public class JwtServiceTests
     [Fact]
     public void GenerateRefreshToken_ShouldReturnUniqueTokens()
     {
-        var token1 = this.sut.GenerateRefreshToken();
-        var token2 = this.sut.GenerateRefreshToken();
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User
+        };
+        var token1 = this.sut.GenerateRefreshToken(user);
+        var token2 = this.sut.GenerateRefreshToken(user);
 
         token1.Should().NotBe(token2);
     }
 
     [Theory]
-    [InlineData("USER")]
-    [InlineData("ADMIN")]
-    [InlineData("MODERATOR")]
-    public void GenerateToken_ShouldHandleDifferentRoles(string role)
+    [InlineData(ServerEye.Core.Enums.UserRole.User)]
+    [InlineData(ServerEye.Core.Enums.UserRole.Admin)]
+    [InlineData(ServerEye.Core.Enums.UserRole.Support)]
+    public void GenerateToken_ShouldHandleDifferentRoles(ServerEye.Core.Enums.UserRole role)
     {
-        var userId = Guid.NewGuid();
-        var token = this.sut.GenerateToken(userId, "test@example.com", "testuser", role, false);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = role,
+            IsEmailVerified = false
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        jwtToken.Claims.Should().Contain(c => c.Type == "role" && c.Value == role);
+        jwtToken.Claims.Should().Contain(c => c.Type == "role" && string.Equals(c.Value, role.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     public void GenerateToken_WithEmailVerified_ShouldSetCorrectClaim()
     {
-        var userId = Guid.NewGuid();
-        var token = this.sut.GenerateToken(userId, "test@example.com", "testuser", "USER", true);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User,
+            IsEmailVerified = true
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
@@ -155,8 +199,15 @@ public class JwtServiceTests
     [Fact]
     public void GenerateToken_WithEmailNotVerified_ShouldSetCorrectClaim()
     {
-        var userId = Guid.NewGuid();
-        var token = this.sut.GenerateToken(userId, "test@example.com", "testuser", "USER", false);
+        var user = new ServerEye.Core.Entities.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "test@example.com",
+            UserName = "testuser",
+            Role = ServerEye.Core.Enums.UserRole.User,
+            IsEmailVerified = false
+        };
+        var token = this.sut.GenerateAccessToken(user);
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
