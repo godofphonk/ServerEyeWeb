@@ -50,6 +50,19 @@ appsettings.*.Local.json
 .env
 .env.local
 .env.*.local
+.env.prod
+.env.staging
+
+## Doppler secrets
+keys/
+*.pem
+*.key
+private_key_base64.txt
+public_key_base64.txt
+
+## Doppler configuration
+.doppler/token
+.doppler/secrets
 
 ## Database
 *.db
