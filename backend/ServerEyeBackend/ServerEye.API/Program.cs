@@ -187,6 +187,27 @@ builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>()
 builder.Services.AddExceptionHandler<ServerEye.API.Middleware.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Configure Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        connectionString: configuration["DATABASE_CONNECTION_STRING"] 
+                         ?? configuration.GetConnectionString("ServerEyeDbContext") 
+                         ?? configuration.GetConnectionString("DefaultConnection") 
+                         ?? throw new InvalidOperationException("Database connection string not found"),
+        name: "postgres-servereye",
+        tags: ["db", "postgres", "ready"])
+    .AddNpgSql(
+        connectionString: configuration["TICKET_DB_CONNECTION_STRING"]
+                         ?? configuration.GetConnectionString("TicketDbContext")
+                         ?? throw new InvalidOperationException("Ticket database connection string not found"),
+        name: "postgres-tickets",
+        tags: ["db", "postgres", "ready"])
+    .AddRedis(
+        redisConnectionString: configuration["REDIS_CONNECTION_STRING"]
+                              ?? redisSettings.ConnectionString,
+        name: "redis",
+        tags: ["cache", "redis", "ready"]);
+
 // Configure Rate Limiting
 builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
@@ -298,4 +319,40 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map Health Check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds,
+                tags = e.Value.Tags
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+// Liveness probe - simple check that app is running
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+// Readiness probe - checks if app is ready to serve traffic
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
 app.Run();
