@@ -183,6 +183,48 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
 
+// Configure Rate Limiting
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    // Global rate limit - 100 requests per minute per IP
+    rateLimiterOptions.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<Microsoft.AspNetCore.Http.HttpContext, string>(httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            }));
+
+    // Strict rate limit for authentication endpoints - 5 requests per minute per IP
+    rateLimiterOptions.AddPolicy("auth", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 2
+            }));
+
+    // Moderate rate limit for API endpoints - 30 requests per minute per IP
+    rateLimiterOptions.AddPolicy("api", httpContext =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                QueueLimit = 5
+            }));
+
+    rateLimiterOptions.RejectionStatusCode = 429; // Too Many Requests
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -226,6 +268,9 @@ if (securitySettings.RequireHttps && !app.Environment.IsDevelopment())
 
 // Use CORS
 app.UseCors("AllowFrontend");
+
+// Use Rate Limiting (must be before Authentication)
+app.UseRateLimiter();
 
 // Use Authentication & Authorization
 app.UseAuthentication();

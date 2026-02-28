@@ -59,6 +59,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     public async Task<ActionResult> GetUserByEmailAsync(string email) => await this.ExecuteWithErrorHandling(() => this.userService.GetUserByEmailAsync(email), "GetUserByEmail");
 
     [HttpPost("register")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
     public async Task<ActionResult> CreateUser([FromBody] UserRegisterDto userRegisterDto)
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
@@ -86,6 +87,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPost("login")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
     public async Task<ActionResult> LoginUser([FromBody] UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
