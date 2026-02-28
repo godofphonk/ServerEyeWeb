@@ -65,8 +65,13 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
         Console.WriteLine($"Token Claims: {string.Join(", ", jwtToken.Claims.Select(c => $"{c.Type}={c.Value}"))}");
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        Console.WriteLine($"Authorization header: {client.DefaultRequestHeaders.Authorization}");
+        
         var protectedResponse = await client.GetAsync("/api/users");
         var protectedContent = await protectedResponse.Content.ReadAsStringAsync();
+        
+        Console.WriteLine($"Protected endpoint status: {protectedResponse.StatusCode}");
+        Console.WriteLine($"Protected endpoint response: {protectedContent}");
 
         if (protectedResponse.StatusCode != HttpStatusCode.OK)
         {

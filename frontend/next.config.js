@@ -7,8 +7,6 @@ const nextConfig = {
   },
   // Enable React Strict Mode for production
   reactStrictMode: true,
-  // Optimize for production
-  swcMinify: true,
   // Security headers
   async headers() {
     return [
@@ -38,8 +36,6 @@ const nextConfig = {
   // Optimize package imports
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
-    // Enable build optimizations
-    optimizeCss: true,
     scrollRestoration: true,
   },
   // Compression

@@ -101,41 +101,23 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         Environment.SetEnvironmentVariable("JWT_PRIVATE_KEY_BASE64", TestPrivateKey);
         Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", TestPublicKey);
 
-        // Configure JWT Authentication for tests
+        // JWT Authentication is configured in Program.cs using environment variables
+        // Override JWT options using PostConfigure to avoid re-registering the scheme
         builder.ConfigureServices(services =>
         {
-            // Check if authentication is already registered to avoid duplication
-            var authServiceDescriptor = services.FirstOrDefault(d => 
-                d.ServiceType == typeof(Microsoft.AspNetCore.Authentication.IAuthenticationService));
-            
-            if (authServiceDescriptor == null)
-            {
-                // Import public key the same way JwtService does
-                var publicKeyBytes = Convert.FromBase64String(TestPublicKey);
-                var rsaForValidation = System.Security.Cryptography.RSA.Create();
-                rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-                
-                services.AddAuthentication(options =>
+            // PostConfigure JWT options to use test keys
+            var publicKeyBytes = Convert.FromBase64String(TestPublicKey);
+            services.PostConfigure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+                Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+                options =>
                 {
-                    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = "TestIssuer",
-                        ValidateAudience = true,
-                        ValidAudience = "TestAudience",
-                        ValidateLifetime = true,
-                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation),
-                        ClockSkew = TimeSpan.Zero,
-                        NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
-                        RoleClaimType = "role"
-                    };
+                    var rsaForValidation = System.Security.Cryptography.RSA.Create();
+                    rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                    
+                    options.TokenValidationParameters.IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation);
+                    options.TokenValidationParameters.ValidIssuer = "TestIssuer";
+                    options.TokenValidationParameters.ValidAudience = "TestAudience";
                 });
-            }
             
 
             // Remove existing DbContext registrations
