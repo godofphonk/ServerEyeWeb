@@ -97,9 +97,14 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
         };
 
         var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new Exception($"Login failed with status {response.StatusCode}. Response: {content}");
+        }
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
         content.Should().Contain("token");
     }
 

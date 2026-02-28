@@ -178,10 +178,15 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
         var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
         var content = await response.Content.ReadAsStringAsync();
 
-        content.Should().Contain("user");
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new Exception($"Login failed with status {response.StatusCode}. Response: {content}");
+        }
+
+        content.Should().Contain("User");
         
         var result = JsonSerializer.Deserialize<JsonElement>(content);
-        var user = result.GetProperty("user");
+        var user = result.GetProperty("User");
         user.GetProperty("email").GetString().Should().Be(email);
     }
 }
