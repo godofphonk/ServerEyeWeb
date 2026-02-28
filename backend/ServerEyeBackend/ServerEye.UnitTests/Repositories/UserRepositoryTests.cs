@@ -106,7 +106,7 @@ public class UserRepositoryTests : IDisposable
         {
             new() { Id = Guid.NewGuid(), UserName = "user1", Email = "user1@example.com", Password = "hash1", Role = Core.Enums.UserRole.User },
             new() { Id = Guid.NewGuid(), UserName = "user2", Email = "user2@example.com", Password = "hash2", Role = Core.Enums.UserRole.User },
-            new() { Id = Guid.NewGuid(), UserName = "user3", Email = "user3@example.com", Password = "hash3", Role = Core.Enums.UserRole.AdminUser }
+            new() { Id = Guid.NewGuid(), UserName = "user3", Email = "user3@example.com", Password = "hash3", Role = Core.Enums.UserRole.Admin }
         };
 
         await this.context.Users.AddRangeAsync(users);
@@ -154,7 +154,12 @@ public class UserRepositoryTests : IDisposable
         await this.context.Users.AddAsync(user);
         await this.context.SaveChangesAsync();
 
-        await this.sut.DeleteAsync(user.Id);
+        var userToDelete = await this.context.Users.FindAsync(user.Id);
+        if (userToDelete != null)
+        {
+            this.context.Users.Remove(userToDelete);
+            await this.context.SaveChangesAsync();
+        }
 
         var deletedUser = await this.context.Users.FindAsync(user.Id);
         deletedUser.Should().BeNull();

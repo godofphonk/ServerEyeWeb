@@ -1,7 +1,7 @@
 namespace ServerEye.UnitTests.Validators;
 
 using ServerEye.API.Validators;
-using ServerEye.Core.DTOs.Auth;
+using ServerEye.Core.DTOs.UserDto;
 
 public class UserRegisterDtoValidatorTests
 {
