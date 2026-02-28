@@ -64,20 +64,24 @@ public class UsersController(IUserService userService, IAuthService authService,
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
         // Log incoming request for debugging
-        Console.WriteLine($"Registration request - UserName: '{userRegisterDto.UserName}', Email: '{userRegisterDto.Email}', Password length: {userRegisterDto.Password?.Length ?? 0}");
+        this.logger.LogInformation(
+            "Registration request - UserName: {UserName}, Email: {Email}, Password length: {PasswordLength}",
+            userRegisterDto.UserName,
+            userRegisterDto.Email,
+            userRegisterDto.Password?.Length ?? 0);
 
         var validationResult = await this.registerValidator.ValidateAsync(userRegisterDto);
         if (!validationResult.IsValid)
         {
-            Console.WriteLine($"Validation failed: {string.Join(", ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"))}");
+            this.logger.LogWarning("Validation failed: {Errors}", string.Join(", ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
             return this.BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
         }
 
-        Console.WriteLine($"Registration attempt for email: {userRegisterDto.Email}, username: {userRegisterDto.UserName}");
+        this.logger.LogInformation("Registration attempt for email: {Email}, username: {UserName}", userRegisterDto.Email, userRegisterDto.UserName);
 
         var result = await this.ExecuteWithErrorHandling(() => this.userService.CreateUserAsync(userRegisterDto), "CreateUser");
 
-        Console.WriteLine($"Registration successful for user: {userRegisterDto.Email}");
+        this.logger.LogInformation("Registration successful for user: {Email}", userRegisterDto.Email);
         return result;
     }
 

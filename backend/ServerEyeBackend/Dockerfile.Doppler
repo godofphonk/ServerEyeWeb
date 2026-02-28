@@ -50,9 +50,6 @@ WORKDIR /app
 # Copy published application
 COPY --from=publish /app/publish .
 
-# Copy Doppler template
-COPY --from=build /src/.doppler/doppler-template.yaml /app/.doppler/
-
 # Change ownership to non-root user
 RUN chown -R doppleruser:doppler /app
 
