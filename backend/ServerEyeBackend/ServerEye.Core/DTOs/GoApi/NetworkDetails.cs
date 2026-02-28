@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 public class NetworkDetails
 {
     [JsonPropertyName("interfaces")]
-    public List<NetworkInterface> Interfaces { get; set; } = new();
+    public Dictionary<string, NetworkInterface> Interfaces { get; set; } = new();
 
     [JsonPropertyName("total_rx")]
     public long TotalRx { get; set; }
