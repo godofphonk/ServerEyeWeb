@@ -266,11 +266,6 @@ export default function DashboardPage() {
 
         {/* Email Verification Banner */}
         <div className="container mx-auto px-6 pt-6">
-          {console.log('[Dashboard] Banner render check:', { 
-            isEmailVerified, 
-            userEmail: user?.email, 
-            shouldShow: !isEmailVerified && !!user?.email 
-          })}
           {!isEmailVerified && user?.email && (
             <EmailVerificationBanner
               email={user.email}
