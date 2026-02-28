@@ -150,7 +150,15 @@ namespace ServerEye.Infrastracture.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("IsRevoked");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("Token", "IsRevoked", "ExpiresAt");
+
+                    b.HasIndex("UserId", "IsRevoked", "ExpiresAt");
 
                     b.ToTable("RefreshTokens");
                 });
