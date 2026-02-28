@@ -274,6 +274,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
+// JWT Authentication will be configured in tests
+// TODO: Add JWT authentication configuration for production
 builder.Services.AddDbContext<ServerEyeDbContext>(
     options =>
     {

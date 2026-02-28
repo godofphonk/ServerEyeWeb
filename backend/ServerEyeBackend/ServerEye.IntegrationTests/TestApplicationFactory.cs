@@ -19,47 +19,21 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         .WithPassword("testpass")
         .WithCleanUp(true)
         .Build();
+    
+    private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
+    private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
+    private static readonly string TestPublicKey = Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo());
 
     public async Task InitializeAsync()
     {
         await this.postgresContainer.StartAsync();
         
-        // Create a client to trigger service initialization
-        using var client = this.CreateClient();
+        // Create database schema directly via DbContext
+        var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
+        optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
         
-        // Now create database schema manually
-        using var scope = this.Services.CreateScope();
-        var serverEyeDb = scope.ServiceProvider.GetRequiredService<ServerEyeDbContext>();
-        
-        // Create tables manually
-        await serverEyeDb.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS ""Users"" (
-                ""Id"" uuid PRIMARY KEY,
-                ""UserName"" text NOT NULL,
-                ""Email"" text NOT NULL,
-                ""Password"" text NOT NULL,
-                ""Role"" text NOT NULL,
-                ""IsEmailVerified"" boolean NOT NULL DEFAULT false,
-                ""EmailVerifiedAt"" timestamp with time zone,
-                ""PendingEmail"" text,
-                ""ServerId"" uuid,
-                ""CreatedAt"" timestamp with time zone NOT NULL
-            );
-            
-            CREATE TABLE IF NOT EXISTS ""RefreshTokens"" (
-                ""Id"" uuid PRIMARY KEY,
-                ""UserId"" uuid NOT NULL,
-                ""Token"" text NOT NULL,
-                ""ExpiresAt"" timestamp with time zone NOT NULL,
-                ""CreatedAt"" timestamp with time zone NOT NULL,
-                ""IsRevoked"" boolean NOT NULL DEFAULT false,
-                CONSTRAINT ""FK_RefreshTokens_Users_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
-            );
-            
-            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Email"" ON ""Users"" (""Email"");
-            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_UserName"" ON ""Users"" (""UserName"");
-            CREATE INDEX IF NOT EXISTS ""IX_RefreshTokens_UserId"" ON ""RefreshTokens"" (""UserId"");
-        ");
+        using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
+        await serverEyeDb.Database.EnsureCreatedAsync();
     }
 
     public async Task EnsureDatabaseCreatedAsync()
@@ -75,9 +49,11 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
     public async Task ResetDatabaseAsync()
     {
-        using var scope = this.Services.CreateScope();
-        var serverEyeDb = scope.ServiceProvider.GetRequiredService<ServerEyeDbContext>();
-        var ticketDb = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
+        // Use direct DbContext connection instead of Services
+        var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
+        optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
+        
+        using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
         
         // Clear all data from tables if they exist
         try
@@ -98,27 +74,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         {
             // Ignore errors if tables don't exist yet
         }
-        
-        try
-        {
-            if (await ticketDb.Database.CanConnectAsync())
-            {
-                // Clear ticket tables if any exist
-            }
-        }
-        catch
-        {
-            // Ignore errors
-        }
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Generate RSA keys for JWT in PKCS8 format
-        var rsa = System.Security.Cryptography.RSA.Create(2048);
-        var privateKey = Convert.ToBase64String(rsa.ExportPkcs8PrivateKey());
-        var publicKey = Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo());
-
         builder.ConfigureAppConfiguration((context, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -128,10 +87,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JwtSettings:Audience"] = "TestAudience",
                 ["JwtSettings:AccessTokenExpiration"] = "01:00:00",
                 ["JwtSettings:RefreshTokenExpiration"] = "7.00:00:00",
-                ["JwtSettings:PrivateKeyBase64"] = privateKey,
-                ["JwtSettings:PublicKeyBase64"] = publicKey,
-                ["JWT_PRIVATE_KEY_BASE64"] = privateKey,
-                ["JWT_PUBLIC_KEY_BASE64"] = publicKey,
+                ["JwtSettings:PrivateKeyBase64"] = TestPrivateKey,
+                ["JwtSettings:PublicKeyBase64"] = TestPublicKey,
+                ["JWT_PRIVATE_KEY_BASE64"] = TestPrivateKey,
+                ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
                 ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:TicketDbConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:Redis"] = "localhost:6379"
@@ -139,44 +98,31 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         });
 
         // Override environment variables for JWT keys
-        Environment.SetEnvironmentVariable("JWT_PRIVATE_KEY_BASE64", privateKey);
-        Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", publicKey);
+        Environment.SetEnvironmentVariable("JWT_PRIVATE_KEY_BASE64", TestPrivateKey);
+        Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", TestPublicKey);
 
+        // Configure JWT Authentication for tests
         builder.ConfigureServices(services =>
         {
-            // Override JwtSettings with test keys
-            var rsa = System.Security.Cryptography.RSA.Create(2048);
-            var privateKey = Convert.ToBase64String(rsa.ExportPkcs8PrivateKey());
-            var publicKey = Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo());
-
-            var testJwtSettings = new ServerEye.Core.Services.JwtSettings
+            services.AddAuthentication(options =>
             {
-                SecretKey = "TestSecretKey123456789012345678901234567890",
-                Issuer = "TestIssuer",
-                Audience = "TestAudience",
-                AccessTokenExpiration = TimeSpan.Parse("01:00:00", CultureInfo.InvariantCulture),
-                RefreshTokenExpiration = TimeSpan.Parse("7.00:00:00", CultureInfo.InvariantCulture),
-                PrivateKeyBase64 = privateKey,
-                PublicKeyBase64 = publicKey
-            };
-
-            services.AddSingleton(testJwtSettings);
-            
-            // Remove existing JwtService and add new one with test settings
-            var jwtServiceDescriptors = services
-                .Where(d => d.ServiceType == typeof(ServerEye.Core.Interfaces.Services.IJwtService))
-                .ToList();
-            
-            foreach (var descriptor in jwtServiceDescriptors)
+                options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
             {
-                services.Remove(descriptor);
-            }
-            
-            services.AddSingleton<ServerEye.Core.Interfaces.Services.IJwtService>(provider =>
-            {
-                var settings = provider.GetRequiredService<ServerEye.Core.Services.JwtSettings>();
-                return new ServerEye.Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
+                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = "TestIssuer",
+                    ValidateAudience = true,
+                    ValidAudience = "TestAudience",
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(TestRsa.ExportParameters(false)),
+                    ClockSkew = TimeSpan.Zero
+                };
             });
+            
 
             // Remove existing DbContext registrations
             var dbContextDescriptors = services

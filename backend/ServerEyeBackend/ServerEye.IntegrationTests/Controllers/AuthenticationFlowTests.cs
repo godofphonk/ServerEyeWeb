@@ -11,12 +11,11 @@ using System.Text.Json;
 public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
     private readonly TestApplicationFactory factory;
-    private readonly HttpClient client;
 
     public AuthenticationFlowTests(TestApplicationFactory factory)
     {
         this.factory = factory;
-        this.client = factory.CreateClient();
+        // Client will be created in each test method after JWT is configured
     }
 
     public async Task InitializeAsync()
@@ -39,7 +38,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        var registerResponse = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/api/users/register", registerDto);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var loginDto = new UserLoginDto
@@ -48,7 +48,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        var loginResponse = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+        var loginResponse = await client.PostAsJsonAsync("/api/users/login", loginDto);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var loginContent = await loginResponse.Content.ReadAsStringAsync();
@@ -57,8 +57,14 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
 
         token.Should().NotBeNullOrEmpty();
 
-        this.client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var protectedResponse = await this.client.GetAsync("/api/users");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var protectedResponse = await client.GetAsync("/api/users");
+        var protectedContent = await protectedResponse.Content.ReadAsStringAsync();
+
+        if (protectedResponse.StatusCode != HttpStatusCode.OK)
+        {
+            throw new Exception($"Protected endpoint failed with status {protectedResponse.StatusCode}. Response: {protectedContent}");
+        }
 
         protectedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -75,7 +81,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        await this.client.PostAsJsonAsync("/api/users/register", registerDto1);
+        using var client = this.factory.CreateClient();
+        await client.PostAsJsonAsync("/api/users/register", registerDto1);
 
         var registerDto2 = new UserRegisterDto
         {
@@ -84,7 +91,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto2);
+        var response = await client.PostAsJsonAsync("/api/users/register", registerDto2);
 
         response.StatusCode.Should().BeOneOf(HttpStatusCode.BadRequest, HttpStatusCode.Conflict);
     }
@@ -101,7 +108,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         var loginDto = new UserLoginDto
         {
@@ -111,7 +119,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
 
         for (int i = 0; i < 3; i++)
         {
-            var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+            var response = await client.PostAsJsonAsync("/api/users/login", loginDto);
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
     }
@@ -119,7 +127,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     [Fact]
     public async Task AccessProtectedEndpoint_WithoutToken_ShouldReturn401()
     {
-        var response = await this.client.GetAsync("/api/users");
+        using var client = this.factory.CreateClient();
+        var response = await client.GetAsync("/api/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -127,9 +136,10 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     [Fact]
     public async Task AccessProtectedEndpoint_WithInvalidToken_ShouldReturn401()
     {
-        this.client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid-token");
+        using var client = this.factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid-token");
         
-        var response = await this.client.GetAsync("/api/users");
+        var response = await client.GetAsync("/api/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -144,7 +154,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/users/register", registerDto);
         var content = await response.Content.ReadAsStringAsync();
 
         content.Should().Contain("token");
@@ -167,7 +178,8 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        using var client = this.factory.CreateClient();
+        await client.PostAsJsonAsync("/api/users/register", registerDto);
 
         var loginDto = new UserLoginDto
         {
@@ -175,7 +187,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             Password = "Test123!"
         };
 
-        var response = await this.client.PostAsJsonAsync("/api/users/login", loginDto);
+        var response = await client.PostAsJsonAsync("/api/users/login", loginDto);
         var content = await response.Content.ReadAsStringAsync();
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -183,10 +195,11 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
             throw new Exception($"Login failed with status {response.StatusCode}. Response: {content}");
         }
 
-        content.Should().Contain("User");
+        Console.WriteLine($"Login response content: {content}");
+        content.Should().Contain("user");
         
         var result = JsonSerializer.Deserialize<JsonElement>(content);
-        var user = result.GetProperty("User");
+        var user = result.GetProperty("user");
         user.GetProperty("email").GetString().Should().Be(email);
     }
 }
