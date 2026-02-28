@@ -78,6 +78,26 @@ var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>
 var redisSettings = configuration.GetSection("Redis").Get<RedisSettings>() ?? new RedisSettings();
 var emailSettings = configuration.GetSection("EmailSettings").Get<ServerEye.Core.Configuration.EmailSettings>() ?? new ServerEye.Core.Configuration.EmailSettings();
 
+// Configure Response Compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+    options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/json", "application/xml", "text/plain", "text/json"]);
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
 // Configure CORS with settings
 builder.Services.AddCors(options =>
 {
@@ -296,6 +316,9 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 // Global Exception Handler (must be first)
 app.UseExceptionHandler();
+
+// Response Compression (should be early in pipeline)
+app.UseResponseCompression();
 
 if (app.Environment.IsDevelopment())
 {
