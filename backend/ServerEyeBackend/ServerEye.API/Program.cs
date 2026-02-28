@@ -274,8 +274,37 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
-// JWT Authentication will be configured via extension method or in tests
-// TODO: Add proper JWT authentication configuration for production
+// Configure JWT Authentication only if not already registered
+if (!builder.Services.Any(s => s.ServiceType == typeof(Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider)))
+{
+    var publicKeyBase64 = Environment.GetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64") ?? jwtSettings.PublicKeyBase64;
+    var publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        var rsaForValidation = System.Security.Cryptography.RSA.Create();
+        rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+        
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+            ValidateLifetime = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation),
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub,
+            RoleClaimType = "role"
+        };
+    });
+}
+
 builder.Services.AddDbContext<ServerEyeDbContext>(
     options =>
     {

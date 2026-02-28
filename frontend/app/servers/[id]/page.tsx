@@ -257,7 +257,7 @@ export default function ServerDetailPage() {
                           range === '7d' ? 168 : 120;
     
     let actualStart: number = startRounded;
-    let useLongPeriodLogic = periodHours >= 24; // 24ч и больше
+    const useLongPeriodLogic = periodHours >= 24; // 24ч и больше
     
     console.log(`[FillMissing] Period: ${range}, hours: ${periodHours}, expected points: ${expectedPoints}`);
     console.log(`[FillMissing] Use long period logic: ${useLongPeriodLogic}`);
