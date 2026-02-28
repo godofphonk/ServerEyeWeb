@@ -55,14 +55,25 @@ public class GoApiClient : IGoApiClient
             // Read content once to avoid ObjectDisposedException
             var content = await response.Content.ReadAsStringAsync();
             
+            // Log raw JSON for debugging network_details structure
+            if (content.Contains("network_details", StringComparison.OrdinalIgnoreCase))
+            {
+                var startIndex = Math.Max(0, content.IndexOf("network_details", StringComparison.OrdinalIgnoreCase) - 100);
+                this.logger.LogInformation(
+                    "[DEBUG] Raw Go API response contains network_details: {Content}", 
+                    content.Substring(startIndex, 500));
+            }
+
             // Try to parse as time series first
             GoApiMetricsResponse? result = null;
             try
             {
                 result = JsonSerializer.Deserialize<GoApiMetricsResponse>(content, options);
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
+                this.logger.LogError(ex, "[DEBUG] Failed to parse GoApiMetricsResponse. Raw JSON: {Content}", content);
+
                 // Ignore parsing errors, will try snapshot format
             }
             
