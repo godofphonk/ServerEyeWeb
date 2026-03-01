@@ -17,10 +17,9 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
   response.headers.set('Server', '');
 
-  // Skip middleware for static files and API routes
+  // Skip middleware for static files (but allow API routes for OAuth)
   if (
     request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname.startsWith('/static')
   ) {
     return response;

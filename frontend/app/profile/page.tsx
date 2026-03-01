@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { apiClient } from '@/lib/api';
 import { EmailChangeModal } from '@/components/auth/EmailChangeModal';
 import { DeleteAccountModal } from '@/components/auth/DeleteAccountModal';
+import { OAuthSettings } from '@/components/auth/OAuthSettings';
 import { useToast } from '@/hooks/useToast';
 
 export default function ProfilePage() {
@@ -22,6 +23,31 @@ export default function ProfilePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+
+  // Handle OAuth callback errors
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    if (error) {
+      switch (error) {
+        case 'backend_error':
+          toast.error('OAuth Error', 'Failed to connect account. Please try again.');
+          break;
+        case 'callback_exception':
+          toast.error('OAuth Error', 'An error occurred during authentication.');
+          break;
+        case 'access_denied':
+          toast.error('OAuth Error', 'Access denied. You cancelled the authentication.');
+          break;
+        default:
+          toast.error('OAuth Error', `Authentication failed: ${error}`);
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+    }
+  }, [toast]);
 
   const [profileData, setProfileData] = useState({
     username: '',
@@ -334,6 +360,9 @@ export default function ProfilePage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Connected Accounts */}
+          <OAuthSettings className='mb-8' />
 
           {/* Danger Zone */}
           <Card className='mt-8 border-red-500/20'>

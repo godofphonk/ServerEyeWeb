@@ -555,3 +555,39 @@ export interface Toast {
   message?: string;
   duration?: number;
 }
+
+// OAuth Types
+export interface OAuthChallengeRequest {
+  provider: 'google' | 'github' | 'telegram' | 'microsoft';
+  returnUrl?: string;
+}
+
+export interface OAuthChallengeResponse {
+  challengeUrl: string;
+  state: string;
+  codeVerifier: string;
+}
+
+export interface ExternalLogin {
+  provider: string;
+  providerKey: string;
+  providerDisplayName: string;
+  isLinked: boolean;
+}
+
+export interface ExternalLoginsResponse {
+  externalLogins: ExternalLogin[];
+}
+
+export interface LinkOAuthRequest {
+  provider: string;
+  code: string;
+  state: string;
+}
+
+export interface OAuthCallbackRequest {
+  provider: string;
+  code: string;
+  state: string;
+  codeVerifier?: string;
+}
