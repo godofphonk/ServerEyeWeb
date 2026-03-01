@@ -201,6 +201,12 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 
+// OAuth2 services
+var oauthSettings = configuration.GetSection("OAuth").Get<ServerEye.Core.Configuration.OAuthSettings>() ?? new ServerEye.Core.Configuration.OAuthSettings();
+builder.Services.AddSingleton(oauthSettings);
+builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
 
 // Configure Global Exception Handler

@@ -54,14 +54,6 @@ services:
     ports:
       - "5246:80"
       - "5247:443"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__ServerEyeDbContext=Host=postgres;Port=5432;Database=ServerEyeWeb;Username=postgres;Password=postgres;SslMode=Disable
-      - ConnectionStrings__TicketDbContext=Host=postgres-ticket;Port=5432;Database=ServerEyeWeb-ticket;Username=postgres;Password=postgres;SslMode=Disable
-      - Redis__ConnectionString=redis:6379
-    volumes:
-      - ./ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
     depends_on:
       postgres:
         condition: service_started
