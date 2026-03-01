@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Github, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -17,6 +17,31 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
+
+  // Handle OAuth callback errors
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const oauthError = urlParams.get('error');
+    
+    if (oauthError) {
+      switch (oauthError) {
+        case 'backend_error':
+          setError('OAuth authentication failed. Please try again.');
+          break;
+        case 'callback_exception':
+          setError('An error occurred during OAuth authentication.');
+          break;
+        case 'access_denied':
+          setError('Access denied. You cancelled the authentication.');
+          break;
+        default:
+          setError(`OAuth authentication failed: ${oauthError}`);
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/login');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,13 +159,15 @@ export default function LoginPage() {
               variant='secondary'
               disabled={isOAuthLoading === 'github' || isLoading}
               onClick={() => handleOAuthLogin('github')}
+              className='opacity-50 cursor-not-allowed'
+              title='GitHub OAuth is temporarily disabled'
             >
               {isOAuthLoading === 'github' ? (
                 <div className='w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2' />
               ) : (
                 <Github className='w-5 h-5 mr-2' />
               )}
-              GitHub
+              GitHub (Coming Soon)
             </Button>
             <Button
               variant='secondary'

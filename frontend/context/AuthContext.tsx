@@ -8,7 +8,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { User, BackendUser } from '@/types';
+import { User, BackendUser, OAuthChallengeResponse, ExternalLoginsResponse, LinkOAuthRequest } from '@/types';
 import { apiClient } from '@/lib/api';
 
 interface AuthContextType {
@@ -22,6 +22,10 @@ interface AuthContextType {
   refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
   getOAuthURL: (provider: string) => Promise<string>;
+  getOAuthChallenge: (provider: string, returnUrl?: string) => Promise<OAuthChallengeResponse>;
+  getExternalLogins: () => Promise<ExternalLoginsResponse>;
+  linkExternalAccount: (provider: string, code: string, state: string) => Promise<void>;
+  unlinkExternalAccount: (provider: string) => Promise<void>;
   isAuthenticated: boolean;
   checkAuth: () => Promise<void>;
   isEmailVerified: boolean;
@@ -235,23 +239,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await checkAuth();
   }, [checkAuth]);
 
-  const loginWithOAuth = async (provider: string, code: string, state: string) => {
-    const res = await apiClient.post<{ user: BackendUser }>(`/users/oauth/${provider}`, {
+  // New OAuth methods using the updated endpoints
+  const getOAuthChallenge = useCallback(async (provider: string, returnUrl?: string): Promise<OAuthChallengeResponse> => {
+    const params = new URLSearchParams();
+    if (returnUrl) params.append('returnUrl', returnUrl);
+    
+    const response = await apiClient.get<OAuthChallengeResponse>(
+      `/auth/oauth/${provider}/challenge?${params.toString()}`
+    );
+    
+    console.log('[AuthContext] Using challenge URL from backend:', response.challengeUrl);
+    
+    return response;
+  }, []);
+
+  const getExternalLogins = useCallback(async (): Promise<ExternalLoginsResponse> => {
+    const response = await apiClient.get<ExternalLoginsResponse>('/auth/oauth/external-logins');
+    return response;
+  }, []);
+
+  const linkExternalAccount = useCallback(async (provider: string, code: string, state: string): Promise<void> => {
+    await apiClient.post<LinkOAuthRequest>('/auth/oauth/link', {
+      provider,
       code,
       state,
     });
+  }, []);
 
-    if (!res?.user?.id) {
-      throw new Error('Invalid OAuth response');
+  const unlinkExternalAccount = useCallback(async (provider: string): Promise<void> => {
+    await apiClient.delete(`/auth/oauth/unlink/${provider}`);
+  }, []);
+
+  // Legacy OAuth methods (updated to use new challenge flow)
+  const getOAuthURL = useCallback(async (provider: string): Promise<string> => {
+    const challenge = await getOAuthChallenge(provider);
+    // Store challenge data in sessionStorage for callback handling
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('oauth_state', challenge.state);
+      sessionStorage.setItem('oauth_code_verifier', challenge.codeVerifier);
+      sessionStorage.setItem('oauth_provider', provider);
     }
+    
+    return challenge.challengeUrl;
+  }, [getOAuthChallenge]);
 
-    setUser(mapBackendUser(res.user));
-  };
-
-  const getOAuthURL = async (provider: string): Promise<string> => {
-    const res = await apiClient.get<{ url: string }>(`/users/oauth/${provider}/url`);
-    return res.url;
-  };
+  const loginWithOAuth = useCallback(async (provider: string, code: string, state: string): Promise<void> => {
+    // This method is now handled by the backend callback endpoint
+    // Frontend just needs to redirect to the OAuth URL
+    const challenge = await getOAuthChallenge(provider);
+    window.location.href = challenge.challengeUrl;
+  }, [getOAuthChallenge]);
 
   const isEmailVerifiedValue = user?.isEmailVerified || false;
   console.log('[AuthContext] Provider - User:', user);
@@ -270,6 +307,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: refreshTokens,
         loginWithOAuth,
         getOAuthURL,
+        getOAuthChallenge,
+        getExternalLogins,
+        linkExternalAccount,
+        unlinkExternalAccount,
         isAuthenticated: !!user,
         checkAuth,
         isEmailVerified: isEmailVerifiedValue,
