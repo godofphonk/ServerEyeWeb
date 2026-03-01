@@ -14,13 +14,15 @@ public class AuthController : ControllerBase
     private readonly IJwtService jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository;
     private readonly IAuthService authService;
+    private readonly IOAuthService oauthService;
     private readonly ILogger<AuthController> logger;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, ILogger<AuthController> logger)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.authService = authService;
+        this.oauthService = oauthService;
         this.logger = logger;
     }
 
@@ -398,4 +400,128 @@ public class AuthController : ControllerBase
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
+
+    #region OAuth2 Endpoints
+
+    [HttpGet("oauth/{provider}/challenge")]
+    public async Task<ActionResult<OAuthChallengeResponseDto>> CreateOAuthChallenge(string provider, [FromQuery] Uri? returnUrl = null)
+    {
+        try
+        {
+            var oauthProvider = this.oauthService.ParseProvider(provider);
+            if (!this.oauthService.IsProviderEnabled(oauthProvider))
+            {
+                return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
+            }
+
+            var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl);
+            return this.Ok(challenge);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", provider);
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("oauth/callback")]
+    public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
+    {
+        try
+        {
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
+
+            var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
+            return this.Ok(response);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", request.Provider);
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("oauth/providers")]
+    [Authorize]
+    public async Task<ActionResult<List<OAuthProviderInfoDto>>> GetUserExternalLogins()
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var providers = await this.oauthService.GetUserExternalLoginsAsync(userId);
+            return this.Ok(providers);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error getting user external logins");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("oauth/link")]
+    [Authorize]
+    public async Task<ActionResult<AuthResponseDto>> LinkExternalLogin([FromBody] OAuthLinkRequestDto request)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
+
+            var response = await this.oauthService.LinkExternalLoginAsync(userId, request, ipAddress, userAgent);
+            return this.Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            this.logger.LogWarning(ex, "Error linking external login: {Message}", ex.Message);
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error linking external login");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpDelete("oauth/{provider}")]
+    [Authorize]
+    public async Task<ActionResult> UnlinkExternalLogin(string provider)
+    {
+        try
+        {
+            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return this.BadRequest(new { message = "Invalid user identifier" });
+            }
+
+            var oauthProvider = this.oauthService.ParseProvider(provider);
+            await this.oauthService.UnlinkExternalLoginAsync(userId, oauthProvider);
+
+            return this.Ok(new { message = "External login unlinked successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            this.logger.LogWarning(ex, "Error unlinking external login: {Message}", ex.Message);
+            return this.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error unlinking external login");
+            return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    #endregion
 }

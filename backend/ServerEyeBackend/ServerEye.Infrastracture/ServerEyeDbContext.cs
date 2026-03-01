@@ -17,6 +17,7 @@ public sealed class ServerEyeDbContext : DbContext
     public DbSet<EmailVerification> EmailVerifications => this.Set<EmailVerification>();
     public DbSet<PasswordResetToken> PasswordResetTokens => this.Set<PasswordResetToken>();
     public DbSet<AccountDeletion> AccountDeletions => this.Set<AccountDeletion>();
+    public DbSet<UserExternalLogin> UserExternalLogins => this.Set<UserExternalLogin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -95,6 +96,28 @@ public sealed class ServerEyeDbContext : DbContext
             entity.HasOne(r => r.User)
                 .WithMany()
                 .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // UserExternalLogin configuration
+        modelBuilder?.Entity<UserExternalLogin>(entity =>
+        {
+            // Unique index for provider + provider user id
+            entity.HasIndex(el => new { el.Provider, el.ProviderUserId })
+                .IsUnique();
+            
+            // Index for user's external logins
+            entity.HasIndex(el => el.UserId);
+            
+            // Index for provider-specific queries
+            entity.HasIndex(el => el.Provider);
+            
+            entity.Property(el => el.Provider)
+                .HasConversion<int>();
+            
+            entity.HasOne(el => el.User)
+                .WithMany(u => u.ExternalLogins)
+                .HasForeignKey(el => el.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }
