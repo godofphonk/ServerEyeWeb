@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       expiresIn: data.expiresIn,
     });
 
-    response.cookies.set('accessToken', data.token, {
+    response.cookies.set('access_token', data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       maxAge: data.expiresIn || 1800,
     });
 
-    response.cookies.set('refreshToken', data.refreshToken, {
+    response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

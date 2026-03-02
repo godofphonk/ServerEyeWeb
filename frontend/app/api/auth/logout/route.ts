@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5
 
 export async function POST(request: NextRequest) {
   try {
-    const accessToken = request.cookies.get('accessToken')?.value;
+    const accessToken = request.cookies.get('access_token')?.value;
 
     if (accessToken) {
       await fetch(`${API_BASE_URL}auth/logout`, {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ success: true });
 
-    response.cookies.set('accessToken', '', {
+    response.cookies.set('access_token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       maxAge: 0,
     });
 
-    response.cookies.set('refreshToken', '', {
+    response.cookies.set('refresh_token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Logout API route error:', error);
     const response = NextResponse.json({ success: true });
-    response.cookies.set('accessToken', '', { path: '/', maxAge: 0 });
-    response.cookies.set('refreshToken', '', { path: '/', maxAge: 0 });
+    response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
+    response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   }
 }
