@@ -125,10 +125,17 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
     }
   };
 
-  const availableProviders = [
+  interface Provider {
+  name: string;
+  key: string;
+  available: boolean;
+  reason?: string;
+}
+
+const availableProviders: Provider[] = [
     { name: 'Google', key: 'google', available: true },
-    { name: 'GitHub', key: 'github', available: false, reason: 'Coming Soon' },
-    { name: 'Telegram', key: 'telegram', available: false, reason: 'Coming Soon' },
+    { name: 'GitHub', key: 'github', available: true },
+    { name: 'Telegram', key: 'telegram', available: true },
   ];
 
   if (isLoading) {
@@ -187,7 +194,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
                     ) : provider.available ? (
                       <p className='text-sm text-gray-400'>Not connected</p>
                     ) : (
-                      <p className='text-sm text-yellow-400'>{provider.reason}</p>
+                      <p className='text-sm text-yellow-400'>{provider.reason || 'Coming Soon'}</p>
                     )}
                   </div>
                 </div>
