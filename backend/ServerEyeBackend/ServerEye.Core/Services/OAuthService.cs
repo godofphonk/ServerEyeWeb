@@ -19,7 +19,15 @@ public sealed class OAuthService(
     IJwtService jwtService,
     ILogger<OAuthService> logger) : IOAuthService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions JsonOptions = new() 
+    { 
+        PropertyNameCaseInsensitive = false,
+        PropertyNamingPolicy = null
+    };
+    
+    // Simple in-memory storage for code verifiers (in production, use Redis or database)
+    private static readonly Dictionary<string, string> CodeVerifiers = new();
+    
     private readonly OAuthSettings oauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>() ?? new OAuthSettings();
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserExternalLoginRepository externalLoginRepository = externalLoginRepository;
@@ -29,8 +37,11 @@ public sealed class OAuthService(
     // Public interface implementation
     public async Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, CancellationToken cancellationToken = default)
     {
+        this.logger.LogInformation("CreateChallengeAsync called - Provider: {Provider}, ReturnUrl: {ReturnUrl}", provider, returnUrl?.ToString() ?? "null");
+
         if (!this.IsProviderEnabled(provider))
         {
+            this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
             throw new InvalidOperationException($"OAuth provider {provider} is not enabled");
         }
 
@@ -38,8 +49,17 @@ public sealed class OAuthService(
         var codeVerifier = GenerateSecureRandomString(128);
         var codeChallenge = Base64UrlEncode(SHA256Hash(codeVerifier));
 
-        // Store code verifier in cache or database for later verification
-        // This is simplified - in production, you should store this securely
+        this.logger.LogInformation(
+            "Generated OAuth parameters - State: {State}, CodeVerifier: {CodeVerifier}, CodeChallenge: {CodeChallenge}",
+            state,
+            codeVerifier[..Math.Min(codeVerifier.Length, 20)] + "...",
+            codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...");
+
+        // Store code verifier in memory for later verification
+        CodeVerifiers[state] = codeVerifier;
+
+        this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
+        
         var challengeUrl = provider switch
         {
             OAuthProvider.None => throw new ArgumentException("None provider is not valid for challenges"),
@@ -50,10 +70,12 @@ public sealed class OAuthService(
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
 
+        this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, challengeUrl[..Math.Min(challengeUrl.Length, 100)] + "...");
+
         return new OAuthChallengeResponseDto
         {
             ChallengeUrl = new Uri(challengeUrl),
-            State = state,
+            State = state, // Return original state without prefix
             CodeVerifier = codeVerifier
         };
     }
@@ -62,10 +84,20 @@ public sealed class OAuthService(
     {
         var provider = this.ParseProvider(request.Provider);
 
-        // Verify state parameter (simplified - in production, verify against stored value)
+        // Retrieve code verifier from memory
+        if (!CodeVerifiers.TryGetValue(request.State, out var codeVerifier))
+        {
+            this.logger.LogError("Code verifier not found for state: {State}", request.State);
+            throw new InvalidOperationException("Invalid or expired OAuth state");
+        }
+
+        this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State);
+
+        // Remove code verifier from memory
+        CodeVerifiers.Remove(request.State);
 
         // Exchange authorization code for access token
-        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, cancellationToken);
+        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, codeVerifier!, cancellationToken);
 
         // Get user info from provider
         var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
@@ -74,19 +106,21 @@ public sealed class OAuthService(
         var user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
 
         // Link external login if needed
-        await this.LinkExternalLoginAsync(user.Id, provider, userInfo, cancellationToken);
+        var existingExternalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
+        if (existingExternalLogin == null)
+        {
+            await this.LinkExternalLoginAsync(user.Id, provider, userInfo, cancellationToken);
+        }
+        else
+        {
+            // Update last used timestamp for existing login
+            existingExternalLogin.LastUsedAt = DateTime.UtcNow;
+            await this.externalLoginRepository.UpdateAsync(existingExternalLogin, cancellationToken);
+        }
 
         // Generate JWT tokens
         var token = this.jwtService.GenerateAccessToken(user);
         var refreshToken = await Task.FromResult(this.jwtService.GenerateRefreshToken(user));
-
-        // Update last used timestamp
-        var externalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
-        if (externalLogin != null)
-        {
-            externalLogin.LastUsedAt = DateTime.UtcNow;
-            await this.externalLoginRepository.UpdateAsync(externalLogin, cancellationToken);
-        }
 
         this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider}", user.Id, provider);
 
@@ -133,7 +167,9 @@ public sealed class OAuthService(
         }
 
         // Exchange code for token
-        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, cancellationToken);
+        // For linking external login, we need to generate a temporary code verifier
+        var tempCodeVerifier = GenerateSecureRandomString(128);
+        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, tempCodeVerifier, cancellationToken);
 
         // Get user info
         var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
@@ -191,6 +227,12 @@ public sealed class OAuthService(
 
     public async Task<OAuthUserInfoDto> GetUserInfoAsync(OAuthProvider provider, string accessToken, string? idToken = null, CancellationToken cancellationToken = default)
     {
+        this.logger.LogInformation(
+            "GetUserInfoAsync called - Provider: {Provider}, AccessToken: {AccessToken}, IdToken: {IdToken}",
+            provider,
+            accessToken[..Math.Min(accessToken.Length, 20)] + "...",
+            string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
+
         return provider switch
         {
             OAuthProvider.None => throw new ArgumentException("None provider is not valid for getting user info"),
@@ -498,7 +540,9 @@ public sealed class OAuthService(
                   $"scope={scopes}&" +
                   $"state={state}&" +
                   $"code_challenge={codeChallenge}&" +
-                  $"code_challenge_method=S256";
+                  $"code_challenge_method=S256&" +
+                  $"access_type=offline&" + // Request refresh token
+                  $"prompt=consent"; // Force consent dialog to get refresh token
 
         if (returnUrl != null)
         {
@@ -510,23 +554,38 @@ public sealed class OAuthService(
 
     private string CreateGitHubChallengeUrl(string state, string codeChallenge, Uri? returnUrl)
     {
+        this.logger.LogInformation(
+            "CreateGitHubChallengeUrl called - State: {State}, CodeChallenge: {CodeChallenge}, ReturnUrl: {ReturnUrl}",
+            state,
+            codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...",
+            returnUrl?.ToString() ?? "null");
+
         var settings = this.oauthSettings.GitHub;
         var scopes = "user:email";
+        
+        // Add provider prefix to state so we can identify it in callback
+        var stateWithProvider = $"github_{state}";
         var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
 
+        this.logger.LogInformation(
+            "GitHub OAuth settings - ClientId: {ClientId}, RedirectUri: {RedirectUri}, Scopes: {Scopes}",
+            settings.ClientId,
+            settings.RedirectUri.ToString(),
+            scopes);
+
+        // GitHub doesn't support PKCE, so we don't include code_challenge parameters
         var url = $"https://github.com/login/oauth/authorize?" +
                   $"client_id={settings.ClientId}&" +
                   $"redirect_uri={redirectUri}&" +
                   $"scope={scopes}&" +
-                  $"state={state}&" +
-                  $"code_challenge={codeChallenge}&" +
-                  $"code_challenge_method=S256";
+                  $"state={stateWithProvider}";
 
         if (returnUrl != null)
         {
             url += $"&return_url={Uri.EscapeDataString(returnUrl.ToString())}";
         }
 
+        this.logger.LogInformation("Generated GitHub challenge URL: {Url}", url[..Math.Min(url.Length, 100)] + "...");
         return url;
     }
 
@@ -631,49 +690,96 @@ public sealed class OAuthService(
         await this.externalLoginRepository.AddAsync(externalLogin, cancellationToken);
     }
 
-    private async Task<TokenResponseDto> ExchangeCodeForTokenAsync(OAuthProvider provider, string code, CancellationToken cancellationToken)
+    private async Task<TokenResponseDto> ExchangeCodeForTokenAsync(OAuthProvider provider, string code, string codeVerifier, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient();
 
         return provider switch
         {
             OAuthProvider.None => throw new ArgumentException("None provider is not valid for token exchange"),
-            OAuthProvider.Google => await this.ExchangeGoogleCodeAsync(httpClient, code, cancellationToken),
-            OAuthProvider.GitHub => await this.ExchangeGitHubCodeAsync(httpClient, code, cancellationToken),
+            OAuthProvider.Google => await this.ExchangeGoogleCodeAsync(httpClient, code, codeVerifier, cancellationToken),
+            OAuthProvider.GitHub => await this.ExchangeGitHubCodeAsync(httpClient, code, codeVerifier, cancellationToken),
             OAuthProvider.Telegram => await ExchangeTelegramCodeAsync(code),
-            OAuthProvider.Microsoft => await this.ExchangeMicrosoftCodeAsync(httpClient, code, cancellationToken),
+            OAuthProvider.Microsoft => await this.ExchangeMicrosoftCodeAsync(httpClient, code, codeVerifier, cancellationToken),
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
     }
 
-    private async Task<TokenResponseDto> ExchangeGoogleCodeAsync(HttpClient httpClient, string code, CancellationToken cancellationToken)
+    private async Task<TokenResponseDto> ExchangeGoogleCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
     {
         var settings = this.oauthSettings.Google;
         var tokenEndpoint = "https://oauth2.googleapis.com/token";
 
+        this.logger.LogInformation(
+            "Exchanging Google code for token - ClientId: {ClientId}, RedirectUri: {RedirectUri}, CodeVerifier: {CodeVerifier}",
+            settings.ClientId,
+            settings.RedirectUri.ToString(),
+            codeVerifier.Length > 20 ? $"{codeVerifier[..20]}..." : codeVerifier);
+
         var parameters = new Dictionary<string, string>
         {
             ["client_id"] = settings.ClientId,
             ["client_secret"] = settings.ClientSecret,
             ["code"] = code,
             ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = settings.RedirectUri.ToString()
+            ["redirect_uri"] = settings.RedirectUri.ToString(),
+            ["code_verifier"] = codeVerifier // Add PKCE code verifier
         };
+
+        this.logger.LogInformation(
+            "Google token request parameters: {Parameters}",
+            string.Join(
+                ", ",
+                parameters.Select(p => $"{p.Key}={p.Value[..Math.Min(p.Value.Length, 20)]}...")));
 
         using var content = new FormUrlEncodedContent(parameters);
         var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
+        
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        this.logger.LogInformation(
+            "Google token response - Status: {Status}, Content: {Content}",
+            (int)response.StatusCode,
+            responseContent); // Log full response to see if id_token is present
+        
         response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize<TokenResponseDto>(responseContent, JsonOptions)
-               ?? throw new InvalidOperationException("Failed to deserialize token response");
+        // Manual JSON parsing to extract id_token since JsonPropertyName doesn't work
+        this.logger.LogInformation("Raw JSON response: {Json}", responseContent);
+        
+        // Parse JSON manually to get all fields
+        using var jsonDoc = JsonDocument.Parse(responseContent);
+        var root = jsonDoc.RootElement;
+        
+        var tokenResponse = new TokenResponseDto
+        {
+            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
+            RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
+            IdToken = root.GetProperty("id_token").GetString() ?? string.Empty,
+            TokenType = root.GetProperty("token_type").GetString() ?? string.Empty,
+            ExpiresIn = root.GetProperty("expires_in").GetInt32(),
+            Scope = root.GetProperty("scope").GetString() ?? string.Empty
+        };
+
+        this.logger.LogInformation(
+            "TokenResponse fields - AccessToken: {AccessToken}, RefreshToken: {RefreshToken}, IdToken: {IdToken}, TokenType: {TokenType}, ExpiresIn: {ExpiresIn}, Scope: {Scope}",
+            tokenResponse.AccessToken[..Math.Min(tokenResponse.AccessToken.Length, 20)] + "...",
+            string.IsNullOrEmpty(tokenResponse.RefreshToken) ? "NULL" : tokenResponse.RefreshToken[..Math.Min(tokenResponse.RefreshToken.Length, 20)] + "...",
+            string.IsNullOrEmpty(tokenResponse.IdToken) ? "NULL" : tokenResponse.IdToken[..Math.Min(tokenResponse.IdToken.Length, 20)] + "...",
+            tokenResponse.TokenType,
+            tokenResponse.ExpiresIn,
+            tokenResponse.Scope);
+
+        return tokenResponse;
     }
 
-    private async Task<TokenResponseDto> ExchangeGitHubCodeAsync(HttpClient httpClient, string code, CancellationToken cancellationToken)
+    private async Task<TokenResponseDto> ExchangeGitHubCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
     {
         var settings = this.oauthSettings.GitHub;
         var tokenEndpoint = "https://github.com/login/oauth/access_token";
 
+        // GitHub doesn't support PKCE, but we log the verifier for consistency
+        this.logger.LogDebug("GitHub OAuth called with code verifier (not supported by GitHub): {CodeVerifier}", codeVerifier[..Math.Min(codeVerifier.Length, 20)]);
+
         var parameters = new Dictionary<string, string>
         {
             ["client_id"] = settings.ClientId,
@@ -684,18 +790,48 @@ public sealed class OAuthService(
         };
 
         using var content = new FormUrlEncodedContent(parameters);
+        
+        // GitHub requires Accept header to return JSON instead of form-encoded data
+        httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+        
         var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
+        
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        this.logger.LogInformation(
+            "GitHub token response - Status: {Status}, Content: {Content}",
+            (int)response.StatusCode,
+            responseContent);
+        
         response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize<TokenResponseDto>(responseContent, JsonOptions)
-               ?? throw new InvalidOperationException("Failed to deserialize token response");
+        // Manual JSON parsing like Google
+        using var jsonDoc = JsonDocument.Parse(responseContent);
+        var root = jsonDoc.RootElement;
+        
+        var tokenResponse = new TokenResponseDto
+        {
+            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
+            RefreshToken = root.TryGetProperty("refresh_token", out var refreshToken) ? refreshToken.GetString() ?? string.Empty : string.Empty,
+            TokenType = root.GetProperty("token_type").GetString() ?? string.Empty,
+            Scope = root.TryGetProperty("scope", out var scope) ? scope.GetString() ?? string.Empty : string.Empty
+        };
+
+        this.logger.LogInformation(
+            "GitHub TokenResponse fields - AccessToken: {AccessToken}, TokenType: {TokenType}, Scope: {Scope}",
+            tokenResponse.AccessToken[..Math.Min(tokenResponse.AccessToken.Length, 20)] + "...",
+            tokenResponse.TokenType,
+            tokenResponse.Scope);
+
+        return tokenResponse;
     }
 
-    private async Task<TokenResponseDto> ExchangeMicrosoftCodeAsync(HttpClient httpClient, string code, CancellationToken cancellationToken)
+    private async Task<TokenResponseDto> ExchangeMicrosoftCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
     {
         var settings = this.oauthSettings.Microsoft;
         var tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+
+        // Microsoft supports PKCE, but we'll implement it later if needed
+        this.logger.LogDebug("Microsoft OAuth called with code verifier: {CodeVerifier}", codeVerifier[..Math.Min(codeVerifier.Length, 20)]);
 
         var parameters = new Dictionary<string, string>
         {

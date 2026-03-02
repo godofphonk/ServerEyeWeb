@@ -54,6 +54,25 @@ services:
     ports:
       - "5246:80"
       - "5247:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_HTTPS_PORTS=443
+      # Database connection strings for Docker environment
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=ServerEyeWeb
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - TICKET_DB_HOST=postgres-ticket
+      - TICKET_DB_PORT=5432
+      - TICKET_DB_NAME=ServerEyeWeb-ticket
+      - TICKET_DB_USER=postgres
+      - TICKET_DB_PASSWORD=postgres
+      # Redis connection for Docker environment
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_started

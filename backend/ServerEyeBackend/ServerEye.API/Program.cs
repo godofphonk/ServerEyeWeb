@@ -18,6 +18,18 @@ using ServerEye.API.Extensions;
 using System.Text;
 using System.Linq;
 
+// Helper function to build connection string from environment variables
+static string BuildConnectionStringFromEnvironment(IConfiguration configuration)
+{
+    var host = configuration["DATABASE_HOST"] ?? "localhost";
+    var port = configuration["DATABASE_PORT"] ?? "5432";
+    var database = configuration["DATABASE_NAME"] ?? "ServerEyeWeb";
+    var username = configuration["DATABASE_USER"] ?? "postgres";
+    var password = configuration["DATABASE_PASSWORD"] ?? "postgres";
+    
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SslMode=Disable";
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure logging early
@@ -322,8 +334,9 @@ if (!builder.Services.Any(s => s.ServiceType == typeof(Microsoft.AspNetCore.Auth
 builder.Services.AddDbContext<ServerEyeDbContext>(
     options =>
     {
-        // Priority: Environment variable > ConnectionStrings section
+        // Priority: Environment variable > Built from individual env vars > ConnectionStrings section
         var connectionString = configuration["DATABASE_CONNECTION_STRING"]
+                             ?? BuildConnectionStringFromEnvironment(configuration)
                              ?? configuration.GetConnectionString("ServerEyeDbContext")
                              ?? configuration.GetConnectionString("DefaultConnection");
 
