@@ -73,7 +73,7 @@ export default function SystemMonitoringPage() {
       setLoading(true);
 
       // Fetch real data from API
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('jwt_token');
       console.log('[Admin] Token:', token ? 'exists' : 'missing');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`, {

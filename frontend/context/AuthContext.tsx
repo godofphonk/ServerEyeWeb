@@ -173,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Also save token to localStorage for apiClient
     if (typeof window !== 'undefined') {
       const cookies = document.cookie.split(';');
-      const accessTokenCookie = cookies.find(c => c.trim().startsWith('accessToken='));
+      const accessTokenCookie = cookies.find(c => c.trim().startsWith('access_token='));
       if (accessTokenCookie) {
         const token = accessTokenCookie.split('=')[1];
         localStorage.setItem('jwt_token', token);

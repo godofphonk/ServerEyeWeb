@@ -55,7 +55,7 @@ export default function LogViewer() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('jwt_token');
       const level = selectedLevel === 'all' ? 'all' : selectedLevel;
 
       const response = await fetch(
