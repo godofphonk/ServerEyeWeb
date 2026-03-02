@@ -26,7 +26,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for auth tokens in cookies
-  const accessToken = request.cookies.get('accessToken')?.value;
+  const accessToken = request.cookies.get('access_token')?.value;
 
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/profile', '/servers', '/admin'];

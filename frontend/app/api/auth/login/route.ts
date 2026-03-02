@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       expiresIn: data.expiresIn,
     });
 
-    response.cookies.set('accessToken', data.token, {
+    response.cookies.set('access_token', data.token, {
       httpOnly: true,
       secure: false, // Отключаем для dev
       sameSite: 'lax',
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       domain: undefined, // Позволяем браузеру установить домен автоматически
     });
 
-    response.cookies.set('refreshToken', data.refreshToken, {
+    response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
       secure: false, // Отключаем для dev
       sameSite: 'lax',
