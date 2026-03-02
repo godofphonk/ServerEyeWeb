@@ -13,19 +13,23 @@ export async function GET(request: NextRequest) {
   console.log('Session API route called via GET!');
   console.log('API_BASE_URL:', API_BASE_URL);
   console.log('Environment NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
+  console.log('Request URL:', request.url);
+  console.log('Request headers:', Object.fromEntries(request.headers.entries()));
 
   try {
-    const accessToken = request.cookies.get('accessToken')?.value;
-    const refreshToken = request.cookies.get('refreshToken')?.value;
+    const accessToken = request.cookies.get('access_token')?.value;
+    const refreshToken = request.cookies.get('refresh_token')?.value;
 
     console.log('Session check - cookies:', {
       hasAccessToken: !!accessToken,
       accessTokenLength: accessToken?.length,
+      accessTokenValue: accessToken?.substring(0, 50) + '...',
       hasRefreshToken: !!refreshToken,
       refreshTokenLength: refreshToken?.length,
+      refreshTokenValue: refreshToken?.substring(0, 50) + '...',
       allCookies: request.cookies
         .getAll()
-        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...' })),
+        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...', domain: c.domain, path: c.path })),
     });
 
     if (!accessToken) {
@@ -103,7 +107,7 @@ export async function GET(request: NextRequest) {
 
           const response = NextResponse.json({ user: userData });
 
-          response.cookies.set('accessToken', refreshData.token, {
+          response.cookies.set('access_token', refreshData.token, {
             httpOnly: true,
             secure: false, // Явно false для dev
             sameSite: 'lax',
@@ -111,7 +115,7 @@ export async function GET(request: NextRequest) {
             maxAge: refreshData.expiresIn || 1800,
           });
 
-          response.cookies.set('refreshToken', refreshData.refreshToken, {
+          response.cookies.set('refresh_token', refreshData.refreshToken, {
             httpOnly: true,
             secure: false, // Явно false для dev
             sameSite: 'lax',
@@ -125,8 +129,8 @@ export async function GET(request: NextRequest) {
     }
 
     const response = NextResponse.json({ user: null }, { status: 401 });
-    response.cookies.set('accessToken', '', { path: '/', maxAge: 0 });
-    response.cookies.set('refreshToken', '', { path: '/', maxAge: 0 });
+    response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
+    response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   } catch (error) {
     console.error('Session API route error:', error);

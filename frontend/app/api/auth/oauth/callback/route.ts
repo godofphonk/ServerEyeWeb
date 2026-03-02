@@ -47,19 +47,29 @@ export async function GET(request: NextRequest) {
       const errorText = await response.text();
       console.error('[OAuth Universal Callback] Backend error:', response.status, errorText);
       return NextResponse.redirect(
-        new URL(`/login?error=backend_error`, request.url)
+        new URL('/auth?error=oauth_failed', request.url)
       );
     }
 
-    // Get response data to check if user was created/updated
+    // Get response data and cookies from backend
     const responseData = await response.json();
     console.log('[OAuth Universal Callback] Backend response data:', responseData);
 
-    // Backend should set httpOnly cookies and return user data
-    // Redirect to dashboard on success
-    return NextResponse.redirect(
+    // Create response and copy cookies from backend response
+    const frontendResponse = NextResponse.redirect(
       new URL('/dashboard', request.url)
     );
+
+    // Copy Set-Cookie headers from backend response
+    const setCookieHeaders = response.headers.get('set-cookie');
+    if (setCookieHeaders) {
+      console.log('[OAuth Universal Callback] Copying cookies from backend');
+      frontendResponse.headers.set('Set-Cookie', setCookieHeaders);
+    } else {
+      console.log('[OAuth Universal Callback] No cookies received from backend');
+    }
+
+    return frontendResponse;
 
   } catch (error) {
     console.error('[OAuth Universal Callback] Exception:', error);

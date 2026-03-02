@@ -11,12 +11,21 @@ import { Input } from '@/components/ui/Input';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, getOAuthURL } = useAuth();
+  const { login, getOAuthURL, user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
+
+  // Redirect logic is handled by middleware
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     console.log('[LoginPage] User already authenticated, redirecting to dashboard');
+  //     window.location.href = '/dashboard';
+  //     return;
+  //   }
+  // }, [user, loading, router]);
 
   // Handle OAuth callback errors
   useEffect(() => {
@@ -72,6 +81,15 @@ export default function LoginPage() {
   };
 
   return (
+    // Show loading while checking authentication
+    loading ? (
+      <main className='min-h-screen bg-black text-white flex items-center justify-center p-6'>
+        <div className='text-center'>
+          <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
+          <p className='text-gray-400'>Checking authentication...</p>
+        </div>
+      </main>
+    ) : (
     <main className='min-h-screen bg-black text-white flex items-center justify-center p-6'>
       {/* Background */}
       <div className='absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 opacity-50' />
@@ -210,5 +228,6 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </main>
+    )
   );
 }
