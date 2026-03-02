@@ -408,13 +408,25 @@ public class AuthController : ControllerBase
     {
         try
         {
+            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}", provider, returnUrl?.ToString() ?? "null");
+
             var oauthProvider = this.oauthService.ParseProvider(provider);
+            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider);
+            
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
+                this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
                 return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
             }
 
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider}", oauthProvider);
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl);
+            
+            this.logger.LogInformation(
+                "OAuth challenge created successfully - Provider: {OAuthProvider}, ChallengeUrl: {ChallengeUrl}",
+                oauthProvider,
+                challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
+            
             return this.Ok(challenge);
         }
         catch (Exception ex)
@@ -439,6 +451,82 @@ public class AuthController : ControllerBase
         {
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", request.Provider);
             return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("oauth/callback")]
+    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string code, [FromQuery] string state, [FromQuery] string? provider)
+    {
+        try
+        {
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
+
+            // If provider is not specified, try to determine from state
+            if (string.IsNullOrEmpty(provider))
+            {
+                provider = DetermineProviderFromState(state);
+                this.logger.LogInformation("Provider determined from state: {Provider}", provider);
+            }
+
+            this.logger.LogInformation(
+            "OAuth callback received - Provider: {Provider}, Code: {Code}, State: {State}",
+            provider,
+            code.Length > 10 ? $"{code[..10]}..." : code,
+            state);
+
+            var request = new OAuthCallbackRequestDto
+            {
+                Provider = provider,
+                Code = code,
+                State = ExtractStateFromState(state) // Remove provider prefix if present
+            };
+
+            var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
+
+            this.logger.LogInformation(
+            "OAuth callback processed successfully - User: {UserId}, Token: {Token}",
+            response.User?.Id,
+            response.Token.Length > 20 ? $"{response.Token[..20]}..." : response.Token);
+
+            // Set JWT tokens in cookies with correct domain for frontend
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // Set to true in production with HTTPS
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddHours(1),
+
+                // Domain removed - browser will set it automatically for the current host
+                Path = "/"
+            };
+
+            var refreshTokenOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // Set to true in production with HTTPS
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddDays(7),
+
+                // Domain removed - browser will set it automatically for the current host
+                Path = "/"
+            };
+
+            this.Response.Cookies.Append("access_token", response.Token, cookieOptions);
+            this.Response.Cookies.Append("refresh_token", response.RefreshToken ?? string.Empty, refreshTokenOptions);
+
+            this.logger.LogInformation(
+            "JWT cookies set for OAuth callback - Access token expires: {Expires}, Refresh token expires: {RefreshExpires}",
+            cookieOptions.Expires,
+            refreshTokenOptions.Expires);
+
+            // Redirect to frontend
+            return this.Redirect("http://localhost:3001/dashboard?auth=success");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
+            return this.Redirect("http://localhost:3001/auth?error=oauth_failed");
         }
     }
 
@@ -521,6 +609,52 @@ public class AuthController : ControllerBase
             this.logger.LogError(ex, "Error unlinking external login");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
+    }
+
+    private static string DetermineProviderFromState(string state)
+    {
+        if (string.IsNullOrEmpty(state))
+        {
+            return "google"; // Default fallback
+        }
+
+        if (state.StartsWith("github_", StringComparison.OrdinalIgnoreCase))
+        {
+            return "github";
+        }
+
+        if (state.StartsWith("google_", StringComparison.OrdinalIgnoreCase))
+        {
+            return "google";
+        }
+
+        if (state.StartsWith("microsoft_", StringComparison.OrdinalIgnoreCase))
+        {
+            return "microsoft";
+        }
+
+        if (state.StartsWith("telegram_", StringComparison.OrdinalIgnoreCase))
+        {
+            return "telegram";
+        }
+
+        return "google"; // Default fallback
+    }
+
+    private static string ExtractStateFromState(string state)
+    {
+        if (string.IsNullOrEmpty(state))
+        {
+            return state;
+        }
+
+        var underscoreIndex = state.IndexOf('_', StringComparison.Ordinal);
+        if (underscoreIndex > 0 && underscoreIndex < state.Length - 1)
+        {
+            return state[(underscoreIndex + 1)..];
+        }
+
+        return state;
     }
 
     #endregion

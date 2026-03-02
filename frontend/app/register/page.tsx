@@ -281,15 +281,13 @@ export default function RegisterPage() {
               fullWidth
               disabled={isOAuthLoading === 'github' || isLoading}
               onClick={() => handleOAuthRegister('github')}
-              className='opacity-50 cursor-not-allowed'
-              title='GitHub OAuth is temporarily disabled'
             >
               {isOAuthLoading === 'github' ? (
                 <div className='w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2' />
               ) : (
                 <Github className='w-5 h-5 mr-2' />
               )}
-              Continue with GitHub (Coming Soon)
+              Continue with GitHub
             </Button>
           </div>
 
