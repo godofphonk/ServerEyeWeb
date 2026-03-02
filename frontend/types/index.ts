@@ -558,7 +558,7 @@ export interface Toast {
 
 // OAuth Types
 export interface OAuthChallengeRequest {
-  provider: 'google' | 'github' | 'telegram' | 'microsoft';
+  provider: 'google' | 'github' | 'telegram';
   returnUrl?: string;
 }
 

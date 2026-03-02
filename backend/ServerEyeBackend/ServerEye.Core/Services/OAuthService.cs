@@ -66,7 +66,6 @@ public sealed class OAuthService(
             OAuthProvider.Google => this.CreateGoogleChallengeUrl(state, codeChallenge, returnUrl),
             OAuthProvider.GitHub => this.CreateGitHubChallengeUrl(state, codeChallenge, returnUrl),
             OAuthProvider.Telegram => this.CreateTelegramChallengeUrl(state, returnUrl),
-            OAuthProvider.Microsoft => this.CreateMicrosoftChallengeUrl(state, codeChallenge, returnUrl),
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
 
@@ -239,7 +238,6 @@ public sealed class OAuthService(
             OAuthProvider.Google => await GetGoogleUserInfoAsync(accessToken, idToken, cancellationToken),
             OAuthProvider.GitHub => await GetGitHubUserInfoAsync(accessToken, cancellationToken),
             OAuthProvider.Telegram => GetTelegramUserInfoAsync(accessToken),
-            OAuthProvider.Microsoft => await GetMicrosoftUserInfoAsync(accessToken, cancellationToken),
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
     }
@@ -277,7 +275,6 @@ public sealed class OAuthService(
             "GOOGLE" => OAuthProvider.Google,
             "GITHUB" => OAuthProvider.GitHub,
             "TELEGRAM" => OAuthProvider.Telegram,
-            "MICROSOFT" => OAuthProvider.Microsoft,
             _ => throw new ArgumentException($"Unknown provider: {providerName}")
         };
     }
@@ -700,7 +697,6 @@ public sealed class OAuthService(
             OAuthProvider.Google => await this.ExchangeGoogleCodeAsync(httpClient, code, codeVerifier, cancellationToken),
             OAuthProvider.GitHub => await this.ExchangeGitHubCodeAsync(httpClient, code, codeVerifier, cancellationToken),
             OAuthProvider.Telegram => await ExchangeTelegramCodeAsync(code),
-            OAuthProvider.Microsoft => await this.ExchangeMicrosoftCodeAsync(httpClient, code, codeVerifier, cancellationToken),
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
     }
@@ -823,32 +819,6 @@ public sealed class OAuthService(
             tokenResponse.Scope);
 
         return tokenResponse;
-    }
-
-    private async Task<TokenResponseDto> ExchangeMicrosoftCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
-    {
-        var settings = this.oauthSettings.Microsoft;
-        var tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-
-        // Microsoft supports PKCE, but we'll implement it later if needed
-        this.logger.LogDebug("Microsoft OAuth called with code verifier: {CodeVerifier}", codeVerifier[..Math.Min(codeVerifier.Length, 20)]);
-
-        var parameters = new Dictionary<string, string>
-        {
-            ["client_id"] = settings.ClientId,
-            ["client_secret"] = settings.ClientSecret,
-            ["code"] = code,
-            ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = settings.RedirectUri.ToString()
-        };
-
-        using var content = new FormUrlEncodedContent(parameters);
-        var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize<TokenResponseDto>(responseContent, JsonOptions)
-               ?? throw new InvalidOperationException("Failed to deserialize token response");
     }
 }
 

@@ -628,11 +628,6 @@ public class AuthController : ControllerBase
             return "google";
         }
 
-        if (state.StartsWith("microsoft_", StringComparison.OrdinalIgnoreCase))
-        {
-            return "microsoft";
-        }
-
         if (state.StartsWith("telegram_", StringComparison.OrdinalIgnoreCase))
         {
             return "telegram";
