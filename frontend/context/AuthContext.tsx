@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clearAuthData: () => void;
+  setTokensFromCallback: (token: string, refreshToken: string) => Promise<void>;
   refreshUserData: () => Promise<void>;
   refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
@@ -75,6 +76,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = useCallback(async () => {
     try {
       console.log('[AuthContext] checkAuth called');
+      
+      // First check if we have tokens in localStorage (from OAuth callback)
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
+        if (token && !user) {
+          console.log('[AuthContext] Found token in localStorage, attempting to decode user');
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const userId = payload.sub || payload.nameid || payload.userId || payload.id;
+            const email = payload.email || payload.Email;
+            const username = payload.username || payload.UserName || payload.name || payload.unique_name;
+            const role = payload.role || payload.Role || 'user';
+            
+            if (userId && email) {
+              const localStorageUser: User = {
+                id: userId,
+                email: email,
+                username: username || email.split('@')[0],
+                role: role as 'user' | 'admin',
+                createdAt: new Date().toISOString(),
+                isEmailVerified: true,
+              };
+              
+              setUser(localStorageUser);
+              console.log('[AuthContext] User restored from localStorage token');
+              setLoading(false);
+              return;
+            }
+          } catch (decodeError) {
+            console.log('[AuthContext] Failed to decode localStorage token:', decodeError);
+          }
+        }
+      }
+      
+      // Try session API as fallback
       const res = await fetch('/api/auth/session', { credentials: 'include' });
       console.log('[AuthContext] checkAuth response:', res.status);
       if (res.ok) {
@@ -120,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     checkAuth();
@@ -180,6 +216,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthContext login - token saved to localStorage');
       }
     }
+  };
+
+  const setTokensFromCallback = async (token: string, refreshToken: string) => {
+    console.log('AuthContext setTokensFromCallback - setting tokens from OAuth callback');
+    
+    // Store tokens in localStorage for apiClient
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jwt_token', token);
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('refresh_token', refreshToken);
+      console.log('AuthContext setTokensFromCallback - tokens saved to localStorage');
+      
+      // Also try to set cookies for backend compatibility
+      document.cookie = `access_token=${token}; path=/; max-age=3600; SameSite=Lax`;
+      document.cookie = `refresh_token=${refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+      console.log('AuthContext setTokensFromCallback - cookies set');
+    }
+
+    // Decode JWT token to get user info
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('AuthContext setTokensFromCallback - decoded payload:', payload);
+      
+      // Handle different claim formats
+      const userId = payload.sub || payload.nameid || payload.userId || payload.id;
+      const email = payload.email || payload.Email;
+      const username = payload.username || payload.UserName || payload.name || payload.unique_name;
+      const role = payload.role || payload.Role || 'user';
+      
+      console.log('AuthContext setTokensFromCallback - extracted claims:', {
+        userId,
+        email,
+        username,
+        role
+      });
+      
+      if (userId && email) {
+        const user: User = {
+          id: userId,
+          email: email,
+          username: username || email.split('@')[0], // Fallback to email prefix
+          role: role as 'user' | 'admin',
+          createdAt: new Date().toISOString(), // OAuth users don't have createdAt
+          isEmailVerified: true, // OAuth users are considered verified
+        };
+        
+        setUser(user);
+        console.log('AuthContext setTokensFromCallback - user set from token:', user);
+        console.log('AuthContext setTokensFromCallback - user object after setUser:', user);
+        console.log('AuthContext setTokensFromCallback - isAuthenticated should be true now');
+        return; // Success, don't try fallback
+      } else {
+        console.log('AuthContext setTokensFromCallback - missing required claims:', {
+          userId,
+          email,
+          username,
+          role
+        });
+      }
+    } catch (error) {
+      console.error('AuthContext setTokensFromCallback - failed to decode token:', error);
+      console.log('AuthContext setTokensFromCallback - token structure:', token.split('.')[0], '...', token.split('.')[2]);
+      
+      // Fallback: try to get user data from API
+      try {
+        console.log('AuthContext setTokensFromCallback - trying API fallback...');
+        const res = await fetch('/api/auth/session', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          console.log('AuthContext setTokensFromCallback - API response:', data);
+          if (data.user) {
+            const mappedUser = mapBackendUser(data.user);
+            setUser(mappedUser);
+            console.log('AuthContext setTokensFromCallback - user set from API fallback:', mappedUser);
+            return;
+          }
+        } else {
+          console.log('AuthContext setTokensFromCallback - API fallback failed with status:', res.status);
+        }
+      } catch (fallbackError) {
+        console.error('AuthContext setTokensFromCallback - fallback failed:', fallbackError);
+      }
+    }
+    
+    // If we get here, both JWT decode and API fallback failed
+    console.error('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
+    throw new Error('Failed to authenticate user');
   };
 
   const register = async (email: string, username: string, password: string) => {
@@ -303,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         clearAuthData,
+        setTokensFromCallback,
         refreshUserData,
         refreshToken: refreshTokens,
         loginWithOAuth,
