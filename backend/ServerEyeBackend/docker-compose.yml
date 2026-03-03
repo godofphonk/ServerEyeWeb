@@ -73,6 +73,8 @@ services:
       # Redis connection for Docker environment
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Telegram OAuth configuration
+      - TELEGRAM_BOT_ID=8214154743
     depends_on:
       postgres:
         condition: service_started

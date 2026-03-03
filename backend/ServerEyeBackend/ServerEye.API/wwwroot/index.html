@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServerEye - Telegram OAuth Callback v3</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Processing Telegram authentication... v3</h1>
+    <p><strong>Page will redirect in 10 seconds for debugging...</strong></p>
+    <div id="debug"></div>
+    <script>
+        let redirectTimer;
+        
+        function log(message, type = 'info') {
+            console.log(message);
+            const debugDiv = document.getElementById('debug');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            debugDiv.innerHTML += '<p class="' + className + '">' + message + '</p>';
+        }
+        
+        function delayedRedirect(url, delay = 10000) {
+            log('Will redirect to: ' + url + ' in ' + (delay/1000) + ' seconds', 'info');
+            redirectTimer = setTimeout(() => {
+                window.location.href = url;
+            }, delay);
+        }
+        
+        function cancelRedirect() {
+            if (redirectTimer) {
+                clearTimeout(redirectTimer);
+                log('Redirect cancelled', 'info');
+            }
+        }
+        
+        function processTgAuthResult(tgAuthResult) {
+            log('=== STARTING PROCESS TGAUTHRESULT ===', 'info');
+            log('Raw tgAuthResult value: "' + tgAuthResult + '"', 'info');
+            log('tgAuthResult length: ' + tgAuthResult.length, 'info');
+            log('tgAuthResult type: ' + typeof tgAuthResult, 'info');
+            
+            if (tgAuthResult) {
+                log('tgAuthResult starts with: "' + tgAuthResult.substring(0, 20) + '..."', 'info');
+                log('tgAuthResult ends with: "' + tgAuthResult.substring(tgAuthResult.length - 20) + '"', 'info');
+                
+                // Debug every character
+                log('=== CHARACTER ANALYSIS ===', 'info');
+                for (let i = 0; i < Math.min(10, tgAuthResult.length); i++) {
+                    const char = tgAuthResult.charAt(i);
+                    const code = tgAuthResult.charCodeAt(i);
+                    log('Char ' + i + ': "' + char + '" (code: ' + code + ')', 'info');
+                }
+                
+                log('Last 5 characters:', 'info');
+                for (let i = Math.max(0, tgAuthResult.length - 5); i < tgAuthResult.length; i++) {
+                    const char = tgAuthResult.charAt(i);
+                    const code = tgAuthResult.charCodeAt(i);
+                    log('Char ' + i + ': "' + char + '" (code: ' + code + ')', 'info');
+                }
+                
+                log('First char code: ' + tgAuthResult.charCodeAt(0), 'info');
+                log('Last char code: ' + tgAuthResult.charCodeAt(tgAuthResult.length - 1), 'info');
+                log('First char: "' + tgAuthResult.charAt(0) + '"', 'info');
+                log('Last char: "' + tgAuthResult.charAt(tgAuthResult.length - 1) + '"', 'info');
+            }
+            
+            try {
+                log('=== ATTEMPTING TO PARSE ===', 'info');
+                
+                // Try different approaches
+                log('Approach 1: Base64 decode (CORRECT FOR TELEGRAM)', 'info');
+                try {
+                    const base64Decoded = atob(tgAuthResult);
+                    log('Base64 decoded value: "' + base64Decoded + '"', 'info');
+                    
+                    const base64Result = JSON.parse(base64Decoded);
+                    log('Base64 parse SUCCESS: ' + JSON.stringify(base64Result, null, 2), 'success');
+                    proceedWithUserData(base64Result);
+                    return; // Success, exit early
+                } catch (e) {
+                    log('Base64 parse FAILED: ' + e.message, 'error');
+                }
+                
+                log('Approach 2: Direct JSON.parse', 'info');
+                try {
+                    const directResult = JSON.parse(tgAuthResult);
+                    log('Direct parse SUCCESS: ' + JSON.stringify(directResult, null, 2), 'success');
+                    proceedWithUserData(directResult);
+                    return; // Success, exit early
+                } catch (e) {
+                    log('Direct parse FAILED: ' + e.message, 'error');
+                }
+                
+                log('Approach 2: Remove quotes with slice', 'info');
+                let cleanValue = tgAuthResult;
+                if (cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+                    cleanValue = cleanValue.slice(1, -1);
+                    log('Slice cleaned value: "' + cleanValue + '"', 'info');
+                    log('Cleaned first char: "' + cleanValue.charAt(0) + '"', 'info');
+                    
+                    try {
+                        const sliceResult = JSON.parse(cleanValue);
+                        log('Slice parse SUCCESS: ' + JSON.stringify(sliceResult, null, 2), 'success');
+                        proceedWithUserData(sliceResult);
+                        return; // Success, exit early
+                    } catch (e) {
+                        log('Slice parse FAILED: ' + e.message, 'error');
+                    }
+                }
+                
+                log('Approach 3: Remove quotes with replace', 'info');
+                const replaceValue = tgAuthResult.replace(/^"|"$/g, '');
+                log('Replace cleaned value: "' + replaceValue + '"', 'info');
+                
+                try {
+                    const replaceResult = JSON.parse(replaceValue);
+                    log('Replace parse SUCCESS: ' + JSON.stringify(replaceResult, null, 2), 'success');
+                    proceedWithUserData(replaceResult);
+                    return; // Success, exit early
+                } catch (e) {
+                    log('Replace parse FAILED: ' + e.message, 'error');
+                }
+                
+                log('Approach 4: Try decodeURIComponent', 'info');
+                try {
+                    const decodedValue = decodeURIComponent(tgAuthResult);
+                    log('Decoded value: "' + decodedValue + '"', 'info');
+                    
+                    const decodedResult = JSON.parse(decodedValue);
+                    log('Decoded parse SUCCESS: ' + JSON.stringify(decodedResult, null, 2), 'success');
+                    proceedWithUserData(decodedResult);
+                    return; // Success, exit early
+                } catch (e) {
+                    log('Decoded parse FAILED: ' + e.message, 'error');
+                }
+                
+                // If all approaches failed
+                log('=== ALL APPROACHES FAILED ===', 'error');
+                throw new Error('All parsing approaches failed');
+                
+            } catch (error) {
+                log('=== FINAL ERROR ===', 'error');
+                log('Error parsing tgAuthResult: ' + error.message, 'error');
+                log('Error stack: ' + error.stack, 'error');
+                console.error('Error parsing tgAuthResult:', error);
+                cancelRedirect();
+                delayedRedirect('http://localhost:3001/login?auth=error&message=Invalid data', 3000);
+            }
+        }
+        
+        function proceedWithUserData(userData) {
+            log('=== SENDING TO BACKEND ===', 'info');
+            log('User data: ' + JSON.stringify(userData, null, 2), 'success');
+            
+            // Extract state from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            
+            // Try to get state from search params first, then from hash
+            let state = urlParams.get('state') || hashParams.get('state') || 'telegram_default';
+            
+            log('Extracted state: "' + state + '"', 'info');
+            log('URL search params: "' + window.location.search + '"', 'info');
+            log('Hash params: "' + window.location.hash + '"', 'info');
+            
+            log('Sending POST request to /api/auth/oauth/telegram/callback...', 'info');
+            
+            fetch('/api/auth/oauth/telegram/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userData: userData,
+                    state: state
+                })
+            })
+            .then(response => {
+                log('Response status: ' + response.status, response.ok ? 'success' : 'error');
+                cancelRedirect(); // Cancel auto redirect
+                return response.json();
+            })
+            .then(data => {
+                log('Response data: ' + JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+                
+                cancelRedirect(); // Cancel auto redirect
+                
+                if (data.success && data.token) {
+                    log('Authentication successful! Redirecting to frontend with tokens...', 'success');
+                    
+                    // Redirect to frontend with tokens in URL
+                    const redirectUrl = 'http://localhost:3001/auth/callback?' +
+                        'token=' + encodeURIComponent(data.token) +
+                        '&refreshToken=' + encodeURIComponent(data.refreshToken || '') +
+                        '&provider=telegram';
+                    
+                    log('Redirecting to: ' + redirectUrl, 'info');
+                    delayedRedirect(redirectUrl, 1000);
+                } else {
+                    log('Authentication failed: ' + (data.message || 'Unknown error'), 'error');
+                    delayedRedirect('http://localhost:3001/login?auth=error&message=' + encodeURIComponent(data.message || 'Authentication failed'), 3000);
+                }
+            })
+            .catch(error => {
+                log('Error during fetch: ' + error.message, 'error');
+                console.error('Error:', error);
+                cancelRedirect(); // Cancel auto redirect
+                delayedRedirect('http://localhost:3001/login?auth=error&message=Server error', 3000);
+            });
+        }
+        
+        // Parse the fragment to get tgAuthResult
+        function parseFragment() {
+            log('Full URL: ' + window.location.href, 'info');
+            log('Full hash: "' + window.location.hash + '"', 'info');
+            log('Search params: "' + window.location.search + '"', 'info');
+            
+            const hash = window.location.hash.substring(1); // Remove #
+            log('Hash (without #): ' + hash, 'info');
+            
+            if (!hash) {
+                log('Hash is empty, checking all possible parameters...', 'error');
+                // Check all possible places where data might be
+                const urlParams = new URLSearchParams(window.location.search);
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                
+                log('URL search params:', 'info');
+                for (let [key, value] of urlParams) {
+                    log('  ' + key + ': ' + value, 'info');
+                }
+                
+                log('Hash params:', 'info');
+                for (let [key, value] of hashParams) {
+                    log('  ' + key + ': ' + value, 'info');
+                }
+                
+                // Try to find tgAuthResult anywhere
+                const allParams = window.location.search + window.location.hash;
+                if (allParams.includes('tgAuthResult')) {
+                    log('Found tgAuthResult in full URL!', 'success');
+                    const match = allParams.match(/tgAuthResult=([^&]+)/);
+                    if (match) {
+                        log('Extracted tgAuthResult: ' + match[1], 'success');
+                        processTgAuthResult(match[1]);
+                        return;
+                    }
+                }
+            }
+            
+            const params = new URLSearchParams(hash);
+            const tgAuthResult = params.get('tgAuthResult');
+            
+            log('tgAuthResult: ' + (tgAuthResult ? 'found' : 'not found'), tgAuthResult ? 'success' : 'error');
+            
+            if (tgAuthResult) {
+                processTgAuthResult(tgAuthResult);
+            } else {
+                log('No tgAuthResult found in hash', 'error');
+                cancelRedirect();
+                delayedRedirect('http://localhost:3001/login?auth=error&message=Missing authentication data', 3000);
+            }
+        }
+        
+        // Process when page loads
+        window.addEventListener('load', () => {
+            // Set default redirect in case something goes wrong
+            delayedRedirect('http://localhost:3001/login?auth=error&message=Debug timeout', 10000);
+            parseFragment();
+        });
+    </script>
+</body>
+</html>

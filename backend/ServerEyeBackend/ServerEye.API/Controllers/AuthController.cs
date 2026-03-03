@@ -6,6 +6,7 @@ using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using System.Text.Json;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -455,30 +456,50 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("oauth/callback")]
-    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string code, [FromQuery] string state, [FromQuery] string? provider)
+    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? hash, [FromQuery] string? provider)
     {
         try
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
 
+            // Handle Telegram OAuth special case - Telegram uses 'hash' instead of 'code'
+            if (!string.IsNullOrEmpty(hash) && string.IsNullOrEmpty(code))
+            {
+                code = hash; // Use hash as code for Telegram
+            }
+
             // If provider is not specified, try to determine from state
-            if (string.IsNullOrEmpty(provider))
+            if (string.IsNullOrEmpty(provider) && !string.IsNullOrEmpty(state))
             {
                 provider = DetermineProviderFromState(state);
                 this.logger.LogInformation("Provider determined from state: {Provider}", provider);
             }
 
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, State: {State}",
+            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}",
             provider,
-            code.Length > 10 ? $"{code[..10]}..." : code,
+            code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
+            hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
             state);
+
+            // Validate required parameters
+            if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
+            {
+                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", code, hash, state);
+                return this.BadRequest(new { message = "Missing authentication parameters" });
+            }
+
+            if (string.IsNullOrEmpty(state))
+            {
+                this.logger.LogWarning("OAuth callback missing state parameter");
+                return this.BadRequest(new { message = "Missing state parameter" });
+            }
 
             var request = new OAuthCallbackRequestDto
             {
-                Provider = provider,
-                Code = code,
+                Provider = provider ?? string.Empty,
+                Code = code ?? hash ?? string.Empty, // Use code or hash for Telegram
                 State = ExtractStateFromState(state) // Remove provider prefix if present
             };
 
@@ -608,6 +629,65 @@ public class AuthController : ControllerBase
         {
             this.logger.LogError(ex, "Error unlinking external login");
             return this.StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("oauth/telegram/callback")]
+    public async Task<IActionResult> TelegramCallbackPost([FromBody] TelegramCallbackRequestDto request)
+    {
+        try
+        {
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
+
+            this.logger.LogInformation(
+                "Telegram OAuth callback received - User ID: {UserId}, State: {State}",
+                request.UserData?.Id,
+                request.State);
+
+            // Convert Telegram user data to OAuth format
+            var telegramCode = JsonSerializer.Serialize(request.UserData);
+            
+            // For Telegram, always generate a temporary state
+            // Telegram doesn't return state in callback, so we need to handle this
+            var state = $"telegram_temp_{Guid.NewGuid():N}";
+            
+            this.logger.LogInformation("Generated temporary state for Telegram OAuth - State: {State}", state);
+            
+            var oauthRequest = new OAuthCallbackRequestDto
+            {
+                Provider = "telegram",
+                Code = telegramCode,
+                State = state
+            };
+
+            var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
+
+            this.logger.LogInformation(
+                "Telegram OAuth callback processed successfully - User: {UserId}, Token: {Token}",
+                response.User?.Id,
+                response.Token.Length > 20 ? $"{response.Token[..20]}..." : response.Token);
+
+            // Return tokens in response body for frontend to handle
+            // Frontend will redirect to localhost:3001 with tokens
+            return this.Ok(new
+            {
+                success = true,
+                message = "Authentication successful",
+                token = response.Token,
+                refreshToken = response.RefreshToken,
+                user = new
+                {
+                    id = response.User?.Id,
+                    email = response.User?.Email,
+                    username = response.User?.UserName
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error processing Telegram OAuth callback");
+            return this.StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
 
