@@ -140,7 +140,7 @@ public sealed class OAuthService(
             {
                 Id = user.Id,
                 UserName = user.UserName,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 ServerId = user.ServerId
             },
             Token = token,
@@ -206,7 +206,7 @@ public sealed class OAuthService(
             {
                 Id = user.Id,
                 UserName = user.UserName,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 ServerId = user.ServerId
             },
             Token = token,
@@ -313,7 +313,7 @@ public sealed class OAuthService(
         if (existingLogin != null)
         {
             // Update existing external login info
-            existingLogin.ProviderEmail = userInfo.Email ?? string.Empty;
+            existingLogin.ProviderEmail = userInfo.Email ?? string.Empty; // Keep empty string for ProviderEmail
             existingLogin.ProviderUsername = userInfo.Username ?? string.Empty;
             existingLogin.ProviderAvatarUrl = userInfo.AvatarUrl;
             existingLogin.ProviderData = JsonSerializer.Serialize(userInfo.RawData ?? new Dictionary<string, object>());
@@ -341,7 +341,7 @@ public sealed class OAuthService(
                 UserName = !string.IsNullOrEmpty(userInfo.Username) ? userInfo.Username :
                           !string.IsNullOrEmpty(userInfo.Email) ? userInfo.Email.Split('@')[0] :
                           $"oauth_{userInfo.Id}",
-                Email = userInfo.Email ?? string.Empty,
+                Email = userInfo.Email, // Can be null for providers like Telegram
                 Role = UserRole.User,
                 IsEmailVerified = userInfo.EmailVerified,
                 EmailVerifiedAt = userInfo.EmailVerified ? DateTime.UtcNow : null,
@@ -488,14 +488,13 @@ public sealed class OAuthService(
             var userDict = userData; // userData is already a Dictionary<string, object>
 
             var userId = userDict.GetValueOrDefault("id")?.ToString() ?? "unknown";
-            var email = $"telegram_{userId}@telegram.local";
             var name = $"{userDict.GetValueOrDefault("first_name")?.ToString() ?? string.Empty} {userDict.GetValueOrDefault("last_name")?.ToString() ?? string.Empty}".Trim();
             var username = userDict.GetValueOrDefault("username")?.ToString() ?? string.Empty;
 
             return new OAuthUserInfoDto
             {
                 Id = userId,
-                Email = email,
+                Email = null, // Telegram doesn't provide email
                 Name = name,
                 Username = username,
                 AvatarUrl = null, // Avatar photos require separate API calls
@@ -517,7 +516,7 @@ public sealed class OAuthService(
             return new OAuthUserInfoDto
             {
                 Id = accessToken,
-                Email = string.Empty,
+                Email = null, // Telegram doesn't provide email
                 Name = "Telegram User",
                 Username = "telegram_user",
                 AvatarUrl = null,

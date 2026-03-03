@@ -26,7 +26,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         }
         return new UserData()
         {
-            Email = user.Email,
+            Email = user.Email ?? string.Empty,
             Id = user.Id,
             UserName = user.UserName,
             Role = user.Role.ToString().ToUpperInvariant(),
@@ -45,7 +45,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         }
         return new UserData()
         {
-            Email = user.Email,
+            Email = user.Email ?? string.Empty,
             Id = user.Id,
             UserName = user.UserName,
             Role = user.Role.ToString().ToUpperInvariant(),
@@ -63,7 +63,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         {
             Id = user.Id,
             UserName = user.UserName,
-            Email = user.Email,
+            Email = user.Email ?? string.Empty,
             Role = user.Role.ToString().ToUpperInvariant(),
             ServerId = user.ServerId,
             IsEmailVerified = user.IsEmailVerified,
@@ -124,7 +124,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             User = new AuthUserDto
             {
                 Id = user.Id,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 UserName = user.UserName,
                 ServerId = user.ServerId,
             },
@@ -158,7 +158,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         {
             Id = existingUser.Id,
             UserName = existingUser.UserName,
-            Email = existingUser.Email,
+            Email = existingUser.Email ?? string.Empty,
             ServerId = existingUser.ServerId,
             IsEmailVerified = existingUser.IsEmailVerified,
             EmailVerifiedAt = existingUser.EmailVerifiedAt,
@@ -199,7 +199,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             User = new AuthUserDto
             {
                 Id = user.Id,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 UserName = user.UserName,
                 ServerId = user.ServerId,
             },
