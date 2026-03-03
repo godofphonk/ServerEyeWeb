@@ -2,6 +2,7 @@ namespace ServerEye.Core.Services;
 
 using System.Security.Cryptography;
 using System.Text;
+using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
@@ -12,6 +13,7 @@ public sealed class AuthService(
     IEmailVerificationRepository emailVerificationRepository,
     IPasswordResetTokenRepository passwordResetTokenRepository,
     IAccountDeletionRepository accountDeletionRepository,
+    IUserExternalLoginRepository externalLoginRepository,
     IEmailService emailService,
     IPasswordHasher passwordHasher) : IAuthService
 {
@@ -19,6 +21,7 @@ public sealed class AuthService(
     private readonly IEmailVerificationRepository emailVerificationRepository = emailVerificationRepository;
     private readonly IPasswordResetTokenRepository passwordResetTokenRepository = passwordResetTokenRepository;
     private readonly IAccountDeletionRepository accountDeletionRepository = accountDeletionRepository;
+    private readonly IUserExternalLoginRepository externalLoginRepository = externalLoginRepository;
     private readonly IEmailService emailService = emailService;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
 
@@ -206,36 +209,73 @@ public sealed class AuthService(
         return true;
     }
 
-    public async Task RequestAccountDeletionAsync(Guid userId, string password)
+    public async Task<AccountDeletionResponseDto> RequestAccountDeletionAsync(Guid userId, string? password)
     {
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
-        if (!this.passwordHasher.VerifyPassword(password, user.Password))
+        // Check authentication based on user type
+        if (user.HasPassword)
         {
-            throw new InvalidOperationException("Invalid password.");
+            // For users with password - verify password
+            if (string.IsNullOrEmpty(password))
+            {
+                throw new InvalidOperationException("Password is required for users with password.");
+            }
+            
+            if (!this.passwordHasher.VerifyPassword(password, user.Password))
+            {
+                throw new InvalidOperationException("Invalid password.");
+            }
+        }
+        else
+        {
+            // For OAuth users - verify they have at least one external login
+            var externalLogins = await this.externalLoginRepository.GetByUserIdAsync(userId);
+            if (externalLogins.Count == 0)
+            {
+                throw new InvalidOperationException("OAuth user without external logins cannot delete account.");
+            }
         }
 
         await this.accountDeletionRepository.InvalidateAllByUserIdAsync(userId);
 
-        if (string.IsNullOrEmpty(user.Email))
-        {
-            throw new InvalidOperationException("User does not have an email address");
-        }
-
         var code = GenerateVerificationCode();
+        var expiresAt = DateTime.UtcNow.AddHours(24);
         var deletion = new AccountDeletion
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Email = user.Email,
+            Email = user.Email ?? string.Empty, // Store empty string for users without email
             ConfirmationCode = code,
-            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            ExpiresAt = expiresAt,
             IsUsed = false,
             CreatedAt = DateTime.UtcNow
         };
 
         await this.accountDeletionRepository.AddAsync(deletion);
-        await this.emailService.SendAccountDeletionConfirmationAsync(user.UserName, user.Email, code);
+
+        var emailSent = false;
+
+        // Send confirmation only if user has email
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            await this.emailService.SendAccountDeletionConfirmationAsync(user.UserName, user.Email, code);
+            emailSent = true;
+        }
+
+        // Return response with code for OAuth users without email
+        return new AccountDeletionResponseDto
+        {
+            Code = emailSent ? null : code, // Return code only if email was not sent
+            EmailSent = emailSent,
+            ExpiresAt = expiresAt
+        };
+    }
+
+    public async Task<string?> GetAccountDeletionCodeAsync(Guid userId)
+    {
+        var deletion = await this.accountDeletionRepository.GetActiveByUserIdAsync(userId);
+        return deletion?.ConfirmationCode;
     }
 
     public async Task<bool> ConfirmAccountDeletionAsync(Guid userId, string code)

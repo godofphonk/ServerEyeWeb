@@ -187,10 +187,19 @@ const availableProviders: Provider[] = [
                   <div>
                     <p className='font-medium'>{provider.name}</p>
                     {linkedAccount ? (
-                      <p className='text-sm text-gray-400 flex items-center gap-1'>
-                        <CheckCircle className='w-3 h-3 text-green-400' />
-                        {linkedAccount.providerDisplayName}
-                      </p>
+                      <div className='space-y-1'>
+                        <p className='text-sm text-gray-400 flex items-center gap-1'>
+                          <CheckCircle className='w-3 h-3 text-green-400' />
+                          {linkedAccount.providerDisplayName}
+                        </p>
+                        {linkedAccount.email ? (
+                          <p className='text-sm text-gray-500'>{linkedAccount.email}</p>
+                        ) : (
+                          <button className='text-sm text-blue-400 hover:text-blue-300 transition-colors'>
+                            No email. Add email?
+                          </button>
+                        )}
+                      </div>
                     ) : provider.available ? (
                       <p className='text-sm text-gray-400'>Not connected</p>
                     ) : (
