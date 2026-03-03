@@ -573,6 +573,7 @@ export interface ExternalLogin {
   providerKey: string;
   providerDisplayName: string;
   isLinked: boolean;
+  email?: string; // Email может быть пустым для Telegram пользователей
 }
 
 export interface ExternalLoginsResponse {
