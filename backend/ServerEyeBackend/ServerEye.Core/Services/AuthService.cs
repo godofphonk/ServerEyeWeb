@@ -33,6 +33,11 @@ public sealed class AuthService(
 
         await this.emailVerificationRepository.InvalidateAllByUserIdAsync(userId, EmailVerificationType.Registration);
 
+        if (string.IsNullOrEmpty(user.Email))
+        {
+            throw new InvalidOperationException("User does not have an email address");
+        }
+
         var code = GenerateVerificationCode();
         var verification = new EmailVerification
         {
@@ -70,7 +75,11 @@ public sealed class AuthService(
         user.EmailVerifiedAt = DateTime.UtcNow;
 
         await this.userRepository.UpdateUserAsync(user);
-        await this.emailService.SendRegistrationEmailAsync(user.UserName, user.Email);
+        
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            await this.emailService.SendRegistrationEmailAsync(user.UserName, user.Email);
+        }
 
         return true;
     }
@@ -97,7 +106,11 @@ public sealed class AuthService(
         };
 
         await this.passwordResetTokenRepository.AddAsync(resetToken);
-        await this.emailService.SendPasswordResetEmailAsync(user.UserName, user.Email, token);
+        
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            await this.emailService.SendPasswordResetEmailAsync(user.UserName, user.Email, token);
+        }
     }
 
     public async Task<bool> ResetPasswordAsync(string token, string newPassword)
@@ -120,7 +133,11 @@ public sealed class AuthService(
         resetToken.IsUsed = true;
 
         await this.userRepository.UpdateUserAsync(user);
-        await this.emailService.SendPasswordChangedNotificationAsync(user.UserName, user.Email);
+        
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            await this.emailService.SendPasswordChangedNotificationAsync(user.UserName, user.Email);
+        }
 
         return true;
     }
@@ -180,7 +197,11 @@ public sealed class AuthService(
         user.EmailVerifiedAt = DateTime.UtcNow;
 
         await this.userRepository.UpdateUserAsync(user);
-        await this.emailService.SendEmailChangedNotificationAsync(user.UserName, oldEmail, user.Email);
+        
+        if (!string.IsNullOrEmpty(oldEmail) && !string.IsNullOrEmpty(user.Email))
+        {
+            await this.emailService.SendEmailChangedNotificationAsync(user.UserName, oldEmail, user.Email);
+        }
 
         return true;
     }
@@ -195,6 +216,11 @@ public sealed class AuthService(
         }
 
         await this.accountDeletionRepository.InvalidateAllByUserIdAsync(userId);
+
+        if (string.IsNullOrEmpty(user.Email))
+        {
+            throw new InvalidOperationException("User does not have an email address");
+        }
 
         var code = GenerateVerificationCode();
         var deletion = new AccountDeletion

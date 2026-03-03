@@ -377,7 +377,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getExternalLogins = useCallback(async (): Promise<ExternalLoginsResponse> => {
-    const response = await apiClient.get<ExternalLoginsResponse>('/auth/oauth/external-logins');
+    const response = await apiClient.get<ExternalLoginsResponse>('/auth/oauth/providers');
     return response;
   }, []);
 
