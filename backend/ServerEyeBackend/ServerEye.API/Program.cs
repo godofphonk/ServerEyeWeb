@@ -392,6 +392,10 @@ if (securitySettings.RequireHttps && !app.Environment.IsDevelopment())
 // Use CORS
 app.UseCors("AllowFrontend");
 
+// Use Default Files and Static Files for Telegram OAuth callback
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 // Use Rate Limiting (must be before Authentication)
 app.UseRateLimiter();
 
