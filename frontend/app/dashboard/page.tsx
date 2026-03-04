@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/useToast';
+import { hasUserAccess } from '@/lib/authUtils';
 import {
   MonitoredServer,
   DashboardMetrics,
@@ -28,7 +30,6 @@ import {
 } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { useToast } from '@/hooks/useToast';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 
 export default function DashboardPage() {
@@ -178,14 +179,24 @@ export default function DashboardPage() {
       redirectAttempted.current = true;
       setIsLoadingServers(false);
       router.push('/login');
-    } else if (!authLoading && isAuthenticated && !loadServersCalled.current) {
-      console.log('[Dashboard] Loading servers...');
-      redirectAttempted.current = false;
-      loadServersCalled.current = true;
-      loadServers();
+    } else if (!authLoading && isAuthenticated && !redirectAttempted.current) {
+      // Проверяем доступ с учетом OAuth пользователей
+      const userHasAccess = hasUserAccess(user, isEmailVerified);
+      
+      if (!userHasAccess) {
+        console.log('[Dashboard] Email not verified, redirecting to verify-email');
+        redirectAttempted.current = true;
+        setIsLoadingServers(false);
+        router.push('/verify-email');
+      } else if (!loadServersCalled.current) {
+        console.log('[Dashboard] Loading servers...');
+        redirectAttempted.current = false;
+        loadServersCalled.current = true;
+        loadServers();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, authLoading, router]); // Убрали loadServers из зависимостей
+  }, [isAuthenticated, authLoading, isEmailVerified, user, router]); // Добавили isEmailVerified и user
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

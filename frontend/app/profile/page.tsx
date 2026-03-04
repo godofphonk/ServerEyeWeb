@@ -6,6 +6,7 @@ import { User, Mail, Lock, Save, AlertCircle, CheckCircle, Trash2 } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { hasUserAccess } from '@/lib/authUtils';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { apiClient } from '@/lib/api';
@@ -66,14 +67,26 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
+      return;
     }
+    
+    // Проверяем доступ с учетом OAuth пользователей
+    if (!loading && isAuthenticated) {
+      const userHasAccess = hasUserAccess(user, isEmailVerified);
+      
+      if (!userHasAccess) {
+        router.push('/verify-email');
+        return;
+      }
+    }
+    
     if (user) {
       setProfileData({
         username: user.username,
         email: user.email,
       });
     }
-  }, [user, isAuthenticated, loading, router]);
+  }, [user, isAuthenticated, loading, isEmailVerified, router]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();

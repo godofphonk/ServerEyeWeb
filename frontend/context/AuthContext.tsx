@@ -9,7 +9,14 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import { User, BackendUser, OAuthChallengeResponse, ExternalLoginsResponse, LinkOAuthRequest } from '@/types';
+import {
+  User,
+  BackendUser,
+  OAuthChallengeResponse,
+  ExternalLoginsResponse,
+  LinkOAuthRequest,
+  ExternalLogin
+} from '@/types';
 import { apiClient } from '@/lib/api';
 
 interface AuthContextType {
@@ -420,8 +427,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getExternalLogins = useCallback(async (): Promise<ExternalLoginsResponse> => {
-    const response = await apiClient.get<ExternalLoginsResponse>('/auth/oauth/providers');
-    return response;
+    const response = await apiClient.get<ExternalLogin[]>('/auth/oauth/providers');
+    // Backend возвращает массив напрямую, оборачиваем в ожидаемую структуру
+    return { externalLogins: response };
   }, []);
 
   const linkExternalAccount = useCallback(async (provider: string, code: string, state: string): Promise<void> => {
