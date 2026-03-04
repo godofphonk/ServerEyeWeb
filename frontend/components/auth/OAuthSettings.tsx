@@ -144,12 +144,24 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
     
     const linkingState = `linking_${provider}_${userId}_${challenge.state}`;
     console.log('[OAuthSettings] Created linking state:', linkingState);
+    console.log('[OAuthSettings] Challenge URL:', challenge.challengeUrl);
+    console.log('[OAuthSettings] Looking for pattern:', `state=${provider}_${challenge.state}`);
     
     // Replace state parameter in challenge URL
+    // Google uses state without prefix, GitHub uses state with prefix
+    const statePattern = provider === 'google' 
+      ? `state=${challenge.state}` 
+      : `state=${provider}_${challenge.state}`;
+    
     const modifiedChallengeUrl = challenge.challengeUrl.replace(
-      `state=${provider}_${challenge.state}`,
+      statePattern,
       `state=${linkingState}`
     );
+    
+    console.log('[OAuthSettings] Modified URL:', modifiedChallengeUrl);
+    console.log('[OAuthSettings] Replace successful:', modifiedChallengeUrl !== challenge.challengeUrl);
+    
+    alert(`About to redirect to ${provider} with linking state:\n${linkingState}\n\nCheck console for full URL!`);
 
     window.location.href = modifiedChallengeUrl;
     } catch (error: any) {
