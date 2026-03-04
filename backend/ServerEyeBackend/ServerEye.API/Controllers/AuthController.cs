@@ -534,7 +534,7 @@ public class AuthController : ControllerBase
             {
                 Provider = provider ?? string.Empty,
                 Code = code ?? hash ?? string.Empty, // Use code or hash for Telegram
-                State = ExtractStateFromState(state), // Remove provider prefix if present
+                State = isLinking && !string.IsNullOrEmpty(actualState) ? actualState : ExtractStateFromState(state), // Use actualState from linking or extract from regular state
                 LinkingAction = linkingAction,
                 UserId = userId
             };
