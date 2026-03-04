@@ -456,7 +456,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("oauth/callback")]
-    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? hash, [FromQuery] string? provider)
+    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? hash, [FromQuery] string? provider, [FromQuery] bool linkingAction = false, [FromQuery] string? userId = null)
     {
         try
         {
@@ -477,11 +477,12 @@ public class AuthController : ControllerBase
             }
 
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}",
+            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, LinkingAction: {LinkingAction}",
             provider,
             code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
             hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
-            state);
+            state,
+            linkingAction);
 
             // Validate required parameters
             if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
@@ -500,8 +501,30 @@ public class AuthController : ControllerBase
             {
                 Provider = provider ?? string.Empty,
                 Code = code ?? hash ?? string.Empty, // Use code or hash for Telegram
-                State = ExtractStateFromState(state) // Remove provider prefix if present
+                State = ExtractStateFromState(state), // Remove provider prefix if present
+                LinkingAction = linkingAction,
+                UserId = userId
             };
+
+            // If this is a linking action, use LinkExternalLoginAsync instead
+            if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
+            {
+                this.logger.LogInformation("Processing OAuth linking for user: {UserId}", userGuid);
+                
+                var linkRequest = new OAuthLinkRequestDto
+                {
+                    Provider = request.Provider,
+                    Code = request.Code,
+                    State = request.State
+                };
+                
+                var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
+                
+                this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
+                
+                // Redirect to connected accounts page with success
+                return this.Redirect("http://localhost:3001/settings/connected-accounts?linking=success");
+            }
 
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
 

@@ -31,7 +31,12 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
   const loadExternalLogins = async () => {
     try {
       const response = await getExternalLogins();
-      setExternalLogins(response.externalLogins || []);
+      const providers = response.externalLogins || [];
+      
+      console.log('[OAuthSettings] External logins loaded:', providers);
+      console.log('[OAuthSettings] GitHub provider status:', providers.find(p => p.name === 'GitHub'));
+      
+      setExternalLogins(providers);
     } catch (error: any) {
       console.error('Failed to load external logins:', error);
       toast.error('Error', 'Failed to load connected accounts');
@@ -42,23 +47,75 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
 
   useEffect(() => {
     loadExternalLogins();
+    
+    // Check if there's a pending linking request from OAuth callback
+    const checkPendingLinking = () => {
+      if (typeof window !== 'undefined') {
+        const linkingInfo = sessionStorage.getItem('oauth_linking');
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        
+        if (linkingInfo && code && state) {
+          try {
+            const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
+            
+            console.log('[OAuthSettings] Found pending linking request:', { action, provider, expectedState, hasCode: !!code, hasState: !!state });
+            
+            if (action === 'link' && state.includes(expectedState)) {
+              console.log('[OAuthSettings] Processing pending linking request');
+              
+              // Update sessionStorage with code and state
+              sessionStorage.setItem('oauth_linking', JSON.stringify({
+                action,
+                provider,
+                code,
+                state,
+              }));
+              
+              // Redirect to link handler
+              window.location.href = '/oauth/link-handler';
+              return;
+            }
+          } catch (err) {
+            console.error('[OAuthSettings] Error processing linking info:', err);
+            sessionStorage.removeItem('oauth_linking');
+          }
+        }
+      }
+    };
+    
+    checkPendingLinking();
   }, []);
 
   const handleLinkAccount = async (provider: string) => {
     setIsLinking(provider);
     
     try {
-      // Get OAuth challenge URL with special callback for linking
-      const challenge = await getOAuthChallenge(provider, '/api/auth/oauth/link-callback');
+      // Get OAuth challenge URL with linking parameter
+      const challenge = await getOAuthChallenge(provider, '/profile?linking=true');
       
-      // Store return URL in sessionStorage
+      console.log('[OAuthSettings] Starting OAuth linking for:', provider);
+      console.log('[OAuthSettings] Challenge state:', challenge.state);
+      console.log('[OAuthSettings] Challenge URL with linking:', challenge.challengeUrl);
+      
+      // Store linking info in sessionStorage
+      // We'll intercept the callback and use code/state for linking
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('oauth_return_url', '/profile');
-        sessionStorage.setItem('oauth_action', 'link');
+        sessionStorage.setItem('oauth_linking', JSON.stringify({
+          action: 'link',
+          provider: provider,
+          state: challenge.state,
+        }));
+        console.log('[OAuthSettings] Saved linking info to sessionStorage');
       }
       
+      // Add linking_action parameter to challenge URL for backend
+      const modifiedChallengeUrl = `${challenge.challengeUrl}&linking_action=true`;
+      console.log('[OAuthSettings] Modified challenge URL with linking_action:', modifiedChallengeUrl);
+      
       // Redirect to OAuth provider
-      window.location.href = challenge.challengeUrl;
+      window.location.href = modifiedChallengeUrl;
     } catch (error: any) {
       console.error('Failed to link account:', error);
       toast.error('Error', `Failed to link ${provider} account`);

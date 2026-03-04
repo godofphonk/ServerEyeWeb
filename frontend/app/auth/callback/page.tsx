@@ -36,6 +36,64 @@ export default function AuthCallbackPage() {
         console.log('[AuthCallback] Token length:', token.length);
         console.log('[AuthCallback] Refresh token length:', refreshToken.length);
 
+        // Check if this is a linking request
+        const linkingInfo = typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
+        
+        if (linkingInfo) {
+          const { action, provider: linkProvider, code: oauthCode, state: oauthState } = JSON.parse(linkingInfo);
+          
+          console.log('[AuthCallback] Linking check:', { action, linkProvider, hasCode: !!oauthCode, hasState: !!oauthState });
+
+          if (action === 'link' && linkProvider === provider && oauthCode && oauthState) {
+            console.log('[AuthCallback] This is a linking request, calling backend /api/auth/oauth/link');
+            
+            // Get current JWT token
+            const jwtToken = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+            
+            if (!jwtToken) {
+              throw new Error('No JWT token found for linking');
+            }
+            
+            // Call backend linking endpoint
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtToken}`,
+              },
+              body: JSON.stringify({
+                provider: linkProvider,
+                code: oauthCode,
+                state: oauthState,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to link account');
+            }
+
+            const linkData = await response.json();
+            console.log('[AuthCallback] Successfully linked account:', linkData);
+            
+            // Update tokens from linking response
+            if (linkData.token && linkData.refreshToken) {
+              localStorage.setItem('jwt_token', linkData.token);
+              localStorage.setItem('refresh_token', linkData.refreshToken);
+            }
+            
+            // Clear linking sessionStorage
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('oauth_linking');
+            }
+
+            setStatus('success');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            router.push('/profile');
+            return;
+          }
+        }
+
         // Use the new method to set tokens and refresh user data
         await setTokensFromCallback(token, refreshToken);
 

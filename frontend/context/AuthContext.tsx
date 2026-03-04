@@ -108,11 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const email = payload.email || payload.Email || '';
             const username = payload.username || payload.UserName || payload.name || payload.unique_name || email.split('@')[0] || 'user';
             const role = payload.role || payload.Role || 'user';
-            const hasPassword = payload.hasPassword ?? payload.HasPassword ?? true;
+            // OAuth пользователи обычно не имеют email или email пустой
+            const isOAuthUser = !email || email.trim() === '' || email.includes('telegram.local') || email.includes('@oauth.');
+            const hasPassword = payload.hasPassword ?? payload.HasPassword ?? !isOAuthUser;
             
-            console.log('[AuthContext] Extracted claims:', { userId, email, username, role, hasPassword });
+            console.log('[AuthContext] Extracted claims:', { userId, email, username, role, hasPassword, isOAuthUser });
             console.log('[AuthContext] Token source check - email_verified:', payload.email_verified);
-            console.log('[AuthContext] This looks like OAuth token:', email.includes('telegram.local') || username === 'telegram_user');
+            console.log('[AuthContext] This looks like OAuth token:', isOAuthUser);
             
             // Clear OAuth tokens from localStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
@@ -421,6 +423,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       `/auth/oauth/${provider}/challenge?${params.toString()}`
     );
     
+    console.log('[AuthContext] OAuth challenge response:', response);
     console.log('[AuthContext] Using challenge URL from backend:', response.challengeUrl);
     
     return response;
