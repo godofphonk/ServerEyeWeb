@@ -272,6 +272,32 @@ public sealed class AuthService(
         };
     }
 
+    public async Task DeleteAccountAsync(Guid userId)
+    {
+        var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
+
+        // Verify this is an OAuth user without email
+        if (user.HasPassword)
+        {
+            throw new InvalidOperationException("This method is only for OAuth users without email. Use RequestAccountDeletionAsync for users with passwords or email.");
+        }
+
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            throw new InvalidOperationException("This method is only for OAuth users without email. Use RequestAccountDeletionAsync for users with email.");
+        }
+
+        // Verify they have at least one external login
+        var externalLogins = await this.externalLoginRepository.GetByUserIdAsync(userId);
+        if (externalLogins.Count == 0)
+        {
+            throw new InvalidOperationException("OAuth user without external logins cannot delete account.");
+        }
+
+        // Delete account immediately without code confirmation
+        await this.userRepository.DeleteAsync(userId);
+    }
+
     public async Task<string?> GetAccountDeletionCodeAsync(Guid userId)
     {
         var deletion = await this.accountDeletionRepository.GetActiveByUserIdAsync(userId);

@@ -18,6 +18,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
 
+  // Clear any OAuth tokens when on login page
+  useEffect(() => {
+    console.log('[LoginPage] Clearing localStorage tokens to ensure clean login');
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }, []);
+
   // Redirect logic is handled by middleware
   // useEffect(() => {
   //   if (!loading && user) {

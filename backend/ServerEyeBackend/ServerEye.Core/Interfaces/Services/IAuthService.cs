@@ -11,6 +11,7 @@ public interface IAuthService
     public Task RequestEmailChangeAsync(Guid userId, string newEmail);
     public Task<bool> ConfirmEmailChangeAsync(Guid userId, string code);
     public Task<AccountDeletionResponseDto> RequestAccountDeletionAsync(Guid userId, string? password);
+    public Task DeleteAccountAsync(Guid userId);
     public Task<string?> GetAccountDeletionCodeAsync(Guid userId);
     public Task<bool> ConfirmAccountDeletionAsync(Guid userId, string code);
 }

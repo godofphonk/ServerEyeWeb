@@ -6,6 +6,7 @@ export interface User {
   role: 'user' | 'admin';
   createdAt: string;
   isEmailVerified?: boolean;
+  hasPassword?: boolean; // Указывает есть ли у пользователя пароль (false для OAuth-only)
 }
 
 export interface AuthResponse {
@@ -21,7 +22,8 @@ export interface BackendUser {
   email: string;
   role?: 'user' | 'admin' | string;
   serverId?: string;
-  isEmailVerified?: boolean; // <-- новое поле
+  isEmailVerified?: boolean;
+  hasPassword?: boolean; // Указывает есть ли у пользователя пароль
 }
 
 export interface BackendAuthResponse {
@@ -538,7 +540,7 @@ export interface ConfirmEmailChangeRequest {
 
 // Account Deletion types
 export interface RequestAccountDeletionRequest {
-  password: string;
+  password: string | null; // Может быть null для OAuth пользователей без пароля
 }
 
 export interface ConfirmAccountDeletionRequest {

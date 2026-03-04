@@ -423,7 +423,8 @@ export default function ProfilePage() {
       <DeleteAccountModal
         isOpen={showDeleteAccountModal}
         onClose={() => setShowDeleteAccountModal(false)}
-        email={profileData.email}
+        email={profileData.email || null}
+        hasPassword={user?.hasPassword ?? true}
       />
     </main>
   );

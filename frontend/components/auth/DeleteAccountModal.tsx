@@ -10,15 +10,16 @@ import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-type DeleteAccountStep = 'initial' | 'password' | 'code' | 'processing' | 'success';
+type DeleteAccountStep = 'initial' | 'password' | 'code' | 'processing' | 'success' | 'direct-confirm';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  email: string;
+  email: string | null; // Может быть null для OAuth пользователей без email
+  hasPassword: boolean; // Указывает есть ли у пользователя пароль (не OAuth-only)
 }
 
-export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModalProps) {
+export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: DeleteAccountModalProps) {
   const router = useRouter();
   const toast = useToast();
   const { clearAuthData } = useAuth();
@@ -59,7 +60,7 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
   const handleRequestDeletion = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!password) {
+    if (hasPassword && !password) {
       toast.error('Password Required', 'Please enter your password to continue');
       return;
     }
@@ -67,14 +68,14 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
     setIsLoading(true);
 
     try {
-      await authApi.requestAccountDeletion({ password });
+      await authApi.requestAccountDeletion({ password: hasPassword ? password : null });
       setStep('code');
       setTimeRemaining(24 * 60 * 60); // Reset to 24 hours
       setCodeResendTimer(60); // 60 second cooldown for resend
 
       toast.warning(
         'Deletion Code Sent',
-        `A confirmation code has been sent to ${email}. Check your inbox and spam folder.`,
+        `A confirmation code has been sent to ${email || 'your email'}. Check your inbox and spam folder.`,
       );
     } catch (error: any) {
       const errorMessage =
@@ -194,13 +195,44 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
     }
   };
 
+  const handleDirectDeletion = async () => {
+    setIsLoading(true);
+    setStep('processing');
+
+    try {
+      await authApi.deleteAccountDirect();
+
+      // Clear all authentication data
+      clearAuthData();
+
+      setStep('success');
+
+      toast.success(
+        'Account Deleted',
+        'Your account has been permanently deleted. You will be redirected to the login page.',
+      );
+
+      // Force redirect to login after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message || error?.message || 'Failed to delete account';
+      toast.error('Deletion Failed', errorMessage);
+      setStep('direct-confirm');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleResendCode = async () => {
     if (codeResendTimer > 0) return;
 
     setIsLoading(true);
 
     try {
-      await authApi.requestAccountDeletion({ password });
+      await authApi.requestAccountDeletion({ password: hasPassword ? password : null });
       setTimeRemaining(24 * 60 * 60); // Reset timer
       setCodeResendTimer(60); // Reset resend timer
 
@@ -304,11 +336,50 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => setStep('password')}
+                    onClick={() => email ? setStep('password') : setStep('direct-confirm')}
                     className='flex-1 bg-red-600 hover:bg-red-700'
                   >
                     <Trash2 className='w-4 h-4 mr-2' />
-                    Delete Account
+                    {email ? 'Delete Account' : 'Delete Account (Immediate)'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {step === 'direct-confirm' && (
+              <div className='space-y-6'>
+                <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4'>
+                  <div className='flex items-start gap-3'>
+                    <AlertTriangle className='w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5' />
+                    <div className='space-y-2'>
+                      <p className='text-sm font-semibold text-yellow-400'>
+                        ⚠️ No Email Confirmation Available
+                      </p>
+                      <p className='text-sm text-gray-300'>
+                        Since you don't have an email associated with this account, deletion will be immediate and cannot be reversed.
+                      </p>
+                      <p className='text-sm text-gray-400'>
+                        Are you absolutely sure you want to delete your account?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='flex gap-3'>
+                  <Button
+                    variant='secondary'
+                    onClick={() => setStep('initial')}
+                    disabled={isLoading}
+                    className='flex-1'
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleDirectDeletion}
+                    isLoading={isLoading}
+                    className='flex-1 bg-red-600 hover:bg-red-700'
+                  >
+                    Yes, Delete Now
                   </Button>
                 </div>
               </div>
@@ -359,7 +430,7 @@ export function DeleteAccountModal({ isOpen, onClose, email }: DeleteAccountModa
                   <p className='text-sm text-gray-300'>
                     A 6-digit confirmation code has been sent to:
                   </p>
-                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2'>{email}</p>
+                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2'>{email || 'your email'}</p>
                   <div className='flex items-center justify-center gap-2 text-xs text-yellow-400'>
                     <Clock className='w-3 h-3' />
                     <span>Expires in {formatTime(timeRemaining)}</span>

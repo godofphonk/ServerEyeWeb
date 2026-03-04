@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { User, BackendUser, OAuthChallengeResponse, ExternalLoginsResponse, LinkOAuthRequest } from '@/types';
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const checkAuthCalled = useRef(false); // Отслеживаем был ли вызван checkAuth
 
   const mapBackendUser = (backendUser: BackendUser): User => {
     // Convert backend role to frontend format
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: role,
       createdAt: new Date().toISOString(),
       isEmailVerified: backendUser.isEmailVerified || false,
+      hasPassword: backendUser.hasPassword ?? true, // По умолчанию true для обратной совместимости
     };
 
     console.log('[AuthContext] mapBackendUser - Backend user:', {
@@ -61,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userName: backendUser.userName,
       role: backendUser.role,
       isEmailVerified: backendUser.isEmailVerified,
+      hasPassword: backendUser.hasPassword,
     });
     console.log('[AuthContext] mapBackendUser - Mapped user:', {
       id: user.id,
@@ -68,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: user.username,
       role: user.role,
       isEmailVerified: user.isEmailVerified,
+      hasPassword: user.hasPassword,
     });
 
     return user;
@@ -76,31 +81,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = useCallback(async () => {
     try {
       console.log('[AuthContext] checkAuth called');
+      console.log('[AuthContext] Current state:', { user: !!user, loading });
+      
+      setLoading(true);
       
       // First check if we have tokens in localStorage (from OAuth callback)
       if (typeof window !== 'undefined') {
+        console.log('[AuthContext] Checking localStorage...');
         const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
+        console.log('[AuthContext] Found token:', !!token, token ? token.substring(0, 20) + '...' : 'none');
+        
         if (token && !user) {
           console.log('[AuthContext] Found token in localStorage, attempting to decode user');
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            const userId = payload.sub || payload.nameid || payload.userId || payload.id;
-            const email = payload.email || payload.Email;
-            const username = payload.username || payload.UserName || payload.name || payload.unique_name;
-            const role = payload.role || payload.Role || 'user';
+            console.log('[AuthContext] Decoded payload:', payload);
             
-            if (userId && email) {
+            const userId = payload.sub || payload.nameid || payload.userId || payload.id;
+            const email = payload.email || payload.Email || '';
+            const username = payload.username || payload.UserName || payload.name || payload.unique_name || email.split('@')[0] || 'user';
+            const role = payload.role || payload.Role || 'user';
+            const hasPassword = payload.hasPassword ?? payload.HasPassword ?? true;
+            
+            console.log('[AuthContext] Extracted claims:', { userId, email, username, role, hasPassword });
+            console.log('[AuthContext] Token source check - email_verified:', payload.email_verified);
+            console.log('[AuthContext] This looks like OAuth token:', email.includes('telegram.local') || username === 'telegram_user');
+            
+            // Clear OAuth tokens from localStorage if user is not actually OAuth user
+            if (email.includes('telegram.local') || email.includes('@oauth.')) {
+              console.log('[AuthContext] Detected OAuth token in localStorage, clearing it...');
+              localStorage.removeItem('jwt_token');
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              throw new Error('OAuth token detected, clearing and using session API');
+            }
+            
+            if (userId) {
               const localStorageUser: User = {
                 id: userId,
                 email: email,
-                username: username || email.split('@')[0],
+                username: username || email.split('@')[0] || 'user',
                 role: role as 'user' | 'admin',
                 createdAt: new Date().toISOString(),
-                isEmailVerified: true,
+                isEmailVerified: payload.email_verified === 'TRUE' || payload.email_verified === true,
+                hasPassword: hasPassword,
               };
               
               setUser(localStorageUser);
-              console.log('[AuthContext] User restored from localStorage token');
+              console.log('[AuthContext] User restored from localStorage token:', localStorageUser);
               setLoading(false);
               return;
             }
@@ -110,16 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      // Try session API as fallback
+      // Always try session API as fallback or if no user found
+      console.log('[AuthContext] Trying session API as fallback');
+      console.log('[AuthContext] Available cookies:', document.cookie);
+      
       const res = await fetch('/api/auth/session', { credentials: 'include' });
-      console.log('[AuthContext] checkAuth response:', res.status);
+      console.log('[AuthContext] Session API response status:', res.status);
+      console.log('[AuthContext] Session API response headers:', Object.fromEntries(res.headers.entries()));
+      
       if (res.ok) {
         const data = await res.json();
-        console.log('[AuthContext] checkAuth data:', data);
+        console.log('[AuthContext] Session API response data:', data);
+        
         if (data.user) {
           const mappedUser = mapBackendUser(data.user);
           setUser(mappedUser);
-          console.log('[AuthContext] User authenticated via session');
+          console.log('[AuthContext] User authenticated via session:', mappedUser);
           console.log('[AuthContext] Email verification status:', mappedUser.isEmailVerified);
           console.log(
             '[AuthContext] isEmailVerified computed:',
@@ -147,7 +181,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return;
         }
+      } else {
+        console.log('[AuthContext] Session API returned status:', res.status);
+        console.log('[AuthContext] Session API response text:', await res.text());
       }
+      
       console.log('[AuthContext] No valid session found');
       clearAuthData();
     } catch (error) {
@@ -156,11 +194,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []); // Убираем зависимость user чтобы избежать бесконечного цикла
 
   useEffect(() => {
+    console.log('[AuthContext] useEffect called - checkAuthCalled.current:', checkAuthCalled.current);
     checkAuth();
-  }, []);
+    checkAuthCalled.current = true; // Устанавливаем флаг после вызова
+  }, []); // Пустые зависимости - вызывается только при монтировании
 
   const login = async (email: string, password: string) => {
     console.log('AuthContext login - attempting login with:', {
@@ -205,6 +245,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(mapBackendUser(data.user));
     console.log('AuthContext login - user set successfully');
+    console.log('AuthContext login - mapped user:', mapBackendUser(data.user));
+    checkAuthCalled.current = false; // Сбрасываем флаг после успешного входa
 
     // Also save token to localStorage for apiClient
     if (typeof window !== 'undefined') {
@@ -252,20 +294,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role
       });
       
-      if (userId && email) {
+      // For OAuth users, email can be empty but userId is required
+      if (userId) {
         const user: User = {
           id: userId,
-          email: email,
-          username: username || email.split('@')[0], // Fallback to email prefix
+          email: email || '', // Allow empty email for OAuth users
+          username: username || 'oauth_user',
           role: role as 'user' | 'admin',
-          createdAt: new Date().toISOString(), // OAuth users don't have createdAt
-          isEmailVerified: true, // OAuth users are considered verified
+          createdAt: new Date().toISOString(),
+          isEmailVerified: payload.email_verified === 'TRUE' || payload.email_verified === true,
+          hasPassword: false, // OAuth users don't have passwords
         };
         
         setUser(user);
-        console.log('AuthContext setTokensFromCallback - user set from token:', user);
-        console.log('AuthContext setTokensFromCallback - user object after setUser:', user);
-        console.log('AuthContext setTokensFromCallback - isAuthenticated should be true now');
+        console.log('AuthContext setTokensFromCallback - user set from OAuth:', user);
         return; // Success, don't try fallback
       } else {
         console.log('AuthContext setTokensFromCallback - missing required claims:', {
@@ -338,6 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
     setUser(null);
+    checkAuthCalled.current = false; // Сбрасываем флаг для возможности повторного входа
   };
 
   const refreshUserData = async () => {
@@ -360,7 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshTokens = useCallback(async () => {
     await checkAuth();
-  }, [checkAuth]);
+  }, []); // Убираем зависимость checkAuth
 
   // New OAuth methods using the updated endpoints
   const getOAuthChallenge = useCallback(async (provider: string, returnUrl?: string): Promise<OAuthChallengeResponse> => {
@@ -414,7 +457,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [getOAuthChallenge]);
 
   const isEmailVerifiedValue = user?.isEmailVerified || false;
-  console.log('[AuthContext] Provider - User:', user);
+  console.log('[AuthContext] Provider - User:', user ? user.email : null);
   console.log('[AuthContext] Provider - isEmailVerified:', isEmailVerifiedValue);
 
   return (
