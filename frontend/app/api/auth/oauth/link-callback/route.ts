@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
 
     // Backend should set httpOnly cookies and return user data
     // Redirect to return URL on success
-    return NextResponse.redirect(
-      new URL(returnUrl, request.url)
-    );
+    const successUrl = new URL(returnUrl, request.url);
+    successUrl.searchParams.set('linked', 'true');
+    return NextResponse.redirect(successUrl);
 
   } catch (error) {
     console.error('[OAuth Link Callback] Exception:', error);
