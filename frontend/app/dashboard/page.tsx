@@ -42,6 +42,9 @@ export default function DashboardPage() {
   } = useAuth();
   const router = useRouter();
   const toast = useToast();
+  
+  // Защита от множественных редиректов
+  const redirectAttempted = useRef(false);
 
   console.log('[Dashboard] Auth state:', {
     user: user?.email,
@@ -68,6 +71,7 @@ export default function DashboardPage() {
 
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
+  const loadServersCalled = useRef(false); // Защита от множественных вызовов
 
   const loadServerMetrics = useCallback(
     async (serverKey: string) => {
@@ -160,17 +164,33 @@ export default function DashboardPage() {
   }, []); // Empty dependencies - function is stable
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      loadServers();
-    } else if (!authLoading && !isAuthenticated) {
+    console.log('[Dashboard] useEffect triggered:', {
+      authLoading,
+      isAuthenticated,
+      user: !!user,
+      userId: user?.id,
+      redirectAttempted: redirectAttempted.current,
+      loadServersCalled: loadServersCalled.current
+    });
+    
+    if (!authLoading && !isAuthenticated && !redirectAttempted.current) {
+      console.log('[Dashboard] User not authenticated, redirecting to login');
+      redirectAttempted.current = true;
       setIsLoadingServers(false);
       router.push('/login');
+    } else if (!authLoading && isAuthenticated && !loadServersCalled.current) {
+      console.log('[Dashboard] Loading servers...');
+      redirectAttempted.current = false;
+      loadServersCalled.current = true;
+      loadServers();
     }
-  }, [isAuthenticated, authLoading, router, loadServers]); // Add loadServers dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading, router]); // Убрали loadServers из зависимостей
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     setIsLoadingServers(false);
+    loadServersCalled.current = false; // Сбрасываем флаг для повторной загрузки
 
     // Clear caches and reload
     clearServersCache();

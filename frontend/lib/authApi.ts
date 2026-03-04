@@ -81,4 +81,35 @@ export const authApi = {
       throw error;
     }
   },
+
+  // Direct account deletion for OAuth users without email
+  async deleteAccountDirect() {
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5246/api';
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+
+      console.log('[AuthAPI] Attempting direct account deletion (OAuth without email)');
+
+      const response = await axios.delete(`${baseURL}/auth/delete-account-direct`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        withCredentials: true,
+        timeout: 30000,
+      });
+
+      console.log('[AuthAPI] Direct account deletion successful:', response.status, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.log('[AuthAPI] Direct account deletion error details:');
+      console.log('  Status:', error.response?.status);
+      console.log('  Status Text:', error.response?.statusText);
+      console.log('  Data:', error.response?.data);
+      console.log('  Message:', error.message);
+
+      throw error;
+    }
+  },
 };

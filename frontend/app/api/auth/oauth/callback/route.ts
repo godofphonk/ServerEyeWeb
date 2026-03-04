@@ -55,10 +55,26 @@ export async function GET(request: NextRequest) {
     const responseData = await response.json();
     console.log('[OAuth Universal Callback] Backend response data:', responseData);
 
+    // Extract tokens from response data
+    const { token, refreshToken, provider } = responseData;
+    
+    if (!token || !refreshToken || !provider) {
+      console.error('[OAuth Universal Callback] Missing tokens in response:', responseData);
+      return NextResponse.redirect(
+        new URL('/login?error=missing_tokens', request.url)
+      );
+    }
+
+    // Redirect to callback page with tokens
+    const callbackUrl = new URL('/auth/callback', request.url);
+    callbackUrl.searchParams.set('token', token);
+    callbackUrl.searchParams.set('refreshToken', refreshToken);
+    callbackUrl.searchParams.set('provider', provider);
+    
+    console.log('[OAuth Universal Callback] Redirecting to callback page with tokens');
+    
     // Create response and copy cookies from backend response
-    const frontendResponse = NextResponse.redirect(
-      new URL('/dashboard', request.url)
-    );
+    const frontendResponse = NextResponse.redirect(callbackUrl);
 
     // Copy Set-Cookie headers from backend response
     const setCookieHeaders = response.headers.get('set-cookie');

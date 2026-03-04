@@ -21,7 +21,7 @@ class ApiClient {
     this.client.interceptors.request.use(
       config => {
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('jwt_token');
+          const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
             console.log('[API] Adding JWT token to request:', config.url);
