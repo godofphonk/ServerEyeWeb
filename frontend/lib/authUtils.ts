@@ -4,8 +4,8 @@ import { User } from '@/types';
  * Проверяет имеет ли пользователь доступ к защищенным страницам
  * 
  * Логика:
- * 1. OAuth пользователи без email - доступ разрешен
- * 2. Пользователи с email - доступ только если email верифицирован
+ * 1. OAuth пользователи (hasPassword: false) - доступ разрешен всегда
+ * 2. Обычные пользователи (hasPassword: true) - доступ только если email верифицирован
  * 
  * @param user - объект пользователя
  * @param isEmailVerified - статус верификации email
@@ -16,14 +16,14 @@ export function hasUserAccess(user: User | null, isEmailVerified: boolean): bool
     return false;
   }
 
-  // OAuth пользователи без email (например Telegram) - доступ разрешен
-  const isOAuthUserWithoutEmail = !user.email || user.email.trim() === '';
+  // OAuth пользователи (любые, включая Google, GitHub, Telegram) - доступ разрешен
+  const isOAuthUser = user.hasPassword === false;
   
-  if (isOAuthUserWithoutEmail) {
+  if (isOAuthUser) {
     return true;
   }
 
-  // Пользователи с email - требуется верификация
+  // Обычные пользователи с паролем - требуется верификация email
   return isEmailVerified;
 }
 
@@ -39,21 +39,27 @@ export function shouldShowEmailVerificationBanner(user: User | null, isEmailVeri
     return false;
   }
 
-  // Если email есть и не верифицирован - показываем баннер
+  // OAuth пользователи не видят баннер верификации
+  const isOAuthUser = user.hasPassword === false;
+  if (isOAuthUser) {
+    return false;
+  }
+
+  // Обычные пользователи - показываем баннер если email не верифицирован
   const hasEmail = user.email && user.email.trim() !== '';
   return hasEmail && !isEmailVerified;
 }
 
 /**
- * Проверяет является ли пользователь OAuth пользователем без email
+ * Проверяет является ли пользователь OAuth пользователем
  * 
  * @param user - объект пользователя
- * @returns true если это OAuth пользователь без email
+ * @returns true если это OAuth пользователь (любой, включая с email)
  */
-export function isOAuthUserWithoutEmail(user: User | null): boolean {
+export function isOAuthUser(user: User | null): boolean {
   if (!user) {
     return false;
   }
 
-  return !user.email || user.email.trim() === '';
+  return user.hasPassword === false;
 }

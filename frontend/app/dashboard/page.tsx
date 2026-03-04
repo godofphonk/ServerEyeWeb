@@ -46,7 +46,6 @@ export default function DashboardPage() {
   
   // Защита от множественных редиректов
   const redirectAttempted = useRef(false);
-  const oauthCallbackHandled = useRef(false);
 
   console.log('[Dashboard] Auth state:', {
     user: user?.email,
@@ -74,44 +73,6 @@ export default function DashboardPage() {
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
   const loadServersCalled = useRef(false); // Защита от множественных вызовов
-
-  // Handle OAuth callback parameters
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !oauthCallbackHandled.current) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const error = urlParams.get('error');
-      
-      if (error) {
-        oauthCallbackHandled.current = true;
-        
-        // Show appropriate error message
-        let errorMessage = 'OAuth authentication failed. Please try again.';
-        if (error === 'access_denied') {
-          errorMessage = 'OAuth access was denied. Please try again.';
-        } else if (error === 'backend_error') {
-          errorMessage = 'Failed to connect OAuth account. Please try again.';
-        } else if (error === 'callback_exception') {
-          errorMessage = 'OAuth callback failed. Please try again.';
-        }
-        
-        toast.error('OAuth Connection Failed', errorMessage);
-        
-        // Clean URL
-        window.history.replaceState({}, document.title, '/dashboard');
-      } else if (urlParams.has('success') || urlParams.has('linked')) {
-        oauthCallbackHandled.current = true;
-        
-        // Show success message
-        toast.success('OAuth Account Connected', 'Your OAuth account has been successfully connected.');
-        
-        // Refresh user data to update connected accounts
-        refreshUserData();
-        
-        // Clean URL
-        window.history.replaceState({}, document.title, '/dashboard');
-      }
-    }
-  }, []); // Убираем зависимости чтобы избежать бесконечного цикла
 
   const loadServerMetrics = useCallback(
     async (serverKey: string) => {

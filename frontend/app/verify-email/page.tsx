@@ -7,6 +7,7 @@ import { EmailVerificationModal } from '@/components/auth/EmailVerificationModal
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { isOAuthUser } from '@/lib/authUtils';
 
 export default function VerifyEmailPage() {
   const { user, isEmailVerified, logout } = useAuth();
@@ -15,6 +16,12 @@ export default function VerifyEmailPage() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    // OAuth пользователи не должны попадать на страницу верификации
+    if (user && isOAuthUser(user)) {
+      router.push('/dashboard');
+      return;
+    }
+
     // Проверяем есть ли email в sessionStorage (пользователь пытался войти с неверифицированным email)
     if (typeof window !== 'undefined' && !pendingEmail) {
       const storedEmail = sessionStorage.getItem('pending_verification_email');
@@ -42,12 +49,6 @@ export default function VerifyEmailPage() {
 
     // Если email уже верифицирован - редирект на дашборд
     if (isEmailVerified) {
-      router.push('/dashboard');
-      return;
-    }
-
-    // Если это OAuth пользователь без email - редирект на дашборд
-    if (user && (!user.email || user.email.trim() === '')) {
       router.push('/dashboard');
       return;
     }

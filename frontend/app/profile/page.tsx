@@ -6,7 +6,7 @@ import { User, Mail, Lock, Save, AlertCircle, CheckCircle, Trash2 } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { hasUserAccess } from '@/lib/authUtils';
+import { hasUserAccess, isOAuthUser } from '@/lib/authUtils';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { apiClient } from '@/lib/api';
@@ -25,14 +25,13 @@ export default function ProfilePage() {
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
-  // Check if this is an OAuth user without email
-  const isOAuthUser = !user?.email || user.email.trim() === '';
+  // Check if this is an OAuth user
+  const isOAuthUserProfile = isOAuthUser(user);
 
-  // Handle OAuth callback errors and success
+  // Handle OAuth callback errors
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
-    const linked = urlParams.get('linked');
     
     if (error) {
       switch (error) {
@@ -51,13 +50,8 @@ export default function ProfilePage() {
       
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
-    } else if (linked === 'true') {
-      toast.success('OAuth Connected', 'Your OAuth account has been successfully connected.');
-      
-      // Clean URL
-      window.history.replaceState({}, document.title, '/profile');
     }
-  }, []); // Убираем зависимости чтобы избежать бесконечного цикла
+  }, [toast]);
 
   const [profileData, setProfileData] = useState({
     username: '',
@@ -261,11 +255,11 @@ export default function ProfilePage() {
                       value={profileData.email}
                       onChange={e => setProfileData({ ...profileData, email: e.target.value })}
                       disabled={!isEditing || isSaving}
-                      placeholder={isOAuthUser ? 'No email address' : ''}
+                      placeholder={isOAuthUserProfile ? 'No email address' : ''}
                     />
                     {!isEditing && (
                       <div className='absolute top-8 right-3'>
-                        {isOAuthUser ? (
+                        {isOAuthUserProfile ? (
                           <div className='flex items-center gap-1 text-gray-400'>
                             <AlertCircle className='w-4 h-4' />
                             <span className='text-xs'>Not set</span>
@@ -294,9 +288,9 @@ export default function ProfilePage() {
                         className='mt-2'
                       >
                         <Mail className='w-4 h-4 mr-2' />
-                        {isOAuthUser ? 'Add Email' : 'Change Email'}
+                        {isOAuthUserProfile ? 'Add Email' : 'Change Email'}
                       </Button>
-                      {!isEmailVerified && !isOAuthUser && (
+                      {!isEmailVerified && !isOAuthUserProfile && (
                         <Button
                           type='button'
                           variant='ghost'
