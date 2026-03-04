@@ -570,27 +570,53 @@ export interface OAuthChallengeResponse {
   codeVerifier: string;
 }
 
-export interface ExternalLogin {
+export interface OAuthCallbackRequest {
   provider: string;
-  providerKey: string;
-  providerDisplayName: string;
-  isLinked: boolean;
-  email?: string; // Email может быть пустым для Telegram пользователей
+  code: string;
+  state: string;
+  codeVerifier?: string;
+}
+
+// OAuth Provider Enum (соответствует backend)
+export enum OAuthProvider {
+  None = 0,
+  Google = 1,
+  GitHub = 2,
+  Telegram = 3
+}
+
+export interface ExternalLogin {
+  provider: OAuthProvider;
+  providerUserId: string;
+  providerEmail: string;
+  providerUsername: string;
+  providerAvatarUrl: string;
+  createdAt: string;
+  lastUsedAt: string;
 }
 
 export interface ExternalLoginsResponse {
   externalLogins: ExternalLogin[];
 }
 
+// Утилита для маппинга enum -> string
+export const OAuthProviderMap: Record<OAuthProvider, string> = {
+  [OAuthProvider.None]: 'none',
+  [OAuthProvider.Google]: 'google',
+  [OAuthProvider.GitHub]: 'github',
+  [OAuthProvider.Telegram]: 'telegram'
+};
+
+// Утилита для маппинга string -> enum
+export const StringToOAuthProvider: Record<string, OAuthProvider> = {
+  'none': OAuthProvider.None,
+  'google': OAuthProvider.Google,
+  'github': OAuthProvider.GitHub,
+  'telegram': OAuthProvider.Telegram
+};
+
 export interface LinkOAuthRequest {
   provider: string;
   code: string;
   state: string;
-}
-
-export interface OAuthCallbackRequest {
-  provider: string;
-  code: string;
-  state: string;
-  codeVerifier?: string;
 }
