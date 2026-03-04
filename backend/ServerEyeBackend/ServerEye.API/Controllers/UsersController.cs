@@ -225,5 +225,10 @@ public class UsersController(IUserService userService, IAuthService authService,
             Console.WriteLine($"Authentication failed in {operationName}: {ex.Message}");
             return this.StatusCode(401, new { message = "Invalid email or password" });
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Access denied in {operationName}: {ex.Message}");
+            return this.StatusCode(401, new { message = ex.Message });
+        }
     }
 }
