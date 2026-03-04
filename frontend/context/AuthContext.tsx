@@ -433,7 +433,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unlinkExternalAccount = useCallback(async (provider: string): Promise<void> => {
-    await apiClient.delete(`/auth/oauth/unlink/${provider}`);
+    await apiClient.delete(`/auth/oauth/${provider}`);
   }, []);
 
   // Legacy OAuth methods (updated to use new challenge flow)

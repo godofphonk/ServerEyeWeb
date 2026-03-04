@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ExternalLogin } from '@/types';
+import { ExternalLogin, OAuthProvider, OAuthProviderMap } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 interface OAuthSettingsProps {
@@ -168,8 +168,14 @@ const availableProviders: Provider[] = [
       <CardContent>
         <div className='space-y-4'>
           {availableProviders.map((provider) => {
+            // Маппинг string -> OAuthProvider enum для поиска
+            const providerEnum = provider.key === 'google' ? OAuthProvider.Google :
+                                provider.key === 'github' ? OAuthProvider.GitHub :
+                                provider.key === 'telegram' ? OAuthProvider.Telegram :
+                                OAuthProvider.None;
+            
             const linkedAccount = externalLogins.find(
-              (login) => login.provider.toLowerCase() === provider.key.toLowerCase()
+              (login) => login.provider === providerEnum
             );
 
             return (
@@ -190,12 +196,15 @@ const availableProviders: Provider[] = [
                       <div className='space-y-1'>
                         <p className='text-sm text-gray-400 flex items-center gap-1'>
                           <CheckCircle className='w-3 h-3 text-green-400' />
-                          {linkedAccount.providerDisplayName}
+                          {linkedAccount.providerUsername || 'Connected'}
                         </p>
-                        {linkedAccount.email ? (
-                          <p className='text-sm text-gray-500'>{linkedAccount.email}</p>
+                        {linkedAccount.providerEmail ? (
+                          <p className='text-sm text-gray-500'>{linkedAccount.providerEmail}</p>
                         ) : (
-                          <button className='text-sm text-blue-400 hover:text-blue-300 transition-colors'>
+                          <button 
+                            onClick={() => window.location.href = '/profile'}
+                            className='text-sm text-blue-400 hover:text-blue-300 transition-colors'
+                          >
                             No email. Add email?
                           </button>
                         )}
