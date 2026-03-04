@@ -29,15 +29,19 @@ export function EmailChangeModal({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
+  // Check if this is an OAuth user without email
+  const isOAuthUser = !currentEmail || currentEmail.trim() === '';
+
   const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!newEmail.trim()) {
-      toast.error('Email Required', 'Please enter your new email address');
+      toast.error('Email Required', 'Please enter your email address');
       return;
     }
 
-    if (newEmail === currentEmail) {
+    // For OAuth users, any email is valid (they don't have current email)
+    if (!isOAuthUser && newEmail === currentEmail) {
       toast.error('Same Email', 'New email must be different from current email');
       return;
     }
@@ -78,7 +82,11 @@ export function EmailChangeModal({
       await authApi.confirmEmailChange({ code: verificationCode });
       setIsVerified(true);
 
-      toast.success('Email Changed', 'Your email has been successfully updated');
+      const successMessage = isOAuthUser 
+        ? 'Email Added Successfully' 
+        : 'Email Changed Successfully';
+      
+      toast.success(successMessage, `Your email has been successfully ${isOAuthUser ? 'added' : 'updated'}`);
 
       setTimeout(() => {
         onSuccess(newEmail);
@@ -159,16 +167,16 @@ export function EmailChangeModal({
                 <div>
                   <h3 className='text-xl font-bold text-white'>
                     {isVerified
-                      ? 'Email Updated!'
+                      ? (isOAuthUser ? 'Email Added!' : 'Email Updated!')
                       : step === 'input'
-                        ? 'Change Email'
-                        : 'Verify New Email'}
+                        ? (isOAuthUser ? 'Add Email Address' : 'Change Email')
+                        : 'Verify Email Address'}
                   </h3>
                   <p className='text-sm text-gray-400'>
                     {isVerified
-                      ? 'Your email has been successfully updated'
+                      ? `Your email has been successfully ${isOAuthUser ? 'added' : 'updated'}`
                       : step === 'input'
-                        ? `Current: ${currentEmail}`
+                        ? (isOAuthUser ? 'Add an email address to your account' : `Current: ${currentEmail}`)
                         : `Code sent to ${newEmail}`}
                   </p>
                 </div>
@@ -189,11 +197,11 @@ export function EmailChangeModal({
                 {step === 'input' ? (
                   <form onSubmit={handleSubmitEmail} className='space-y-6'>
                     <Input
-                      label='New Email Address'
+                      label={isOAuthUser ? 'Email Address' : 'New Email Address'}
                       type='email'
                       value={newEmail}
                       onChange={e => setNewEmail(e.target.value)}
-                      placeholder='Enter new email address'
+                      placeholder={isOAuthUser ? 'Enter your email address' : 'Enter new email address'}
                       required
                       disabled={isLoading}
                     />
@@ -204,7 +212,7 @@ export function EmailChangeModal({
                       isLoading={isLoading}
                       disabled={!newEmail.trim()}
                     >
-                      Send Verification Code
+                      {isOAuthUser ? 'Add Email Address' : 'Send Verification Code'}
                     </Button>
                   </form>
                 ) : (
@@ -223,7 +231,7 @@ export function EmailChangeModal({
                         disabled={isVerifying}
                       />
                       <p className='text-xs text-gray-400 mt-2 text-center'>
-                        Check your new email for the verification code
+                        Check your email for the verification code
                       </p>
                     </div>
 
@@ -254,7 +262,7 @@ export function EmailChangeModal({
                         isLoading={isVerifying}
                         disabled={verificationCode.length !== 6}
                       >
-                        Verify & Update Email
+                        {isOAuthUser ? 'Verify & Add Email' : 'Verify & Update Email'}
                       </Button>
 
                       <Button
@@ -276,7 +284,9 @@ export function EmailChangeModal({
             {isVerified && (
               <div className='text-center py-4'>
                 <CheckCircle className='w-16 h-16 text-green-400 mx-auto mb-4' />
-                <p className='text-gray-300'>Your email has been successfully changed to:</p>
+                <p className='text-gray-300'>
+                  Your email has been successfully {isOAuthUser ? 'added:' : 'changed to:'}
+                </p>
                 <p className='font-mono text-sm bg-white/10 rounded-lg p-3 mt-2'>{newEmail}</p>
               </div>
             )}

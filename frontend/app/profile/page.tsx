@@ -24,6 +24,9 @@ export default function ProfilePage() {
   const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
+  // Check if this is an OAuth user without email
+  const isOAuthUser = !user?.email || user.email.trim() === '';
+
   // Handle OAuth callback errors
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -239,10 +242,16 @@ export default function ProfilePage() {
                       value={profileData.email}
                       onChange={e => setProfileData({ ...profileData, email: e.target.value })}
                       disabled={!isEditing || isSaving}
+                      placeholder={isOAuthUser ? 'No email address' : ''}
                     />
                     {!isEditing && (
                       <div className='absolute top-8 right-3'>
-                        {isEmailVerified ? (
+                        {isOAuthUser ? (
+                          <div className='flex items-center gap-1 text-gray-400'>
+                            <AlertCircle className='w-4 h-4' />
+                            <span className='text-xs'>Not set</span>
+                          </div>
+                        ) : isEmailVerified ? (
                           <div className='flex items-center gap-1 text-green-400'>
                             <CheckCircle className='w-4 h-4' />
                             <span className='text-xs'>Verified</span>
@@ -266,9 +275,9 @@ export default function ProfilePage() {
                         className='mt-2'
                       >
                         <Mail className='w-4 h-4 mr-2' />
-                        Change Email
+                        {isOAuthUser ? 'Add Email' : 'Change Email'}
                       </Button>
-                      {!isEmailVerified && (
+                      {!isEmailVerified && !isOAuthUser && (
                         <Button
                           type='button'
                           variant='ghost'
