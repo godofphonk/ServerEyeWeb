@@ -57,7 +57,7 @@ export default function ProfilePage() {
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
     }
-  }, [toast]);
+  }, []); // Убираем зависимости чтобы избежать бесконечного цикла
 
   const [profileData, setProfileData] = useState({
     username: '',

@@ -111,7 +111,7 @@ export default function DashboardPage() {
         window.history.replaceState({}, document.title, '/dashboard');
       }
     }
-  }, [toast, refreshUserData]);
+  }, []); // Убираем зависимости чтобы избежать бесконечного цикла
 
   const loadServerMetrics = useCallback(
     async (serverKey: string) => {
