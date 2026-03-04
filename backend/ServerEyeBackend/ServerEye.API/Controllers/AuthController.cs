@@ -801,13 +801,20 @@ public class AuthController : ControllerBase
             return state;
         }
 
-        var underscoreIndex = state.IndexOf('_', StringComparison.Ordinal);
-        if (underscoreIndex > 0 && underscoreIndex < state.Length - 1)
+        // Only extract from provider-prefixed state (google_, github_, telegram_)
+        // Don't extract from regular state or linking state
+        if (state.StartsWith("google_", StringComparison.OrdinalIgnoreCase) ||
+            state.StartsWith("github_", StringComparison.OrdinalIgnoreCase) ||
+            state.StartsWith("telegram_", StringComparison.OrdinalIgnoreCase))
         {
-            return state[(underscoreIndex + 1)..];
+            var underscoreIndex = state.IndexOf('_', StringComparison.Ordinal);
+            if (underscoreIndex > 0 && underscoreIndex < state.Length - 1)
+            {
+                return state[(underscoreIndex + 1)..];
+            }
         }
 
-        return state;
+        return state; // Return as-is for regular state and linking state
     }
 
     #endregion
