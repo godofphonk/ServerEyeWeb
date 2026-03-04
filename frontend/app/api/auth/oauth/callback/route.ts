@@ -24,73 +24,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  try {
-    // Forward the callback to the backend as POST (backend expects POST, not GET)
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback`;
-    
-    console.log('[OAuth Universal Callback] Forwarding to backend:', backendUrl);
-    
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code,
-        state,
-      }),
-    });
-
-    console.log('[OAuth Universal Callback] Backend response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[OAuth Universal Callback] Backend error:', response.status, errorText);
-      return NextResponse.redirect(
-        new URL('/auth?error=oauth_failed', request.url)
-      );
-    }
-
-    // Get response data and cookies from backend
-    const responseData = await response.json();
-    console.log('[OAuth Universal Callback] Backend response data:', responseData);
-
-    // Extract tokens from response data
-    const { token, refreshToken, provider } = responseData;
-    
-    if (!token || !refreshToken || !provider) {
-      console.error('[OAuth Universal Callback] Missing tokens in response:', responseData);
-      return NextResponse.redirect(
-        new URL('/login?error=missing_tokens', request.url)
-      );
-    }
-
-    // Redirect to callback page with tokens
-    const callbackUrl = new URL('/auth/callback', request.url);
-    callbackUrl.searchParams.set('token', token);
-    callbackUrl.searchParams.set('refreshToken', refreshToken);
-    callbackUrl.searchParams.set('provider', provider);
-    
-    console.log('[OAuth Universal Callback] Redirecting to callback page with tokens');
-    
-    // Create response and copy cookies from backend response
-    const frontendResponse = NextResponse.redirect(callbackUrl);
-
-    // Copy Set-Cookie headers from backend response
-    const setCookieHeaders = response.headers.get('set-cookie');
-    if (setCookieHeaders) {
-      console.log('[OAuth Universal Callback] Copying cookies from backend');
-      frontendResponse.headers.set('Set-Cookie', setCookieHeaders);
-    } else {
-      console.log('[OAuth Universal Callback] No cookies received from backend');
-    }
-
-    return frontendResponse;
-
-  } catch (error) {
-    console.error('[OAuth Universal Callback] Exception:', error);
-    return NextResponse.redirect(
-      new URL('/login?error=callback_exception', request.url)
-    );
-  }
+  // Check if this is a linking request by passing code and state to intercept page
+  // The intercept page will check sessionStorage and decide whether to link or login
+  const interceptUrl = new URL('/oauth/intercept', request.url);
+  interceptUrl.searchParams.set('code', code);
+  interceptUrl.searchParams.set('state', state);
+  
+  console.log('[OAuth Universal Callback] Redirecting to intercept page for processing');
+  return NextResponse.redirect(interceptUrl);
 }

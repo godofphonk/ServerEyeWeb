@@ -32,17 +32,32 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get JWT token from cookies or localStorage
+    const jwtToken = request.cookies.get('jwt_token')?.value || 
+                     request.cookies.get('access_token')?.value;
+    
+    console.log('[OAuth Link Callback] JWT token found:', !!jwtToken);
+    console.log('[OAuth Link Callback] Action:', action);
+    
     // Forward the callback to the backend as POST (backend expects POST, not GET)
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback`;
     
     console.log('[OAuth Link Callback] Forwarding to backend:', backendUrl);
     
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('cookie') || '',
+    };
+    
+    // Add Authorization header if JWT token is available (for linking)
+    if (jwtToken && action === 'link') {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+      console.log('[OAuth Link Callback] Adding Authorization header for linking');
+    }
+    
     const backendResponse = await fetch(backendUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
-      },
+      headers,
       body: JSON.stringify({
         code,
         state,

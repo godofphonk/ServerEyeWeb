@@ -28,10 +28,78 @@ export default function ProfilePage() {
   // Check if this is an OAuth user
   const isOAuthUserProfile = isOAuthUser(user);
 
-  // Handle OAuth callback errors
+  // Handle OAuth callback errors and linking
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
+    const linking = urlParams.get('linking');
+    const auth = urlParams.get('auth');
+    
+    // Check for linking parameter
+    if (linking === 'true') {
+      console.log('[Profile] Detected linking parameter, checking for OAuth linking info');
+      
+      const linkingInfo = sessionStorage.getItem('oauth_linking');
+      
+      if (linkingInfo) {
+        try {
+          const { action, provider } = JSON.parse(linkingInfo);
+          
+          console.log('[Profile] Found linking info:', { action, provider });
+          
+          if (action === 'link') {
+            console.log('[Profile] This is a linking request, but we need OAuth code and state');
+            toast.info('OAuth Linking', 'Please complete the OAuth process to link your account.');
+            
+            // Clear linking info since we don't have code/state
+            sessionStorage.removeItem('oauth_linking');
+          }
+        } catch (err) {
+          console.error('[Profile] Error parsing linking info:', err);
+          sessionStorage.removeItem('oauth_linking');
+        }
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+    }
+    
+    // Check for auth=success (backend processed OAuth)
+    if (auth === 'success') {
+      console.log('[Profile] Detected auth=success, checking for OAuth linking');
+      
+      const linkingInfo = sessionStorage.getItem('oauth_linking');
+      
+      if (linkingInfo) {
+        try {
+          const { action, provider } = JSON.parse(linkingInfo);
+          
+          console.log('[Profile] Found linking info after OAuth:', { action, provider });
+          
+          if (action === 'link') {
+            console.log('[Profile] This was a linking request! Backend should have processed it automatically');
+            
+            // Since we passed linking_action=true, backend should have automatically linked the account
+            // Just show success and let user refresh manually
+            toast.success('Success', `${provider} account linked successfully! Please refresh to see updated connections.`);
+            
+            // Clear linking info
+            sessionStorage.removeItem('oauth_linking');
+            
+            // Don't auto-refresh - let user refresh manually to see the changes
+          }
+        } catch (err) {
+          console.error('[Profile] Error processing linking after OAuth:', err);
+          toast.error('Error', 'Failed to process linking request');
+        }
+        
+        // Clear linking info
+        sessionStorage.removeItem('oauth_linking');
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+    }
     
     if (error) {
       switch (error) {

@@ -57,6 +57,8 @@ public class OAuthCallbackRequestDto
     public string State { get; set; } = string.Empty;
     public string Error { get; set; } = string.Empty;
     public string ErrorDescription { get; set; } = string.Empty;
+    public bool LinkingAction { get; set; }
+    public string? UserId { get; set; }
 }
 
 public class TokenResponseDto

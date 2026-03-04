@@ -76,6 +76,32 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Check for OAuth linking parameters
+  const url = request.nextUrl;
+  const linkingParam = url.searchParams.get('linking');
+  const authParam = url.searchParams.get('auth');
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+
+  if (linkingParam === 'true' && code && state) {
+    console.log('[Middleware] Detected OAuth linking with code and state');
+    
+    // Redirect to intercept page for processing
+    const interceptUrl = new URL('/oauth/intercept', request.url);
+    interceptUrl.searchParams.set('code', code);
+    interceptUrl.searchParams.set('state', state);
+    
+    return NextResponse.redirect(interceptUrl);
+  }
+
+  // Check for OAuth auth=success (backend processed OAuth)
+  if (authParam === 'success' && url.pathname !== '/profile') {
+    console.log('[Middleware] Detected OAuth auth=success, redirecting to profile');
+    
+    // Only redirect if not already on profile page
+    return NextResponse.redirect(new URL('/profile?auth=success', request.url));
+  }
+
   // If trying to access auth route with token, redirect to dashboard
   if (isAuthRoute && accessToken) {
     return NextResponse.redirect(new URL('/dashboard', request.url));

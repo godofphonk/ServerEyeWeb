@@ -174,6 +174,41 @@ export default function DashboardPage() {
       loadServersCalled: loadServersCalled.current
     });
     
+    // Check for pending OAuth linking
+    if (typeof window !== 'undefined') {
+      const linkingInfo = sessionStorage.getItem('oauth_linking');
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      
+      if (linkingInfo && code && state) {
+        try {
+          const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
+          
+          console.log('[Dashboard] Found pending linking request:', { action, provider, expectedState, hasCode: !!code, hasState: !!state });
+          
+          if (action === 'link' && state.includes(expectedState)) {
+            console.log('[Dashboard] Processing pending linking request');
+            
+            // Update sessionStorage with code and state
+            sessionStorage.setItem('oauth_linking', JSON.stringify({
+              action,
+              provider,
+              code,
+              state,
+            }));
+            
+            // Redirect to link handler
+            window.location.href = '/oauth/link-handler';
+            return;
+          }
+        } catch (err) {
+          console.error('[Dashboard] Error processing linking info:', err);
+          sessionStorage.removeItem('oauth_linking');
+        }
+      }
+    }
+    
     if (!authLoading && !isAuthenticated && !redirectAttempted.current) {
       console.log('[Dashboard] User not authenticated, redirecting to login');
       redirectAttempted.current = true;
