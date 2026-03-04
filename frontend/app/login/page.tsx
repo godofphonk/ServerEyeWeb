@@ -69,7 +69,20 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
+      const errorMessage = err.message || 'Invalid email or password';
+      
+      // Проверяем требуется ли верификация email
+      if (errorMessage.includes('Email verification required') || 
+          errorMessage.includes('verification') ||
+          err.response?.status === 401) {
+        // Сохраняем email для страницы верификации
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('pending_verification_email', email);
+        }
+        router.push('/verify-email');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

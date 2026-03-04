@@ -12,10 +12,22 @@ export default function VerifyEmailPage() {
   const { user, isEmailVerified, logout } = useAuth();
   const router = useRouter();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Если пользователь не залогинен - редирект на логин
-    if (!user) {
+    // Проверяем есть ли email в sessionStorage (пользователь пытался войти с неверифицированным email)
+    if (typeof window !== 'undefined') {
+      const storedEmail = sessionStorage.getItem('pending_verification_email');
+      if (storedEmail) {
+        setPendingEmail(storedEmail);
+        // Очищаем после получения
+        sessionStorage.removeItem('pending_verification_email');
+        return; // Показываем страницу верификации даже если пользователь не залогинен
+      }
+    }
+
+    // Если пользователь не залогинен и нет pending email - редирект на логин
+    if (!user && !pendingEmail) {
       router.push('/login');
       return;
     }
@@ -27,11 +39,11 @@ export default function VerifyEmailPage() {
     }
 
     // Если это OAuth пользователь без email - редирект на дашборд
-    if (!user.email || user.email.trim() === '') {
+    if (user && (!user.email || user.email.trim() === '')) {
       router.push('/dashboard');
       return;
     }
-  }, [user, isEmailVerified, router]);
+  }, [user, isEmailVerified, pendingEmail, router]);
 
   const handleVerificationSuccess = () => {
     router.push('/dashboard');
@@ -42,7 +54,10 @@ export default function VerifyEmailPage() {
     router.push('/login');
   };
 
-  if (!user || isEmailVerified || !user.email) {
+  // Определяем email для отображения
+  const displayEmail = pendingEmail || user?.email;
+
+  if ((!user && !pendingEmail) || isEmailVerified || !displayEmail) {
     return null;
   }
 
@@ -63,7 +78,7 @@ export default function VerifyEmailPage() {
             <p className='text-gray-300'>
               We sent a verification code to
             </p>
-            <p className='text-blue-400 font-mono text-sm mt-1'>{user.email}</p>
+            <p className='text-blue-400 font-mono text-sm mt-1'>{displayEmail}</p>
           </div>
 
           {/* Message */}
@@ -108,7 +123,7 @@ export default function VerifyEmailPage() {
       <EmailVerificationModal
         isOpen={showVerificationModal}
         onClose={() => setShowVerificationModal(false)}
-        email={user.email}
+        email={displayEmail}
         onSuccess={handleVerificationSuccess}
       />
     </main>
