@@ -28,10 +28,11 @@ export default function ProfilePage() {
   // Check if this is an OAuth user without email
   const isOAuthUser = !user?.email || user.email.trim() === '';
 
-  // Handle OAuth callback errors
+  // Handle OAuth callback errors and success
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
+    const linked = urlParams.get('linked');
     
     if (error) {
       switch (error) {
@@ -47,6 +48,11 @@ export default function ProfilePage() {
         default:
           toast.error('OAuth Error', `Authentication failed: ${error}`);
       }
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+    } else if (linked === 'true') {
+      toast.success('OAuth Connected', 'Your OAuth account has been successfully connected.');
       
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
