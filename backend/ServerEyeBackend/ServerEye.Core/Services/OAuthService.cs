@@ -177,9 +177,21 @@ public sealed class OAuthService(
         }
 
         // Exchange code for token
-        // For linking external login, we need to generate a temporary code verifier
-        var tempCodeVerifier = GenerateSecureRandomString(128);
-        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, tempCodeVerifier, cancellationToken);
+        // For linking external login, we need to retrieve the original code verifier
+        var originalState = request.State; // This should be the actualState from linking state
+        
+        if (!OAuthService.CodeVerifiers.TryGetValue(originalState, out var storedCodeVerifier))
+        {
+            this.logger.LogError("Code verifier not found for linking state: {State}", originalState);
+            throw new InvalidOperationException("Invalid or expired OAuth state for linking");
+        }
+        
+        this.logger.LogInformation("Retrieved code verifier for OAuth linking - State: {State}", originalState);
+        
+        // Remove code verifier from memory
+        OAuthService.CodeVerifiers.Remove(originalState);
+        
+        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, storedCodeVerifier, cancellationToken);
 
         // Get user info
         var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
