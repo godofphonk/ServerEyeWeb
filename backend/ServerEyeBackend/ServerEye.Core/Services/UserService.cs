@@ -167,6 +167,29 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
     public async Task DeleteUserAsync(Guid id) => await this.userRepository.DeleteAsync(id);
 
+    public async Task<bool> CanUserAccessProtectedResourcesAsync(Guid userId)
+    {
+        var user = await this.userRepository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            return false;
+        }
+
+        // OAuth users without email (Telegram) - access allowed
+        if (!user.HasPassword && string.IsNullOrEmpty(user.Email))
+        {
+            return true;
+        }
+
+        // Users with email - require verification
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            return user.IsEmailVerified;
+        }
+
+        return false;
+    }
+
     public async Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
@@ -175,6 +198,12 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         if (user == null || !this.passwordHasher.VerifyPassword(userLoginDto.Password, user.Password))
         {
             throw new KeyNotFoundException($"Invalid email or password");
+        }
+
+        // Check if user can access protected resources
+        if (!await this.CanUserAccessProtectedResourcesAsync(user.Id))
+        {
+            throw new UnauthorizedAccessException("Email verification required. Please check your email for verification code.");
         }
         
         // Generate tokens

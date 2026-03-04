@@ -335,6 +335,9 @@ public sealed class OAuthService(
         if (user == null)
         {
             // Create new user
+            // OAuth providers verify email, so if email is provided, it's verified
+            var isEmailVerified = !string.IsNullOrEmpty(userInfo.Email) || userInfo.EmailVerified;
+            
             user = new User
             {
                 Id = Guid.NewGuid(),
@@ -343,8 +346,8 @@ public sealed class OAuthService(
                           $"oauth_{userInfo.Id}",
                 Email = userInfo.Email, // Can be null for providers like Telegram
                 Role = UserRole.User,
-                IsEmailVerified = userInfo.EmailVerified,
-                EmailVerifiedAt = userInfo.EmailVerified ? DateTime.UtcNow : null,
+                IsEmailVerified = isEmailVerified,
+                EmailVerifiedAt = isEmailVerified ? DateTime.UtcNow : null,
                 Password = string.Empty, // OAuth users don't have passwords
                 HasPassword = false,
                 ServerId = Guid.NewGuid()

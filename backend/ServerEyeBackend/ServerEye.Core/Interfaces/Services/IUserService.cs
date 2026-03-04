@@ -13,4 +13,5 @@ public interface IUserService
     public Task<UserData> UpdateUserAsync(Guid id, UserUpdateDto updateDto);
     public Task DeleteUserAsync(Guid id);
     public Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto);
+    public Task<bool> CanUserAccessProtectedResourcesAsync(Guid userId);
 }
