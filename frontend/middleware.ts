@@ -79,9 +79,32 @@ export function middleware(request: NextRequest) {
   // Check for OAuth linking parameters
   const url = request.nextUrl;
   const linkingParam = url.searchParams.get('linking');
-  const authParam = url.searchParams.get('auth');
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
+
+  console.log('[Middleware] Checking URL:', url.pathname, url.search);
+  console.log('[Middleware] Code:', code, 'State:', state, 'Linking param:', linkingParam);
+
+  // Check for OAuth callback with linking state
+  if (code && state && state.startsWith('linking_')) {
+    console.log('[Middleware] Detected OAuth linking callback with linking state:', state);
+    
+    // Redirect to intercept page for processing
+    const interceptUrl = new URL('/oauth/intercept', request.url);
+    interceptUrl.searchParams.set('code', code);
+    interceptUrl.searchParams.set('state', state);
+    
+    return NextResponse.redirect(interceptUrl);
+  }
+
+  // Check for redirect to oauth/intercept (from backend callback)
+  if (url.pathname === '/oauth/intercept' && code && state) {
+    console.log('[Middleware] Intercepted redirect to oauth/intercept with code and state');
+    console.log('[Middleware] State is linking:', state.startsWith('linking_'));
+    
+    // Let the request continue to oauth/intercept page
+    return NextResponse.next();
+  }
 
   if (linkingParam === 'true' && code && state) {
     console.log('[Middleware] Detected OAuth linking with code and state');
@@ -92,14 +115,6 @@ export function middleware(request: NextRequest) {
     interceptUrl.searchParams.set('state', state);
     
     return NextResponse.redirect(interceptUrl);
-  }
-
-  // Check for OAuth auth=success (backend processed OAuth)
-  if (authParam === 'success' && url.pathname !== '/profile') {
-    console.log('[Middleware] Detected OAuth auth=success, redirecting to profile');
-    
-    // Only redirect if not already on profile page
-    return NextResponse.redirect(new URL('/profile?auth=success', request.url));
   }
 
   // If trying to access auth route with token, redirect to dashboard

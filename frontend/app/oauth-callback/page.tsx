@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function OAuthInterceptPage() {
+export default function OAuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -12,16 +12,16 @@ export default function OAuthInterceptPage() {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
-    console.log('[OAuth Intercept] Intercepted OAuth callback:', { code: !!code, state: !!state, error });
+    console.log('[OAuth Callback] Intercepted OAuth callback:', { code: !!code, state: !!state, error });
 
     if (error) {
-      console.error('[OAuth Intercept] OAuth error:', error);
+      console.error('[OAuth Callback] OAuth error:', error);
       router.push(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (!code || !state) {
-      console.error('[OAuth Intercept] Missing code or state');
+      console.error('[OAuth Callback] Missing code or state');
       router.push('/login?error=missing_parameters');
       return;
     }
@@ -33,11 +33,11 @@ export default function OAuthInterceptPage() {
       try {
         const { action, provider, userId, state: expectedState } = JSON.parse(linkingInfo);
         
-        console.log('[OAuth Intercept] Found linking info:', { action, provider, userId, expectedState });
+        console.log('[OAuth Callback] Found linking info:', { action, provider, userId, expectedState });
 
-        // Verify state matches (state might have github_ prefix)
-        if (state.includes(expectedState) || state === `github_${expectedState}`) {
-          console.log('[OAuth Intercept] State matches, redirecting to backend callback with linking parameters');
+        // Verify state matches
+        if (state.includes(expectedState)) {
+          console.log('[OAuth Callback] State matches, redirecting to backend callback with linking parameters');
           
           // Clear linking info
           sessionStorage.removeItem('oauth_linking');
@@ -45,21 +45,21 @@ export default function OAuthInterceptPage() {
           // Redirect to backend callback with linkingAction=true and userId
           const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&provider=${encodeURIComponent(provider)}&linkingAction=true&userId=${encodeURIComponent(userId)}`;
           
-          console.log('[OAuth Intercept] Redirecting to backend callback with linking:', callbackUrl);
+          console.log('[OAuth Callback] Redirecting to backend callback with linking:', callbackUrl);
           window.location.href = callbackUrl;
           return;
         } else {
-          console.warn('[OAuth Intercept] State mismatch, clearing linking info');
+          console.warn('[OAuth Callback] State mismatch, clearing linking info');
           sessionStorage.removeItem('oauth_linking');
         }
       } catch (err) {
-        console.error('[OAuth Intercept] Error parsing linking info:', err);
+        console.error('[OAuth Callback] Error parsing linking info:', err);
         sessionStorage.removeItem('oauth_linking');
       }
     }
 
     // Not a linking request, proceed with normal OAuth flow
-    console.log('[OAuth Intercept] Not a linking request, forwarding to backend callback');
+    console.log('[OAuth Callback] Not a linking request, forwarding to backend callback');
     
     // Forward to backend callback
     const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;

@@ -21,7 +21,7 @@ interface OAuthSettingsProps {
 }
 
 export function OAuthSettings({ className }: OAuthSettingsProps) {
-  const { getExternalLogins, linkExternalAccount, unlinkExternalAccount, getOAuthChallenge } = useAuth();
+  const { getExternalLogins, linkExternalAccount, unlinkExternalAccount, getOAuthChallenge, user } = useAuth();
   const [externalLogins, setExternalLogins] = useState<ExternalLogin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLinking, setIsLinking] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       const providers = response.externalLogins || [];
       
       console.log('[OAuthSettings] External logins loaded:', providers);
-      console.log('[OAuthSettings] GitHub provider status:', providers.find(p => p.name === 'GitHub'));
+      console.log('[OAuthSettings] GitHub provider status:', providers.find(p => p.provider === OAuthProvider.GitHub));
       
       setExternalLogins(providers);
     } catch (error: any) {
@@ -89,9 +89,13 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
   }, []);
 
   const handleLinkAccount = async (provider: string) => {
-    setIsLinking(provider);
-    
     try {
+      alert(`[OAuthSettings] handleLinkAccount called for provider: ${provider}`);
+      console.log('[OAuthSettings] handleLinkAccount called for provider:', provider);
+      console.log('[OAuthSettings] User:', user);
+      console.log('[OAuthSettings] JWT token exists:', !!localStorage.getItem('jwt_token'));
+      
+      setIsLinking(provider);
       // Get OAuth challenge URL with linking parameter
       const challenge = await getOAuthChallenge(provider, '/profile?linking=true');
       
@@ -99,26 +103,73 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       console.log('[OAuthSettings] Challenge state:', challenge.state);
       console.log('[OAuthSettings] Challenge URL with linking:', challenge.challengeUrl);
       
-      // Store linking info in sessionStorage
-      // We'll intercept the callback and use code/state for linking
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('oauth_linking', JSON.stringify({
-          action: 'link',
-          provider: provider,
-          state: challenge.state,
-        }));
-        console.log('[OAuthSettings] Saved linking info to sessionStorage');
+      // Get userId from JWT token
+    let userId: string | null = null;
+    
+    if (typeof window !== 'undefined') {
+      const jwtToken = localStorage.getItem('jwt_token');
+      
+      if (!jwtToken) {
+        console.error('[OAuthSettings] No JWT token found for linking');
+        toast.error('Error', 'User not authenticated');
+        setIsLinking(null);
+        return;
       }
       
-      // Add linking_action parameter to challenge URL for backend
-      const modifiedChallengeUrl = `${challenge.challengeUrl}&linking_action=true`;
-      console.log('[OAuthSettings] Modified challenge URL with linking_action:', modifiedChallengeUrl);
+      // Decode JWT to get userId
+      const tokenParts = jwtToken.split('.');
+      if (tokenParts.length !== 3) {
+        console.error('[OAuthSettings] Invalid JWT token format');
+        toast.error('Error', 'Invalid authentication token');
+        setIsLinking(null);
+        return;
+      }
       
-      // Redirect to OAuth provider
-      window.location.href = modifiedChallengeUrl;
+      const payload = JSON.parse(atob(tokenParts[1]));
+      userId = payload.sub || payload.userId;
+      
+      if (!userId) {
+        console.error('[OAuthSettings] No user ID found in JWT token');
+        toast.error('Error', 'User not authenticated');
+        setIsLinking(null);
+        return;
+      }
+      
+      sessionStorage.setItem('oauth_linking', JSON.stringify({
+        action: 'link',
+        provider: provider,
+        userId: userId,
+        state: challenge.state,
+      }));
+      console.log('[OAuthSettings] Saved linking info to sessionStorage with userId:', userId);
+    }
+    
+    // Add linking info to state parameter for backend to detect linking
+    console.log('[OAuthSettings] Original challenge URL:', challenge.challengeUrl);
+    console.log('[OAuthSettings] Looking for state pattern:', `state=github_${challenge.state}`);
+    
+    // Simplify state to avoid URL length issues
+    if (!userId) {
+      throw new Error('User ID is required for linking');
+    }
+    
+    const linkingState = `linking_${provider}_${userId.substring(0, 8)}`;
+    console.log('[OAuthSettings] Replacement state:', `state=${linkingState}`);
+    
+    const modifiedChallengeUrl = challenge.challengeUrl.replace(
+      `state=github_${challenge.state}`,
+      `state=${linkingState}`
+    );
+    
+    console.log('[OAuthSettings] Modified challenge URL with linking info in state:', modifiedChallengeUrl);
+    console.log('[OAuthSettings] URL contains linking state:', modifiedChallengeUrl.includes('linking_github_'));
+    
+    alert(`About to redirect to GitHub with URL:\n${modifiedChallengeUrl}`);
+
+    window.location.href = modifiedChallengeUrl;
     } catch (error: any) {
-      console.error('Failed to link account:', error);
-      toast.error('Error', `Failed to link ${provider} account`);
+      console.error('[OAuthSettings] Error in handleLinkAccount:', error);
+      toast.error('Error', `Failed to link ${provider} account: ${error.message}`);
       setIsLinking(null);
     }
   };

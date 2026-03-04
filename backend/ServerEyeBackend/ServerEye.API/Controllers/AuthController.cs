@@ -476,13 +476,18 @@ public class AuthController : ControllerBase
                 this.logger.LogInformation("Provider determined from state: {Provider}", provider);
             }
 
+            // Parse linking state first
+            var (isLinking, linkingProvider, linkingUserId, actualState) = ParseLinkingState(state ?? string.Empty);
+            
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, LinkingAction: {LinkingAction}",
+            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
             provider,
             code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
             hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
             state,
-            linkingAction);
+            isLinking,
+            linkingProvider,
+            linkingUserId);
 
             // Validate required parameters
             if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
@@ -497,6 +502,34 @@ public class AuthController : ControllerBase
                 return this.BadRequest(new { message = "Missing state parameter" });
             }
 
+            // If this is a linking request from state, use LinkExternalLoginAsync
+            if (isLinking && !string.IsNullOrEmpty(linkingProvider) && !string.IsNullOrEmpty(linkingUserId))
+            {
+                this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", linkingProvider, linkingUserId);
+                
+                if (Guid.TryParse(linkingUserId, out var userGuid))
+                {
+                    var linkRequest = new OAuthLinkRequestDto
+                    {
+                        Provider = linkingProvider,
+                        Code = code ?? hash ?? string.Empty,
+                        State = actualState
+                    };
+                    
+                    var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
+                    
+                    this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
+                    
+                    // Redirect to profile page with success
+                    return this.Redirect("http://localhost:3001/profile?linking=success");
+                }
+                else
+                {
+                    this.logger.LogWarning("Invalid user ID in linking state: {UserId}", linkingUserId);
+                    return this.BadRequest(new { message = "Invalid user ID in linking state" });
+                }
+            }
+
             var request = new OAuthCallbackRequestDto
             {
                 Provider = provider ?? string.Empty,
@@ -506,10 +539,10 @@ public class AuthController : ControllerBase
                 UserId = userId
             };
 
-            // If this is a linking action, use LinkExternalLoginAsync instead
-            if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var userGuid))
+            // Fallback to parameter-based linking (if state doesn't contain linking info)
+            if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parameterUserGuid))
             {
-                this.logger.LogInformation("Processing OAuth linking for user: {UserId}", userGuid);
+                this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
                 
                 var linkRequest = new OAuthLinkRequestDto
                 {
@@ -518,12 +551,12 @@ public class AuthController : ControllerBase
                     State = request.State
                 };
                 
-                var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
+                var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
                 
-                this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
+                this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
                 
-                // Redirect to connected accounts page with success
-                return this.Redirect("http://localhost:3001/settings/connected-accounts?linking=success");
+                // Redirect to profile page with success
+                return this.Redirect("http://localhost:3001/profile?linking=success");
             }
 
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
@@ -737,6 +770,28 @@ public class AuthController : ControllerBase
         }
 
         return "google"; // Default fallback
+    }
+
+    private static (bool IsLinking, string Provider, string UserId, string ActualState) ParseLinkingState(string state)
+    {
+        if (string.IsNullOrEmpty(state) || !state.StartsWith("linking_", StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, string.Empty, string.Empty, state);
+        }
+
+        // Format: linking_{provider}_{userId}_{actualState}
+        var parts = state.Split('_', 4);
+        if (parts.Length < 4)
+        {
+            // Fallback format: linking_{provider}_{userId}
+            if (parts.Length >= 3)
+            {
+                return (true, parts[1], parts[2], string.Empty);
+            }
+            return (false, string.Empty, string.Empty, state);
+        }
+
+        return (true, parts[1], parts[2], parts[3]);
     }
 
     private static string ExtractStateFromState(string state)

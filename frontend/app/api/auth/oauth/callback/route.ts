@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  console.log('[OAuth Universal Callback] === CALLBACK STARTED ===');
+  console.log('[OAuth Universal Callback] Full URL:', request.url);
+  console.log('[OAuth Universal Callback] Method:', request.method);
+  
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  console.log('[OAuth Universal Callback] Received request:', { code: !!code, state: !!state, error });
+  console.log('[OAuth Universal Callback] Parsed parameters:', { 
+    code: !!code, 
+    codeValue: code?.substring(0, 20) + '...',
+    state: !!state, 
+    stateValue: state,
+    error,
+    searchParamsCount: searchParams.size
+  });
+  
+  console.log('[OAuth Universal Callback] All search params:', Object.fromEntries(searchParams.entries()));
 
   // Handle OAuth errors
   if (error) {
