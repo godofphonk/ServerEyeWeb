@@ -16,13 +16,21 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     // Проверяем есть ли email в sessionStorage (пользователь пытался войти с неверифицированным email)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !pendingEmail) {
       const storedEmail = sessionStorage.getItem('pending_verification_email');
+      
       if (storedEmail) {
         setPendingEmail(storedEmail);
-        // Очищаем после получения
-        sessionStorage.removeItem('pending_verification_email');
+        // НЕ очищаем sessionStorage сразу - пусть будет для следующих рендеров
         return; // Показываем страницу верификации даже если пользователь не залогинен
+      }
+    }
+
+    // Очищаем sessionStorage только когда pendingEmail уже установлен
+    if (pendingEmail && typeof window !== 'undefined') {
+      const storedEmail = sessionStorage.getItem('pending_verification_email');
+      if (storedEmail) {
+        sessionStorage.removeItem('pending_verification_email');
       }
     }
 
