@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
 import { EmailVerificationModal } from './EmailVerificationModal';
+import { EmailChangeModal } from './EmailChangeModal';
 
 interface EmailVerificationBannerProps {
   email: string;
@@ -17,12 +18,22 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
   const toast = useToast();
   const [isDismissed, setIsDismissed] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showChangeModal, setShowChangeModal] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  // Check if this is an OAuth user without email
+  const isOAuthUser = !email || email.trim() === '';
   console.log('[EmailVerificationBanner] Render - Email:', email);
+  console.log('[EmailVerificationBanner] Render - isOAuthUser:', isOAuthUser);
   console.log('[EmailVerificationBanner] Render - isDismissed:', isDismissed);
 
   const handleResend = async () => {
+    if (isOAuthUser) {
+      // OAuth users can't resend - they need to add email first
+      setShowChangeModal(true);
+      return;
+    }
+
     setIsResending(true);
 
     try {
@@ -40,6 +51,12 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
 
   const handleVerificationSuccess = () => {
     console.log('[EmailVerificationBanner] Verification success - dismissing banner');
+    onVerified();
+    setIsDismissed(true);
+  };
+
+  const handleEmailChangeSuccess = (newEmail: string) => {
+    console.log('[EmailVerificationBanner] Email change success - dismissing banner');
     onVerified();
     setIsDismissed(true);
   };
@@ -62,42 +79,57 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
 
             <div className='flex-1 min-w-0'>
               <h3 className='text-sm font-semibold text-yellow-400 mb-1'>
-                Verify Your Email Address
+                {isOAuthUser ? 'Add Email Address' : 'Verify Your Email Address'}
               </h3>
               <p className='text-sm text-gray-300 mb-3'>
-                Please verify <span className='font-mono'>{email}</span> to access all features.
-                Check your inbox for the verification code.
+                {isOAuthUser 
+                  ? 'Add an email address to access all features and receive notifications.'
+                  : `Please verify <span class="font-mono">${email}</span> to access all features. Check your inbox for the verification code.`
+                }
               </p>
 
               <div className='flex flex-wrap gap-2'>
-                <Button
-                  size='sm'
-                  onClick={() => setShowVerificationModal(true)}
-                  className='bg-yellow-500 hover:bg-yellow-600 text-black'
-                >
-                  <Mail className='w-4 h-4 mr-2' />
-                  Verify Email
-                </Button>
+                {isOAuthUser ? (
+                  <Button
+                    size='sm'
+                    onClick={() => setShowChangeModal(true)}
+                    className='bg-yellow-500 hover:bg-yellow-600 text-black'
+                  >
+                    <Mail className='w-4 h-4 mr-2' />
+                    Add Email
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      size='sm'
+                      onClick={() => setShowVerificationModal(true)}
+                      className='bg-yellow-500 hover:bg-yellow-600 text-black'
+                    >
+                      <Mail className='w-4 h-4 mr-2' />
+                      Verify Email
+                    </Button>
 
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={handleResend}
-                  disabled={isResending}
-                  className='text-yellow-400 hover:text-yellow-300'
-                >
-                  {isResending ? (
-                    <>
-                      <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className='w-4 h-4 mr-2' />
-                      Resend Code
-                    </>
-                  )}
-                </Button>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={handleResend}
+                      disabled={isResending}
+                      className='text-yellow-400 hover:text-yellow-300'
+                    >
+                      {isResending ? (
+                        <>
+                          <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className='w-4 h-4 mr-2' />
+                          Resend Code
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -117,6 +149,14 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
         onClose={() => setShowVerificationModal(false)}
         email={email}
         onSuccess={handleVerificationSuccess}
+      />
+
+      {/* Email Change Modal for OAuth users */}
+      <EmailChangeModal
+        isOpen={showChangeModal}
+        onClose={() => setShowChangeModal(false)}
+        currentEmail={email}
+        onSuccess={handleEmailChangeSuccess}
       />
     </>
   );
