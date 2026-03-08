@@ -12,4 +12,10 @@ public interface IGoApiClient
     public Task<GoApiServerInfo?> GetServerInfoAsync(string serverId);
     public Task<List<GoApiServerInfo>?> GetServersListAsync();
     public Task<GoApiStaticInfo?> GetStaticInfoAsync(string serverKey);
+    
+    // Source management methods
+    public Task<GoApiSourceResponse?> AddServerSourceAsync(string serverId, string source);
+    public Task<GoApiSourceResponse?> AddServerSourceByKeyAsync(string serverKey, string source);
+    public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersAsync(string serverId, GoApiSourceIdentifiersRequest request);
+    public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersByKeyAsync(string serverKey, GoApiSourceIdentifiersRequest request);
 }

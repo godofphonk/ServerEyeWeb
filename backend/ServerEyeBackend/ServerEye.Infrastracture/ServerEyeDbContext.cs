@@ -23,7 +23,6 @@ public sealed class ServerEyeDbContext : DbContext
     {
         modelBuilder?.Entity<User>(entity =>
         {
-            entity.HasIndex(u => u.Email).IsUnique();
             entity.Property(u => u.Role).HasConversion<int>();
         });
 
