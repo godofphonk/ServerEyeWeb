@@ -11,6 +11,8 @@ using System.Globalization;
 
 public class GoApiClient : IGoApiClient
 {
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    
     private readonly HttpClient httpClient;
     private readonly ILogger<GoApiClient> logger;
 
@@ -509,7 +511,15 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers";
 
-            this.logger.LogInformation("Adding identifiers for server by key {ServerKey}, source type {SourceType}", serverKey, request.SourceType);
+            this.logger.LogInformation(
+                "Adding identifiers for server by key {ServerKey}, source type {SourceType}, telegram_id {TelegramId}", 
+                serverKey, 
+                request.SourceType, 
+                request.TelegramId);
+
+            // Log the exact JSON being sent
+            var jsonRequest = System.Text.Json.JsonSerializer.Serialize(request, JsonOptions);
+            this.logger.LogInformation("JSON request to Go API: {JsonRequest}", jsonRequest);
 
             var response = await this.httpClient.PostAsJsonAsync(url, request);
 

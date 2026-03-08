@@ -1,5 +1,6 @@
 namespace ServerEye.UnitTests.Services;
 
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ServerEye.Core.DTOs.GoApi;
@@ -15,6 +16,7 @@ public class ServerAccessServiceTests
     private readonly Mock<IMonitoredServerRepository> mockServerRepository;
     private readonly Mock<IUserServerAccessRepository> mockAccessRepository;
     private readonly Mock<IUserRepository> mockUserRepository;
+    private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IGoApiClient> mockGoApiClient;
     private readonly Mock<IEncryptionService> mockEncryptionService;
     private readonly Mock<ILogger<ServerAccessService>> mockLogger;
@@ -25,6 +27,7 @@ public class ServerAccessServiceTests
         this.mockServerRepository = new Mock<IMonitoredServerRepository>();
         this.mockAccessRepository = new Mock<IUserServerAccessRepository>();
         this.mockUserRepository = new Mock<IUserRepository>();
+        this.mockExternalLoginRepository = new Mock<IUserExternalLoginRepository>();
         this.mockGoApiClient = new Mock<IGoApiClient>();
         this.mockEncryptionService = new Mock<IEncryptionService>();
         this.mockLogger = new Mock<ILogger<ServerAccessService>>();
@@ -33,6 +36,7 @@ public class ServerAccessServiceTests
             this.mockServerRepository.Object,
             this.mockAccessRepository.Object,
             this.mockUserRepository.Object,
+            this.mockExternalLoginRepository.Object,
             this.mockGoApiClient.Object,
             this.mockEncryptionService.Object,
             this.mockLogger.Object);
@@ -69,6 +73,11 @@ public class ServerAccessServiceTests
             Identifiers = new List<string> { userId.ToString() },
             IdentifierType = "user_id"
         };
+
+        // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
+        this.mockExternalLoginRepository
+            .Setup(x => x.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram))
+            .ReturnsAsync((UserExternalLogin?)null);
 
         this.mockGoApiClient
             .Setup(x => x.ValidateServerKeyAsync(serverKey))
@@ -116,7 +125,12 @@ public class ServerAccessServiceTests
                 It.Is<GoApiSourceIdentifiersRequest>(req =>
                     req.SourceType == "Web" &&
                     req.IdentifierType == "user_id" &&
-                    req.Identifiers.Contains(userId.ToString()))),
+                    req.Identifiers.Contains(userId.ToString()) &&
+                    req.TelegramId == null &&
+                    req.Metadata != null &&
+                    req.Metadata.ContainsKey("added_at") &&
+                    req.Metadata.ContainsKey("source") &&
+                    !req.Metadata.ContainsKey("telegram_linked_at"))),
             Times.Once);
 
         // Verify database operations
@@ -169,6 +183,11 @@ public class ServerAccessServiceTests
             IdentifierType = "user_id"
         };
 
+        // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
+        this.mockExternalLoginRepository
+            .Setup(x => x.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram))
+            .ReturnsAsync((UserExternalLogin?)null);
+
         this.mockGoApiClient
             .Setup(x => x.ValidateServerKeyAsync(serverKey))
             .ReturnsAsync(serverInfo);
@@ -208,6 +227,112 @@ public class ServerAccessServiceTests
 
         // Verify Go API calls
         this.mockGoApiClient.Verify(x => x.ValidateServerKeyAsync(serverKey), Times.Once);
+        this.mockGoApiClient.Verify(x => x.AddServerSourceByKeyAsync(serverKey, "Web"), Times.Never); // Should not add source for existing server
+        this.mockGoApiClient.Verify(
+            x => x.AddServerSourceIdentifiersByKeyAsync(
+                serverKey, 
+                It.Is<GoApiSourceIdentifiersRequest>(req =>
+                    req.SourceType == "Web" &&
+                    req.IdentifierType == "user_id" &&
+                    req.Identifiers.Contains(userId.ToString()) &&
+                    req.TelegramId == null &&
+                    req.Metadata != null &&
+                    req.Metadata.ContainsKey("added_at") &&
+                    req.Metadata.ContainsKey("source") &&
+                    !req.Metadata.ContainsKey("telegram_linked_at"))),
+            Times.Once);
+
+        // Verify database operations
+        this.mockAccessRepository.Verify(x => x.AddAccessAsync(It.IsAny<UserServerAccess>()), Times.Once);
+        this.mockServerRepository.Verify(x => x.AddAsync(It.IsAny<Server>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddServerAsync_ShouldIncludeTelegramId_WhenUserHasTelegramOAuth()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var serverKey = "test_server_key";
+        var telegramId = 123456789L;
+        var serverInfo = new GoApiServerInfo
+        {
+            ServerId = "srv_123",
+            ServerKey = serverKey,
+            Hostname = "test-server",
+            OperatingSystem = "Ubuntu 22.04",
+            AgentVersion = "1.0.0",
+            LastSeen = DateTime.UtcNow
+        };
+
+        var sourceResponse = new GoApiSourceResponse
+        {
+            ServerId = "srv_123",
+            Source = "Web",
+            Message = "Source added successfully"
+        };
+
+        var identifiersResponse = new GoApiSourceIdentifiersResponse
+        {
+            Message = "Identifiers added successfully",
+            ServerId = "srv_123",
+            SourceType = "Web",
+            Identifiers = new List<string> { userId.ToString() },
+            IdentifierType = "user_id"
+        };
+
+        // Mock GetUserTelegramIdAsync to return telegram ID
+        var telegramLogin = new UserExternalLogin
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = OAuthProvider.Telegram,
+            ProviderUserId = telegramId.ToString(CultureInfo.InvariantCulture),
+            ProviderEmail = "",
+            ProviderUsername = "testuser",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.mockExternalLoginRepository
+            .Setup(x => x.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram))
+            .ReturnsAsync(telegramLogin);
+
+        this.mockGoApiClient
+            .Setup(x => x.ValidateServerKeyAsync(serverKey))
+            .ReturnsAsync(serverInfo);
+
+        this.mockGoApiClient
+            .Setup(x => x.AddServerSourceByKeyAsync(serverKey, "Web"))
+            .ReturnsAsync(sourceResponse);
+
+        this.mockGoApiClient
+            .Setup(x => x.AddServerSourceIdentifiersByKeyAsync(serverKey, It.IsAny<GoApiSourceIdentifiersRequest>()))
+            .ReturnsAsync(identifiersResponse);
+
+        this.mockServerRepository
+            .Setup(x => x.GetByServerIdAsync(serverInfo.ServerId))
+            .ReturnsAsync((Server?)null);
+
+        this.mockEncryptionService
+            .Setup(x => x.Encrypt(serverKey))
+            .Returns("encrypted_key");
+
+        this.mockAccessRepository
+            .Setup(x => x.AddAccessAsync(It.IsAny<UserServerAccess>()))
+            .Returns(Task.CompletedTask);
+
+        this.mockServerRepository
+            .Setup(x => x.AddAsync(It.IsAny<Server>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await this.serverAccessService.AddServerAsync(userId, serverKey);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(serverInfo.ServerId, result.ServerId);
+
+        // Verify Go API calls
+        this.mockGoApiClient.Verify(x => x.ValidateServerKeyAsync(serverKey), Times.Once);
         this.mockGoApiClient.Verify(x => x.AddServerSourceByKeyAsync(serverKey, "Web"), Times.Once);
         this.mockGoApiClient.Verify(
             x => x.AddServerSourceIdentifiersByKeyAsync(
@@ -215,12 +340,17 @@ public class ServerAccessServiceTests
                 It.Is<GoApiSourceIdentifiersRequest>(req =>
                     req.SourceType == "Web" &&
                     req.IdentifierType == "user_id" &&
-                    req.Identifiers.Contains(userId.ToString()))),
+                    req.Identifiers.Contains(userId.ToString()) &&
+                    req.TelegramId == telegramId &&
+                    req.Metadata != null &&
+                    req.Metadata.ContainsKey("added_at") &&
+                    req.Metadata.ContainsKey("source") &&
+                    req.Metadata.ContainsKey("telegram_linked_at"))),
             Times.Once);
 
         // Verify database operations
+        this.mockServerRepository.Verify(x => x.AddAsync(It.IsAny<Server>()), Times.Once);
         this.mockAccessRepository.Verify(x => x.AddAccessAsync(It.IsAny<UserServerAccess>()), Times.Once);
-        this.mockServerRepository.Verify(x => x.AddAsync(It.IsAny<Server>()), Times.Never);
     }
 
     [Fact]
@@ -242,6 +372,11 @@ public class ServerAccessServiceTests
         this.mockGoApiClient
             .Setup(x => x.ValidateServerKeyAsync(serverKey))
             .ReturnsAsync(serverInfo);
+
+        // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
+        this.mockExternalLoginRepository
+            .Setup(x => x.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram))
+            .ReturnsAsync((UserExternalLogin?)null);
 
         this.mockGoApiClient
             .Setup(x => x.AddServerSourceByKeyAsync(serverKey, "Web"))
@@ -292,6 +427,11 @@ public class ServerAccessServiceTests
         this.mockGoApiClient
             .Setup(x => x.ValidateServerKeyAsync(serverKey))
             .ReturnsAsync((GoApiServerInfo?)null);
+
+        // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
+        this.mockExternalLoginRepository
+            .Setup(x => x.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram))
+            .ReturnsAsync((UserExternalLogin?)null);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
