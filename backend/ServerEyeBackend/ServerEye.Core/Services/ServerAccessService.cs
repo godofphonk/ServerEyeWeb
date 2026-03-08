@@ -278,15 +278,21 @@ public class ServerAccessService : IServerAccessService
 
     private async Task<long?> GetUserTelegramIdAsync(Guid userId)
     {
+        this.logger.LogInformation("Getting telegram_id for user {UserId}", userId);
+        
         var telegramLogin = await this.externalLoginRepository.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram);
         
         if (telegramLogin == null)
         {
+            this.logger.LogWarning("No Telegram OAuth found for user {UserId}", userId);
             return null;
         }
 
+        this.logger.LogInformation("Found Telegram OAuth for user {UserId}: ProviderUserId = {ProviderUserId}", userId, telegramLogin.ProviderUserId);
+
         if (long.TryParse(telegramLogin.ProviderUserId, out var telegramId))
         {
+            this.logger.LogInformation("Successfully parsed telegram_id {TelegramId} for user {UserId}", telegramId, userId);
             return telegramId;
         }
 
