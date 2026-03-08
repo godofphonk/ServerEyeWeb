@@ -10,7 +10,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
-public class GoApiClientTests
+public class GoApiClientTests : IDisposable
 {
     private readonly Mock<HttpMessageHandler> mockHandler;
     private readonly Mock<ILogger<GoApiClient>> mockLogger;
@@ -23,6 +23,12 @@ public class GoApiClientTests
         this.mockLogger = new Mock<ILogger<GoApiClient>>();
         this.httpClient = new HttpClient(this.mockHandler.Object);
         this.goApiClient = new GoApiClient(this.httpClient, this.mockLogger.Object);
+    }
+
+    public void Dispose()
+    {
+        this.httpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -38,7 +44,7 @@ public class GoApiClientTests
             Message = "Source added successfully"
         };
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
         };
@@ -56,6 +62,7 @@ public class GoApiClientTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.NotNull(result!.ServerId);
         Assert.Equal(serverId, result.ServerId);
         Assert.Equal(source, result.Source);
         Assert.Equal("Source added successfully", result.Message);
@@ -67,6 +74,7 @@ public class GoApiClientTests
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req => 
                     req.Method == HttpMethod.Post &&
+                    req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/{serverId}/sources")),
                 ItExpr.IsAny<CancellationToken>());
     }
@@ -84,7 +92,7 @@ public class GoApiClientTests
             Message = "Source added successfully"
         };
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
         };
@@ -102,6 +110,7 @@ public class GoApiClientTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.NotNull(result!.ServerId);
         Assert.Equal("srv_123", result.ServerId);
         Assert.Equal(source, result.Source);
         Assert.Equal("Source added successfully", result.Message);
@@ -113,6 +122,7 @@ public class GoApiClientTests
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req => 
                     req.Method == HttpMethod.Post &&
+                    req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/by-key/{serverKey}/sources")),
                 ItExpr.IsAny<CancellationToken>());
     }
@@ -139,7 +149,7 @@ public class GoApiClientTests
             IdentifierType = "user_id"
         };
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
         };
@@ -157,6 +167,7 @@ public class GoApiClientTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.NotNull(result!.ServerId);
         Assert.Equal(serverId, result.ServerId);
         Assert.Equal("Web", result.SourceType);
         Assert.Single(result.Identifiers);
@@ -171,6 +182,7 @@ public class GoApiClientTests
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req => 
                     req.Method == HttpMethod.Post &&
+                    req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/{serverId}/sources/identifiers")),
                 ItExpr.IsAny<CancellationToken>());
     }
@@ -196,7 +208,7 @@ public class GoApiClientTests
             IdentifierType = "user_id"
         };
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
         };
@@ -214,6 +226,7 @@ public class GoApiClientTests
 
         // Assert
         Assert.NotNull(result);
+        Assert.NotNull(result!.ServerId);
         Assert.Equal("srv_123", result.ServerId);
         Assert.Equal("Web", result.SourceType);
         Assert.Single(result.Identifiers);
@@ -227,6 +240,7 @@ public class GoApiClientTests
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req => 
                     req.Method == HttpMethod.Post &&
+                    req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/by-key/{serverKey}/sources/identifiers")),
                 ItExpr.IsAny<CancellationToken>());
     }
@@ -238,7 +252,7 @@ public class GoApiClientTests
         var serverId = "srv_123";
         var source = "Web";
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
         {
             Content = new StringContent("Bad request", Encoding.UTF8, "application/json")
         };
@@ -270,7 +284,7 @@ public class GoApiClientTests
             IdentifierType = "user_id"
         };
 
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
             Content = new StringContent("Internal server error", Encoding.UTF8, "application/json")
         };
