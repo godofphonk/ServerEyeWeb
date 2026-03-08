@@ -13,6 +13,7 @@ public class ServerAccessService : IServerAccessService
     private readonly IMonitoredServerRepository serverRepository;
     private readonly IUserServerAccessRepository accessRepository;
     private readonly IUserRepository userRepository;
+    private readonly IUserExternalLoginRepository externalLoginRepository;
     private readonly IGoApiClient goApiClient;
     private readonly IEncryptionService encryptionService;
     private readonly ILogger<ServerAccessService> logger;
@@ -21,6 +22,7 @@ public class ServerAccessService : IServerAccessService
         IMonitoredServerRepository serverRepository,
         IUserServerAccessRepository accessRepository,
         IUserRepository userRepository,
+        IUserExternalLoginRepository externalLoginRepository,
         IGoApiClient goApiClient,
         IEncryptionService encryptionService,
         ILogger<ServerAccessService> logger)
@@ -28,6 +30,7 @@ public class ServerAccessService : IServerAccessService
         this.serverRepository = serverRepository;
         this.accessRepository = accessRepository;
         this.userRepository = userRepository;
+        this.externalLoginRepository = externalLoginRepository;
         this.goApiClient = goApiClient;
         this.encryptionService = encryptionService;
         this.logger = logger;
@@ -78,39 +81,8 @@ public class ServerAccessService : IServerAccessService
     {
         var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey) ?? throw new InvalidOperationException("Invalid server key");
 
-        // Add Web source to Go API
-        var sourceResponse = await this.goApiClient.AddServerSourceByKeyAsync(serverKey, "Web");
-        if (sourceResponse == null)
-        {
-            this.logger.LogWarning("Failed to add Web source to Go API for server key {ServerKey}", serverKey);
-        }
-        else
-        {
-            this.logger.LogInformation("Successfully added Web source to Go API for server {ServerId}", sourceResponse.ServerId);
-            
-            // Add user identifier to the Web source
-            var identifiersRequest = new GoApiSourceIdentifiersRequest
-            {
-                SourceType = "Web",
-                Identifiers = new List<string> { userId.ToString() },
-                IdentifierType = "user_id",
-                Metadata = new Dictionary<string, object>
-                {
-                    { "added_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
-                    { "source", "ServerEyeWeb" }
-                }
-            };
-
-            var identifiersResponse = await this.goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
-            if (identifiersResponse == null)
-            {
-                this.logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey);
-            }
-            else
-            {
-                this.logger.LogInformation("Successfully added user identifier to Go API for server {ServerId}", identifiersResponse.ServerId);
-            }
-        }
+        // Get telegram_id if user has Telegram OAuth linked
+        var telegramId = await this.GetUserTelegramIdAsync(userId);
 
         var existingServer = await this.serverRepository.GetByServerIdAsync(serverInfo.ServerId);
 
@@ -120,6 +92,35 @@ public class ServerAccessService : IServerAccessService
             if (hasAccess)
             {
                 throw new InvalidOperationException("Server already added to your account");
+            }
+
+            // For existing servers, only add user identifier to existing Web source
+            var identifiersRequest = new GoApiSourceIdentifiersRequest
+            {
+                SourceType = "Web",
+                Identifiers = new List<string> { userId.ToString() },
+                IdentifierType = "user_id",
+                TelegramId = telegramId,
+                Metadata = new Dictionary<string, object>
+                {
+                    { "added_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                    { "source", "ServerEyeWeb" }
+                }
+            };
+
+            if (telegramId.HasValue)
+            {
+                identifiersRequest.Metadata!["telegram_linked_at"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            }
+
+            var identifiersResponse = await this.goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
+            if (identifiersResponse == null)
+            {
+                this.logger.LogWarning("Failed to add user identifier to Go API for existing server key {ServerKey}", serverKey);
+            }
+            else
+            {
+                this.logger.LogInformation("Successfully added user identifier to Go API for existing server {ServerId}", identifiersResponse.ServerId);
             }
 
             await this.accessRepository.AddAccessAsync(new UserServerAccess
@@ -145,6 +146,46 @@ public class ServerAccessService : IServerAccessService
                 LastSeen = existingServer.LastSeen,
                 IsActive = existingServer.IsActive
             };
+        }
+
+        // For new servers, add both source and identifiers
+        var sourceResponse = await this.goApiClient.AddServerSourceByKeyAsync(serverKey, "Web");
+        if (sourceResponse == null)
+        {
+            this.logger.LogWarning("Failed to add Web source to Go API for server key {ServerKey}", serverKey);
+        }
+        else
+        {
+            this.logger.LogInformation("Successfully added Web source to Go API for server {ServerId}", sourceResponse.ServerId);
+            
+            // Add user identifier to the Web source
+            var identifiersRequest = new GoApiSourceIdentifiersRequest
+            {
+                SourceType = "Web",
+                Identifiers = new List<string> { userId.ToString() },
+                IdentifierType = "user_id",
+                TelegramId = telegramId,
+                Metadata = new Dictionary<string, object>
+                {
+                    { "added_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                    { "source", "ServerEyeWeb" }
+                }
+            };
+
+            if (telegramId.HasValue)
+            {
+                identifiersRequest.Metadata!["telegram_linked_at"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            }
+
+            var identifiersResponse = await this.goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
+            if (identifiersResponse == null)
+            {
+                this.logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey);
+            }
+            else
+            {
+                this.logger.LogInformation("Successfully added user identifier to Go API for server {ServerId}", identifiersResponse.ServerId);
+            }
         }
 
         var encryptedKey = this.encryptionService.Encrypt(serverKey);
@@ -231,7 +272,25 @@ public class ServerAccessService : IServerAccessService
                 AddedAt = DateTime.UtcNow
             });
 
-            this.logger.LogInformation("Shared server {ServerId} with user {UserId}", serverId, targetUser.Id);
+            this.logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, serverId, targetUserEmail, level);
         }
+    }
+
+    private async Task<long?> GetUserTelegramIdAsync(Guid userId)
+    {
+        var telegramLogin = await this.externalLoginRepository.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram);
+        
+        if (telegramLogin == null)
+        {
+            return null;
+        }
+
+        if (long.TryParse(telegramLogin.ProviderUserId, out var telegramId))
+        {
+            return telegramId;
+        }
+
+        this.logger.LogWarning("Failed to parse telegram_id for user {UserId}: {ProviderUserId}", userId, telegramLogin.ProviderUserId);
+        return null;
     }
 }

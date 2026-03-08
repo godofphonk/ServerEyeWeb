@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       refreshTokenValue: refreshToken?.substring(0, 50) + '...',
       allCookies: request.cookies
         .getAll()
-        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...', domain: c.domain, path: c.path })),
+        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...' })),
     });
 
     if (!accessToken) {

@@ -73,7 +73,7 @@ export function Navbar() {
           <div className='hidden md:flex items-center gap-4'>
             {isAuthenticated ? (
               <>
-                <NotificationBell />
+                {/* <NotificationBell /> */}
                 <Link href='/profile'>
                   <Button variant='ghost' size='sm' className='relative'>
                     <User className='w-4 h-4 mr-2' />
