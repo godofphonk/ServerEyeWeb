@@ -5,86 +5,86 @@ using System.Text.Json.Serialization;
 public class GoApiStaticInfo
 {
     [JsonPropertyName("server_id")]
-    public string ServerId { get; set; } = string.Empty;
+    public string ServerId { get; init; } = string.Empty;
 
     [JsonPropertyName("hostname")]
-    public string Hostname { get; set; } = string.Empty;
+    public string Hostname { get; init; } = string.Empty;
 
     [JsonPropertyName("operating_system")]
-    public string OperatingSystem { get; set; } = string.Empty;
+    public string OperatingSystem { get; init; } = string.Empty;
 
     [JsonPropertyName("agent_version")]
-    public string AgentVersion { get; set; } = string.Empty;
+    public string AgentVersion { get; init; } = string.Empty;
 
     [JsonPropertyName("cpu_info")]
-    public StaticCpuInfo? CpuInfo { get; set; }
+    public StaticCpuInfo? CpuInfo { get; init; }
 
     [JsonPropertyName("memory_info")]
-    public StaticMemoryInfo? MemoryInfo { get; set; }
+    public StaticMemoryInfo? MemoryInfo { get; init; }
 
     [JsonPropertyName("disk_info")]
-    public List<StaticDiskInfo> DiskInfo { get; set; } = new();
+    public List<StaticDiskInfo> DiskInfo { get; init; } = new();
 
     [JsonPropertyName("network_interfaces")]
-    public List<StaticNetworkInterface> NetworkInterfaces { get; set; } = new();
+    public List<StaticNetworkInterface> NetworkInterfaces { get; init; } = new();
 
     [JsonPropertyName("last_updated")]
-    public DateTime LastUpdated { get; set; }
+    public DateTime LastUpdated { get; init; }
 }
 
 public class StaticCpuInfo
 {
     [JsonPropertyName("model")]
-    public string Model { get; set; } = string.Empty;
+    public string Model { get; init; } = string.Empty;
 
     [JsonPropertyName("cores")]
-    public int Cores { get; set; }
+    public int Cores { get; init; }
 
     [JsonPropertyName("threads")]
-    public int Threads { get; set; }
+    public int Threads { get; init; }
 
     [JsonPropertyName("frequency_mhz")]
-    public double FrequencyMhz { get; set; }
+    public double FrequencyMhz { get; init; }
 }
 
 public class StaticMemoryInfo
 {
     [JsonPropertyName("total_gb")]
-    public double TotalGb { get; set; }
+    public double TotalGb { get; init; }
 
     [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
+    public string Type { get; init; } = string.Empty;
 
     [JsonPropertyName("speed_mhz")]
-    public double SpeedMhz { get; set; }
+    public double SpeedMhz { get; init; }
 }
 
 public class StaticDiskInfo
 {
     [JsonPropertyName("device")]
-    public string Device { get; set; } = string.Empty;
+    public string Device { get; init; } = string.Empty;
 
     [JsonPropertyName("size_gb")]
-    public double SizeGb { get; set; }
+    public double SizeGb { get; init; }
 
     [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
+    public string Type { get; init; } = string.Empty;
 
     [JsonPropertyName("model")]
-    public string Model { get; set; } = string.Empty;
+    public string Model { get; init; } = string.Empty;
 }
 
 public class StaticNetworkInterface
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("type")]
-    public string Type { get; set; } = string.Empty;
+    public string Type { get; init; } = string.Empty;
 
     [JsonPropertyName("speed_mbps")]
-    public long SpeedMbps { get; set; }
+    public long SpeedMbps { get; init; }
 
     [JsonPropertyName("mac_address")]
-    public string MacAddress { get; set; } = string.Empty;
+    public string MacAddress { get; init; } = string.Empty;
 }
