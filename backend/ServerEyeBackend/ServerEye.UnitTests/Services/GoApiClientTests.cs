@@ -13,16 +13,15 @@ using System.Text.Json;
 public class GoApiClientTests : IDisposable
 {
     private readonly Mock<HttpMessageHandler> mockHandler;
-    private readonly Mock<ILogger<GoApiClient>> mockLogger;
     private readonly HttpClient httpClient;
     private readonly GoApiClient goApiClient;
 
     public GoApiClientTests()
     {
         this.mockHandler = new Mock<HttpMessageHandler>();
-        this.mockLogger = new Mock<ILogger<GoApiClient>>();
+        var mockLogger1 = new Mock<ILogger<GoApiClient>>();
         this.httpClient = new HttpClient(this.mockHandler.Object);
-        this.goApiClient = new GoApiClient(this.httpClient, this.mockLogger.Object);
+        this.goApiClient = new GoApiClient(this.httpClient, mockLogger1.Object);
     }
 
     public void Dispose()
@@ -44,10 +43,8 @@ public class GoApiClientTests : IDisposable
             Message = "Source added successfully"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()
@@ -83,8 +80,8 @@ public class GoApiClientTests : IDisposable
     public async Task AddServerSourceByKeyAsync_ShouldReturnResponse_WhenApiCallSucceeds()
     {
         // Arrange
-        var serverKey = "test_server_key";
-        var source = "Web";
+        const string serverKey = "test_server_key";
+        const string source = "Web";
         var expectedResponse = new GoApiSourceResponse
         {
             ServerId = "srv_123",
@@ -92,10 +89,8 @@ public class GoApiClientTests : IDisposable
             Message = "Source added successfully"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()
@@ -145,14 +140,12 @@ public class GoApiClientTests : IDisposable
             Message = "Identifiers added successfully",
             ServerId = serverId,
             SourceType = "Web",
-            Identifiers = new List<string> { "user123" },
+            Identifiers = ["user123"],
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()
@@ -191,11 +184,11 @@ public class GoApiClientTests : IDisposable
     public async Task AddServerSourceIdentifiersByKeyAsync_ShouldReturnResponse_WhenApiCallSucceeds()
     {
         // Arrange
-        var serverKey = "test_server_key";
+        const string serverKey = "test_server_key";
         var request = new GoApiSourceIdentifiersRequest
         {
             SourceType = "Web",
-            Identifiers = new List<string> { "user123" },
+            Identifiers = ["user123"],
             IdentifierType = "user_id"
         };
 
@@ -204,14 +197,12 @@ public class GoApiClientTests : IDisposable
             Message = "Identifiers added successfully",
             ServerId = "srv_123",
             SourceType = "Web",
-            Identifiers = new List<string> { "user123" },
+            Identifiers = ["user123"],
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()
@@ -249,13 +240,11 @@ public class GoApiClientTests : IDisposable
     public async Task AddServerSourceAsync_ShouldReturnNull_WhenApiCallFails()
     {
         // Arrange
-        var serverId = "srv_123";
-        var source = "Web";
+        const string serverId = "srv_123";
+        const string source = "Web";
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
-        {
-            Content = new StringContent("Bad request", Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest);
+        responseMessage.Content = new StringContent("Bad request", Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()
@@ -276,18 +265,16 @@ public class GoApiClientTests : IDisposable
     public async Task AddServerSourceIdentifiersAsync_ShouldReturnNull_WhenApiCallFails()
     {
         // Arrange
-        var serverId = "srv_123";
+        const string serverId = "srv_123";
         var request = new GoApiSourceIdentifiersRequest
         {
             SourceType = "Web",
-            Identifiers = new List<string> { "user123" },
+            Identifiers = ["user123"],
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError)
-        {
-            Content = new StringContent("Internal server error", Encoding.UTF8, "application/json")
-        };
+        using var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError);
+        responseMessage.Content = new StringContent("Internal server error", Encoding.UTF8, "application/json");
 
         this.mockHandler
             .Protected()

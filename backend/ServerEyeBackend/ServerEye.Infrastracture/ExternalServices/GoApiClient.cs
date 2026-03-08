@@ -9,18 +9,9 @@ using ServerEye.Core.DTOs.Metrics;
 using ServerEye.Core.Interfaces.Services;
 using System.Globalization;
 
-public class GoApiClient : IGoApiClient
+public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : IGoApiClient
 {
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    
-    private readonly HttpClient httpClient;
-    private readonly ILogger<GoApiClient> logger;
-
-    public GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger)
-    {
-        this.httpClient = httpClient;
-        this.logger = logger;
-    }
 
     public async Task<GoApiMetricsResponse?> GetMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null)
     {
@@ -36,15 +27,15 @@ public class GoApiClient : IGoApiClient
                 url += $"&granularity={granularity}";
             }
 
-            this.logger.LogInformation("[PERF] Requesting metrics by key from Go API: {Url}", url);
+            logger.LogInformation("[PERF] Requesting metrics by key from Go API: {Url}", url);
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
             var requestTime = stopwatch.ElapsedMilliseconds;
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
+                logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
                 return null;
             }
 
@@ -53,16 +44,16 @@ public class GoApiClient : IGoApiClient
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = null
             };
-            
+
             // Read content once to avoid ObjectDisposedException
             var content = await response.Content.ReadAsStringAsync();
-            
+
             // Log raw JSON for debugging network_details structure
             if (content.Contains("network_details", StringComparison.OrdinalIgnoreCase))
             {
                 var startIndex = Math.Max(0, content.IndexOf("network_details", StringComparison.OrdinalIgnoreCase) - 100);
-                this.logger.LogInformation(
-                    "[DEBUG] Raw Go API response contains network_details: {Content}", 
+                logger.LogInformation(
+                    "[DEBUG] Raw Go API response contains network_details: {Content}",
                     content.Substring(startIndex, 500));
             }
 
@@ -74,11 +65,11 @@ public class GoApiClient : IGoApiClient
             }
             catch (JsonException ex)
             {
-                this.logger.LogError(ex, "[DEBUG] Failed to parse GoApiMetricsResponse. Raw JSON: {Content}", content);
+                logger.LogError(ex, "[DEBUG] Failed to parse GoApiMetricsResponse. Raw JSON: {Content}", content);
 
                 // Ignore parsing errors, will try snapshot format
             }
-            
+
             // If no data points, try snapshot format
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
@@ -93,23 +84,23 @@ public class GoApiClient : IGoApiClient
                 }
                 catch (JsonException ex)
                 {
-                    this.logger.LogError(ex, "[PERF] Error parsing snapshot response from Go API");
+                    logger.LogError(ex, "[PERF] Error parsing snapshot response from Go API");
                 }
             }
-            
+
             stopwatch.Stop();
             var totalTime = stopwatch.ElapsedMilliseconds;
 
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "[PERF] Go API returned empty data after {Ms}ms for server key {ServerKey}",
                     totalTime,
                     serverKey);
                 return result;
             }
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "[PERF] Successfully retrieved {Points} data points by key in {Ms}ms (request: {RequestMs}ms, parse: {ParseMs}ms)",
                 result.TotalPoints,
                 totalTime,
@@ -121,13 +112,13 @@ public class GoApiClient : IGoApiClient
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            this.logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
+            logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
             return null;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            this.logger.LogError(ex, "[PERF] Error calling Go API for metrics by key after {Ms}ms", stopwatch.ElapsedMilliseconds);
+            logger.LogError(ex, "[PERF] Error calling Go API for metrics by key after {Ms}ms", stopwatch.ElapsedMilliseconds);
             return null;
         }
     }
@@ -146,15 +137,15 @@ public class GoApiClient : IGoApiClient
                 url += $"&granularity={granularity}";
             }
 
-            this.logger.LogInformation("[PERF] Requesting metrics from Go API: {Url}", url);
+            logger.LogInformation("[PERF] Requesting metrics from Go API: {Url}", url);
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
             var requestTime = stopwatch.ElapsedMilliseconds;
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
+                logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
                 return null;
             }
 
@@ -163,21 +154,21 @@ public class GoApiClient : IGoApiClient
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = null
             };
-            
+
             var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>(options);
             stopwatch.Stop();
             var totalTime = stopwatch.ElapsedMilliseconds;
 
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
-                this.logger.LogWarning(
+                logger.LogWarning(
                     "[PERF] Go API returned empty data after {Ms}ms for server {ServerId}",
                     totalTime,
                     serverId);
                 return result;
             }
 
-            this.logger.LogInformation(
+            logger.LogInformation(
                 "[PERF] Successfully retrieved {Points} data points in {Ms}ms (request: {RequestMs}ms, parse: {ParseMs}ms)",
                 result.TotalPoints,
                 totalTime,
@@ -189,13 +180,13 @@ public class GoApiClient : IGoApiClient
         catch (TaskCanceledException ex)
         {
             stopwatch.Stop();
-            this.logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
+            logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
             return null;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            this.logger.LogError(ex, "[PERF] Error calling Go API for metrics after {Ms}ms", stopwatch.ElapsedMilliseconds);
+            logger.LogError(ex, "[PERF] Error calling Go API for metrics after {Ms}ms", stopwatch.ElapsedMilliseconds);
             return null;
         }
     }
@@ -208,13 +199,13 @@ public class GoApiClient : IGoApiClient
             var endTime = DateTime.UtcNow;
             var startTime = endTime.Subtract(actualDuration);
 
-            this.logger.LogInformation("Requesting realtime metrics for server {ServerId} from {Start} to {End}", serverId, startTime, endTime);
+            logger.LogInformation("Requesting realtime metrics for server {ServerId} from {Start} to {End}", serverId, startTime, endTime);
 
             return await this.GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for realtime metrics");
+            logger.LogError(ex, "Error calling Go API for realtime metrics");
             return null;
         }
     }
@@ -225,19 +216,19 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics";
 
-            this.logger.LogInformation("Validating server key with Go API: {Url}", url);
+            logger.LogInformation("Validating server key with Go API: {Url}", url);
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogWarning("Server key validation failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogWarning("Server key validation failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
             var metricsResponse = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
-            
+
             if (metricsResponse?.ServerId != null)
             {
                 return new GoApiServerInfo
@@ -255,7 +246,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error validating server key with Go API");
+            logger.LogError(ex, "Error validating server key with Go API");
             return null;
         }
     }
@@ -266,14 +257,14 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/static-info";
 
-            this.logger.LogInformation("Requesting static info from Go API: {Url}", url);
+            logger.LogInformation("Requesting static info from Go API: {Url}", url);
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -282,9 +273,9 @@ public class GoApiClient : IGoApiClient
                 PropertyNameCaseInsensitive = true,
                 PropertyNamingPolicy = null
             };
-            
+
             var goApiResponse = await response.Content.ReadFromJsonAsync<GoApiStaticInfoResponse>(options);
-            
+
             if (goApiResponse == null)
             {
                 return null;
@@ -295,7 +286,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for static info");
+            logger.LogError(ex, "Error calling Go API for static info");
             return null;
         }
     }
@@ -342,7 +333,7 @@ public class GoApiClient : IGoApiClient
         {
             var totalMemory = response.MemoryModules.Sum(m => m.SizeGb);
             var firstModule = response.MemoryModules.First();
-            
+
             staticInfo.MemoryInfo = new StaticMemoryInfo
             {
                 TotalGb = totalMemory,
@@ -362,14 +353,14 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/{serverId}";
 
-            this.logger.LogInformation("Requesting server info from Go API: {Url}", url);
+            logger.LogInformation("Requesting server info from Go API: {Url}", url);
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -377,7 +368,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for server info");
+            logger.LogError(ex, "Error calling Go API for server info");
             return null;
         }
     }
@@ -389,12 +380,12 @@ public class GoApiClient : IGoApiClient
             var endTime = DateTime.UtcNow;
             var startTime = endTime.AddMinutes(-5);
 
-            this.logger.LogInformation("Getting dashboard metrics for server {ServerId} (last 5 minutes)", serverId);
+            logger.LogInformation("Getting dashboard metrics for server {ServerId} (last 5 minutes)", serverId);
             return await this.GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for dashboard metrics");
+            logger.LogError(ex, "Error calling Go API for dashboard metrics");
             return null;
         }
     }
@@ -405,14 +396,14 @@ public class GoApiClient : IGoApiClient
         {
             var url = "/api/servers";
 
-            this.logger.LogInformation("Requesting servers list from Go API");
+            logger.LogInformation("Requesting servers list from Go API");
 
-            var response = await this.httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -420,7 +411,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error calling Go API for servers list");
+            logger.LogError(ex, "Error calling Go API for servers list");
             return null;
         }
     }
@@ -432,14 +423,14 @@ public class GoApiClient : IGoApiClient
             var url = $"/api/servers/{serverId}/sources";
             var request = new GoApiSourceRequest { Source = source };
 
-            this.logger.LogInformation("Adding source {Source} for server {ServerId}", source, serverId);
+            logger.LogInformation("Adding source {Source} for server {ServerId}", source, serverId);
 
-            var response = await this.httpClient.PostAsJsonAsync(url, request);
+            var response = await httpClient.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -447,7 +438,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error adding source for server {ServerId}", serverId);
+            logger.LogError(ex, "Error adding source for server {ServerId}", serverId);
             return null;
         }
     }
@@ -459,14 +450,14 @@ public class GoApiClient : IGoApiClient
             var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources";
             var request = new GoApiSourceRequest { Source = source };
 
-            this.logger.LogInformation("Adding source {Source} for server by key {ServerKey}", source, serverKey);
+            logger.LogInformation("Adding source {Source} for server by key {ServerKey}", source, serverKey);
 
-            var response = await this.httpClient.PostAsJsonAsync(url, request);
+            var response = await httpClient.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -474,7 +465,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error adding source for server key {ServerKey}", serverKey);
+            logger.LogError(ex, "Error adding source for server key {ServerKey}", serverKey);
             return null;
         }
     }
@@ -485,14 +476,14 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/{serverId}/sources/identifiers";
 
-            this.logger.LogInformation("Adding identifiers for server {ServerId}, source type {SourceType}", serverId, request.SourceType);
+            logger.LogInformation("Adding identifiers for server {ServerId}, source type {SourceType}", serverId, request.SourceType);
 
-            var response = await this.httpClient.PostAsJsonAsync(url, request);
+            var response = await httpClient.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -500,7 +491,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error adding identifiers for server {ServerId}", serverId);
+            logger.LogError(ex, "Error adding identifiers for server {ServerId}", serverId);
             return null;
         }
     }
@@ -511,22 +502,22 @@ public class GoApiClient : IGoApiClient
         {
             var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers";
 
-            this.logger.LogInformation(
-                "Adding identifiers for server by key {ServerKey}, source type {SourceType}, telegram_id {TelegramId}", 
-                serverKey, 
-                request.SourceType, 
+            logger.LogInformation(
+                "Adding identifiers for server by key {ServerKey}, source type {SourceType}, telegram_id {TelegramId}",
+                serverKey,
+                request.SourceType,
                 request.TelegramId);
 
             // Log the exact JSON being sent
             var jsonRequest = System.Text.Json.JsonSerializer.Serialize(request, JsonOptions);
-            this.logger.LogInformation("JSON request to Go API: {JsonRequest}", jsonRequest);
+            logger.LogInformation("JSON request to Go API: {JsonRequest}", jsonRequest);
 
-            var response = await this.httpClient.PostAsJsonAsync(url, request);
+            var response = await httpClient.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
                 return null;
             }
 
@@ -534,7 +525,7 @@ public class GoApiClient : IGoApiClient
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error adding identifiers for server key {ServerKey}", serverKey);
+            logger.LogError(ex, "Error adding identifiers for server key {ServerKey}", serverKey);
             return null;
         }
     }
@@ -553,8 +544,8 @@ public class GoApiClient : IGoApiClient
             DataPoints = dataPoints,
             TotalPoints = dataPoints.Count,
             Message = "Success",
-            Status = new GoApiServerStatus 
-            { 
+            Status = new GoApiServerStatus
+            {
                 AgentVersion = snapshot.Status.AgentVersion,
                 Hostname = snapshot.Status.Hostname,
                 LastSeen = snapshot.Status.LastSeen,
@@ -571,7 +562,7 @@ public class GoApiClient : IGoApiClient
     {
         var dataPoints = new List<GoApiDataPoint>();
         var interval = GetInterval(granularity);
-        
+
         // Generate data points for the requested time range
         for (var time = start; time <= end; time = time.Add(interval))
         {
@@ -580,7 +571,7 @@ public class GoApiClient : IGoApiClient
             var cpuVariation = (random.NextDouble() - 0.5) * 10; // ±5% variation
             var memoryVariation = (random.NextDouble() - 0.5) * 5; // ±2.5% variation
 #pragma warning restore CA5394 // Do not use insecure random number generators
-            
+
             dataPoints.Add(new GoApiDataPoint
             {
                 Timestamp = time,
@@ -601,7 +592,7 @@ public class GoApiClient : IGoApiClient
                 SampleCount = 1
             });
         }
-        
+
         return dataPoints;
     }
 

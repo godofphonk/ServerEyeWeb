@@ -15,31 +15,29 @@ public class ServerAccessServiceTests
 {
     private readonly Mock<IMonitoredServerRepository> mockServerRepository;
     private readonly Mock<IUserServerAccessRepository> mockAccessRepository;
-    private readonly Mock<IUserRepository> mockUserRepository;
     private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IGoApiClient> mockGoApiClient;
     private readonly Mock<IEncryptionService> mockEncryptionService;
-    private readonly Mock<ILogger<ServerAccessService>> mockLogger;
     private readonly ServerAccessService serverAccessService;
 
     public ServerAccessServiceTests()
     {
         this.mockServerRepository = new Mock<IMonitoredServerRepository>();
         this.mockAccessRepository = new Mock<IUserServerAccessRepository>();
-        this.mockUserRepository = new Mock<IUserRepository>();
+        var mockUserRepository1 = new Mock<IUserRepository>();
         this.mockExternalLoginRepository = new Mock<IUserExternalLoginRepository>();
         this.mockGoApiClient = new Mock<IGoApiClient>();
         this.mockEncryptionService = new Mock<IEncryptionService>();
-        this.mockLogger = new Mock<ILogger<ServerAccessService>>();
+        var mockLogger1 = new Mock<ILogger<ServerAccessService>>();
 
         this.serverAccessService = new ServerAccessService(
             this.mockServerRepository.Object,
             this.mockAccessRepository.Object,
-            this.mockUserRepository.Object,
+            mockUserRepository1.Object,
             this.mockExternalLoginRepository.Object,
             this.mockGoApiClient.Object,
             this.mockEncryptionService.Object,
-            this.mockLogger.Object);
+            mockLogger1.Object);
     }
 
     [Fact]

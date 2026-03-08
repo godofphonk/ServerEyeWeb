@@ -2,9 +2,9 @@ namespace ServerEye.Core.Configuration;
 
 public class OAuthSettings
 {
-    public GoogleSettings Google { get; set; } = new();
-    public GitHubSettings GitHub { get; set; } = new();
-    public TelegramSettings Telegram { get; set; } = new();
+    public GoogleSettings Google { get; init; } = new();
+    public GitHubSettings GitHub { get; init; } = new();
+    public TelegramSettings Telegram { get; init; } = new();
 }
 
 public class GoogleSettings

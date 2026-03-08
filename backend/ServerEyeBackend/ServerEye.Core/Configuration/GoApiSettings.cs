@@ -2,9 +2,9 @@ namespace ServerEye.Core.Configuration;
 
 public class GoApiSettings
 {
-    public Uri BaseUrl { get; set; } = new Uri("http://localhost:8080");
-    public Uri ProductionUrl { get; set; } = new Uri("https://api.servereye.dev");
-    public string ApiKey { get; set; } = string.Empty;
-    public string ServiceId { get; set; } = "csharp-backend";
-    public int TimeoutSeconds { get; set; } = 30;
+    public Uri BaseUrl { get; init; } = new Uri("http://localhost:8080");
+    public Uri ProductionUrl { get; init; } = new Uri("https://api.servereye.dev");
+    public string ApiKey { get; init; } = string.Empty;
+    public string ServiceId { get; init; } = "csharp-backend";
+    public int TimeoutSeconds { get; init; } = 30;
 }
