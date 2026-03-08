@@ -1,6 +1,7 @@
 namespace ServerEye.Core.Services;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
@@ -76,6 +77,40 @@ public class ServerAccessService : IServerAccessService
     public async Task<ServerResponse> AddServerAsync(Guid userId, string serverKey)
     {
         var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey) ?? throw new InvalidOperationException("Invalid server key");
+
+        // Add Web source to Go API
+        var sourceResponse = await this.goApiClient.AddServerSourceByKeyAsync(serverKey, "Web");
+        if (sourceResponse == null)
+        {
+            this.logger.LogWarning("Failed to add Web source to Go API for server key {ServerKey}", serverKey);
+        }
+        else
+        {
+            this.logger.LogInformation("Successfully added Web source to Go API for server {ServerId}", sourceResponse.ServerId);
+            
+            // Add user identifier to the Web source
+            var identifiersRequest = new GoApiSourceIdentifiersRequest
+            {
+                SourceType = "Web",
+                Identifiers = new List<string> { userId.ToString() },
+                IdentifierType = "user_id",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "added_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                    { "source", "ServerEyeWeb" }
+                }
+            };
+
+            var identifiersResponse = await this.goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
+            if (identifiersResponse == null)
+            {
+                this.logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey);
+            }
+            else
+            {
+                this.logger.LogInformation("Successfully added user identifier to Go API for server {ServerId}", identifiersResponse.ServerId);
+            }
+        }
 
         var existingServer = await this.serverRepository.GetByServerIdAsync(serverInfo.ServerId);
 

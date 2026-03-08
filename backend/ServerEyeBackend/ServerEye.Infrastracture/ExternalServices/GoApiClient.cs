@@ -423,6 +423,112 @@ public class GoApiClient : IGoApiClient
         }
     }
 
+    public async Task<GoApiSourceResponse?> AddServerSourceAsync(string serverId, string source)
+    {
+        try
+        {
+            var url = $"/api/servers/{serverId}/sources";
+            var request = new GoApiSourceRequest { Source = source };
+
+            this.logger.LogInformation("Adding source {Source} for server {ServerId}", source, serverId);
+
+            var response = await this.httpClient.PostAsJsonAsync(url, request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<GoApiSourceResponse>();
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error adding source for server {ServerId}", serverId);
+            return null;
+        }
+    }
+
+    public async Task<GoApiSourceResponse?> AddServerSourceByKeyAsync(string serverKey, string source)
+    {
+        try
+        {
+            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources";
+            var request = new GoApiSourceRequest { Source = source };
+
+            this.logger.LogInformation("Adding source {Source} for server by key {ServerKey}", source, serverKey);
+
+            var response = await this.httpClient.PostAsJsonAsync(url, request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<GoApiSourceResponse>();
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error adding source for server key {ServerKey}", serverKey);
+            return null;
+        }
+    }
+
+    public async Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersAsync(string serverId, GoApiSourceIdentifiersRequest request)
+    {
+        try
+        {
+            var url = $"/api/servers/{serverId}/sources/identifiers";
+
+            this.logger.LogInformation("Adding identifiers for server {ServerId}, source type {SourceType}", serverId, request.SourceType);
+
+            var response = await this.httpClient.PostAsJsonAsync(url, request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<GoApiSourceIdentifiersResponse>();
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error adding identifiers for server {ServerId}", serverId);
+            return null;
+        }
+    }
+
+    public async Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersByKeyAsync(string serverKey, GoApiSourceIdentifiersRequest request)
+    {
+        try
+        {
+            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers";
+
+            this.logger.LogInformation("Adding identifiers for server by key {ServerKey}, source type {SourceType}", serverKey, request.SourceType);
+
+            var response = await this.httpClient.PostAsJsonAsync(url, request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                this.logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                return null;
+            }
+
+            return await response.Content.ReadFromJsonAsync<GoApiSourceIdentifiersResponse>();
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error adding identifiers for server key {ServerKey}", serverKey);
+            return null;
+        }
+    }
+
     private static GoApiMetricsResponse ConvertSnapshotToTimeSeries(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string? granularity)
     {
         var dataPoints = GenerateDataPointsFromSnapshot(snapshot, start, end, granularity ?? "minute");
