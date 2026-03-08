@@ -36,10 +36,54 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       response => response,
-      error => {
+      async error => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
+          console.log('[API] 401 Unauthorized - attempting token refresh');
+          
+          // Try to refresh token first
+          try {
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              if (refreshData.token) {
+                localStorage.setItem('jwt_token', refreshData.token);
+                console.log('[API] Token refreshed successfully');
+                
+                // Retry the original request with new token
+                if (error.config) {
+                  error.config.headers.Authorization = `Bearer ${refreshData.token}`;
+                  return this.client.request(error.config);
+                }
+              }
+            }
+          } catch (refreshError) {
+            console.log('[API] Token refresh failed:', refreshError);
+          }
+
+          // If refresh failed, clear tokens and redirect to login
+          console.log('[API] Token refresh failed, clearing auth data');
           localStorage.removeItem('jwt_token');
-          window.location.href = '/login';
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          
+          // Clear cookies
+          document.cookie.split(';').forEach(c => {
+            document.cookie = c
+              .replace(/^ +/, '')
+              .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+          });
+
+          // Redirect to login only if not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       },

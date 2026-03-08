@@ -66,6 +66,7 @@ export function middleware(request: NextRequest) {
       const isAdmin = String(userRole).toLowerCase() === 'admin';
 
       if (!isAdmin) {
+        // Не-admin пользователи не могут получить доступ к admin роутам
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {

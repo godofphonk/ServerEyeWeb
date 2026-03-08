@@ -37,7 +37,7 @@ interface AuthContextType {
   unlinkExternalAccount: (provider: string) => Promise<void>;
   isAuthenticated: boolean;
   checkAuth: () => Promise<void>;
-  isEmailVerified: boolean;
+  isEmailVerified: boolean | string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: backendUser.userName,
       role: role,
       createdAt: new Date().toISOString(),
-      isEmailVerified: backendUser.isEmailVerified || false,
+      isEmailVerified: Boolean(backendUser.isEmailVerified),
       hasPassword: backendUser.hasPassword ?? true, // По умолчанию true для обратной совместимости
     };
 
@@ -467,7 +467,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = challenge.challengeUrl;
   }, [getOAuthChallenge]);
 
-  const isEmailVerifiedValue = user?.isEmailVerified || false;
+  const isEmailVerifiedValue = Boolean(user?.isEmailVerified);
   console.log('[AuthContext] Provider - User:', user ? user.email : null);
   console.log('[AuthContext] Provider - isEmailVerified:', isEmailVerifiedValue);
 

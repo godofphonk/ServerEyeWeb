@@ -18,18 +18,44 @@ export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
   }
 
   console.log('[ServerAPI] Fetching servers from API...');
-  cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
-  console.log('[ServerAPI] Servers fetched:', cachedServers);
-  cacheTimestamp = now;
-  return cachedServers;
+  try {
+    cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
+    console.log('[ServerAPI] Servers fetched:', cachedServers);
+    cacheTimestamp = now;
+    return cachedServers;
+  } catch (error: any) {
+    console.error('[ServerAPI] Failed to fetch servers:', error);
+    
+    // For 401 errors, don't clear cache - let auth interceptor handle it
+    if (error.response?.status === 401) {
+      console.log('[ServerAPI] 401 error, preserving cache and letting auth interceptor handle');
+      throw error; // Re-throw to let caller handle it
+    }
+    
+    // For other errors, clear cache and return empty array
+    cachedServers = null;
+    cacheTimestamp = 0;
+    throw error;
+  }
 }
 
 // Static server info endpoint
 export async function getServerStaticInfo(serverKey: string): Promise<ServerStaticInfo> {
-  const response = await apiClient.get<ServerStaticInfo>(
-    `/servers/by-key/${serverKey}/static-info`,
-  );
-  return response;
+  try {
+    const response = await apiClient.get<ServerStaticInfo>(
+      `/servers/by-key/${serverKey}/static-info`,
+    );
+    return response;
+  } catch (error: any) {
+    console.error(`[ServerAPI] Failed to get static info for ${serverKey}:`, error);
+    
+    // For 401 errors, let auth interceptor handle it
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    
+    throw new Error(`Failed to load server static info: ${error.message}`);
+  }
 }
 
 // Get monitored servers with static info

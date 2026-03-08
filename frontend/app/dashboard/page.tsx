@@ -46,6 +46,7 @@ export default function DashboardPage() {
   
   // Защита от множественных редиректов
   const redirectAttempted = useRef(false);
+  const effectCalled = useRef(false);
 
   console.log('[Dashboard] Auth state:', {
     user: user?.email,
@@ -120,8 +121,21 @@ export default function DashboardPage() {
         );
       } catch (error: any) {
         console.error(`Failed to load metrics for server ${serverKey}:`, error);
+        
+        // Handle 401 errors specifically - don't log as error, let auth interceptor handle it
+        if (error.response?.status === 401) {
+          console.log(`[Dashboard] 401 error for server ${serverKey} metrics, auth will be handled by API interceptor`);
+          return;
+        }
+        
         // Set empty metrics to prevent continuous loading
         setMetrics(prev => ({ ...prev, [serverKey]: null }));
+        
+        // Show error toast for other errors
+        if (error.message !== 'canceled') {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to load server metrics';
+          toast.error(`Failed to load metrics for ${serverKey}`, errorMessage);
+        }
       } finally {
         setLoadingMetrics(prev => {
           const newSet = new Set(prev);
@@ -155,9 +169,24 @@ export default function DashboardPage() {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load servers:', error);
+      
+      // Handle 401 errors specifically
+      if (error.response?.status === 401) {
+        console.log('[Dashboard] 401 error detected, auth will be handled by API interceptor');
+        // Don't set empty servers array, let auth interceptor handle redirect
+        return;
+      }
+      
+      // For other errors, set empty servers
       setServers([]);
+      
+      // Show error toast to user
+      if (error.message !== 'canceled') {
+        const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+        toast.error('Failed to load servers', errorMessage);
+      }
     } finally {
       setIsLoadingServers(false);
       console.log('[Dashboard] Loading servers finished');
@@ -171,8 +200,15 @@ export default function DashboardPage() {
       user: !!user,
       userId: user?.id,
       redirectAttempted: redirectAttempted.current,
-      loadServersCalled: loadServersCalled.current
+      loadServersCalled: loadServersCalled.current,
+      effectCalled: effectCalled.current
     });
+    
+    // Ничего не делаем пока идет загрузка auth
+    if (authLoading) {
+      console.log('[Dashboard] Auth still loading, skipping...');
+      return;
+    }
     
     // Check for pending OAuth linking
     if (typeof window !== 'undefined') {
@@ -217,6 +253,7 @@ export default function DashboardPage() {
     } else if (!authLoading && isAuthenticated && !redirectAttempted.current) {
       // Проверяем доступ с учетом OAuth пользователей
       const userHasAccess = hasUserAccess(user, isEmailVerified);
+      console.log('[Dashboard] User access check result:', userHasAccess);
       
       if (!userHasAccess) {
         console.log('[Dashboard] Email not verified, redirecting to verify-email');
@@ -231,7 +268,7 @@ export default function DashboardPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, authLoading, isEmailVerified, user, router]); // Добавили isEmailVerified и user
+  }, [authLoading, isAuthenticated]); // Правильные зависимости
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

@@ -11,20 +11,29 @@ import { User } from '@/types';
  * @param isEmailVerified - статус верификации email
  * @returns true если доступ разрешен, false если нет
  */
-export function hasUserAccess(user: User | null, isEmailVerified: boolean): boolean {
+export function hasUserAccess(user: User | null, isEmailVerified: boolean | string): boolean {
+  console.log('[hasUserAccess] Input:', { 
+    user: user ? { id: user.id, email: user.email, hasPassword: user.hasPassword } : null, 
+    isEmailVerified 
+  });
+  
   if (!user) {
+    console.log('[hasUserAccess] No user - returning false');
     return false;
   }
 
   // OAuth пользователи (любые, включая Google, GitHub, Telegram) - доступ разрешен
   const isOAuthUser = user.hasPassword === false;
+  console.log('[hasUserAccess] Is OAuth user:', isOAuthUser);
   
   if (isOAuthUser) {
+    console.log('[hasUserAccess] OAuth user - returning true');
     return true;
   }
 
   // Обычные пользователи с паролем - требуется верификация email
-  return isEmailVerified;
+  console.log('[hasUserAccess] Regular user - checking email verification:', isEmailVerified);
+  return Boolean(isEmailVerified);
 }
 
 /**
@@ -34,7 +43,7 @@ export function hasUserAccess(user: User | null, isEmailVerified: boolean): bool
  * @param isEmailVerified - статус верификации email
  * @returns true если нужно показать баннер
  */
-export function shouldShowEmailVerificationBanner(user: User | null, isEmailVerified: boolean): boolean {
+export function shouldShowEmailVerificationBanner(user: User | null, isEmailVerified: boolean | string): boolean {
   if (!user) {
     return false;
   }
@@ -46,8 +55,9 @@ export function shouldShowEmailVerificationBanner(user: User | null, isEmailVeri
   }
 
   // Обычные пользователи - показываем баннер если email не верифицирован
-  const hasEmail = user.email && user.email.trim() !== '';
-  return hasEmail && !isEmailVerified;
+  const hasEmail = Boolean(user.email && user.email.trim() !== '');
+  const isVerified = Boolean(isEmailVerified);
+  return hasEmail && !isVerified;
 }
 
 /**
