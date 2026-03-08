@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using ServerEye.Infrastracture;
+using Infrastracture;
 using Testcontainers.PostgreSql;
 using System.Globalization;
 
@@ -31,8 +31,8 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         // Create database schema directly via DbContext
         var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
         optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
-        
-        using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
+
+        await using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
         await serverEyeDb.Database.EnsureCreatedAsync();
     }
 
@@ -53,21 +53,23 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
         optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
         
-        using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
+        await using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
         
         // Clear all data from tables if they exist
         try
         {
             if (await serverEyeDb.Database.CanConnectAsync())
             {
-                // Check if tables exist before truncating
-                var tablesExist = await serverEyeDb.Database.ExecuteSqlRawAsync(
-                    @"DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Users') THEN
-                            TRUNCATE TABLE ""RefreshTokens"", ""Users"" CASCADE;
-                        END IF;
-                    END $$;");
+                // Truncate tables if they exist
+                await serverEyeDb.Database.ExecuteSqlRawAsync(
+                    """
+                    DO $$ 
+                                        BEGIN
+                                            IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Users') THEN
+                                                TRUNCATE TABLE "RefreshTokens", "Users" CASCADE;
+                                            END IF;
+                                        END $$;
+                    """);
             }
         }
         catch
@@ -78,7 +80,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -178,7 +180,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 .AddCheck("redis", () => HealthCheckResult.Healthy("Test Redis"));
             
             // Override JwtService with test settings to ensure token generation uses same keys as validation
-            var testJwtSettings = new ServerEye.Core.Services.JwtSettings
+            var testJwtSettings = new Core.Services.JwtSettings
             {
                 SecretKey = "TestSecretKey123456789012345678901234567890",
                 Issuer = "TestIssuer",
@@ -190,13 +192,13 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
             };
             
             // Remove existing JwtSettings and JwtService
-            var jwtSettingsDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServerEye.Core.Services.JwtSettings));
+            var jwtSettingsDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(Core.Services.JwtSettings));
             if (jwtSettingsDescriptor != null)
             {
                 services.Remove(jwtSettingsDescriptor);
             }
             
-            var jwtServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServerEye.Core.Interfaces.Services.IJwtService));
+            var jwtServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(Core.Interfaces.Services.IJwtService));
             if (jwtServiceDescriptor != null)
             {
                 services.Remove(jwtServiceDescriptor);
@@ -204,10 +206,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
             
             // Add test JwtSettings and JwtService
             services.AddSingleton(testJwtSettings);
-            services.AddSingleton<ServerEye.Core.Interfaces.Services.IJwtService>(provider =>
+            services.AddSingleton<Core.Interfaces.Services.IJwtService>(provider =>
             {
-                var settings = provider.GetRequiredService<ServerEye.Core.Services.JwtSettings>();
-                return new ServerEye.Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
+                var settings = provider.GetRequiredService<Core.Services.JwtSettings>();
+                return new Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
             });
         });
 
