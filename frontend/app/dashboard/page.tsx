@@ -34,6 +34,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/components/ui/MonitoringServiceError';
+import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
@@ -74,7 +75,8 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
   const [goApiError, setGoApiError] = useState<GoApiError | null>(null);
-  const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError>>({});
+  const [serverError, setServerError] = useState<any>(null);
+  const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError | any>>({});
 
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
@@ -153,6 +155,20 @@ export default function DashboardPage() {
           return;
         }
         
+        // Handle server errors (500, 502, 503, 504)
+        if (error.response?.status >= 500) {
+          console.log(`[Dashboard] Server error for server ${serverKey}:`, {
+            status: error.response.status,
+            statusText: error.response.statusText,
+          });
+          
+          // Store error for display
+          setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
+          
+          // Don't show toast for server errors - they're displayed inline
+          return;
+        }
+        
         // Handle 401 errors specifically - don't log as error, let auth interceptor handle it
         if (error.response?.status === 401) {
           console.log(`[Dashboard] 401 error for server ${serverKey} metrics, auth will be handled by API interceptor`);
@@ -181,8 +197,9 @@ export default function DashboardPage() {
   const loadServers = useCallback(async () => {
     console.log('[Dashboard] loadServers called');
     
-    // Clear previous Go API error
+    // Clear previous errors
     setGoApiError(null);
+    setServerError(null);
 
     try {
       setIsLoadingServers(true);
@@ -224,6 +241,20 @@ export default function DashboardPage() {
         setGoApiError(error);
         
         // Don't show toast for Go API errors - they're displayed with full UI
+        return;
+      }
+      
+      // Handle server errors (500, 502, 503, 504)
+      if (error.response?.status >= 500) {
+        console.log('[Dashboard] Server error detected:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+        });
+        
+        // Store error for display
+        setServerError(error);
+        
+        // Don't show toast for server errors - they're displayed with full UI
         return;
       }
       
@@ -541,11 +572,26 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Server Error Display */}
+            {serverError && (
+              <div className='mb-6'>
+                <ServerError
+                  error={serverError}
+                  onRetry={() => {
+                    console.log('[Dashboard] Retrying after server error');
+                    loadServersCalled.current = false;
+                    loadServers();
+                  }}
+                  showRetryButton={true}
+                />
+              </div>
+            )}
+
             {isLoadingServers ? (
               <div className='text-center py-12'>
                 <div className='inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
               </div>
-            ) : servers.length === 0 && !goApiError ? (
+            ) : servers.length === 0 && !goApiError && !serverError ? (
               <Card>
                 <CardContent className='text-center py-12'>
                   <ServerIcon className='w-16 h-16 mx-auto mb-4 text-gray-600' />
@@ -637,16 +683,26 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* Go API Error for this server's metrics */}
+                        {/* Error for this server's metrics */}
                         {metricsErrors[server.serverKey] && (
                           <div className='mt-3'>
-                            <MonitoringServiceErrorInline
-                              error={metricsErrors[server.serverKey]}
-                              onRetry={() => {
-                                console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
-                                loadServerMetrics(server.serverKey);
-                              }}
-                            />
+                            {metricsErrors[server.serverKey] instanceof GoApiError ? (
+                              <MonitoringServiceErrorInline
+                                error={metricsErrors[server.serverKey]}
+                                onRetry={() => {
+                                  console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
+                                  loadServerMetrics(server.serverKey);
+                                }}
+                              />
+                            ) : (
+                              <ServerErrorInline
+                                error={metricsErrors[server.serverKey]}
+                                onRetry={() => {
+                                  console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
+                                  loadServerMetrics(server.serverKey);
+                                }}
+                              />
+                            )}
                           </div>
                         )}
                         
