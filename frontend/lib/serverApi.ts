@@ -59,6 +59,11 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
       throw error;
     }
     
+    // For server errors (500, 502, 503, 504), rethrow the original error to preserve response status
+    if (error.response?.status >= 500) {
+      throw error;
+    }
+    
     throw new Error(`Failed to load server static info: ${error.message}`);
   }
 }
@@ -93,6 +98,19 @@ export async function getServersWithStaticInfo(): Promise<
         // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
         if (error.response?.status >= 500) {
           throw error;
+        }
+        
+        // For wrapped errors, check if they contain server error info
+        if (error.message?.includes('Request failed with status code 5')) {
+          // Extract the original error if it's wrapped
+          const statusMatch = error.message.match(/status code (\d{3})/);
+          const statusCode = statusMatch ? parseInt(statusMatch[1]) : 0;
+          if (statusCode >= 500) {
+            // Create a mock error with response status for retry mechanism
+            const mockError = new Error(error.message);
+            (mockError as any).response = { status: statusCode };
+            throw mockError;
+          }
         }
         
         // For other errors, return server without static info
