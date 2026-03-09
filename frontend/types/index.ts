@@ -356,6 +356,67 @@ export interface ApiError {
   details?: any;
 }
 
+// Go API Error Types
+export type GoApiErrorType = 
+  | 'ServiceUnavailable'
+  | 'Timeout'
+  | 'NetworkError'
+  | 'InvalidResponse'
+  | 'ServerNotFound'
+  | 'Unauthorized';
+
+export type GoApiErrorCode =
+  | 'GO_API_SERVICEUNAVAILABLE'
+  | 'GO_API_TIMEOUT'
+  | 'GO_API_NETWORKERROR'
+  | 'GO_API_INVALIDRESPONSE'
+  | 'GO_API_SERVERNOTFOUND'
+  | 'GO_API_UNAUTHORIZED';
+
+export interface GoApiErrorDetails {
+  error_type: GoApiErrorType;
+  is_temporary: boolean;
+  [key: string]: any;
+}
+
+export interface GoApiErrorResponse {
+  error: string;
+  message: string;
+  user_message: string;
+  error_code: GoApiErrorCode;
+  support_contact: string;
+  timestamp: string;
+  details: GoApiErrorDetails;
+}
+
+export class GoApiError extends Error {
+  public readonly errorCode: GoApiErrorCode;
+  public readonly userMessage: string;
+  public readonly supportContact: string;
+  public readonly timestamp: string;
+  public readonly details: GoApiErrorDetails;
+  public readonly httpStatus: number;
+
+  constructor(response: GoApiErrorResponse, httpStatus: number) {
+    super(response.message);
+    this.name = 'GoApiError';
+    this.errorCode = response.error_code;
+    this.userMessage = response.user_message;
+    this.supportContact = response.support_contact;
+    this.timestamp = response.timestamp;
+    this.details = response.details;
+    this.httpStatus = httpStatus;
+  }
+
+  get isTemporary(): boolean {
+    return this.details.is_temporary;
+  }
+
+  get errorType(): GoApiErrorType {
+    return this.details.error_type;
+  }
+}
+
 // Form types
 export interface LoginFormData {
   email: string;
