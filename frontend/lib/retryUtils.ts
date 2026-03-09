@@ -5,7 +5,29 @@ export interface RetryOptions {
   initialDelay?: number;
   maxDelay?: number;
   backoffMultiplier?: number;
-  shouldRetry?: (error: any, attempt: number) => boolean;
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
+}
+
+// Helper function to safely check error properties
+function hasResponseStatus(error: unknown): error is { response: { status: number } } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as any).response === 'object' &&
+    (error as any).response !== null &&
+    'status' in (error as any).response &&
+    typeof (error as any).response.status === 'number'
+  );
+}
+
+function hasErrorCode(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as any).code === 'string'
+  );
 }
 
 const DEFAULT_OPTIONS: Required<RetryOptions> = {
@@ -13,10 +35,41 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
   initialDelay: 1000,
   maxDelay: 10000,
   backoffMultiplier: 2,
-  shouldRetry: (error: any) => {
+  shouldRetry: (error: unknown) => {
     if (error instanceof GoApiError) {
       return error.isTemporary;
     }
+    
+    // Retry 500 Internal Server Error (temporary backend issues)
+    if (hasResponseStatus(error) && error.response.status === 500) {
+      console.log('[Retry] 500 Internal Server Error - retryable');
+      return true;
+    }
+    
+    // Retry 502 Bad Gateway (temporary backend issues)
+    if (hasResponseStatus(error) && error.response.status === 502) {
+      console.log('[Retry] 502 Bad Gateway - retryable');
+      return true;
+    }
+    
+    // Retry 503 Service Unavailable (temporary backend issues)
+    if (hasResponseStatus(error) && error.response.status === 503) {
+      console.log('[Retry] 503 Service Unavailable - retryable');
+      return true;
+    }
+    
+    // Retry 504 Gateway Timeout (temporary backend issues)
+    if (hasResponseStatus(error) && error.response.status === 504) {
+      console.log('[Retry] 504 Gateway Timeout - retryable');
+      return true;
+    }
+    
+    // Retry network errors (no response)
+    if (!hasResponseStatus(error) && hasErrorCode(error) && error.code === 'ECONNABORTED') {
+      console.log('[Retry] Network timeout - retryable');
+      return true;
+    }
+    
     return false;
   },
 };
@@ -41,7 +94,7 @@ export async function fetchWithRetry<T>(
     try {
       console.log(`[Retry] Attempt ${attempt + 1}/${opts.maxRetries + 1}`);
       return await fetchFn();
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error;
 
       if (attempt === opts.maxRetries) {
@@ -60,8 +113,10 @@ export async function fetchWithRetry<T>(
       
       if (error instanceof GoApiError) {
         console.log(`[Retry] Go API temporary error (${error.errorType}), retrying in ${delayMs}ms...`);
+      } else if (hasResponseStatus(error)) {
+        console.log(`[Retry] HTTP ${error.response.status} error, retrying in ${delayMs}ms...`);
       } else {
-        console.log(`[Retry] Retryable error, retrying in ${delayMs}ms...`);
+        console.log(`[Retry] Network error, retrying in ${delayMs}ms...`);
       }
 
       await delay(delayMs);
