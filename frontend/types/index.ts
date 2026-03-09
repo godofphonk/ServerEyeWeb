@@ -417,6 +417,36 @@ export class GoApiError extends Error {
   }
 }
 
+// Server Discovery types
+export interface DiscoveredServer {
+  server_id: string;
+  hostname: string;
+  operating_system: string;
+  last_seen: string;
+  agent_version: string;
+  added_via: string;
+  can_import: boolean;
+}
+
+export interface DiscoveredServersResponse {
+  telegram_id: number;
+  servers: DiscoveredServer[];
+  total_count: number;
+  has_telegram_bot: boolean;
+  telegram_bot_username: string;
+}
+
+export interface ImportServersRequest {
+  server_ids: string[];
+}
+
+export interface ImportServersResponse {
+  imported_count: number;
+  failed_count: number;
+  servers: MonitoredServer[];
+  errors: string[];
+}
+
 // Form types
 export interface LoginFormData {
   email: string;
