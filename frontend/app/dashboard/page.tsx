@@ -8,6 +8,7 @@ import {
   clearServersCache,
   clearMetricsCache,
 } from '@/lib/serverApi';
+import { fetchWithRetry } from '@/lib/retryUtils';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -27,10 +28,12 @@ import {
   DashboardMetrics,
   HistoricalMetricsResponse,
   ServerStaticInfo,
+  GoApiError,
 } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
+import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/components/ui/MonitoringServiceError';
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
@@ -70,6 +73,8 @@ export default function DashboardPage() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
+  const [goApiError, setGoApiError] = useState<GoApiError | null>(null);
+  const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError>>({});
 
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
@@ -82,11 +87,22 @@ export default function DashboardPage() {
       }
 
       setLoadingMetrics(prev => new Set(prev).add(serverKey));
+      
+      // Clear previous error for this server
+      setMetricsErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[serverKey];
+        return newErrors;
+      });
 
       try {
-        // Use new serverKey endpoint
-        const response = await apiClient.get<any>(
-          `/servers/by-key/${serverKey}/metrics?granularity=minute`,
+        // Use retry mechanism for metrics loading
+        const response = await fetchWithRetry(
+          () => apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?granularity=minute`),
+          {
+            maxRetries: 2,
+            initialDelay: 1000,
+          }
         );
 
         // Transform API response to expected format
@@ -122,6 +138,21 @@ export default function DashboardPage() {
       } catch (error: any) {
         console.error(`Failed to load metrics for server ${serverKey}:`, error);
         
+        // Handle GoApiError specifically
+        if (error instanceof GoApiError) {
+          console.log(`[Dashboard] Go API error for server ${serverKey}:`, {
+            errorType: error.errorType,
+            isTemporary: error.isTemporary,
+            userMessage: error.userMessage,
+          });
+          
+          // Store error for display
+          setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
+          
+          // Don't show toast for Go API errors - they're displayed inline
+          return;
+        }
+        
         // Handle 401 errors specifically - don't log as error, let auth interceptor handle it
         if (error.response?.status === 401) {
           console.log(`[Dashboard] 401 error for server ${serverKey} metrics, auth will be handled by API interceptor`);
@@ -144,19 +175,28 @@ export default function DashboardPage() {
         });
       }
     },
-    [loadingMetrics],
+    [loadingMetrics, toast],
   );
 
   const loadServers = useCallback(async () => {
     console.log('[Dashboard] loadServers called');
+    
+    // Clear previous Go API error
+    setGoApiError(null);
 
     try {
       setIsLoadingServers(true);
       console.log('[Dashboard] Loading servers...');
 
-      // Load servers with static info in parallel
+      // Load servers with static info in parallel with retry
       console.log('[Dashboard] Calling getServersWithStaticInfo...');
-      const serversWithStatic = await getServersWithStaticInfo();
+      const serversWithStatic = await fetchWithRetry(
+        () => getServersWithStaticInfo(),
+        {
+          maxRetries: 2,
+          initialDelay: 2000,
+        }
+      );
       console.log('[Dashboard] Servers loaded:', serversWithStatic);
       setServers(serversWithStatic || []);
 
@@ -171,6 +211,21 @@ export default function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Failed to load servers:', error);
+      
+      // Handle GoApiError specifically
+      if (error instanceof GoApiError) {
+        console.log('[Dashboard] Go API error detected:', {
+          errorType: error.errorType,
+          isTemporary: error.isTemporary,
+          userMessage: error.userMessage,
+        });
+        
+        // Store error for display
+        setGoApiError(error);
+        
+        // Don't show toast for Go API errors - they're displayed with full UI
+        return;
+      }
       
       // Handle 401 errors specifically
       if (error.response?.status === 401) {
@@ -191,7 +246,7 @@ export default function DashboardPage() {
       setIsLoadingServers(false);
       console.log('[Dashboard] Loading servers finished');
     }
-  }, []); // Empty dependencies - function is stable
+  }, [loadServerMetrics, toast]); // Add dependencies
 
   useEffect(() => {
     console.log('[Dashboard] useEffect triggered:', {
@@ -471,11 +526,26 @@ export default function DashboardPage() {
           <div>
             <h2 className='text-2xl font-bold mb-6'>Your Servers</h2>
 
+            {/* Go API Error Display */}
+            {goApiError && (
+              <div className='mb-6'>
+                <MonitoringServiceError
+                  error={goApiError}
+                  onRetry={() => {
+                    console.log('[Dashboard] Retrying after Go API error');
+                    loadServersCalled.current = false;
+                    loadServers();
+                  }}
+                  showRetryButton={true}
+                />
+              </div>
+            )}
+
             {isLoadingServers ? (
               <div className='text-center py-12'>
                 <div className='inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500'></div>
               </div>
-            ) : servers.length === 0 ? (
+            ) : servers.length === 0 && !goApiError ? (
               <Card>
                 <CardContent className='text-center py-12'>
                   <ServerIcon className='w-16 h-16 mx-auto mb-4 text-gray-600' />
@@ -566,7 +636,21 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         </div>
-                        {metrics[server.serverKey] === null && (
+                        
+                        {/* Go API Error for this server's metrics */}
+                        {metricsErrors[server.serverKey] && (
+                          <div className='mt-3'>
+                            <MonitoringServiceErrorInline
+                              error={metricsErrors[server.serverKey]}
+                              onRetry={() => {
+                                console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
+                                loadServerMetrics(server.serverKey);
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        {metrics[server.serverKey] === null && !metricsErrors[server.serverKey] && (
                           <div className='mt-2 text-xs text-red-400'>
                             Metrics unavailable - server may be offline
                           </div>

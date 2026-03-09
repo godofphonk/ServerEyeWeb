@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import { GoApiError, GoApiErrorResponse } from '@/types';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -14,6 +15,16 @@ class ApiClient {
     });
 
     this.setupInterceptors();
+  }
+
+  private isGoApiError(error: any): error is AxiosError<GoApiErrorResponse> {
+    return (
+      error.response?.data &&
+      typeof error.response.data === 'object' &&
+      'error_code' in error.response.data &&
+      typeof error.response.data.error_code === 'string' &&
+      error.response.data.error_code.startsWith('GO_API_')
+    );
   }
 
   private setupInterceptors() {
@@ -37,6 +48,22 @@ class ApiClient {
     this.client.interceptors.response.use(
       response => response,
       async error => {
+        // Check if this is a Go API error
+        if (this.isGoApiError(error)) {
+          const goApiError = new GoApiError(
+            error.response!.data,
+            error.response!.status
+          );
+          console.log('[API] Go API error detected:', {
+            errorCode: goApiError.errorCode,
+            errorType: goApiError.errorType,
+            isTemporary: goApiError.isTemporary,
+            userMessage: goApiError.userMessage,
+          });
+          return Promise.reject(goApiError);
+        }
+
+        // Handle 401 errors (authentication)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           console.log('[API] 401 Unauthorized - attempting token refresh');
           
@@ -85,6 +112,7 @@ class ApiClient {
             window.location.href = '/login';
           }
         }
+        
         return Promise.reject(error);
       },
     );
