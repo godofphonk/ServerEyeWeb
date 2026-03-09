@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import { fetchWithRetry } from './retryUtils';
 import { ServerStaticInfo, MonitoredServer, MetricsResponse } from '@/types';
 
 // Cache for monitored servers
@@ -42,8 +43,12 @@ export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
 // Static server info endpoint
 export async function getServerStaticInfo(serverKey: string): Promise<ServerStaticInfo> {
   try {
-    const response = await apiClient.get<ServerStaticInfo>(
-      `/servers/by-key/${serverKey}/static-info`,
+    const response = await fetchWithRetry(
+      () => apiClient.get<ServerStaticInfo>(`/servers/by-key/${serverKey}/static-info`),
+      {
+        maxRetries: 2,
+        initialDelay: 1000,
+      }
     );
     return response;
   } catch (error: any) {
@@ -82,9 +87,15 @@ export async function getServersWithStaticInfo(): Promise<
           ...server,
           staticInfo,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Failed to load static info for server ${server.serverId}:`, error);
-        // Return server without static info if endpoint fails
+        
+        // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
+        if (error.response?.status >= 500) {
+          throw error;
+        }
+        
+        // For other errors, return server without static info
         return {
           ...server,
           staticInfo: undefined,
@@ -92,6 +103,16 @@ export async function getServersWithStaticInfo(): Promise<
       }
     }),
   );
+
+  // Check if any server errors occurred and rethrow the first one
+  const serverError = serversWithStatic.find(result => 
+    result.status === 'rejected' && 
+    result.reason?.response?.status >= 500
+  );
+  
+  if (serverError && serverError.status === 'rejected') {
+    throw serverError.reason;
+  }
 
   // Filter out rejected promises and return successful results
   return serversWithStatic
