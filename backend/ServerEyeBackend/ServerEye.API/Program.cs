@@ -207,6 +207,7 @@ builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 
 builder.Services.AddScoped<IMetricsCacheService, ServerEye.Infrastracture.Caching.MetricsCacheService>();
 builder.Services.AddScoped<IServerAccessService, ServerAccessService>();
+builder.Services.AddScoped<IServerDiscoveryService, ServerDiscoveryService>();
 builder.Services.AddScoped<IMetricsService, MetricsService>();
 builder.Services.AddScoped<IStaticInfoService, StaticInfoService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
