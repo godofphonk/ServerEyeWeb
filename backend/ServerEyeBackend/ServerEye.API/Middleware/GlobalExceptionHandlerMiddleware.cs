@@ -39,7 +39,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception occurred");
-            await HandleUnknownExceptionAsync(context, ex);
+            await HandleUnknownExceptionAsync(context);
         }
     }
 
@@ -100,7 +100,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
         await WriteJsonResponseAsync(context, HttpStatusCode.BadRequest, errorResponse);
     }
 
-    private static async Task HandleUnknownExceptionAsync(HttpContext context, Exception _)
+    private static async Task HandleUnknownExceptionAsync(HttpContext context)
     {
         var errorResponse = new ErrorResponseDto
         {

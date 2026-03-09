@@ -18,4 +18,7 @@ public interface IGoApiClient
     public Task<GoApiSourceResponse?> AddServerSourceByKeyAsync(string serverKey, string source);
     public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersAsync(string serverId, GoApiSourceIdentifiersRequest request);
     public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersByKeyAsync(string serverKey, GoApiSourceIdentifiersRequest request);
+    
+    // Server discovery methods
+    public Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId);
 }

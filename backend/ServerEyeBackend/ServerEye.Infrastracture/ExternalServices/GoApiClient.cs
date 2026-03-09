@@ -704,4 +704,64 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
             }).ToList()
         };
     }
+
+#pragma warning disable SA1202 // 'public' members should come before 'private' members
+    public async Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId)
+#pragma warning restore SA1202 // 'public' members should come before 'private' members
+    {
+        try
+        {
+            var url = $"/api/servers/by-telegram/{telegramId}";
+
+            logger.LogInformation("Finding servers by telegram_id: {TelegramId}", telegramId);
+
+            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    logger.LogInformation("No servers found for telegram_id: {TelegramId}", telegramId);
+                    return new List<GoApiServerInfo>();
+                }
+
+                var errorContent = await response.Content.ReadAsStringAsync();
+                logger.LogWarning("Failed to find servers by telegram_id {TelegramId}: {StatusCode} - {Content}", telegramId, response.StatusCode, errorContent);
+                return null;
+            }
+
+            var servers = await response.Content.ReadFromJsonAsync<List<GoApiServerInfo>>();
+            logger.LogInformation("Found {Count} servers for telegram_id: {TelegramId}", servers?.Count ?? 0, telegramId);
+
+            return servers ?? new List<GoApiServerInfo>();
+        }
+        catch (ServerEye.Core.Exceptions.GoApiException)
+        {
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogError(ex, "Go API request timeout for finding servers by telegram_id");
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Go API request timed out",
+                ServerEye.Core.Exceptions.GoApiErrorType.Timeout,
+                innerException: ex);
+        }
+        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            logger.LogError(ex, "Go API service unavailable (network error)");
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Go API service is unavailable",
+                ServerEye.Core.Exceptions.GoApiErrorType.ServiceUnavailable,
+                innerException: ex);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error finding servers by telegram_id: {TelegramId}", telegramId);
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Unexpected error finding servers by telegram_id",
+                ServerEye.Core.Exceptions.GoApiErrorType.Unknown,
+                innerException: ex);
+        }
+    }
 }
