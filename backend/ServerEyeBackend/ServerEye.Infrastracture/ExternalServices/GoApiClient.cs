@@ -224,7 +224,16 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 logger.LogWarning("Server key validation failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
-                return null;
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                
+                throw new ServerEye.Core.Exceptions.GoApiException(
+                    $"Go API returned {response.StatusCode}",
+                    ServerEye.Core.Exceptions.GoApiErrorType.InvalidResponse,
+                    innerException: new HttpRequestException($"Status: {response.StatusCode}"));
             }
 
             var metricsResponse = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
@@ -244,10 +253,33 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
 
             return null;
         }
+        catch (ServerEye.Core.Exceptions.GoApiException)
+        {
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogError(ex, "Go API request timeout for server key validation");
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Go API request timed out",
+                ServerEye.Core.Exceptions.GoApiErrorType.Timeout,
+                innerException: ex);
+        }
+        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            logger.LogError(ex, "Go API service unavailable (network error)");
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Go API service is unavailable",
+                ServerEye.Core.Exceptions.GoApiErrorType.ServiceUnavailable,
+                innerException: ex);
+        }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating server key with Go API");
-            return null;
+            logger.LogError(ex, "Unexpected error validating server key with Go API");
+            throw new ServerEye.Core.Exceptions.GoApiException(
+                "Unexpected error communicating with Go API",
+                ServerEye.Core.Exceptions.GoApiErrorType.Unknown,
+                innerException: ex);
         }
     }
 
@@ -300,6 +332,23 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
             OperatingSystem = $"{response.ServerInfo.Os} {response.ServerInfo.OsVersion}".Trim(),
             AgentVersion = "1.1.0", // Default version since not provided by Go API
             LastUpdated = response.ServerInfo.UpdatedAt,
+            CpuInfo = response.HardwareInfo != null
+                ? new StaticCpuInfo
+                {
+                    Model = response.HardwareInfo.CpuModel,
+                    Cores = response.HardwareInfo.CpuCores,
+                    Threads = response.HardwareInfo.CpuThreads,
+                    FrequencyMhz = response.HardwareInfo.CpuFrequencyMhz
+                }
+                : null,
+            MemoryInfo = response.MemoryModules.Count > 0
+                ? new StaticMemoryInfo
+                {
+                    TotalGb = response.MemoryModules.Sum(m => m.SizeGb),
+                    Type = response.MemoryModules.First().MemoryType,
+                    SpeedMhz = response.MemoryModules.First().FrequencyMhz
+                }
+                : null,
             DiskInfo = response.DiskInfo.Select(d => new StaticDiskInfo
             {
                 Device = d.DeviceName,
@@ -315,32 +364,6 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
                 MacAddress = n.MacAddress
             }).ToList()
         };
-
-        // CPU Info
-        if (response.HardwareInfo != null)
-        {
-            staticInfo.CpuInfo = new StaticCpuInfo
-            {
-                Model = response.HardwareInfo.CpuModel,
-                Cores = response.HardwareInfo.CpuCores,
-                Threads = response.HardwareInfo.CpuThreads,
-                FrequencyMhz = response.HardwareInfo.CpuFrequencyMhz
-            };
-        }
-
-        // Memory Info
-        if (response.MemoryModules.Count > 0)
-        {
-            var totalMemory = response.MemoryModules.Sum(m => m.SizeGb);
-            var firstModule = response.MemoryModules.First();
-
-            staticInfo.MemoryInfo = new StaticMemoryInfo
-            {
-                TotalGb = totalMemory,
-                Type = firstModule.MemoryType,
-                SpeedMhz = firstModule.FrequencyMhz
-            };
-        }
 
         return staticInfo;
     }

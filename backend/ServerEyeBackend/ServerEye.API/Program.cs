@@ -373,7 +373,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 // Global Exception Handler (must be first)
-app.UseExceptionHandler();
+app.UseMiddleware<ServerEye.API.Middleware.GlobalExceptionHandlerMiddleware>();
 
 // Response Compression (should be early in pipeline)
 app.UseResponseCompression();
