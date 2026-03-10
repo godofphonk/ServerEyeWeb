@@ -606,19 +606,21 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
+            this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
             
             // Handle specific OAuth errors
             if (ex.Message == "user_not_found")
             {
-                this.logger.LogWarning("OAuth login failed - user not found");
+                this.logger.LogWarning("OAuth login failed - user not found, redirecting to login page");
                 return this.Redirect("http://localhost:3001/login?error=user_not_found");
             }
             else if (ex.Message == "user_already_exists")
             {
-                this.logger.LogWarning("OAuth registration failed - user already exists");
+                this.logger.LogWarning("OAuth registration failed - user already exists, redirecting to register page");
                 return this.Redirect("http://localhost:3001/register?error=user_already_exists");
             }
             
+            this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
             return this.Redirect("http://localhost:3001/auth/callback?error=oauth_failed");
         }
     }
@@ -735,7 +737,11 @@ public class AuthController : ControllerBase
                 Action = action // Pass action from query parameter
             };
 
+            this.logger.LogInformation("Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}", oauthRequest.Provider, oauthRequest.Action, oauthRequest.State);
+
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
+
+            this.logger.LogInformation("Telegram OAuth processing result - Success: {Success}, Message: {Message}", response.Success, response.Message);
 
             if (!response.Success)
             {
@@ -778,6 +784,20 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error processing Telegram OAuth callback");
+            this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
+            
+            // Handle specific OAuth errors
+            if (ex.Message == "user_not_found")
+            {
+                this.logger.LogWarning("Telegram OAuth login failed - user not found");
+                return this.Ok(new { success = false, message = "user_not_found" });
+            }
+            else if (ex.Message == "user_already_exists")
+            {
+                this.logger.LogWarning("Telegram OAuth registration failed - user already exists");
+                return this.Ok(new { success = false, message = "user_already_exists" });
+            }
+            
             return this.StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
