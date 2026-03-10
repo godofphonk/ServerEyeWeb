@@ -35,9 +35,9 @@ public sealed class OAuthService(
     private readonly ILogger<OAuthService> logger = logger;
 
     // Public interface implementation
-    public async Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, CancellationToken cancellationToken = default)
+    public async Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, string? action = null, CancellationToken cancellationToken = default)
     {
-        this.logger.LogInformation("CreateChallengeAsync called - Provider: {Provider}, ReturnUrl: {ReturnUrl}", provider, returnUrl?.ToString() ?? "null");
+        this.logger.LogInformation("CreateChallengeAsync called - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
 
         if (!this.IsProviderEnabled(provider))
         {
@@ -46,6 +46,15 @@ public sealed class OAuthService(
         }
 
         var state = GenerateSecureRandomString(32);
+        
+        // Embed action in state if provided: "action_randomstate"
+        var stateWithAction = state;
+        if (!string.IsNullOrEmpty(action))
+        {
+            stateWithAction = $"{action}_{state}";
+            this.logger.LogInformation("Embedded action in state - Action: {Action}, OriginalState: {State}, StateWithAction: {StateWithAction}", action, state, stateWithAction);
+        }
+        
         var codeVerifier = GenerateSecureRandomString(128);
         var codeChallenge = Base64UrlEncode(SHA256Hash(codeVerifier));
 
@@ -55,7 +64,7 @@ public sealed class OAuthService(
             codeVerifier[..Math.Min(codeVerifier.Length, 20)] + "...",
             codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...");
 
-        // Store code verifier in memory for later verification
+        // Store code verifier with original state (without action prefix)
         CodeVerifiers[state] = codeVerifier;
 
         this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
@@ -63,9 +72,9 @@ public sealed class OAuthService(
         var challengeUrl = provider switch
         {
             OAuthProvider.None => throw new ArgumentException("None provider is not valid for challenges"),
-            OAuthProvider.Google => this.CreateGoogleChallengeUrl(state, codeChallenge, returnUrl),
-            OAuthProvider.GitHub => this.CreateGitHubChallengeUrl(state, codeChallenge, returnUrl),
-            OAuthProvider.Telegram => this.CreateTelegramChallengeUrl(state, returnUrl),
+            OAuthProvider.Google => this.CreateGoogleChallengeUrl(stateWithAction, codeChallenge, returnUrl),
+            OAuthProvider.GitHub => this.CreateGitHubChallengeUrl(stateWithAction, codeChallenge, returnUrl),
+            OAuthProvider.Telegram => this.CreateTelegramChallengeUrl(stateWithAction, returnUrl),
             _ => throw new NotSupportedException($"Provider {provider} is not supported")
         };
 
@@ -74,8 +83,9 @@ public sealed class OAuthService(
         return new OAuthChallengeResponseDto
         {
             ChallengeUrl = new Uri(challengeUrl),
-            State = state, // Return original state without prefix
-            CodeVerifier = codeVerifier
+            State = stateWithAction, // Return state with action prefix
+            CodeVerifier = codeVerifier,
+            Action = action
         };
     }
 
@@ -83,27 +93,45 @@ public sealed class OAuthService(
     {
         var provider = this.ParseProvider(request.Provider);
 
+        // Extract action from request or state
+        var action = request.Action;
+        var originalState = request.State;
+        
+        // If action not in request, try to extract from state format: "action_randomstate"
+        if (string.IsNullOrEmpty(action) && !string.IsNullOrEmpty(request.State))
+        {
+            var stateParts = request.State.Split('_', 2);
+            if (stateParts.Length == 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
+            {
+                action = stateParts[0];
+                originalState = stateParts[1];
+                this.logger.LogInformation("Extracted action from state - Action: {Action}, OriginalState: {OriginalState}", action, originalState);
+            }
+        }
+
+        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}", provider, action ?? "auto", request.State);
+
         // Retrieve code verifier from memory
         // For Telegram temporary states, we don't need code verifier
         string? codeVerifier = null;
-        bool isTelegramTemp = request.State.StartsWith("telegram_temp_", StringComparison.OrdinalIgnoreCase);
+        bool isTelegramTemp = originalState.StartsWith("telegram_temp_", StringComparison.OrdinalIgnoreCase);
         
-        if (!isTelegramTemp && !CodeVerifiers.TryGetValue(request.State, out codeVerifier))
+        if (!isTelegramTemp && !CodeVerifiers.TryGetValue(originalState, out codeVerifier))
         {
-            this.logger.LogError("Code verifier not found for state: {State}", request.State);
+            this.logger.LogError("Code verifier not found for state: {State}", originalState);
             throw new InvalidOperationException("Invalid or expired OAuth state");
         }
 
         if (!isTelegramTemp)
         {
-            this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State);
+            this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", originalState);
 
             // Remove code verifier from memory
-            CodeVerifiers.Remove(request.State);
+            CodeVerifiers.Remove(originalState);
         }
         else
         {
-            this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", request.State);
+            this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", originalState);
         }
 
         // Exchange authorization code for access token
@@ -112,11 +140,56 @@ public sealed class OAuthService(
         // Get user info from provider
         var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
 
-        // Find or create user
-        var user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
+        // Check if external login already exists
+        var existingExternalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
+        User? user = null;
+
+        if (existingExternalLogin != null)
+        {
+            // User with this external login already exists
+            user = await this.userRepository.GetByIdAsync(existingExternalLogin.UserId);
+        }
+
+        // Apply action-based logic
+        if (!string.IsNullOrEmpty(action))
+        {
+            if (action.Equals("login", StringComparison.OrdinalIgnoreCase))
+            {
+                // LOGIN mode: only authenticate existing users
+                if (user == null)
+                {
+                    this.logger.LogWarning("OAuth login failed - user not found for provider {Provider}", provider);
+                    throw new InvalidOperationException("user_not_found");
+                }
+                this.logger.LogInformation("OAuth login successful for existing user {UserId}", user.Id);
+            }
+            else if (action.Equals("register", StringComparison.OrdinalIgnoreCase))
+            {
+                // REGISTER mode: only register new users
+                if (user != null)
+                {
+                    this.logger.LogWarning("OAuth registration failed - user already exists for provider {Provider}", provider);
+                    throw new InvalidOperationException("user_already_exists");
+                }
+                
+                // Create new user
+                user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
+                this.logger.LogInformation("OAuth registration successful for new user {UserId}", user.Id);
+            }
+        }
+        else
+        {
+            // AUTO mode (backward compatibility): find or create user
+            user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
+            this.logger.LogInformation("OAuth auto mode - user {UserId} authenticated", user.Id);
+        }
+
+        if (user == null)
+        {
+            throw new InvalidOperationException("Failed to authenticate or create user");
+        }
 
         // Link external login if needed
-        var existingExternalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
         if (existingExternalLogin == null)
         {
             await this.LinkExternalLoginAsync(user.Id, provider, userInfo, cancellationToken);
@@ -132,7 +205,7 @@ public sealed class OAuthService(
         var token = this.jwtService.GenerateAccessToken(user);
         var refreshToken = await Task.FromResult(this.jwtService.GenerateRefreshToken(user));
 
-        this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider}", user.Id, provider);
+        this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider} with action {Action}", user.Id, provider, action ?? "auto");
 
         return new AuthResponseDto
         {

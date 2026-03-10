@@ -30,8 +30,8 @@ interface AuthContextType {
   refreshUserData: () => Promise<void>;
   refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
-  getOAuthURL: (provider: string) => Promise<string>;
-  getOAuthChallenge: (provider: string, returnUrl?: string) => Promise<OAuthChallengeResponse>;
+  getOAuthURL: (provider: string, action?: string) => Promise<string>;
+  getOAuthChallenge: (provider: string, returnUrl?: string, action?: string) => Promise<OAuthChallengeResponse>;
   getExternalLogins: () => Promise<ExternalLoginsResponse>;
   linkExternalAccount: (provider: string, code: string, state: string) => Promise<void>;
   unlinkExternalAccount: (provider: string) => Promise<void>;
@@ -415,9 +415,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // Убираем зависимость checkAuth
 
   // New OAuth methods using the updated endpoints
-  const getOAuthChallenge = useCallback(async (provider: string, returnUrl?: string): Promise<OAuthChallengeResponse> => {
+  const getOAuthChallenge = useCallback(async (provider: string, returnUrl?: string, action?: string): Promise<OAuthChallengeResponse> => {
     const params = new URLSearchParams();
     if (returnUrl) params.append('returnUrl', returnUrl);
+    if (action) params.append('action', action);
     
     const response = await apiClient.get<OAuthChallengeResponse>(
       `/auth/oauth/${provider}/challenge?${params.toString()}`
@@ -425,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     console.log('[AuthContext] OAuth challenge response:', response);
     console.log('[AuthContext] Using challenge URL from backend:', response.challengeUrl);
+    console.log('[AuthContext] Action:', action || 'auto');
     
     return response;
   }, []);
@@ -448,13 +450,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Legacy OAuth methods (updated to use new challenge flow)
-  const getOAuthURL = useCallback(async (provider: string): Promise<string> => {
-    const challenge = await getOAuthChallenge(provider);
+  const getOAuthURL = useCallback(async (provider: string, action?: string): Promise<string> => {
+    const challenge = await getOAuthChallenge(provider, undefined, action);
     // Store challenge data in sessionStorage for callback handling
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('oauth_state', challenge.state);
       sessionStorage.setItem('oauth_code_verifier', challenge.codeVerifier);
       sessionStorage.setItem('oauth_provider', provider);
+      if (action) {
+        sessionStorage.setItem('oauth_action', action);
+      }
     }
     
     return challenge.challengeUrl;

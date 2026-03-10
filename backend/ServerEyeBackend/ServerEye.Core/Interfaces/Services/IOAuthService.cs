@@ -7,7 +7,7 @@ using ServerEye.Core.Enums;
 public interface IOAuthService
 {
     // OAuth flow management
-    public Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, CancellationToken cancellationToken = default);
+    public Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, string? action = null, CancellationToken cancellationToken = default);
     public Task<AuthResponseDto> ProcessCallbackAsync(OAuthCallbackRequestDto request, string? ipAddress = null, string? userAgent = null, CancellationToken cancellationToken = default);
     
     // External login management

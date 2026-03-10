@@ -405,11 +405,11 @@ public class AuthController : ControllerBase
     #region OAuth2 Endpoints
 
     [HttpGet("oauth/{provider}/challenge")]
-    public async Task<ActionResult<OAuthChallengeResponseDto>> CreateOAuthChallenge(string provider, [FromQuery] Uri? returnUrl = null)
+    public async Task<ActionResult<OAuthChallengeResponseDto>> CreateOAuthChallenge(string provider, [FromQuery] Uri? returnUrl = null, [FromQuery] string? action = null)
     {
         try
         {
-            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}", provider, returnUrl?.ToString() ?? "null");
+            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
 
             var oauthProvider = this.oauthService.ParseProvider(provider);
             this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider);
@@ -420,12 +420,13 @@ public class AuthController : ControllerBase
                 return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
             }
 
-            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider}", oauthProvider);
-            var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl);
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider, action ?? "auto");
+            var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
             
             this.logger.LogInformation(
-                "OAuth challenge created successfully - Provider: {OAuthProvider}, ChallengeUrl: {ChallengeUrl}",
+                "OAuth challenge created successfully - Provider: {OAuthProvider}, Action: {Action}, ChallengeUrl: {ChallengeUrl}",
                 oauthProvider,
+                action ?? "auto",
                 challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
             
             return this.Ok(challenge);
@@ -456,7 +457,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("oauth/callback")]
-    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? hash, [FromQuery] string? provider, [FromQuery] bool linkingAction = false, [FromQuery] string? userId = null)
+    public async Task<IActionResult> OAuthCallbackGet([FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? hash, [FromQuery] string? provider, [FromQuery] bool linkingAction = false, [FromQuery] string? userId = null, [FromQuery] string? action = null)
     {
         try
         {
@@ -480,11 +481,12 @@ public class AuthController : ControllerBase
             var (isLinking, linkingProvider, linkingUserId, actualState) = ParseLinkingState(state ?? string.Empty);
             
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
+            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
             provider,
             code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
             hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
             state,
+            action ?? "auto",
             isLinking,
             linkingProvider,
             linkingUserId);
@@ -536,7 +538,8 @@ public class AuthController : ControllerBase
                 Code = code ?? hash ?? string.Empty, // Use code or hash for Telegram
                 State = isLinking && !string.IsNullOrEmpty(actualState) ? actualState : ExtractStateFromState(state), // Use actualState from linking or extract from regular state
                 LinkingAction = linkingAction,
-                UserId = userId
+                UserId = userId,
+                Action = action // Pass action parameter from query
             };
 
             // Fallback to parameter-based linking (if state doesn't contain linking info)
@@ -603,7 +606,20 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
-            return this.Redirect("http://localhost:3001/auth?error=oauth_failed");
+            
+            // Handle specific OAuth errors
+            if (ex.Message == "user_not_found")
+            {
+                this.logger.LogWarning("OAuth login failed - user not found");
+                return this.Redirect("http://localhost:3001/login?error=user_not_found");
+            }
+            else if (ex.Message == "user_already_exists")
+            {
+                this.logger.LogWarning("OAuth registration failed - user already exists");
+                return this.Redirect("http://localhost:3001/register?error=user_already_exists");
+            }
+            
+            return this.Redirect("http://localhost:3001/auth/callback?error=oauth_failed");
         }
     }
 
