@@ -726,12 +726,22 @@ public sealed class OAuthService(
         var stateWithProvider = $"telegram_{state}";
         var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
 
+        // Extract origin from RedirectUri (remove path for Telegram origin parameter)
+        var redirectUriObj = new Uri(settings.RedirectUri.ToString());
+        var origin = $"{redirectUriObj.Scheme}://{redirectUriObj.Host}";
+
+        this.logger.LogInformation(
+            "Telegram OAuth settings - BotId: {BotId}, RedirectUri: {RedirectUri}, Origin: {Origin}",
+            settings.BotToken,
+            settings.RedirectUri.ToString(),
+            origin);
+
         // Telegram OAuth URL with correct parameters
         var url = $"https://oauth.telegram.org/auth?" +
                   $"bot_id={settings.BotToken}&" + // Use bot_id from configuration
-                  $"origin=http://127.0.0.1:5246&" + // Fixed origin without path
+                  $"origin={Uri.EscapeDataString(origin)}&" + // Use frontend origin
                   $"request_access=write&" + // Request write access
-                  $"redirect_uri=http://127.0.0.1:5246&" + // Use root domain for index.html
+                  $"redirect_uri={redirectUri}&" + // Use configured RedirectUri
                   $"state={stateWithProvider}";
 
         if (returnUrl != null)
