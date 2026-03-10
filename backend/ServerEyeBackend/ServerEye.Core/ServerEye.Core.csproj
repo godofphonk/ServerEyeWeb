@@ -6,4 +6,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
+  
+  <!-- Disable CA1055 rule for Base64Url methods -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="NoWarn" />
+    <NoWarn Include="CA1055" />
+  </ItemGroup>
 </Project>
