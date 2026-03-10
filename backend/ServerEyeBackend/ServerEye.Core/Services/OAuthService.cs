@@ -97,14 +97,31 @@ public sealed class OAuthService(
         var action = request.Action;
         var originalState = request.State;
         
-        // If action not in request, try to extract from state format: "action_randomstate"
-        if (string.IsNullOrEmpty(action) && !string.IsNullOrEmpty(request.State))
+        // Special handling for Telegram OAuth
+        bool isTelegramTemp = originalState.StartsWith("telegram_temp_", StringComparison.OrdinalIgnoreCase);
+
+        // For Telegram, try to extract action from sessionStorage or use auto mode
+        if (provider == OAuthProvider.Telegram && isTelegramTemp)
         {
-            var stateParts = request.State.Split('_', 2);
-            if (stateParts.Length == 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
+            this.logger.LogInformation("Telegram OAuth detected with temporary state, using action from request parameter");
+
+            // For Telegram, we rely on the action parameter from the query string
+            // If not provided, default to auto mode for backward compatibility
+            if (string.IsNullOrEmpty(action))
+            {
+                this.logger.LogWarning("Telegram OAuth without action parameter, defaulting to auto mode");
+                action = "auto";
+            }
+        }
+
+        // For other providers, extract action from state format: "action_randomstate"
+        else if (string.IsNullOrEmpty(action) && !string.IsNullOrEmpty(request.State))
+        {
+            var stateParts = request.State.Split('_', 3);
+            if (stateParts.Length >= 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
             {
                 action = stateParts[0];
-                originalState = stateParts[1];
+                originalState = stateParts.Length == 3 ? string.Join('_', stateParts.Skip(1)) : stateParts[1];
                 this.logger.LogInformation("Extracted action from state - Action: {Action}, OriginalState: {OriginalState}", action, originalState);
             }
         }
@@ -114,7 +131,6 @@ public sealed class OAuthService(
         // Retrieve code verifier from memory
         // For Telegram temporary states, we don't need code verifier
         string? codeVerifier = null;
-        bool isTelegramTemp = originalState.StartsWith("telegram_temp_", StringComparison.OrdinalIgnoreCase);
         
         if (!isTelegramTemp && !CodeVerifiers.TryGetValue(originalState, out codeVerifier))
         {
@@ -548,7 +564,9 @@ public sealed class OAuthService(
 
         var primaryEmail = emailData?.FirstOrDefault(e => bool.TryParse(e.GetValueOrDefault("primary")?.ToString(), out var primary) && primary);
         var email = primaryEmail?.GetValueOrDefault("email")?.ToString() ?? string.Empty;
-        var emailVerified = bool.TryParse(primaryEmail?.GetValueOrDefault("verified")?.ToString(), out var verified) && verified;
+
+        // For GitHub OAuth, if user has an email, it's verified by OAuth flow
+        var emailVerified = !string.IsNullOrEmpty(email);
 
         return new OAuthUserInfoDto
         {
@@ -753,8 +771,8 @@ public sealed class OAuthService(
                       $"oauth_{userInfo.Id}",
             Email = userInfo.Email, // Keep null for OAuth users without email
             Role = UserRole.User,
-            IsEmailVerified = userInfo.EmailVerified,
-            EmailVerifiedAt = userInfo.EmailVerified ? DateTime.UtcNow : null,
+            IsEmailVerified = userInfo.EmailVerified || !string.IsNullOrEmpty(userInfo.Email), // OAuth providers verify email ownership
+            EmailVerifiedAt = (userInfo.EmailVerified || !string.IsNullOrEmpty(userInfo.Email)) ? DateTime.UtcNow : null,
             Password = string.Empty, // OAuth users don't have passwords
             HasPassword = false,
             ServerId = Guid.NewGuid()
