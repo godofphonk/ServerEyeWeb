@@ -32,6 +32,9 @@ export default function RegisterPage() {
     
     if (oauthError) {
       switch (oauthError) {
+        case 'user_already_exists':
+          setError('An account with this provider already exists. Please login instead.');
+          break;
         case 'backend_error':
           setError('OAuth registration failed. Please try again.');
           break;
@@ -87,7 +90,7 @@ export default function RegisterPage() {
     setIsOAuthLoading(provider);
 
     try {
-      const authURL = await getOAuthURL(provider);
+      const authURL = await getOAuthURL(provider, 'register');
       window.location.href = authURL;
     } catch (err: any) {
       setError(err.message || `Failed to authenticate with ${provider}`);

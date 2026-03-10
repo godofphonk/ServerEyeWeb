@@ -48,6 +48,7 @@ public class OAuthChallengeResponseDto
     public Uri ChallengeUrl { get; init; } = new Uri("https://localhost");
     public string State { get; set; } = string.Empty;
     public string CodeVerifier { get; set; } = string.Empty;
+    public string? Action { get; set; }
 }
 
 public class OAuthCallbackRequestDto
@@ -59,6 +60,7 @@ public class OAuthCallbackRequestDto
     public string ErrorDescription { get; set; } = string.Empty;
     public bool LinkingAction { get; set; }
     public string? UserId { get; set; }
+    public string? Action { get; set; }
 }
 
 public class TokenResponseDto

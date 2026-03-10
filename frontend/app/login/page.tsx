@@ -42,6 +42,9 @@ export default function LoginPage() {
     
     if (oauthError) {
       switch (oauthError) {
+        case 'user_not_found':
+          setError('No account found with this provider. Please register first.');
+          break;
         case 'backend_error':
           setError('OAuth authentication failed. Please try again.');
           break;
@@ -93,7 +96,7 @@ export default function LoginPage() {
     setIsOAuthLoading(provider);
 
     try {
-      const authURL = await getOAuthURL(provider);
+      const authURL = await getOAuthURL(provider, 'login');
       window.location.href = authURL;
     } catch (err: any) {
       setError(err.message || `Failed to authenticate with ${provider}`);
