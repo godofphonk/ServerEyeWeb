@@ -217,6 +217,15 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 // OAuth2 services
 var oauthSettings = configuration.GetSection("OAuth").Get<ServerEye.Core.Configuration.OAuthSettings>() ?? new ServerEye.Core.Configuration.OAuthSettings();
 builder.Services.AddSingleton(oauthSettings);
+
+// Register OAuth providers
+builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.GoogleOAuthProvider>();
+builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.GitHubOAuthProvider>();
+builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.TelegramOAuthProvider>();
+
+// Register OAuth provider factory
+builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Factory.IOAuthProviderFactory, ServerEye.Core.Services.OAuth.Factory.OAuthProviderFactory>();
+
 builder.Services.AddScoped<IOAuthService, OAuthService>();
 builder.Services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
 

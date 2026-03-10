@@ -11,27 +11,22 @@ using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Services.OAuth.Factory;
 
 public sealed class OAuthService(
-    IConfiguration configuration,
     IUserRepository userRepository,
     IUserExternalLoginRepository externalLoginRepository,
     IJwtService jwtService,
+    IOAuthProviderFactory providerFactory,
     ILogger<OAuthService> logger) : IOAuthService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = false,
-        PropertyNamingPolicy = null
-    };
-
     // Simple in-memory storage for code verifiers (in production, use Redis or database)
     private static readonly Dictionary<string, string> CodeVerifiers = new();
 
-    private readonly OAuthSettings oauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>() ?? new OAuthSettings();
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserExternalLoginRepository externalLoginRepository = externalLoginRepository;
     private readonly IJwtService jwtService = jwtService;
+    private readonly IOAuthProviderFactory providerFactory = providerFactory;
     private readonly ILogger<OAuthService> logger = logger;
 
     // Public interface implementation
@@ -44,6 +39,8 @@ public sealed class OAuthService(
             this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
             throw new InvalidOperationException($"OAuth provider {provider} is not enabled");
         }
+
+        var providerInstance = providerFactory.GetProvider(provider);
 
         var state = GenerateSecureRandomString(32);
         
@@ -69,20 +66,13 @@ public sealed class OAuthService(
 
         this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
 
-        var challengeUrl = provider switch
-        {
-            OAuthProvider.None => throw new ArgumentException("None provider is not valid for challenges"),
-            OAuthProvider.Google => this.CreateGoogleChallengeUrl(stateWithAction, codeChallenge, returnUrl),
-            OAuthProvider.GitHub => this.CreateGitHubChallengeUrl(stateWithAction, codeChallenge, returnUrl),
-            OAuthProvider.Telegram => this.CreateTelegramChallengeUrl(stateWithAction, returnUrl),
-            _ => throw new NotSupportedException($"Provider {provider} is not supported")
-        };
+        var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction, codeChallenge, returnUrl);
 
-        this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, challengeUrl[..Math.Min(challengeUrl.Length, 100)] + "...");
+        this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, challengeResponse.ChallengeUrl.ToString()[..Math.Min(challengeResponse.ChallengeUrl.ToString().Length, 100)] + "...");
 
         return new OAuthChallengeResponseDto
         {
-            ChallengeUrl = new Uri(challengeUrl),
+            ChallengeUrl = challengeResponse.ChallengeUrl,
             State = stateWithAction, // Return state with action prefix
             CodeVerifier = codeVerifier,
             Action = action
@@ -150,11 +140,12 @@ public sealed class OAuthService(
             this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", originalState);
         }
 
-        // Exchange authorization code for access token
-        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, codeVerifier ?? string.Empty, cancellationToken);
+        // Get provider instance and exchange code for token
+        var providerInstance = providerFactory.GetProvider(provider);
+        var tokenResponse = await providerInstance.ExchangeCodeAsync(request.Code, codeVerifier ?? string.Empty, cancellationToken);
 
         // Get user info from provider
-        var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
+        var userInfo = await providerInstance.GetUserInfoAsync(tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
 
         // Check if external login already exists
         var existingExternalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
@@ -294,10 +285,11 @@ public sealed class OAuthService(
         // Remove code verifier from memory
         OAuthService.CodeVerifiers.Remove(originalState);
         
-        var tokenResponse = await this.ExchangeCodeForTokenAsync(provider, request.Code, storedCodeVerifier, cancellationToken);
+        var providerInstance = providerFactory.GetProvider(provider);
+        var tokenResponse = await providerInstance.ExchangeCodeAsync(request.Code, storedCodeVerifier, cancellationToken);
 
         // Get user info
-        var userInfo = await this.GetUserInfoAsync(provider, tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
+        var userInfo = await providerInstance.GetUserInfoAsync(tokenResponse.AccessToken, tokenResponse.IdToken, cancellationToken);
 
         // Check if this external login is already linked to another account
         var otherUserLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
@@ -358,39 +350,19 @@ public sealed class OAuthService(
             accessToken[..Math.Min(accessToken.Length, 20)] + "...",
             string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
 
-        return provider switch
-        {
-            OAuthProvider.None => throw new ArgumentException("None provider is not valid for getting user info"),
-            OAuthProvider.Google => await GetGoogleUserInfoAsync(accessToken, idToken, cancellationToken),
-            OAuthProvider.GitHub => await GetGitHubUserInfoAsync(accessToken, cancellationToken),
-            OAuthProvider.Telegram => GetTelegramUserInfoAsync(accessToken),
-            _ => throw new NotSupportedException($"Provider {provider} is not supported")
-        };
+        var providerInstance = providerFactory.GetProvider(provider);
+        return await providerInstance.GetUserInfoAsync(accessToken, idToken, cancellationToken);
     }
 
     public async Task<bool> ValidateAccessTokenAsync(OAuthProvider provider, string accessToken, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await this.GetUserInfoAsync(provider, accessToken, cancellationToken: cancellationToken);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        var providerInstance = providerFactory.GetProvider(provider);
+        return await providerInstance.ValidateTokenAsync(accessToken, cancellationToken);
     }
 
     public bool IsProviderEnabled(OAuthProvider provider)
     {
-        return provider switch
-        {
-            OAuthProvider.None => false,
-            OAuthProvider.Google => this.oauthSettings.Google.Enabled,
-            OAuthProvider.GitHub => this.oauthSettings.GitHub.Enabled,
-            OAuthProvider.Telegram => this.oauthSettings.Telegram.Enabled,
-            _ => false
-        };
+        return providerFactory.IsProviderEnabled(provider);
     }
 
     public OAuthProvider ParseProvider(string providerName)
@@ -501,272 +473,6 @@ public sealed class OAuthService(
             .Replace("=", string.Empty, StringComparison.Ordinal);
     }
 
-    private static string Base64UrlDecode(string input)
-    {
-        var padded = input.Length % 4 == 0 ? input : input.PadRight(input.Length + (4 - (input.Length % 4)), '=');
-        return Encoding.UTF8.GetString(Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/')));
-    }
-
-    private static async Task<OAuthUserInfoDto> GetGoogleUserInfoAsync(string accessToken, string? idToken, CancellationToken cancellationToken)
-    {
-        using var httpClient = new HttpClient();
-
-        // If we have an ID token, decode it first
-        if (!string.IsNullOrEmpty(idToken))
-        {
-            // This is a simplified implementation - in production, you should validate the token signature
-            var parts = idToken.Split('.');
-            if (parts.Length > 1)
-            {
-                var payload = Base64UrlDecode(parts[1]);
-                var tokenData = JsonSerializer.Deserialize<Dictionary<string, object>>(payload, JsonOptions);
-
-                if (tokenData != null)
-                {
-                    return new OAuthUserInfoDto
-                    {
-                        Id = tokenData.GetValueOrDefault("sub")?.ToString() ?? string.Empty,
-                        Email = tokenData.GetValueOrDefault("email")?.ToString() ?? string.Empty,
-                        Name = tokenData.GetValueOrDefault("name")?.ToString() ?? string.Empty,
-                        Username = tokenData.GetValueOrDefault("given_name")?.ToString() ?? string.Empty,
-                        AvatarUrl = !string.IsNullOrEmpty(tokenData.GetValueOrDefault("picture")?.ToString()) ? new Uri(tokenData.GetValueOrDefault("picture")?.ToString()!) : null,
-                        EmailVerified = bool.TryParse(tokenData.GetValueOrDefault("email_verified")?.ToString(), out var verified) && verified,
-                        RawData = tokenData
-                    };
-                }
-            }
-        }
-
-        // Fallback to API call
-        var response = await httpClient.GetAsync(new Uri($"https://www.googleapis.com/oauth2/v2/userinfo?access_token={accessToken}"), cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var userData = JsonSerializer.Deserialize<Dictionary<string, object>>(content, JsonOptions)
-               ?? throw new InvalidOperationException("Failed to get user info from Google");
-
-        return new OAuthUserInfoDto
-        {
-            Id = userData.GetValueOrDefault("id")?.ToString() ?? string.Empty,
-            Email = userData.GetValueOrDefault("email")?.ToString() ?? string.Empty,
-            Name = userData.GetValueOrDefault("name")?.ToString() ?? string.Empty,
-            Username = userData.GetValueOrDefault("given_name")?.ToString() ?? string.Empty,
-            AvatarUrl = !string.IsNullOrEmpty(userData.GetValueOrDefault("picture")?.ToString()) ? new Uri(userData.GetValueOrDefault("picture")?.ToString()!) : null,
-            EmailVerified = bool.TryParse(userData.GetValueOrDefault("verified_email")?.ToString(), out var emailVerified) && emailVerified,
-            RawData = userData
-        };
-    }
-
-    private static async Task<OAuthUserInfoDto> GetGitHubUserInfoAsync(string accessToken, CancellationToken cancellationToken)
-    {
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Add("User-Agent", "ServerEye");
-        httpClient.DefaultRequestHeaders.Add("Authorization", $"token {accessToken}");
-
-        var response = await httpClient.GetAsync(new Uri("https://api.github.com/user"), cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var userData = JsonSerializer.Deserialize<Dictionary<string, object>>(content, JsonOptions)
-               ?? throw new InvalidOperationException("Failed to get user info from GitHub");
-
-        // Get user email (GitHub requires separate API call for email)
-        var emailResponse = await httpClient.GetAsync(new Uri("https://api.github.com/user/emails"), cancellationToken);
-        emailResponse.EnsureSuccessStatusCode();
-        var emailContent = await emailResponse.Content.ReadAsStringAsync(cancellationToken);
-        var emailData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(emailContent, JsonOptions);
-
-        var primaryEmail = emailData?.FirstOrDefault(e => bool.TryParse(e.GetValueOrDefault("primary")?.ToString(), out var primary) && primary);
-        var email = primaryEmail?.GetValueOrDefault("email")?.ToString() ?? string.Empty;
-
-        // For GitHub OAuth, if user has an email, it's verified by OAuth flow
-        var emailVerified = !string.IsNullOrEmpty(email);
-
-        return new OAuthUserInfoDto
-        {
-            Id = userData.GetValueOrDefault("id")?.ToString() ?? string.Empty,
-            Email = email,
-            Name = userData.GetValueOrDefault("name")?.ToString() ?? string.Empty,
-            Username = userData.GetValueOrDefault("login")?.ToString() ?? string.Empty,
-            AvatarUrl = !string.IsNullOrEmpty(userData.GetValueOrDefault("avatar_url")?.ToString()) ? new Uri(userData.GetValueOrDefault("avatar_url")?.ToString()!) : null,
-            EmailVerified = emailVerified,
-            RawData = userData
-        };
-    }
-
-    private static OAuthUserInfoDto GetTelegramUserInfoAsync(string accessToken)
-    {
-        // Telegram OAuth returns user data as JSON in the "hash" parameter
-        // The accessToken here is actually the user data JSON from Telegram
-        
-        // DEBUG: Log what we receive
-        Console.WriteLine($"[DEBUG] Telegram GetTelegramUserInfoAsync received: {accessToken}");
-        
-        try
-        {
-            var userData = JsonSerializer.Deserialize<Dictionary<string, object>>(accessToken, JsonOptions)
-                   ?? throw new InvalidOperationException("Failed to parse Telegram user data");
-            
-            // DEBUG: Log parsed data
-            Console.WriteLine($"[DEBUG] Parsed Telegram user data: {string.Join(", ", userData.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
-
-            // Extract user information from Telegram data
-            // Telegram data comes directly, not nested in "user" field
-            var userDict = userData; // userData is already a Dictionary<string, object>
-
-            var userId = userDict.GetValueOrDefault("Id")?.ToString() ?? "unknown";
-            var name = $"{userDict.GetValueOrDefault("FirstName")?.ToString() ?? string.Empty} {userDict.GetValueOrDefault("LastName")?.ToString() ?? string.Empty}".Trim();
-            var username = userDict.GetValueOrDefault("Username")?.ToString() ?? string.Empty;
-
-            return new OAuthUserInfoDto
-            {
-                Id = userId,
-                Email = null, // Telegram doesn't provide email
-                Name = name,
-                Username = username,
-                AvatarUrl = null, // Avatar photos require separate API calls
-                EmailVerified = false, // Telegram doesn't provide email verification
-                RawData = userData // Keep as Dictionary for storage
-            };
-        }
-        catch (Exception)
-        {
-            // Ultimate fallback - treat the access token as user ID
-            var userData = new Dictionary<string, object>
-            {
-                ["id"] = accessToken,
-                ["first_name"] = "Telegram",
-                ["last_name"] = "User",
-                ["username"] = "telegram_user"
-            };
-
-            return new OAuthUserInfoDto
-            {
-                Id = accessToken,
-                Email = null, // Telegram doesn't provide email
-                Name = "Telegram User",
-                Username = "telegram_user",
-                AvatarUrl = null,
-                EmailVerified = false,
-                RawData = userData
-            };
-        }
-    }
-
-    private static Task<TokenResponseDto> ExchangeTelegramCodeAsync(string code)
-    {
-        // Telegram OAuth flow is different - the "code" parameter contains user data
-        // Telegram returns user data directly in the callback, not via token exchange
-        // We treat the user data as the "access token" for consistency
-        return Task.FromResult(new TokenResponseDto
-        {
-            AccessToken = code, // This contains the Telegram user data JSON
-            TokenType = "Bearer",
-            ExpiresIn = 3600,
-            IdToken = string.Empty, // Telegram doesn't use id_token
-            RefreshToken = string.Empty, // Telegram doesn't use refresh tokens
-            Scope = "telegram_user"
-        });
-    }
-
-    // Private helper methods
-    private string CreateGoogleChallengeUrl(string state, string codeChallenge, Uri? returnUrl)
-    {
-        var settings = this.oauthSettings.Google;
-        var scopes = "openid email profile";
-        var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
-
-        var url = $"https://accounts.google.com/o/oauth2/v2/auth?" +
-                  $"client_id={settings.ClientId}&" +
-                  $"redirect_uri={redirectUri}&" +
-                  $"response_type=code&" +
-                  $"scope={scopes}&" +
-                  $"state={state}&" +
-                  $"code_challenge={codeChallenge}&" +
-                  $"code_challenge_method=S256&" +
-                  $"access_type=offline&" + // Request refresh token
-                  $"prompt=consent"; // Force consent dialog to get refresh token
-
-        if (returnUrl != null)
-        {
-            url += $"&return_url={Uri.EscapeDataString(returnUrl.ToString())}";
-        }
-
-        return url;
-    }
-
-    private string CreateGitHubChallengeUrl(string state, string codeChallenge, Uri? returnUrl)
-    {
-        this.logger.LogInformation(
-            "CreateGitHubChallengeUrl called - State: {State}, CodeChallenge: {CodeChallenge}, ReturnUrl: {ReturnUrl}",
-            state,
-            codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...",
-            returnUrl?.ToString() ?? "null");
-
-        var settings = this.oauthSettings.GitHub;
-        var scopes = "user:email";
-
-        // Add provider prefix to state so we can identify it in callback
-        var stateWithProvider = $"github_{state}";
-        var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
-
-        this.logger.LogInformation(
-            "GitHub OAuth settings - ClientId: {ClientId}, RedirectUri: {RedirectUri}, Scopes: {Scopes}",
-            settings.ClientId,
-            settings.RedirectUri.ToString(),
-            scopes);
-
-        // GitHub doesn't support PKCE, so we don't include code_challenge parameters
-        var url = $"https://github.com/login/oauth/authorize?" +
-                  $"client_id={settings.ClientId}&" +
-                  $"redirect_uri={redirectUri}&" +
-                  $"scope={scopes}&" +
-                  $"state={stateWithProvider}";
-
-        if (returnUrl != null)
-        {
-            url += $"&return_url={Uri.EscapeDataString(returnUrl.ToString())}";
-        }
-
-        this.logger.LogInformation("Generated GitHub challenge URL: {Url}", url[..Math.Min(url.Length, 100)] + "...");
-        return url;
-    }
-
-    private string CreateTelegramChallengeUrl(string state, Uri? returnUrl)
-    {
-        var settings = this.oauthSettings.Telegram;
-        
-        // Add provider prefix to state so we can identify it in callback
-        var stateWithProvider = $"telegram_{state}";
-        var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
-
-        // Extract origin from RedirectUri (include port for Telegram origin parameter)
-        var redirectUriObj = new Uri(settings.RedirectUri.ToString());
-        var origin = $"{redirectUriObj.Scheme}://{redirectUriObj.Host}:{redirectUriObj.Port}";
-
-        this.logger.LogInformation(
-            "Telegram OAuth settings - BotId: {BotId}, RedirectUri: {RedirectUri}, Origin: {Origin}",
-            settings.BotToken,
-            settings.RedirectUri.ToString(),
-            origin);
-
-        // Telegram OAuth URL with correct parameters
-        var url = $"https://oauth.telegram.org/auth?" +
-                  $"bot_id={settings.BotToken}&" + // Use bot_id from configuration
-                  $"origin={Uri.EscapeDataString(origin)}&" + // Use frontend origin
-                  $"request_access=write&" + // Request write access
-                  $"redirect_uri={redirectUri}&" + // Use configured RedirectUri
-                  $"return_url={redirectUri}&" + // Use return_url to force redirect to our page
-                  $"state={stateWithProvider}";
-
-        if (returnUrl != null)
-        {
-            url += $"&return_url={Uri.EscapeDataString(returnUrl.ToString())}";
-        }
-
-        return url;
-    }
-
     private async Task<User> FindOrCreateUserAsync(OAuthProvider provider, OAuthUserInfoDto userInfo, CancellationToken cancellationToken)
     {
         // Check if external login already exists
@@ -825,149 +531,4 @@ public sealed class OAuthService(
 
         await this.externalLoginRepository.AddAsync(externalLogin, cancellationToken);
     }
-
-    private async Task<TokenResponseDto> ExchangeCodeForTokenAsync(OAuthProvider provider, string code, string codeVerifier, CancellationToken cancellationToken)
-    {
-        using var httpClient = new HttpClient();
-
-        return provider switch
-        {
-            OAuthProvider.None => throw new ArgumentException("None provider is not valid for token exchange"),
-            OAuthProvider.Google => await this.ExchangeGoogleCodeAsync(httpClient, code, codeVerifier, cancellationToken),
-            OAuthProvider.GitHub => await this.ExchangeGitHubCodeAsync(httpClient, code, codeVerifier, cancellationToken),
-            OAuthProvider.Telegram => await ExchangeTelegramCodeAsync(code),
-            _ => throw new NotSupportedException($"Provider {provider} is not supported")
-        };
-    }
-
-    private async Task<TokenResponseDto> ExchangeGoogleCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
-    {
-        var settings = this.oauthSettings.Google;
-        var tokenEndpoint = "https://oauth2.googleapis.com/token";
-
-        this.logger.LogInformation(
-            "Exchanging Google code for token - ClientId: {ClientId}, RedirectUri: {RedirectUri}, CodeVerifier: {CodeVerifier}",
-            settings.ClientId,
-            settings.RedirectUri.ToString(),
-            codeVerifier.Length > 20 ? $"{codeVerifier[..20]}..." : codeVerifier);
-
-        var parameters = new Dictionary<string, string>
-        {
-            ["client_id"] = settings.ClientId,
-            ["client_secret"] = settings.ClientSecret,
-            ["code"] = code,
-            ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = settings.RedirectUri.ToString(),
-            ["code_verifier"] = codeVerifier // Add PKCE code verifier
-        };
-
-        this.logger.LogInformation(
-            "Google token request parameters: {Parameters}",
-            string.Join(
-                ", ",
-                parameters.Select(p => $"{p.Key}={p.Value[..Math.Min(p.Value.Length, 20)]}...")));
-
-        using var content = new FormUrlEncodedContent(parameters);
-        var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
-
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        this.logger.LogInformation(
-            "Google token response - Status: {Status}, Content: {Content}",
-            (int)response.StatusCode,
-            responseContent); // Log full response to see if id_token is present
-
-        response.EnsureSuccessStatusCode();
-
-        // Manual JSON parsing to extract id_token since JsonPropertyName doesn't work
-        this.logger.LogInformation("Raw JSON response: {Json}", responseContent);
-
-        // Parse JSON manually to get all fields
-        using var jsonDoc = JsonDocument.Parse(responseContent);
-        var root = jsonDoc.RootElement;
-
-        var tokenResponse = new TokenResponseDto
-        {
-            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
-            RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
-            IdToken = root.GetProperty("id_token").GetString() ?? string.Empty,
-            TokenType = root.GetProperty("token_type").GetString() ?? string.Empty,
-            ExpiresIn = root.GetProperty("expires_in").GetInt32(),
-            Scope = root.GetProperty("scope").GetString() ?? string.Empty
-        };
-
-        this.logger.LogInformation(
-            "TokenResponse fields - AccessToken: {AccessToken}, RefreshToken: {RefreshToken}, IdToken: {IdToken}, TokenType: {TokenType}, ExpiresIn: {ExpiresIn}, Scope: {Scope}",
-            tokenResponse.AccessToken[..Math.Min(tokenResponse.AccessToken.Length, 20)] + "...",
-            string.IsNullOrEmpty(tokenResponse.RefreshToken) ? "NULL" : tokenResponse.RefreshToken[..Math.Min(tokenResponse.RefreshToken.Length, 20)] + "...",
-            string.IsNullOrEmpty(tokenResponse.IdToken) ? "NULL" : tokenResponse.IdToken[..Math.Min(tokenResponse.IdToken.Length, 20)] + "...",
-            tokenResponse.TokenType,
-            tokenResponse.ExpiresIn,
-            tokenResponse.Scope);
-
-        return tokenResponse;
-    }
-
-    private async Task<TokenResponseDto> ExchangeGitHubCodeAsync(HttpClient httpClient, string code, string codeVerifier, CancellationToken cancellationToken)
-    {
-        var settings = this.oauthSettings.GitHub;
-        var tokenEndpoint = "https://github.com/login/oauth/access_token";
-
-        // GitHub doesn't support PKCE, but we log the verifier for consistency
-        this.logger.LogDebug("GitHub OAuth called with code verifier (not supported by GitHub): {CodeVerifier}", codeVerifier[..Math.Min(codeVerifier.Length, 20)]);
-
-        var parameters = new Dictionary<string, string>
-        {
-            ["client_id"] = settings.ClientId,
-            ["client_secret"] = settings.ClientSecret,
-            ["code"] = code,
-            ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = settings.RedirectUri.ToString()
-        };
-
-        using var content = new FormUrlEncodedContent(parameters);
-
-        // GitHub requires Accept header to return JSON instead of form-encoded data
-        httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-
-        var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
-
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        this.logger.LogInformation(
-            "GitHub token response - Status: {Status}, Content: {Content}",
-            (int)response.StatusCode,
-            responseContent);
-
-        response.EnsureSuccessStatusCode();
-
-        // Manual JSON parsing like Google
-        using var jsonDoc = JsonDocument.Parse(responseContent);
-        var root = jsonDoc.RootElement;
-
-        var tokenResponse = new TokenResponseDto
-        {
-            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
-            RefreshToken = root.TryGetProperty("refresh_token", out var refreshToken) ? refreshToken.GetString() ?? string.Empty : string.Empty,
-            TokenType = root.GetProperty("token_type").GetString() ?? string.Empty,
-            Scope = root.TryGetProperty("scope", out var scope) ? scope.GetString() ?? string.Empty : string.Empty
-        };
-
-        this.logger.LogInformation(
-            "GitHub TokenResponse fields - AccessToken: {AccessToken}, TokenType: {TokenType}, Scope: {Scope}",
-            tokenResponse.AccessToken[..Math.Min(tokenResponse.AccessToken.Length, 20)] + "...",
-            tokenResponse.TokenType,
-            tokenResponse.Scope);
-
-        return tokenResponse;
-    }
-}
-
-// Helper DTOs
-internal sealed class TokenResponseDto
-{
-    public string AccessToken { get; set; } = string.Empty;
-    public string TokenType { get; set; } = string.Empty;
-    public string IdToken { get; set; } = string.Empty;
-    public int ExpiresIn { get; set; }
-    public string RefreshToken { get; set; } = string.Empty;
-    public string Scope { get; set; } = string.Empty;
 }
