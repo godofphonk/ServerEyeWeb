@@ -737,6 +737,23 @@ public class AuthController : ControllerBase
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
 
+            if (!response.Success)
+            {
+                this.logger.LogWarning(
+                    "Telegram OAuth callback failed - Message: {Message}",
+                    response.Message);
+
+                // Return error response for frontend to handle
+                return this.Ok(new
+                {
+                    success = false,
+                    message = response.Message,
+                    token = string.Empty,
+                    refreshToken = string.Empty,
+                    user = (object?)null
+                });
+            }
+
             this.logger.LogInformation(
                 "Telegram OAuth callback processed successfully - User: {UserId}, Token: {Token}",
                 response.User?.Id,

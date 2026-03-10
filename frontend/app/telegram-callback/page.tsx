@@ -23,10 +23,13 @@ export default function TelegramCallbackPage() {
       
       if (tgAuthResult) {
         try {
-          telegramData = JSON.parse(decodeURIComponent(tgAuthResult));
+          // tgAuthResult is Base64 encoded, decode it first
+          const decodedResult = atob(tgAuthResult);
+          telegramData = JSON.parse(decodedResult);
           console.log('[Telegram Callback] Parsed Telegram data:', telegramData);
         } catch (error) {
           console.error('[Telegram Callback] Failed to parse tgAuthResult:', error);
+          console.error('[Telegram Callback] tgAuthResult value:', tgAuthResult);
         }
       }
     }
@@ -47,11 +50,105 @@ export default function TelegramCallbackPage() {
       sessionStorage.removeItem('telegram_oauth_action');
     }
 
-    // Redirect to backend Telegram callback with action and user data
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/telegram/callback?hash=${encodeURIComponent(telegramData.hash || '')}&state=${encodeURIComponent(state || '')}${action ? `&action=${encodeURIComponent(action)}` : ''}`;
+    // Send POST request to backend Telegram callback
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/telegram/callback${action ? `?action=${encodeURIComponent(action)}` : ''}`;
     
-    console.log('[Telegram Callback] Redirecting to backend callback:', callbackUrl);
-    window.location.href = callbackUrl;
+    console.log('[Telegram Callback] Sending POST to backend callback:', callbackUrl);
+    
+    // Create request body matching backend expectations
+    const requestBody = {
+      UserData: {
+        id: telegramData.id,
+        first_name: telegramData.first_name,
+        username: telegramData.username,
+        auth_date: telegramData.auth_date,
+        hash: telegramData.hash
+      }
+    };
+    
+    // Send POST request using fetch
+    console.log('[Telegram Callback] Sending request body:', requestBody);
+    
+    // Save debug info to localStorage
+    localStorage.setItem('telegram_debug_request', JSON.stringify(requestBody));
+    localStorage.setItem('telegram_debug_url', callbackUrl);
+    
+    fetch(callbackUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => {
+      console.log('[Telegram Callback] Backend response status:', response.status);
+      console.log('[Telegram Callback] Backend response headers:', response.headers);
+      
+      // Save response status to localStorage
+      localStorage.setItem('telegram_debug_status', response.status.toString());
+      localStorage.setItem('telegram_debug_statustext', response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    })
+    .then(data => {
+      console.log('[Telegram Callback] Backend response data:', data);
+      
+      // Save response data to localStorage
+      localStorage.setItem('telegram_debug_response', JSON.stringify(data));
+      localStorage.setItem('telegram_debug_success', data.success ? 'true' : 'false');
+      localStorage.setItem('telegram_debug_has_token', (data.token || data.refreshToken) ? 'true' : 'false');
+      
+      if (data.success && (data.token || data.refreshToken)) {
+        // Store both tokens and redirect to dashboard
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('jwt_token', data.token);
+          localStorage.setItem('access_token', data.token);
+          
+          // Also set cookie for middleware
+          document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
+          
+          console.log('[Telegram Callback] Saved access token:', data.token.substring(0, 20) + '...');
+        }
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+          
+          // Also set refresh token cookie
+          document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+          
+          console.log('[Telegram Callback] Saved refresh token:', data.refreshToken.substring(0, 20) + '...');
+        }
+        
+        // Verify tokens are saved
+        console.log('[Telegram Callback] Verifying saved tokens:');
+        console.log('- token:', !!localStorage.getItem('token'));
+        console.log('- jwt_token:', !!localStorage.getItem('jwt_token'));
+        console.log('- access_token:', !!localStorage.getItem('access_token'));
+        console.log('- refreshToken:', !!localStorage.getItem('refreshToken'));
+        
+        localStorage.setItem('telegram_debug_result', 'SUCCESS - redirecting to dashboard');
+        window.location.href = '/dashboard';
+      } else {
+        // Redirect to login with error
+        console.log('[Telegram Callback] Authentication failed:', data);
+        
+        localStorage.setItem('telegram_debug_result', 'FAILED - redirecting to login');
+        localStorage.setItem('telegram_debug_error', data.message || 'telegram_auth_failed');
+        window.location.href = `/login?error=${encodeURIComponent(data.message || 'telegram_auth_failed')}`;
+      }
+    })
+    .catch(error => {
+      console.error('[Telegram Callback] Backend error:', error);
+      
+      // Save error to localStorage
+      localStorage.setItem('telegram_debug_result', 'ERROR - redirecting to login');
+      localStorage.setItem('telegram_debug_error', error.message);
+      window.location.href = '/login?error=telegram_auth_failed';
+    });
   }, [searchParams, router]);
 
   return (

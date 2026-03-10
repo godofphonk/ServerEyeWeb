@@ -44,6 +44,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+
+  // Wrap setUser to add logging
+  const setUserWithLogging = useCallback((newUser: User | null) => {
+    console.log('[AuthContext] setUser called with:', newUser ? `user: ${newUser.email || newUser.username} (${newUser.id})` : 'null');
+    setUser(newUser);
+  }, []);
   const [loading, setLoading] = useState(true);
   const checkAuthCalled = useRef(false); // Отслеживаем был ли вызван checkAuth
 
@@ -119,9 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Clear OAuth tokens from localStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
               console.log('[AuthContext] Detected OAuth token in localStorage, clearing it...');
-              localStorage.removeItem('jwt_token');
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
+              clearAuthData();
               throw new Error('OAuth token detected, clearing and using session API');
             }
             
@@ -136,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 hasPassword: hasPassword,
               };
               
-              setUser(localStorageUser);
+              setUserWithLogging(localStorageUser);
               console.log('[AuthContext] User restored from localStorage token:', localStorageUser);
               setLoading(false);
               return;
@@ -161,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (data.user) {
           const mappedUser = mapBackendUser(data.user);
-          setUser(mappedUser);
+          setUserWithLogging(mappedUser);
           console.log('[AuthContext] User authenticated via session:', mappedUser);
           console.log('[AuthContext] Email verification status:', mappedUser.isEmailVerified);
           console.log(
@@ -252,7 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid login response');
     }
 
-    setUser(mapBackendUser(data.user));
+    setUserWithLogging(mapBackendUser(data.user));
     console.log('AuthContext login - user set successfully');
     console.log('AuthContext login - mapped user:', mapBackendUser(data.user));
     checkAuthCalled.current = false; // Сбрасываем флаг после успешного входa
@@ -315,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           hasPassword: false, // OAuth users don't have passwords
         };
         
-        setUser(user);
+        setUserWithLogging(user);
         console.log('AuthContext setTokensFromCallback - user set from OAuth:', user);
         return; // Success, don't try fallback
       } else {
@@ -339,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('AuthContext setTokensFromCallback - API response:', data);
           if (data.user) {
             const mappedUser = mapBackendUser(data.user);
-            setUser(mappedUser);
+            setUserWithLogging(mappedUser);
             console.log('AuthContext setTokensFromCallback - user set from API fallback:', mappedUser);
             return;
           }
@@ -374,10 +378,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Invalid registration response');
     }
 
-    setUser(mapBackendUser(data.user));
+    setUserWithLogging(mapBackendUser(data.user));
   };
 
   const clearAuthData = () => {
+    console.log('[AuthContext] Clearing auth data');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('refresh_token');
@@ -388,7 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
       });
     }
-    setUser(null);
+    setUserWithLogging(null);
     checkAuthCalled.current = false; // Сбрасываем флаг для возможности повторного входа
   };
 
@@ -477,8 +482,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [getOAuthChallenge]);
 
   const isEmailVerifiedValue = Boolean(user?.isEmailVerified);
-  console.log('[AuthContext] Provider - User:', user ? user.email : null);
-  console.log('[AuthContext] Provider - isEmailVerified:', isEmailVerifiedValue);
 
   return (
     <AuthContext.Provider

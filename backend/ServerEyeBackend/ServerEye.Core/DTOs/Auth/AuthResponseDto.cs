@@ -2,7 +2,9 @@ namespace ServerEye.Core.DTOs.Auth;
 
 public class AuthResponseDto
 {
-    public AuthUserDto User { get; init; } = new();
+    public bool Success { get; init; } = true;
+    public string Message { get; init; } = string.Empty;
+    public AuthUserDto? User { get; init; }
     public string Token { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;
     public int ExpiresIn { get; set; }

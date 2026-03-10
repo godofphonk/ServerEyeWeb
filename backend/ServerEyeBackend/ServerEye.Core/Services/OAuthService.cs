@@ -175,7 +175,14 @@ public sealed class OAuthService(
                 if (user == null)
                 {
                     this.logger.LogWarning("OAuth login failed - user not found for provider {Provider}", provider);
-                    throw new InvalidOperationException("user_not_found");
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "user_not_found",
+                        User = null,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
                 }
                 this.logger.LogInformation("OAuth login successful for existing user {UserId}", user.Id);
             }
@@ -185,7 +192,14 @@ public sealed class OAuthService(
                 if (user != null)
                 {
                     this.logger.LogWarning("OAuth registration failed - user already exists for provider {Provider}", provider);
-                    throw new InvalidOperationException("user_already_exists");
+                    return new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "user_already_exists",
+                        User = null,
+                        Token = string.Empty,
+                        RefreshToken = string.Empty
+                    };
                 }
                 
                 // Create new user
@@ -726,9 +740,9 @@ public sealed class OAuthService(
         var stateWithProvider = $"telegram_{state}";
         var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
 
-        // Extract origin from RedirectUri (remove path for Telegram origin parameter)
+        // Extract origin from RedirectUri (include port for Telegram origin parameter)
         var redirectUriObj = new Uri(settings.RedirectUri.ToString());
-        var origin = $"{redirectUriObj.Scheme}://{redirectUriObj.Host}";
+        var origin = $"{redirectUriObj.Scheme}://{redirectUriObj.Host}:{redirectUriObj.Port}";
 
         this.logger.LogInformation(
             "Telegram OAuth settings - BotId: {BotId}, RedirectUri: {RedirectUri}, Origin: {Origin}",
@@ -742,6 +756,7 @@ public sealed class OAuthService(
                   $"origin={Uri.EscapeDataString(origin)}&" + // Use frontend origin
                   $"request_access=write&" + // Request write access
                   $"redirect_uri={redirectUri}&" + // Use configured RedirectUri
+                  $"return_url={redirectUri}&" + // Use return_url to force redirect to our page
                   $"state={stateWithProvider}";
 
         if (returnUrl != null)
