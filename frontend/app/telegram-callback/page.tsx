@@ -8,14 +8,32 @@ export default function TelegramCallbackPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const hash = searchParams.get('hash');
+    // Telegram sends data as hash: #tgAuthResult=...
+    const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
     const state = searchParams.get('state');
 
-    console.log('[Telegram Callback] Intercepted Telegram callback:', { hash: !!hash, state });
+    console.log('[Telegram Callback] Intercepted Telegram callback:', { hash: !!urlHash, state, urlHash });
 
-    if (!hash) {
-      console.error('[Telegram Callback] Missing hash parameter');
-      router.push('/login?error=missing_telegram_hash');
+    let telegramData = null;
+    
+    // Extract tgAuthResult from hash
+    if (urlHash && urlHash.includes('tgAuthResult=')) {
+      const hashParams = new URLSearchParams(urlHash.substring(1)); // Remove # and parse
+      const tgAuthResult = hashParams.get('tgAuthResult');
+      
+      if (tgAuthResult) {
+        try {
+          telegramData = JSON.parse(decodeURIComponent(tgAuthResult));
+          console.log('[Telegram Callback] Parsed Telegram data:', telegramData);
+        } catch (error) {
+          console.error('[Telegram Callback] Failed to parse tgAuthResult:', error);
+        }
+      }
+    }
+
+    if (!telegramData) {
+      console.error('[Telegram Callback] Missing or invalid Telegram data');
+      router.push('/login?error=missing_telegram_data');
       return;
     }
 
@@ -29,8 +47,8 @@ export default function TelegramCallbackPage() {
       sessionStorage.removeItem('telegram_oauth_action');
     }
 
-    // Redirect to backend Telegram callback with action
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/telegram/callback?hash=${encodeURIComponent(hash)}&state=${encodeURIComponent(state || '')}${action ? `&action=${encodeURIComponent(action)}` : ''}`;
+    // Redirect to backend Telegram callback with action and user data
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/telegram/callback?hash=${encodeURIComponent(telegramData.hash || '')}&state=${encodeURIComponent(state || '')}${action ? `&action=${encodeURIComponent(action)}` : ''}`;
     
     console.log('[Telegram Callback] Redirecting to backend callback:', callbackUrl);
     window.location.href = callbackUrl;
