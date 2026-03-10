@@ -459,6 +459,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.setItem('oauth_provider', provider);
       if (action) {
         sessionStorage.setItem('oauth_action', action);
+        // For Telegram, also store action with provider prefix for special handling
+        if (provider.toLowerCase() === 'telegram') {
+          sessionStorage.setItem('telegram_oauth_action', action);
+        }
       }
     }
     

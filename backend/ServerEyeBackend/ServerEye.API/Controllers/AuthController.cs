@@ -705,7 +705,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("oauth/telegram/callback")]
-    public async Task<IActionResult> TelegramCallbackPost([FromBody] TelegramCallbackRequestDto request)
+    public async Task<IActionResult> TelegramCallbackPost([FromBody] TelegramCallbackRequestDto request, [FromQuery] string? action = null)
     {
         try
         {
@@ -713,9 +713,10 @@ public class AuthController : ControllerBase
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
 
             this.logger.LogInformation(
-                "Telegram OAuth callback received - User ID: {UserId}, State: {State}",
+                "Telegram OAuth callback received - User ID: {UserId}, State: {State}, Action: {Action}",
                 request.UserData?.Id,
-                request.State);
+                request.State,
+                action ?? "null");
 
             // Convert Telegram user data to OAuth format
             var telegramCode = JsonSerializer.Serialize(request.UserData);
@@ -724,13 +725,14 @@ public class AuthController : ControllerBase
             // Telegram doesn't return state in callback, so we need to handle this
             var state = $"telegram_temp_{Guid.NewGuid():N}";
             
-            this.logger.LogInformation("Generated temporary state for Telegram OAuth - State: {State}", state);
+            this.logger.LogInformation("Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}", state, action ?? "null");
             
             var oauthRequest = new OAuthCallbackRequestDto
             {
                 Provider = "telegram",
                 Code = telegramCode,
-                State = state
+                State = state,
+                Action = action // Pass action from query parameter
             };
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
