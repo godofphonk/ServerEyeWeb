@@ -18,12 +18,19 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
 
-  // Clear any OAuth tokens when on login page
+  // Clear any OAuth tokens when on login page ONLY if not coming from OAuth callback
   useEffect(() => {
-    console.log('[LoginPage] Clearing localStorage tokens to ensure clean login');
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    // Check if coming from OAuth callback with debug info
+    const debugResult = localStorage.getItem('telegram_debug_result');
+    
+    if (!debugResult) {
+      console.log('[LoginPage] Clearing localStorage tokens (not from OAuth callback)');
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } else {
+      console.log('[LoginPage] NOT clearing tokens - coming from OAuth callback');
+    }
   }, []);
 
   // Redirect logic is handled by middleware
@@ -39,6 +46,30 @@ export default function LoginPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const oauthError = urlParams.get('error');
+    
+    // Log debug info from Telegram OAuth
+    const debugResult = localStorage.getItem('telegram_debug_result');
+    const debugStatus = localStorage.getItem('telegram_debug_status');
+    const debugResponse = localStorage.getItem('telegram_debug_response');
+    const debugSuccess = localStorage.getItem('telegram_debug_success');
+    const debugHasToken = localStorage.getItem('telegram_debug_has_token');
+    const debugError = localStorage.getItem('telegram_debug_error');
+    
+    if (debugResult) {
+      console.log('[Login] Telegram OAuth Debug Info:');
+      console.log('- Result:', debugResult);
+      console.log('- Status:', debugStatus);
+      console.log('- Success:', debugSuccess);
+      console.log('- Has Token:', debugHasToken);
+      console.log('- Error:', debugError);
+      if (debugResponse) {
+        try {
+          console.log('- Response Data:', JSON.parse(debugResponse));
+        } catch (e) {
+          console.log('- Response Data (raw):', debugResponse);
+        }
+      }
+    }
     
     if (oauthError) {
       switch (oauthError) {
