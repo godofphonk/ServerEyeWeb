@@ -61,8 +61,9 @@ public sealed class OAuthService(
             codeVerifier[..Math.Min(codeVerifier.Length, 20)] + "...",
             codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...");
 
-        // Store code verifier with original state (without action prefix)
-        CodeVerifiers[state] = codeVerifier;
+        // Store code verifier with the state that will actually be returned by provider
+        // For GitHub, this includes the provider prefix; for Google, it doesn't
+        CodeVerifiers[stateWithAction] = codeVerifier;
 
         this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
 
@@ -104,36 +105,44 @@ public sealed class OAuthService(
             }
         }
 
-        // For other providers, extract action from state format: "action_randomstate"
+        // For other providers, extract action from state format: "provider_action_randomstate"
         else if (string.IsNullOrEmpty(action) && !string.IsNullOrEmpty(request.State))
         {
-            var stateParts = request.State.Split('_', 3);
-            if (stateParts.Length >= 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
+            var stateParts = request.State.Split('_', 3); // Split max into 3 parts: provider, action, randomstate
+            if (stateParts.Length >= 3 && (stateParts[1] == "login" || stateParts[1] == "register"))
             {
+                // Format: provider_action_randomstate
+                action = stateParts[1]; // Action is the second part
+                originalState = stateParts[2]; // The third part is the actual state
+                this.logger.LogInformation("Extracted action from provider state - Provider: {Provider}, Action: {Action}, OriginalState: {OriginalState}", stateParts[0], action, originalState);
+            }
+            else if (stateParts.Length >= 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
+            {
+                // Fallback for format: action_randomstate (without provider prefix)
                 action = stateParts[0];
-                originalState = stateParts.Length == 3 ? string.Join('_', stateParts.Skip(1)) : stateParts[1];
-                this.logger.LogInformation("Extracted action from state - Action: {Action}, OriginalState: {OriginalState}", action, originalState);
+                originalState = stateParts[1];
+                this.logger.LogInformation("Extracted action from simple state - Action: {Action}, OriginalState: {OriginalState}", action, originalState);
             }
         }
 
-        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}", provider, action ?? "auto", request.State);
+        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}, OriginalState: {OriginalState}", provider, action ?? "auto", request.State, originalState);
 
         // Retrieve code verifier from memory
         // For Telegram temporary states, we don't need code verifier
         string? codeVerifier = null;
         
-        if (!isTelegramTemp && !CodeVerifiers.TryGetValue(originalState, out codeVerifier))
+        if (!isTelegramTemp && !CodeVerifiers.TryGetValue(request.State, out codeVerifier))
         {
-            this.logger.LogError("Code verifier not found for state: {State}", originalState);
+            this.logger.LogError("Code verifier not found for state: {State}", request.State);
             throw new InvalidOperationException("Invalid or expired OAuth state");
         }
 
         if (!isTelegramTemp)
         {
-            this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", originalState);
+            this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State);
 
             // Remove code verifier from memory
-            CodeVerifiers.Remove(originalState);
+            CodeVerifiers.Remove(request.State);
         }
         else
         {
@@ -158,6 +167,8 @@ public sealed class OAuthService(
         }
 
         // Apply action-based logic
+        this.logger.LogInformation("Applying action-based logic - Action: {Action}, UserExists: {UserExists}", action, user != null);
+        
         if (!string.IsNullOrEmpty(action))
         {
             if (action.Equals("login", StringComparison.OrdinalIgnoreCase))
@@ -166,14 +177,7 @@ public sealed class OAuthService(
                 if (user == null)
                 {
                     this.logger.LogWarning("OAuth login failed - user not found for provider {Provider}", provider);
-                    return new AuthResponseDto
-                    {
-                        Success = false,
-                        Message = "user_not_found",
-                        User = null,
-                        Token = string.Empty,
-                        RefreshToken = string.Empty
-                    };
+                    throw new InvalidOperationException("user_not_found");
                 }
                 this.logger.LogInformation("OAuth login successful for existing user {UserId}", user.Id);
             }
@@ -183,14 +187,7 @@ public sealed class OAuthService(
                 if (user != null)
                 {
                     this.logger.LogWarning("OAuth registration failed - user already exists for provider {Provider}", provider);
-                    return new AuthResponseDto
-                    {
-                        Success = false,
-                        Message = "user_already_exists",
-                        User = null,
-                        Token = string.Empty,
-                        RefreshToken = string.Empty
-                    };
+                    throw new InvalidOperationException("user_already_exists");
                 }
                 
                 // Create new user
