@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Infrastracture;
+using Infrastructure;
 using Testcontainers.PostgreSql;
 using System.Globalization;
 

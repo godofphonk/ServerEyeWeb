@@ -2,8 +2,8 @@ namespace ServerEye.UnitTests.Repositories;
 
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities;
-using ServerEye.Infrastracture;
-using ServerEye.Infrastracture.Repositories;
+using ServerEye.Infrastructure;
+using ServerEye.Infrastructure.Repositories;
 
 public class UserRepositoryTests : IDisposable
 {

@@ -1,7 +1,7 @@
 namespace ServerEye.IntegrationTests;
 
 using Microsoft.Extensions.DependencyInjection;
-using ServerEye.Infrastracture;
+using ServerEye.Infrastructure;
 
 public class IntegrationTestBase : IClassFixture<TestApplicationFactory>
 {
