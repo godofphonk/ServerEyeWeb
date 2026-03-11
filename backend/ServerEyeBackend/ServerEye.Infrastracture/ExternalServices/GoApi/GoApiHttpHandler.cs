@@ -8,28 +8,12 @@ using ServerEye.Core.DTOs.GoApi;
 /// </summary>
 public class GoApiHttpHandler(HttpClient httpClient)
 {
-    private readonly HttpClient httpClient = httpClient;
-
-    /// <summary>
-    /// Performs GET request and returns response content.
-    /// </summary>
-    public async Task<HttpResponseMessage> GetAsync(string url)
-    {
-        return await httpClient.GetAsync(new Uri(url, UriKind.Relative));
-    }
-
-    /// <summary>
-    /// Performs POST request with JSON content.
-    /// </summary>
-    public async Task<HttpResponseMessage> PostAsJsonAsync<T>(string url, T content)
-    {
-        return await httpClient.PostAsJsonAsync(url, content);
-    }
+    private readonly HttpClient _httpClient = httpClient;
 
     /// <summary>
     /// Checks if response is successful and returns content string.
     /// </summary>
-    public async Task<string?> GetSuccessfulResponseContentAsync(HttpResponseMessage response)
+    public static async Task<string?> GetSuccessfulResponseContentAsync(HttpResponseMessage response)
     {
         if (!response.IsSuccessStatusCode)
         {
@@ -40,9 +24,9 @@ public class GoApiHttpHandler(HttpClient httpClient)
     }
 
     /// <summary>
-    /// Gets error content from failed response.
+    /// Gets error content from response.
     /// </summary>
-    public async Task<string> GetErrorContentAsync(HttpResponseMessage response)
+    public static async Task<string> GetErrorContentAsync(HttpResponseMessage response)
     {
         return await response.Content.ReadAsStringAsync();
     }
@@ -50,7 +34,7 @@ public class GoApiHttpHandler(HttpClient httpClient)
     /// <summary>
     /// Checks if response indicates server not found.
     /// </summary>
-    public bool IsNotFound(HttpResponseMessage response)
+    public static bool IsNotFound(HttpResponseMessage response)
     {
         return response.StatusCode == System.Net.HttpStatusCode.NotFound;
     }
@@ -58,8 +42,24 @@ public class GoApiHttpHandler(HttpClient httpClient)
     /// <summary>
     /// Checks if response indicates service unavailable.
     /// </summary>
-    public bool IsServiceUnavailable(HttpResponseMessage response)
+    public static bool IsServiceUnavailable(HttpResponseMessage response)
     {
         return response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable;
+    }
+
+    /// <summary>
+    /// Performs GET request and returns response content.
+    /// </summary>
+    public async Task<HttpResponseMessage> GetAsync(Uri url)
+    {
+        return await _httpClient.GetAsync(url);
+    }
+
+    /// <summary>
+    /// Performs POST request with JSON content.
+    /// </summary>
+    public async Task<HttpResponseMessage> PostAsJsonAsync<T>(Uri url, T content)
+    {
+        return await _httpClient.PostAsJsonAsync(url, content);
     }
 }

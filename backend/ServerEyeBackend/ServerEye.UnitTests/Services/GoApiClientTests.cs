@@ -5,6 +5,7 @@ using Moq;
 using Moq.Protected;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Infrastracture.ExternalServices;
+using ServerEye.Infrastracture.ExternalServices.GoApi;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -19,9 +20,11 @@ public class GoApiClientTests : IDisposable
     public GoApiClientTests()
     {
         this.mockHandler = new Mock<HttpMessageHandler>();
-        var mockLogger1 = new Mock<ILogger<GoApiClient>>();
+        var mockLogger1 = new Mock<ILogger<GoApiLogger>>();
         this.httpClient = new HttpClient(this.mockHandler.Object);
-        this.goApiClient = new GoApiClient(this.httpClient, mockLogger1.Object);
+        this.goApiClient = new GoApiClient(
+            new GoApiHttpHandler(this.httpClient),
+            new GoApiLogger(mockLogger1.Object));
     }
 
     public void Dispose()

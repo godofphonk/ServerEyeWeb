@@ -1,193 +1,139 @@
 namespace ServerEye.Infrastracture.ExternalServices;
 
-using System.Net.Http.Json;
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.GoApi;
-using ServerEye.Core.DTOs.Metrics;
 using ServerEye.Core.Interfaces.Services;
-using System.Globalization;
+using ServerEye.Infrastracture.ExternalServices.GoApi;
+using ServerEye.Core.Exceptions;
 
-public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : IGoApiClient
+/// <summary>
+/// Go API client with separated responsibilities.
+/// </summary>
+public class GoApiClient(
+    GoApiHttpHandler httpHandler,
+    GoApiLogger logger) : IGoApiClient
 {
-    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private readonly GoApiHttpHandler httpHandler = httpHandler;
+    private readonly GoApiLogger logger = logger;
 
     public async Task<GoApiMetricsResponse?> GetMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        const string operation = "GetMetricsByKey";
+        var url = GoApiUrlBuilder.BuildMetricsByKeyUrl(serverKey, start, endTime, granularity);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            var endStr = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics?start={startStr}&end={endStr}";
+            logger.LogRequest(operation, url);
 
-            if (!string.IsNullOrEmpty(granularity))
-            {
-                url += $"&granularity={granularity}";
-            }
-
-            logger.LogInformation("[PERF] Requesting metrics by key from Go API: {Url}", url);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
-            var requestTime = stopwatch.ElapsedMilliseconds;
+            var response = await httpHandler.GetAsync(url);
+            var requestTime = perfTracker.ElapsedMilliseconds;
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, requestTime, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            var options = new JsonSerializerOptions
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
             {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = null
-            };
-
-            // Read content once to avoid ObjectDisposedException
-            var content = await response.Content.ReadAsStringAsync();
+                return null;
+            }
 
             // Log raw JSON for debugging network_details structure
             if (content.Contains("network_details", StringComparison.OrdinalIgnoreCase))
             {
                 var startIndex = Math.Max(0, content.IndexOf("network_details", StringComparison.OrdinalIgnoreCase) - 100);
-                logger.LogInformation(
-                    "[DEBUG] Raw Go API response contains network_details: {Content}",
-                    content.Substring(startIndex, 500));
+                logger.LogDebug(
+                    operation,
+                    "Raw Go API response contains network_details",
+                    content.Substring(startIndex, Math.Min(500, content.Length - startIndex)));
             }
 
             // Try to parse as time series first
-            GoApiMetricsResponse? result = null;
-            try
-            {
-                result = JsonSerializer.Deserialize<GoApiMetricsResponse>(content, options);
-            }
-            catch (JsonException ex)
-            {
-                logger.LogError(ex, "[DEBUG] Failed to parse GoApiMetricsResponse. Raw JSON: {Content}", content);
-
-                // Ignore parsing errors, will try snapshot format
-            }
-
+            var result = GoApiJsonSerializer.DeserializeMetricsResponse(content);
+            
             // If no data points, try snapshot format
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
-                try
+                var snapshotResponse = GoApiJsonSerializer.DeserializeSnapshotResponse(content);
+                if (snapshotResponse != null && snapshotResponse.Metrics != null)
                 {
-                    var snapshotResponse = JsonSerializer.Deserialize<GoApiSnapshotResponse>(content, options);
-                    if (snapshotResponse != null && snapshotResponse.Metrics != null)
-                    {
-                        // Convert snapshot to time series format
-                        result = ConvertSnapshotToTimeSeries(snapshotResponse, start, endTime, granularity);
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    logger.LogError(ex, "[PERF] Error parsing snapshot response from Go API");
+                    result = GoApiDataTransformer.ConvertSnapshotToTimeSeries(snapshotResponse, start, endTime, granularity);
                 }
             }
 
-            stopwatch.Stop();
-            var totalTime = stopwatch.ElapsedMilliseconds;
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
 
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
-                logger.LogWarning(
-                    "[PERF] Go API returned empty data after {Ms}ms for server key {ServerKey}",
-                    totalTime,
-                    serverKey);
+                logger.LogEmptyData(operation, serverKey, totalTime);
                 return result;
             }
 
-            logger.LogInformation(
-                "[PERF] Successfully retrieved {Points} data points by key in {Ms}ms (request: {RequestMs}ms, parse: {ParseMs}ms)",
-                result.TotalPoints,
-                totalTime,
-                requestTime,
-                totalTime - requestTime);
+            logger.LogPerformance(operation, result.TotalPoints, totalTime, requestTime);
+            logger.LogResponse(operation, url, totalTime, new { Points = result.TotalPoints });
 
             return result;
         }
-        catch (TaskCanceledException ex)
-        {
-            stopwatch.Stop();
-            logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
-            return null;
-        }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            logger.LogError(ex, "[PERF] Error calling Go API for metrics by key after {Ms}ms", stopwatch.ElapsedMilliseconds);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiMetricsResponse?> GetMetricsAsync(string serverId, DateTime start, DateTime endTime, string? granularity = null)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        const string operation = "GetMetrics";
+        var url = GoApiUrlBuilder.BuildMetricsUrl(serverId, start, endTime, granularity);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            var endStr = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            var url = $"/api/servers/{serverId}/metrics/tiered?start={startStr}&end={endStr}";
+            logger.LogRequest(operation, url);
 
-            if (!string.IsNullOrEmpty(granularity))
-            {
-                url += $"&granularity={granularity}";
-            }
-
-            logger.LogInformation("[PERF] Requesting metrics from Go API: {Url}", url);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
-            var requestTime = stopwatch.ElapsedMilliseconds;
+            var response = await httpHandler.GetAsync(url);
+            var requestTime = perfTracker.ElapsedMilliseconds;
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("[PERF] Go API error after {Ms}ms: {StatusCode} - {Content}", requestTime, response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, requestTime, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            var options = new JsonSerializerOptions
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
             {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = null
-            };
+                return null;
+            }
 
-            var result = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>(options);
-            stopwatch.Stop();
-            var totalTime = stopwatch.ElapsedMilliseconds;
+            var result = GoApiJsonSerializer.DeserializeMetricsResponse(content);
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
 
             if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
             {
-                logger.LogWarning(
-                    "[PERF] Go API returned empty data after {Ms}ms for server {ServerId}",
-                    totalTime,
-                    serverId);
+                logger.LogEmptyData(operation, serverId, totalTime);
                 return result;
             }
 
-            logger.LogInformation(
-                "[PERF] Successfully retrieved {Points} data points in {Ms}ms (request: {RequestMs}ms, parse: {ParseMs}ms)",
-                result.TotalPoints,
-                totalTime,
-                requestTime,
-                totalTime - requestTime);
+            logger.LogPerformance(operation, result.TotalPoints, totalTime, requestTime);
+            logger.LogResponse(operation, url, totalTime, new { Points = result.TotalPoints });
 
             return result;
         }
-        catch (TaskCanceledException ex)
-        {
-            stopwatch.Stop();
-            logger.LogError("[PERF] Go API request timeout after {Ms}ms: {Message}", stopwatch.ElapsedMilliseconds, ex.Message);
-            return null;
-        }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            logger.LogError(ex, "[PERF] Error calling Go API for metrics after {Ms}ms", stopwatch.ElapsedMilliseconds);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
@@ -199,44 +145,50 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
             var endTime = DateTime.UtcNow;
             var startTime = endTime.Subtract(actualDuration);
 
-            logger.LogInformation("Requesting realtime metrics for server {ServerId} from {Start} to {End}", serverId, startTime, endTime);
+            logger.LogRequest("GetRealtimeMetrics", new Uri($"/servers/{serverId}/realtime", UriKind.Relative));
 
-            return await this.GetMetricsAsync(serverId, startTime, endTime);
+            return await GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calling Go API for realtime metrics");
-            return null;
+            logger.LogException("GetRealtimeMetrics", new Uri($"Server: {serverId}", UriKind.Relative), 0, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiServerInfo?> ValidateServerKeyAsync(string serverKey)
     {
+        const string operation = "ValidateServerKey";
+        var url = GoApiUrlBuilder.BuildServerValidationUrl(serverKey);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Validating server key with Go API: {Url}", url);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpHandler.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogWarning("Server key validation failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (GoApiHttpHandler.IsNotFound(response))
                 {
                     return null;
                 }
                 
-                throw new ServerEye.Core.Exceptions.GoApiException(
-                    $"Go API returned {response.StatusCode}",
-                    ServerEye.Core.Exceptions.GoApiErrorType.InvalidResponse,
-                    innerException: new HttpRequestException($"Status: {response.StatusCode}"));
+                throw GoApiErrorHandler.CreateServerKeyValidationException(response.StatusCode);
             }
 
-            var metricsResponse = await response.Content.ReadFromJsonAsync<GoApiMetricsResponse>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var metricsResponse = GoApiJsonSerializer.DeserializeMetricsResponse(content);
 
             if (metricsResponse?.ServerId != null)
             {
@@ -253,146 +205,103 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
 
             return null;
         }
-        catch (ServerEye.Core.Exceptions.GoApiException)
+        catch (GoApiException)
         {
             throw;
         }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, "Go API request timeout for server key validation");
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Go API request timed out",
-                ServerEye.Core.Exceptions.GoApiErrorType.Timeout,
-                innerException: ex);
-        }
-        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
-        {
-            logger.LogError(ex, "Go API service unavailable (network error)");
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Go API service is unavailable",
-                ServerEye.Core.Exceptions.GoApiErrorType.ServiceUnavailable,
-                innerException: ex);
-        }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error validating server key with Go API");
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Unexpected error communicating with Go API",
-                ServerEye.Core.Exceptions.GoApiErrorType.Unknown,
-                innerException: ex);
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiStaticInfo?> GetStaticInfoAsync(string serverKey)
     {
+        const string operation = "GetStaticInfo";
+        var url = GoApiUrlBuilder.BuildStaticInfoUrl(serverKey);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/static-info";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Requesting static info from Go API: {Url}", url);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpHandler.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            var options = new JsonSerializerOptions
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
             {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = null
-            };
+                return null;
+            }
 
-            var goApiResponse = await response.Content.ReadFromJsonAsync<GoApiStaticInfoResponse>(options);
-
+            var goApiResponse = GoApiJsonSerializer.DeserializeStaticInfoResponse(content);
             if (goApiResponse == null)
             {
                 return null;
             }
 
-            // Convert Go API response to expected format
-            return ConvertToStaticInfo(goApiResponse);
+            var result = GoApiDataTransformer.ConvertToStaticInfo(goApiResponse);
+            
+            perfTracker.Stop();
+            logger.LogResponse(operation, url, perfTracker.ElapsedMilliseconds, new { result?.ServerId });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calling Go API for static info");
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
-    private static GoApiStaticInfo ConvertToStaticInfo(GoApiStaticInfoResponse response)
-    {
-        var staticInfo = new GoApiStaticInfo
-        {
-            ServerId = response.ServerInfo.ServerId,
-            Hostname = response.ServerInfo.Hostname,
-            OperatingSystem = $"{response.ServerInfo.Os} {response.ServerInfo.OsVersion}".Trim(),
-            AgentVersion = "1.1.0", // Default version since not provided by Go API
-            LastUpdated = response.ServerInfo.UpdatedAt,
-            CpuInfo = response.HardwareInfo != null
-                ? new StaticCpuInfo
-                {
-                    Model = response.HardwareInfo.CpuModel,
-                    Cores = response.HardwareInfo.CpuCores,
-                    Threads = response.HardwareInfo.CpuThreads,
-                    FrequencyMhz = response.HardwareInfo.CpuFrequencyMhz
-                }
-                : null,
-            MemoryInfo = response.MemoryModules.Count > 0
-                ? new StaticMemoryInfo
-                {
-                    TotalGb = response.MemoryModules.Sum(m => m.SizeGb),
-                    Type = response.MemoryModules.First().MemoryType,
-                    SpeedMhz = response.MemoryModules.First().FrequencyMhz
-                }
-                : null,
-            DiskInfo = response.DiskInfo.Select(d => new StaticDiskInfo
-            {
-                Device = d.DeviceName,
-                Model = d.Model,
-                SizeGb = d.SizeGb,
-                Type = d.DiskType
-            }).ToList(),
-            NetworkInterfaces = response.NetworkInterfaces.Select(n => new StaticNetworkInterface
-            {
-                Name = n.InterfaceName,
-                Type = n.InterfaceType,
-                SpeedMbps = n.SpeedMbps,
-                MacAddress = n.MacAddress
-            }).ToList()
-        };
-
-        return staticInfo;
-    }
-
-    #pragma warning disable SA1202 // 'public' members should come before 'private' members
     public async Task<GoApiServerInfo?> GetServerInfoAsync(string serverId)
-#pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
+        const string operation = "GetServerInfo";
+        var url = GoApiUrlBuilder.BuildServerInfoUrl(serverId);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/{serverId}";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Requesting server info from Go API: {Url}", url);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpHandler.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiServerInfo>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeServerInfo(content);
+            
+            perfTracker.Stop();
+            logger.LogResponse(operation, url, perfTracker.ElapsedMilliseconds, new { result?.ServerId });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calling Go API for server info");
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
@@ -403,365 +312,296 @@ public class GoApiClient(HttpClient httpClient, ILogger<GoApiClient> logger) : I
             var endTime = DateTime.UtcNow;
             var startTime = endTime.AddMinutes(-5);
 
-            logger.LogInformation("Getting dashboard metrics for server {ServerId} (last 5 minutes)", serverId);
-            return await this.GetMetricsAsync(serverId, startTime, endTime);
+            logger.LogRequest("GetDashboardMetrics", new Uri($"/servers/{serverId}/dashboard", UriKind.Relative));
+            
+            return await GetMetricsAsync(serverId, startTime, endTime);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calling Go API for dashboard metrics");
-            return null;
+            logger.LogException("GetDashboardMetrics", new Uri($"Server: {serverId}", UriKind.Relative), 0, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<List<GoApiServerInfo>?> GetServersListAsync()
     {
+        const string operation = "GetServersList";
+        var url = GoApiUrlBuilder.BuildServersListUrl();
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = "/api/servers";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Requesting servers list from Go API");
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpHandler.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<List<GoApiServerInfo>>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeServersList(content);
+            
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
+            logger.LogResponse(operation, url, totalTime, new { Count = result?.Count ?? 0 });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calling Go API for servers list");
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiSourceResponse?> AddServerSourceAsync(string serverId, string source)
     {
+        const string operation = "AddServerSource";
+        var url = GoApiUrlBuilder.BuildAddServerSourceUrl(serverId);
+        var request = new GoApiSourceRequest { Source = source };
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/{serverId}/sources";
-            var request = new GoApiSourceRequest { Source = source };
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Adding source {Source} for server {ServerId}", source, serverId);
-
-            var response = await httpClient.PostAsJsonAsync(url, request);
+            var response = await httpHandler.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiSourceResponse>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeSourceResponse(content);
+            
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
+            logger.LogResponse(operation, url, totalTime, new { Source = source });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding source for server {ServerId}", serverId);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiSourceResponse?> AddServerSourceByKeyAsync(string serverKey, string source)
     {
+        const string operation = "AddServerSourceByKey";
+        var url = GoApiUrlBuilder.BuildAddServerSourceByKeyUrl(serverKey);
+        var request = new GoApiSourceRequest { Source = source };
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources";
-            var request = new GoApiSourceRequest { Source = source };
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Adding source {Source} for server by key {ServerKey}", source, serverKey);
-
-            var response = await httpClient.PostAsJsonAsync(url, request);
+            var response = await httpHandler.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiSourceResponse>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeSourceResponse(content);
+            
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
+            logger.LogResponse(operation, url, totalTime, new { Source = source });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding source for server key {ServerKey}", serverKey);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersAsync(string serverId, GoApiSourceIdentifiersRequest request)
     {
+        const string operation = "AddServerSourceIdentifiers";
+        var url = GoApiUrlBuilder.BuildAddServerSourceIdentifiersUrl(serverId);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/{serverId}/sources/identifiers";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Adding identifiers for server {ServerId}, source type {SourceType}", serverId, request.SourceType);
-
-            var response = await httpClient.PostAsJsonAsync(url, request);
+            var response = await httpHandler.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiSourceIdentifiersResponse>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeSourceIdentifiersResponse(content);
+            
+            perfTracker.Stop();
+            logger.LogResponse(operation, url, perfTracker.ElapsedMilliseconds, new { request.SourceType });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding identifiers for server {ServerId}", serverId);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
     public async Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersByKeyAsync(string serverKey, GoApiSourceIdentifiersRequest request)
     {
+        const string operation = "AddServerSourceIdentifiersByKey";
+        var url = GoApiUrlBuilder.BuildAddServerSourceIdentifiersByKeyUrl(serverKey);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation(
-                "Adding identifiers for server by key {ServerKey}, source type {SourceType}, telegram_id {TelegramId}",
-                serverKey,
-                request.SourceType,
-                request.TelegramId);
+            // Log the exact JSON being sent for debugging
+            var jsonRequest = GoApiJsonSerializer.SerializeForDebug(request);
+            logger.LogDebug(operation, "JSON request to Go API", jsonRequest);
 
-            // Log the exact JSON being sent
-            var jsonRequest = System.Text.Json.JsonSerializer.Serialize(request, JsonOptions);
-            logger.LogInformation("JSON request to Go API: {JsonRequest}", jsonRequest);
-
-            var response = await httpClient.PostAsJsonAsync(url, request);
+            var response = await httpHandler.PostAsJsonAsync(url, request);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError("Go API error: {StatusCode} - {Content}", response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<GoApiSourceIdentifiersResponse>();
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var result = GoApiJsonSerializer.DeserializeSourceIdentifiersResponse(content);
+            
+            perfTracker.Stop();
+            logger.LogResponse(
+                operation,
+                url,
+                perfTracker.ElapsedMilliseconds,
+                new
+                {
+                    request.SourceType,
+                    request.TelegramId
+                });
+
+            return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding identifiers for server key {ServerKey}", serverKey);
-            return null;
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 
-    private static GoApiMetricsResponse ConvertSnapshotToTimeSeries(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string? granularity)
-    {
-        var dataPoints = GenerateDataPointsFromSnapshot(snapshot, start, end, granularity ?? "minute");
-        var summary = CalculateSummary(dataPoints);
-
-        return new GoApiMetricsResponse
-        {
-            ServerId = snapshot.ServerId,
-            StartTime = start,
-            EndTime = end,
-            Granularity = granularity ?? "minute",
-            DataPoints = dataPoints,
-            TotalPoints = dataPoints.Count,
-            Message = "Success",
-            Status = new GoApiServerStatus
-            {
-                AgentVersion = snapshot.Status.AgentVersion,
-                Hostname = snapshot.Status.Hostname,
-                LastSeen = snapshot.Status.LastSeen,
-                Online = snapshot.Status.Online,
-                OperatingSystem = "Unknown"
-            },
-            TemperatureDetails = ConvertTemperatureDetails(snapshot.Metrics.TemperatureDetails),
-            NetworkDetails = ConvertNetworkDetails(snapshot.Metrics.NetworkDetails),
-            DiskDetails = ConvertDiskDetails(snapshot.Metrics.DiskDetails)
-        };
-    }
-
-    private static List<GoApiDataPoint> GenerateDataPointsFromSnapshot(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string granularity)
-    {
-        var dataPoints = new List<GoApiDataPoint>();
-        var interval = GetInterval(granularity);
-
-        // Generate data points for the requested time range
-        for (var time = start; time <= end; time = time.Add(interval))
-        {
-#pragma warning disable CA5394 // Do not use insecure random number generators
-            var random = new Random();
-            var cpuVariation = (random.NextDouble() - 0.5) * 10; // ±5% variation
-            var memoryVariation = (random.NextDouble() - 0.5) * 5; // ±2.5% variation
-#pragma warning restore CA5394 // Do not use insecure random number generators
-
-            dataPoints.Add(new GoApiDataPoint
-            {
-                Timestamp = time,
-                CpuAvg = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation)),
-                CpuMax = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation + 2)),
-                CpuMin = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation - 2)),
-                MemoryAvg = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation)),
-                MemoryMax = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation + 1)),
-                MemoryMin = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation - 1)),
-                DiskAvg = snapshot.Metrics.Disk,
-                DiskMax = snapshot.Metrics.Disk,
-                NetworkAvg = snapshot.Metrics.Network,
-                NetworkMax = snapshot.Metrics.Network,
-                TempAvg = snapshot.Metrics.TemperatureDetails.CpuTemperature,
-                TempMax = snapshot.Metrics.TemperatureDetails.CpuTemperature,
-                LoadAvg = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-                LoadMax = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-                SampleCount = 1
-            });
-        }
-
-        return dataPoints;
-    }
-
-    private static TimeSpan GetInterval(string granularity)
-    {
-        return granularity.ToUpperInvariant() switch
-        {
-            "MINUTE" => TimeSpan.FromMinutes(1),
-            "5MINUTES" or "5M" => TimeSpan.FromMinutes(5),
-            "15MINUTES" or "15M" => TimeSpan.FromMinutes(15),
-            "HOUR" or "1H" => TimeSpan.FromHours(1),
-            "DAY" => TimeSpan.FromDays(1),
-            _ => TimeSpan.FromMinutes(1)
-        };
-    }
-
-    private static MetricsSummary CalculateSummary(List<GoApiDataPoint> dataPoints)
-    {
-        if (dataPoints.Count == 0)
-        {
-            return new MetricsSummary();
-        }
-
-        return new MetricsSummary
-        {
-            AvgCpu = dataPoints.Average(dp => dp.CpuAvg),
-            MaxCpu = dataPoints.Max(dp => dp.CpuMax),
-            MinCpu = dataPoints.Min(dp => dp.CpuMin),
-            AvgMemory = dataPoints.Average(dp => dp.MemoryAvg),
-            MaxMemory = dataPoints.Max(dp => dp.MemoryMax),
-            MinMemory = dataPoints.Min(dp => dp.MemoryMin),
-            AvgDisk = dataPoints.Average(dp => dp.DiskAvg),
-            MaxDisk = dataPoints.Max(dp => dp.DiskMax),
-            TotalDataPoints = dataPoints.Count,
-            TimeRange = dataPoints.Last().Timestamp - dataPoints.First().Timestamp
-        };
-    }
-
-    private static TemperatureDetails ConvertTemperatureDetails(GoApiTemperatureDetails snapshot)
-    {
-        return new TemperatureDetails
-        {
-            CpuTemperature = snapshot.CpuTemperature,
-            GpuTemperature = snapshot.GpuTemperature,
-            SystemTemperature = snapshot.SystemTemperature,
-            StorageTemperatures = snapshot.StorageTemperatures.ToDictionary(s => s.Device, s => s.Temperature),
-            HighestTemperature = snapshot.HighestTemperature,
-            TemperatureUnit = snapshot.TemperatureUnit
-        };
-    }
-
-    private static NetworkDetails ConvertNetworkDetails(GoApiNetworkDetails snapshot)
-    {
-        return new NetworkDetails
-        {
-            Interfaces = snapshot.Interfaces.ToDictionary(
-                i => i.Name,
-                i => new NetworkInterface
-                {
-                    Name = i.Name,
-                    RxBytes = i.RxBytes,
-                    TxBytes = i.TxBytes,
-                    RxPackets = i.RxPackets,
-                    TxPackets = i.TxPackets,
-                    Speed = (long)(i.RxSpeedMbps * 1000000), // Convert Mbps to bps
-                    Status = i.Status
-                }),
-            TotalRx = (long)(snapshot.TotalRxMbps * 1000000), // Convert Mbps to bps
-            TotalTx = (long)(snapshot.TotalTxMbps * 1000000), // Convert Mbps to bps
-            Timestamp = DateTime.UtcNow
-        };
-    }
-
-    private static DiskDetails ConvertDiskDetails(List<GoApiDiskDetail> snapshot)
-    {
-        return new DiskDetails
-        {
-            Disks = snapshot.Select(d => new DiskInfo
-            {
-                Path = d.Path,
-                TotalGb = d.TotalGb,
-                UsedGb = d.UsedGb,
-                FreeGb = d.FreeGb,
-                UsedPercent = d.UsedPercent,
-                Filesystem = d.Filesystem
-            }).ToList()
-        };
-    }
-
-#pragma warning disable SA1202 // 'public' members should come before 'private' members
     public async Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId)
-#pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
+        const string operation = "FindServersByTelegramId";
+        var url = GoApiUrlBuilder.BuildFindServersByTelegramIdUrl(telegramId);
+
+        using var perfTracker = GoApiPerformanceTracker.Start();
+        
         try
         {
-            var url = $"/api/servers/by-telegram/{telegramId}";
+            logger.LogRequest(operation, url);
 
-            logger.LogInformation("Finding servers by telegram_id: {TelegramId}", telegramId);
-
-            var response = await httpClient.GetAsync(new Uri(url, UriKind.Relative));
+            var response = await httpHandler.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (GoApiHttpHandler.IsNotFound(response))
                 {
-                    logger.LogInformation("No servers found for telegram_id: {TelegramId}", telegramId);
+                    logger.LogResponse(operation, url, perfTracker.ElapsedMilliseconds, new { TelegramId = telegramId, Found = 0 });
                     return new List<GoApiServerInfo>();
                 }
 
-                var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogWarning("Failed to find servers by telegram_id {TelegramId}: {StatusCode} - {Content}", telegramId, response.StatusCode, errorContent);
+                var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
+                logger.LogError(operation, url, perfTracker.ElapsedMilliseconds, (int)response.StatusCode, errorContent);
                 return null;
             }
 
-            var servers = await response.Content.ReadFromJsonAsync<List<GoApiServerInfo>>();
-            logger.LogInformation("Found {Count} servers for telegram_id: {TelegramId}", servers?.Count ?? 0, telegramId);
+            var content = await GoApiHttpHandler.GetSuccessfulResponseContentAsync(response);
+            if (content == null)
+            {
+                return null;
+            }
+
+            var servers = GoApiJsonSerializer.DeserializeServersList(content);
+            
+            perfTracker.Stop();
+            var totalTime = perfTracker.ElapsedMilliseconds;
+            logger.LogResponse(
+                operation,
+                url,
+                totalTime,
+                new
+                {
+                    TelegramId = telegramId,
+                    Count = servers?.Count ?? 0
+                });
 
             return servers ?? new List<GoApiServerInfo>();
         }
-        catch (ServerEye.Core.Exceptions.GoApiException)
+        catch (GoApiException)
         {
             throw;
         }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, "Go API request timeout for finding servers by telegram_id");
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Go API request timed out",
-                ServerEye.Core.Exceptions.GoApiErrorType.Timeout,
-                innerException: ex);
-        }
-        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
-        {
-            logger.LogError(ex, "Go API service unavailable (network error)");
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Go API service is unavailable",
-                ServerEye.Core.Exceptions.GoApiErrorType.ServiceUnavailable,
-                innerException: ex);
-        }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error finding servers by telegram_id: {TelegramId}", telegramId);
-            throw new ServerEye.Core.Exceptions.GoApiException(
-                "Unexpected error finding servers by telegram_id",
-                ServerEye.Core.Exceptions.GoApiErrorType.Unknown,
-                innerException: ex);
+            perfTracker.Stop();
+            logger.LogException(operation, url, perfTracker.ElapsedMilliseconds, ex);
+            throw GoApiErrorHandler.MapException(ex);
         }
     }
 }

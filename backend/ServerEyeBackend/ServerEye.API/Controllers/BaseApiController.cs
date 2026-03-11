@@ -3,6 +3,7 @@ namespace ServerEye.API.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 /// <summary>
 /// Base controller with common functionality for all API controllers.
@@ -17,7 +18,7 @@ public abstract class BaseApiController : ControllerBase
     /// <exception cref="UnauthorizedAccessException">Thrown when user ID is invalid or missing.</exception>
     protected Guid GetUserId()
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             throw new UnauthorizedAccessException("Invalid user identifier");
@@ -33,7 +34,7 @@ public abstract class BaseApiController : ControllerBase
     /// <exception cref="UnauthorizedAccessException">Thrown when user email is missing.</exception>
     protected string GetUserEmail()
     {
-        var emailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
+        var emailClaim = User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
         if (string.IsNullOrEmpty(emailClaim))
         {
             throw new UnauthorizedAccessException("User email not found");
@@ -48,7 +49,7 @@ public abstract class BaseApiController : ControllerBase
     /// <returns>User name.</returns>
     protected string GetUserName()
     {
-        var nameClaim = User.FindFirst(ClaimTypes.Name)?.Value;
+        var nameClaim = User.FindFirst(JwtRegisteredClaimNames.Name)?.Value;
         return nameClaim ?? string.Empty;
     }
 

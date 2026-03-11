@@ -12,34 +12,42 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
     /// <summary>
     /// Logs HTTP request initiation.
     /// </summary>
-    public void LogRequest(string operation, string url)
+    public void LogRequest(string operation, Uri url)
     {
-        logger.LogInformation("[GoApi] {Operation} - Requesting: {Url}", operation, url);
+        logger.LogInformation(
+            "[GoApi] {Operation} - Request: {Url}",
+            operation,
+            url);
     }
 
     /// <summary>
     /// Logs successful HTTP response.
     /// </summary>
-    public void LogResponse(string operation, string url, long elapsedMs, object? data = null)
+    public void LogResponse(string operation, Uri url, long elapsedMs, object? data = null)
     {
         if (data != null)
         {
             logger.LogInformation(
-                "[GoApi] {Operation} - Success in {ElapsedMs}ms: {Url} - Data: {@Data}",
-                operation, elapsedMs, url, data);
+                "[GoApi] {Operation} - Response in {ElapsedMs}ms: {Url} - {@Data}",
+                operation,
+                elapsedMs,
+                url,
+                data);
         }
         else
         {
             logger.LogInformation(
                 "[GoApi] {Operation} - Success in {ElapsedMs}ms: {Url}",
-                operation, elapsedMs, url);
+                operation,
+                elapsedMs,
+                url);
         }
     }
 
     /// <summary>
     /// Logs HTTP error response.
     /// </summary>
-    public void LogError(string operation, string url, long elapsedMs, int statusCode, string content)
+    public void LogError(string operation, Uri url, long elapsedMs, int statusCode, string content)
     {
         logger.LogError(
             "[GoApi] {Operation} - Error in {ElapsedMs}ms: {Url} - Status: {StatusCode} - Content: {Content}",
@@ -53,12 +61,16 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
     /// <summary>
     /// Logs exception during operation.
     /// </summary>
-    public void LogException(string operation, string url, long elapsedMs, Exception exception)
+    public void LogException(string operation, Uri url, long elapsedMs, Exception exception)
     {
         logger.LogError(
             exception,
             "[GoApi] {Operation} - Exception in {ElapsedMs}ms: {Url} - {ExceptionType}: {Message}",
-            operation, elapsedMs, url, exception.GetType().Name, exception.Message);
+            operation,
+            elapsedMs,
+            url,
+            exception.GetType().Name,
+            exception.Message);
     }
 
     /// <summary>
@@ -82,7 +94,9 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
     {
         logger.LogWarning(
             "[GoApi] {Operation} - Empty data after {ElapsedMs}ms for {Identifier}",
-            operation, elapsedMs, identifier);
+            operation,
+            elapsedMs,
+            identifier);
     }
 
     /// <summary>

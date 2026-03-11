@@ -166,12 +166,27 @@ builder.Services.AddSingleton(goApiSettings);
 builder.Services.AddSingleton(cacheSettings);
 builder.Services.AddSingleton(emailSettings);
 
-// Configure HttpClient for Go API (endpoints are public, no API key needed)
-builder.Services.AddHttpClient<IGoApiClient, ServerEye.Infrastracture.ExternalServices.GoApiClient>((serviceProvider, client) =>
+// Add HttpClient factory
+builder.Services.AddHttpClient();
+
+// Register Go API dependencies
+builder.Services.AddScoped<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiHttpHandler>();
+builder.Services.AddScoped<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiLogger>();
+
+// Register GoApiClient with manual HttpClient injection
+builder.Services.AddScoped<IGoApiClient>(serviceProvider =>
 {
+    var httpHandler = serviceProvider.GetRequiredService<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiHttpHandler>();
+    var logger = serviceProvider.GetRequiredService<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiLogger>();
     var settings = serviceProvider.GetRequiredService<ServerEye.Core.Configuration.GoApiSettings>();
-    client.BaseAddress = settings.BaseUrl;
-    client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
+    
+    var httpClient = new HttpClient
+    {
+        BaseAddress = settings.BaseUrl,
+        Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds)
+    };
+    
+    return new ServerEye.Infrastracture.ExternalServices.GoApiClient(httpHandler, logger);
 });
 
 // Register repositories
@@ -189,9 +204,10 @@ builder.Services.AddScoped<IAccountDeletionRepository, ServerEye.Infrastracture.
 
 // Register services
 builder.Services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthService, ServerEye.Core.Services.AuthService>();
+builder.Services.AddScoped<IOAuthService, ServerEye.Core.Services.OAuthService>();
+builder.Services.AddScoped<IUserService, ServerEye.Core.Services.UserService>();
+builder.Services.AddScoped<IPasswordHasher, ServerEye.Core.Services.PasswordHasher>();
 builder.Services.AddScoped<IJwtService>(provider =>
 {
     var jwtSettings = provider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
