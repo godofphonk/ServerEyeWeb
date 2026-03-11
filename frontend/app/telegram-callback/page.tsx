@@ -44,6 +44,10 @@ export default function TelegramCallbackPage() {
     const action = typeof window !== 'undefined' ? sessionStorage.getItem('telegram_oauth_action') : null;
     
     console.log('[Telegram Callback] Retrieved action from sessionStorage:', action);
+    console.log('[Telegram Callback] sessionStorage contents:', {
+      telegram_oauth_action: sessionStorage.getItem('telegram_oauth_action'),
+      oauth_action: sessionStorage.getItem('oauth_action')
+    });
 
     // Clear the stored action
     if (typeof window !== 'undefined') {
@@ -96,6 +100,8 @@ export default function TelegramCallbackPage() {
     })
     .then(data => {
       console.log('[Telegram Callback] Backend response data:', data);
+      console.log('[Telegram Callback] Response success:', data.success);
+      console.log('[Telegram Callback] Response message:', data.message);
       
       // Save response data to localStorage
       localStorage.setItem('telegram_debug_response', JSON.stringify(data));
