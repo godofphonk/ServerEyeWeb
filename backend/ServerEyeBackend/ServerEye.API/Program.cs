@@ -13,6 +13,7 @@ using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services;
 using ServerEye.Infrastracture;
+using ServerEye.Infrastracture.ExternalServices.GoApi;
 using ServerEye.Infrastracture.Repositories;
 using ServerEye.API.Extensions;
 using System.Text;
@@ -167,26 +168,25 @@ builder.Services.AddSingleton(cacheSettings);
 builder.Services.AddSingleton(emailSettings);
 
 // Add HttpClient factory
-builder.Services.AddHttpClient();
+// Register Go API HttpClient with proper configuration
+builder.Services.AddHttpClient<GoApiHttpHandler>(client =>
+{
+    client.BaseAddress = goApiSettings.BaseUrl;
+    client.Timeout = TimeSpan.FromSeconds(goApiSettings.TimeoutSeconds);
+});
 
 // Register Go API dependencies
-builder.Services.AddScoped<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiHttpHandler>();
 builder.Services.AddScoped<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiLogger>();
+builder.Services.AddScoped<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiOperationFactory>();
 
-// Register GoApiClient with manual HttpClient injection
+// Register GoApiClient with factory pattern
 builder.Services.AddScoped<IGoApiClient>(serviceProvider =>
 {
     var httpHandler = serviceProvider.GetRequiredService<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiHttpHandler>();
     var logger = serviceProvider.GetRequiredService<ServerEye.Infrastracture.ExternalServices.GoApi.GoApiLogger>();
-    var settings = serviceProvider.GetRequiredService<ServerEye.Core.Configuration.GoApiSettings>();
     
-    var httpClient = new HttpClient
-    {
-        BaseAddress = settings.BaseUrl,
-        Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds)
-    };
-    
-    return new ServerEye.Infrastracture.ExternalServices.GoApiClient(httpHandler, logger);
+    var operationFactory = new ServerEye.Infrastracture.ExternalServices.GoApi.GoApiOperationFactory(httpHandler, logger);
+    return new ServerEye.Infrastracture.ExternalServices.GoApiClient(operationFactory);
 });
 
 // Register repositories

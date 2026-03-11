@@ -23,14 +23,10 @@ public class ServerMetricsController : BaseApiController
     {
         return await ExecuteWithErrorHandling(async () =>
         {
-            this.logger.LogInformation(
-                "GetMetricsByKey called: ServerKey={ServerKey}, Start={Start}, End={End}, Granularity={Granularity}",
-                serverKey,
-                request.Start,
-                request.End,
-                request.Granularity);
+            this.logger.LogInformation("GetMetricsByKey called: ServerKey={ServerKey}", serverKey);
             
             var userId = GetUserId();
+            this.logger.LogInformation("GetMetricsByKey: UserId={UserId}", userId);
             
             // Handle nullable parameters
             DateTime? start = request.Start;
@@ -53,6 +49,12 @@ public class ServerMetricsController : BaseApiController
                 granularity ??= "minute";
                 this.logger.LogInformation("Partial parameters provided, using defaults for missing values");
             }
+        
+            this.logger.LogInformation(
+                "GetMetricsByKey: Parameters processed - Start={Start}, End={End}, Granularity={Granularity}",
+                start,
+                end,
+                granularity);
         
             var metrics = await metricsService.GetMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
             return metrics;

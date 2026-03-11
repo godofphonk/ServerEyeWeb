@@ -18,10 +18,18 @@ public abstract class BaseApiController : ControllerBase
     /// <exception cref="UnauthorizedAccessException">Thrown when user ID is invalid or missing.</exception>
     protected Guid GetUserId()
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        // Try NameIdentifier first (our JWT uses this claim type)
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        // Fallback to sub claim if NameIdentifier not found
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        }
+        
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user identifier");
+            throw new UnauthorizedAccessException($"Invalid user identifier. Claim value: {userIdClaim}");
         }
 
         return userId;
