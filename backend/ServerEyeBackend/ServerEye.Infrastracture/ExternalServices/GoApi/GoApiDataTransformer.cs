@@ -7,12 +7,12 @@ using System.Globalization;
 /// <summary>
 /// Data transformation and conversion for Go API responses.
 /// </summary>
-public class GoApiDataTransformer
+public static class GoApiDataTransformer
 {
     /// <summary>
     /// Converts snapshot response to time series format.
     /// </summary>
-    public GoApiMetricsResponse ConvertSnapshotToTimeSeries(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string? granularity)
+    public static GoApiMetricsResponse? ConvertSnapshotToTimeSeries(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string? granularity)
     {
         var dataPoints = GenerateDataPointsFromSnapshot(snapshot, start, end, granularity ?? "minute");
         var summary = CalculateSummary(dataPoints);

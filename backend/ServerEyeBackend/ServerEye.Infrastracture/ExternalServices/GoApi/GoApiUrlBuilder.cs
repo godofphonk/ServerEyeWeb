@@ -3,12 +3,12 @@ namespace ServerEye.Infrastracture.ExternalServices.GoApi;
 /// <summary>
 /// URL building and parameter encoding for Go API endpoints.
 /// </summary>
-public class GoApiUrlBuilder
+public static class GoApiUrlBuilder
 {
     /// <summary>
     /// Builds metrics URL with parameters.
     /// </summary>
-    public string BuildMetricsUrl(string serverId, DateTime start, DateTime end, string? granularity = null)
+    public static Uri BuildMetricsUrl(string serverId, DateTime start, DateTime end, string? granularity = null)
     {
         var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var endStr = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -19,13 +19,13 @@ public class GoApiUrlBuilder
             url += $"&granularity={granularity}";
         }
 
-        return url;
+        return new Uri(url, UriKind.Relative);
     }
 
     /// <summary>
     /// Builds metrics URL by server key with parameters.
     /// </summary>
-    public string BuildMetricsByKeyUrl(string serverKey, DateTime start, DateTime end, string? granularity = null)
+    public static Uri BuildMetricsByKeyUrl(string serverKey, DateTime start, DateTime end, string? granularity = null)
     {
         var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var endStr = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -36,78 +36,78 @@ public class GoApiUrlBuilder
             url += $"&granularity={granularity}";
         }
 
-        return url;
+        return new Uri(url, UriKind.Relative);
     }
 
     /// <summary>
     /// Builds server validation URL by key.
     /// </summary>
-    public string BuildServerValidationUrl(string serverKey)
+    public static Uri BuildServerValidationUrl(string serverKey)
     {
-        return $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics";
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds static info URL by server key.
     /// </summary>
-    public string BuildStaticInfoUrl(string serverKey)
+    public static Uri BuildStaticInfoUrl(string serverKey)
     {
-        return $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/static-info";
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/static-info", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds server info URL.
     /// </summary>
-    public string BuildServerInfoUrl(string serverId)
+    public static Uri BuildServerInfoUrl(string serverId)
     {
-        return $"/api/servers/{serverId}";
+        return new Uri($"/api/servers/{serverId}", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds servers list URL.
     /// </summary>
-    public string BuildServersListUrl()
+    public static Uri BuildServersListUrl()
     {
-        return "/api/servers";
+        return new Uri("/api/servers", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds add server source URL.
     /// </summary>
-    public string BuildAddServerSourceUrl(string serverId)
+    public static Uri BuildAddServerSourceUrl(string serverId)
     {
-        return $"/api/servers/{serverId}/sources";
+        return new Uri($"/api/servers/{serverId}/sources", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds add server source URL by key.
     /// </summary>
-    public string BuildAddServerSourceByKeyUrl(string serverKey)
+    public static Uri BuildAddServerSourceByKeyUrl(string serverKey)
     {
-        return $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources";
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds add server source identifiers URL.
     /// </summary>
-    public string BuildAddServerSourceIdentifiersUrl(string serverId)
+    public static Uri BuildAddServerSourceIdentifiersUrl(string serverId)
     {
-        return $"/api/servers/{serverId}/sources/identifiers";
+        return new Uri($"/api/servers/{serverId}/sources/identifiers", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds add server source identifiers URL by key.
     /// </summary>
-    public string BuildAddServerSourceIdentifiersByKeyUrl(string serverKey)
+    public static Uri BuildAddServerSourceIdentifiersByKeyUrl(string serverKey)
     {
-        return $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers";
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers", UriKind.Relative);
     }
 
     /// <summary>
     /// Builds find servers by telegram ID URL.
     /// </summary>
-    public string BuildFindServersByTelegramIdUrl(long telegramId)
+    public static Uri BuildFindServersByTelegramIdUrl(long telegramId)
     {
-        return $"/api/servers/by-telegram/{telegramId}";
+        return new Uri($"/api/servers/by-telegram/{telegramId}", UriKind.Relative);
     }
 }

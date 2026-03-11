@@ -5,12 +5,12 @@ using ServerEye.Core.Exceptions;
 /// <summary>
 /// Error handling and exception mapping for Go API operations.
 /// </summary>
-public class GoApiErrorHandler
+public static class GoApiErrorHandler
 {
     /// <summary>
     /// Handles HTTP response and maps to appropriate exception if needed.
     /// </summary>
-    public void HandleResponse(System.Net.HttpStatusCode statusCode, string content)
+    public static void HandleResponse(System.Net.HttpStatusCode statusCode)
     {
         if (statusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -21,8 +21,7 @@ public class GoApiErrorHandler
         {
             throw new GoApiException(
                 "Go API service is unavailable",
-                GoApiErrorType.ServiceUnavailable,
-                new System.Net.Http.HttpRequestException($"Status: {statusCode}"));
+                GoApiErrorType.ServiceUnavailable);
         }
 
         // For other error status codes, log but don't throw (let caller decide)
@@ -31,43 +30,36 @@ public class GoApiErrorHandler
     /// <summary>
     /// Maps exceptions to GoApiException.
     /// </summary>
-    public GoApiException MapException(Exception exception)
+    public static GoApiException MapException(Exception exception)
     {
         return exception switch
         {
-            TaskCanceledException ex => new GoApiException(
+            TaskCanceledException => new GoApiException(
                 "Go API request timed out",
-                GoApiErrorType.Timeout,
-                ex),
+                GoApiErrorType.Timeout),
             
             System.Net.Http.HttpRequestException ex when ex.InnerException is System.Net.Sockets.SocketException => new GoApiException(
                 "Go API service is unavailable",
-                GoApiErrorType.ServiceUnavailable,
-                ex),
+                GoApiErrorType.ServiceUnavailable),
             
             GoApiException => (GoApiException)exception,
             
             _ => new GoApiException(
-                $"Unexpected error in {operation}",
-                GoApiErrorType.Unknown,
-                exception)
+                "Unexpected error",
+                GoApiErrorType.Unknown)
         };
     }
 
     /// <summary>
     /// Checks if error is retryable.
     /// </summary>
-    public bool IsRetryableError(Exception exception)
+    public static bool IsRetryableError(Exception exception)
     {
         return exception switch
         {
-            GoApiException goEx => goEx.ErrorType == GoApiErrorType.Timeout ||
-                                 goEx.ErrorType == GoApiErrorType.ServiceUnavailable,
-            
             TaskCanceledException => true,
-            
-            System.Net.Http.HttpRequestException => true,
-            
+            System.Net.Http.HttpRequestException httpRequestException when httpRequestException.InnerException is System.Net.Sockets.SocketException => true,
+            GoApiException => true,
             _ => false
         };
     }
@@ -75,7 +67,7 @@ public class GoApiErrorHandler
     /// <summary>
     /// Creates validation exception for server key.
     /// </summary>
-    public GoApiException CreateServerKeyValidationException(System.Net.HttpStatusCode statusCode)
+    public static GoApiException CreateServerKeyValidationException(System.Net.HttpStatusCode statusCode)
     {
         if (statusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -86,7 +78,6 @@ public class GoApiErrorHandler
 
         return new GoApiException(
             $"Go API returned {statusCode}",
-            GoApiErrorType.InvalidResponse,
-            new System.Net.Http.HttpRequestException($"Status: {statusCode}"));
+            GoApiErrorType.InvalidResponse);
     }
 }

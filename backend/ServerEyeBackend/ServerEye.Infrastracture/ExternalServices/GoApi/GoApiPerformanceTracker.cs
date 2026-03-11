@@ -8,15 +8,8 @@ using System.Diagnostics;
 public class GoApiPerformanceTracker : IDisposable
 {
     private readonly Stopwatch stopwatch;
-    private readonly string operation;
-    private readonly string url;
 
-    public GoApiPerformanceTracker(string operation, string url)
-    {
-        this.operation = operation;
-        this.url = url;
-        this.stopwatch = Stopwatch.StartNew();
-    }
+    public GoApiPerformanceTracker() => stopwatch = Stopwatch.StartNew();
 
     /// <summary>
     /// Gets elapsed milliseconds.
@@ -24,20 +17,11 @@ public class GoApiPerformanceTracker : IDisposable
     public long ElapsedMilliseconds => stopwatch.ElapsedMilliseconds;
 
     /// <summary>
-    /// Stops the stopwatch and returns elapsed time.
-    /// </summary>
-    public long Stop()
-    {
-        stopwatch.Stop();
-        return stopwatch.ElapsedMilliseconds;
-    }
-
-    /// <summary>
     /// Creates performance tracker for operation.
     /// </summary>
-    public static GoApiPerformanceTracker Start(string operation, string url)
+    public static GoApiPerformanceTracker Start()
     {
-        return new GoApiPerformanceTracker(operation, url);
+        return new GoApiPerformanceTracker();
     }
 
     /// <summary>
@@ -48,8 +32,26 @@ public class GoApiPerformanceTracker : IDisposable
         return totalTimeMs - requestTimeMs;
     }
 
-    public void Dispose()
+    /// <summary>
+    /// Stops the stopwatch and returns elapsed time.
+    /// </summary>
+    public long Stop()
     {
         stopwatch.Stop();
+        return stopwatch.ElapsedMilliseconds;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            stopwatch.Stop();
+        }
     }
 }
