@@ -21,7 +21,7 @@
       <Folder Include="Validators\" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\ServerEye.Infrastracture\ServerEye.Infrastracture.csproj" />
+      <ProjectReference Include="..\ServerEye.Infrastructure\ServerEye.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,7 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="..\ServerEye.Infrastracture\Migrations\*.cs">
+      <None Update="..\ServerEye.Infrastructure\Migrations\*.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
