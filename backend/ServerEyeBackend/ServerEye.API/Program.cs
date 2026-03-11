@@ -223,10 +223,17 @@ builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.GoogleOAuthPr
 builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.GitHubOAuthProvider>();
 builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Providers.TelegramOAuthProvider>();
 
+// Load servers configuration
+var serversConfiguration = configuration.GetSection("ServersConfiguration").Get<ServerEye.Core.Configuration.ServersConfiguration>() ?? new ServerEye.Core.Configuration.ServersConfiguration();
+builder.Services.AddSingleton(serversConfiguration);
+
+// Register MockDataProvider
+builder.Services.AddScoped<ServerEye.Core.Interfaces.Services.IMockDataProvider, ServerEye.Core.Services.MockDataProvider>();
+
 // Register OAuth provider factory
 builder.Services.AddScoped<ServerEye.Core.Services.OAuth.Factory.IOAuthProviderFactory, ServerEye.Core.Services.OAuth.Factory.OAuthProviderFactory>();
 
-builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddScoped<IServersService, ServerEye.Core.Services.ServersService>();
 builder.Services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
