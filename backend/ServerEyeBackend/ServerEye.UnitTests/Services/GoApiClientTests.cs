@@ -22,9 +22,12 @@ public class GoApiClientTests : IDisposable
         this.mockHandler = new Mock<HttpMessageHandler>();
         var mockLogger1 = new Mock<ILogger<GoApiLogger>>();
         this.httpClient = new HttpClient(this.mockHandler.Object);
-        this.goApiClient = new GoApiClient(
-            new GoApiHttpHandler(this.httpClient),
-            new GoApiLogger(mockLogger1.Object));
+        
+        var httpHandler = new GoApiHttpHandler(this.httpClient);
+        var logger = new GoApiLogger(mockLogger1.Object);
+        var operationFactory = new GoApiOperationFactory(httpHandler, logger);
+        
+        this.goApiClient = new GoApiClient(operationFactory);
     }
 
     public void Dispose()
