@@ -20,8 +20,6 @@ export default function OAuthCallbackPage() {
         const token = searchParams.get('token');
         const refreshToken = searchParams.get('refresh_token');
         
-        console.log('[OAuth Callback] Processing:', { code: !!code, state: !!state, auth, hasToken: !!token, hasRefreshToken: !!refreshToken });
-        
         // If this is a success redirect from backend with tokens
         if (auth === 'success' && token) {
           setStatus('processing');
@@ -33,7 +31,6 @@ export default function OAuthCallbackPage() {
             if (refreshToken) {
               localStorage.setItem('refresh_token', refreshToken);
             }
-            console.log('[OAuth Callback] Tokens stored in localStorage');
           }
           
           // Set cookies via API call
@@ -46,13 +43,11 @@ export default function OAuthCallbackPage() {
               body: JSON.stringify({ token, refreshToken }),
             });
             
-            if (response.ok) {
-              console.log('[OAuth Callback] Tokens set via API');
-            } else {
-              console.log('[OAuth Callback] Failed to set tokens via API, but localStorage is set');
+            if (!response.ok) {
+              console.log('Failed to set tokens via API, but localStorage is set');
             }
           } catch (apiError) {
-            console.log('[OAuth Callback] API error, but localStorage is set:', apiError);
+            console.log('API error, but localStorage is set:', apiError);
           }
           
           // Force auth check
@@ -60,8 +55,6 @@ export default function OAuthCallbackPage() {
           
           // Give time for auth to complete
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          console.log('[OAuth Callback] Auth check completed:', { isAuthenticated, loading });
           
           if (isAuthenticated) {
             setStatus('success');

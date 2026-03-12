@@ -1,30 +1,14 @@
-// SESSION ROUTE - SHOULD LOAD!
-console.log('================================');
-console.log('SESSION ROUTE FILE IS BEING LOADED!');
-console.log('================================');
-
+// SESSION ROUTE
 import { NextRequest, NextResponse } from 'next/server';
-
-console.log('Session route file loaded!');
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 export async function POST(request: NextRequest) {
-  console.log('Session API route called via POST!');
-  
   try {
     const body = await request.json();
     const { token, refreshToken } = body;
     
-    console.log('Session POST - tokens received:', {
-      hasToken: !!token,
-      tokenLength: token?.length,
-      hasRefreshToken: !!refreshToken,
-      refreshTokenLength: refreshToken?.length
-    });
-    
     if (!token) {
-      console.log('Session POST - no token provided');
       return NextResponse.json({ error: 'No token provided' }, { status: 400 });
     }
     
@@ -49,7 +33,6 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    console.log('Session POST - cookies set successfully');
     return response;
     
   } catch (error) {
@@ -59,66 +42,79 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log('Session API route called via GET!');
-  console.log('API_BASE_URL:', API_BASE_URL);
-  console.log('Environment NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
-  console.log('Request URL:', request.url);
-  console.log('Request headers:', Object.fromEntries(request.headers.entries()));
-
   try {
     const accessToken = request.cookies.get('access_token')?.value;
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
-    console.log('Session check - cookies:', {
-      hasAccessToken: !!accessToken,
-      accessTokenLength: accessToken?.length,
-      accessTokenValue: accessToken?.substring(0, 50) + '...',
-      hasRefreshToken: !!refreshToken,
-      refreshTokenLength: refreshToken?.length,
-      refreshTokenValue: refreshToken?.substring(0, 50) + '...',
-      allCookies: request.cookies
-        .getAll()
-        .map(c => ({ name: c.name, value: c.value?.substring(0, 20) + '...' })),
-    });
-
     if (!accessToken) {
-      console.log('Session check - no access token found');
       return NextResponse.json({ user: null }, { status: 401 });
     }
-
-    // Temporarily skip backend call and just return success if token exists
-    console.log('Session check - token found, returning mock user for testing');
     
-    // Try to decode token to get basic user info
-    try {
-      const tokenParts = accessToken.split('.');
-      if (tokenParts.length === 3) {
-        const payload = JSON.parse(atob(tokenParts[1]));
-        const mockUser = {
-          id: payload.sub || payload.nameid || 'unknown',
-          email: payload.email || 'test@example.com',
-          username: payload.username || payload.name || 'testuser',
-          role: payload.role || 'user',
-          isEmailVerified: true
-        };
-        console.log('Session check - decoded token user:', mockUser);
-        return NextResponse.json({ user: mockUser });
-      }
-    } catch (decodeError) {
-      console.log('Session check - failed to decode token:', decodeError);
+    const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (backendResponse.ok) {
+      const userData = await backendResponse.json();
+      return NextResponse.json({ user: userData });
     }
 
-    // Fallback - return mock user
-    const mockUser = {
-      id: 'test-user-id',
-      email: 'test@example.com',
-      username: 'testuser',
-      role: 'user',
-      isEmailVerified: true
-    };
-    
-    console.log('Session check - returning mock user');
-    return NextResponse.json({ user: mockUser });
+    if (backendResponse.status === 401 && refreshToken) {
+      const refreshBody = {
+        token: accessToken,
+        refreshToken: refreshToken,
+      };
+      
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(refreshBody),
+      });
+
+      const refreshData = await refreshResponse.json();
+
+      if (refreshResponse.ok) {
+        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${refreshData.token}`,
+          },
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const response = NextResponse.json({ user: userData });
+
+          response.cookies.set('access_token', refreshData.token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            path: '/',
+            maxAge: refreshData.expiresIn || 1800,
+          });
+
+          response.cookies.set('refresh_token', refreshData.refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60,
+          });
+
+          return response;
+        }
+      }
+    }
+
+    const response = NextResponse.json({ user: null }, { status: 401 });
+    response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
+    response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
+    return response;
   } catch (error) {
     console.error('Session API route error:', error);
     return NextResponse.json({ user: null }, { status: 500 });
