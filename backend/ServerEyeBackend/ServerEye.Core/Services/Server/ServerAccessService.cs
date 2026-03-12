@@ -32,9 +32,19 @@ public class ServerAccessService(
             var accessLevel = await accessRepository.GetAccessLevelAsync(userId, server.ServerId);
 
             // Decrypt ServerKey for frontend
-            var decryptedKey = string.IsNullOrEmpty(server.ServerKey)
-                ? string.Empty
-                : encryptionService.Decrypt(server.ServerKey);
+            string decryptedKey;
+            try
+            {
+                decryptedKey = string.IsNullOrEmpty(server.ServerKey)
+                    ? string.Empty
+                    : encryptionService.Decrypt(server.ServerKey);
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                // Key was encrypted with old encryption key, return empty for now
+                logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId);
+                decryptedKey = string.Empty;
+            }
 
             result.Add(new ServerResponse
             {
