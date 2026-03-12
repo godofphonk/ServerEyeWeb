@@ -1,4 +1,4 @@
-namespace ServerEye.UnitTests.Services;
+namespace ServerEye.UnitTests.Services.ServerAccess;
 
 using System.Globalization;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
-using ServerEye.Core.Services;
+using ServerAccessServiceImpl = ServerEye.Core.Services.ServerAccessService;
 
 public class ServerAccessServiceTests
 {
@@ -18,7 +18,7 @@ public class ServerAccessServiceTests
     private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IGoApiClient> mockGoApiClient;
     private readonly Mock<IEncryptionService> mockEncryptionService;
-    private readonly ServerAccessService serverAccessService;
+    private readonly ServerAccessServiceImpl serverAccessService;
 
     public ServerAccessServiceTests()
     {
@@ -28,9 +28,9 @@ public class ServerAccessServiceTests
         this.mockExternalLoginRepository = new Mock<IUserExternalLoginRepository>();
         this.mockGoApiClient = new Mock<IGoApiClient>();
         this.mockEncryptionService = new Mock<IEncryptionService>();
-        var mockLogger1 = new Mock<ILogger<ServerAccessService>>();
+        var mockLogger1 = new Mock<ILogger<ServerAccessServiceImpl>>();
 
-        this.serverAccessService = new ServerAccessService(
+        this.serverAccessService = new ServerAccessServiceImpl(
             this.mockServerRepository.Object,
             this.mockAccessRepository.Object,
             mockUserRepository1.Object,
