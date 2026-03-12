@@ -1,6 +1,7 @@
 namespace ServerEye.API.Controllers;
 
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using ServerEye.Core.Interfaces.Services;
 [ApiController]
 [Route("api/[controller]")]
 [EnableCors("AllowFrontend")]
+[Authorize]
 public class UsersController(IUserService userService, IAuthService authService, IValidator<UserRegisterDto> registerValidator,
     IValidator<UserLoginDto> loginValidator, IValidator<UserUpdateDto> updateValidator, ILogger<UsersController> logger) : BaseApiController
 {
@@ -51,6 +53,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
     public async Task<ActionResult<ServerEye.Core.DTOs.Auth.AuthResponseDto>> CreateUser([FromBody] UserRegisterDto userRegisterDto)
     {
@@ -79,6 +82,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
     public async Task<ActionResult<ServerEye.Core.DTOs.Auth.AuthResponseDto>> LoginUser([FromBody] UserLoginDto userLoginDto)
     {
