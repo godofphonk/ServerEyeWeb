@@ -4,22 +4,22 @@
 services:
   backend:
     build:
-      context: /home/gospodin/ServerEyeWeb/backend/ServerEyeBackend
-      dockerfile: /home/gospodin/ServerEyeWeb/environments/dockerfiles/backend-dev.Dockerfile
+      context: /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend
+      dockerfile: /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/environments/dockerfiles/backend-dev.Dockerfile
     container_name: servereye-backend-dev
     ports:
       - "5246:80"
       - "5247:443"
     env_file:
-      - /home/gospodin/ServerEyeWeb/environments/secrets/dev/backend.env
-      - /home/gospodin/ServerEyeWeb/environments/secrets/dev/shared.env
+      - ../../secrets/dev/backend.env
+      - ../../secrets/dev/shared.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
     volumes:
       # Mount appsettings for hot reload
-      - /home/gospodin/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.Development.json:ro
-      - /home/gospodin/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.Development.json:ro
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
     restart: unless-stopped
     networks:
       - servereye-network
