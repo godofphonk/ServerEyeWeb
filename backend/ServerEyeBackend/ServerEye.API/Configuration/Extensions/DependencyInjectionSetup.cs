@@ -206,6 +206,9 @@ public static class DependencyInjectionSetup
         {
             client.BaseAddress = goApiSettings.BaseUrl;
             client.Timeout = TimeSpan.FromSeconds(goApiSettings.TimeoutSeconds);
+            // Go API expects format: "Bearer server_id:server_key"
+            client.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $"{goApiSettings.ServiceId}:{goApiSettings.ApiKey}");
         });
 
         // Register Go API dependencies

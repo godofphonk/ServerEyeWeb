@@ -1,0 +1,77 @@
+# Infrastructure Services for Development
+# PostgreSQL and Redis
+
+services:
+  # PostgreSQL Main Database
+  postgres-main:
+    image: postgres:16-alpine
+    container_name: servereye-postgres-main-dev
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: ServerEyeWeb_Dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    command: postgres -c ssl=off
+    volumes:
+      - postgres_main_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servereye-network
+
+  # PostgreSQL Ticket Database
+  postgres-ticket:
+    image: postgres:16-alpine
+    container_name: servereye-postgres-ticket-dev
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: ServerEyeWeb_Dev_Ticket
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    command: postgres -c ssl=off
+    volumes:
+      - postgres_ticket_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servereye-network
+
+  # Redis Cache
+  redis:
+    image: redis:8-alpine
+    container_name: servereye-redis-dev
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    networks:
+      - servereye-network
+
+  
+networks:
+  servereye-network:
+    external: true
+    name: servereye-network
+
+volumes:
+  postgres_main_dev_data:
+    driver: local
+    name: servereye_postgres_main_dev
+  postgres_ticket_dev_data:
+    driver: local
+    name: servereye_postgres_ticket_dev

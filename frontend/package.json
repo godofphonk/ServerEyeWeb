@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "doppler run --config dev npm run dev:next",
-    "dev:next": "next dev -p 3001",
+    "dev": "npm run dev:next",
+    "dev:next": "next dev -p 3000",
     "build": "doppler run --config prd npm run build:next",
     "build:next": "next build",
     "build:production": "NODE_ENV=production doppler run --config prd npm run build:next",
