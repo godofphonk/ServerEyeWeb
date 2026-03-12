@@ -1,0 +1,37 @@
+# Frontend Service for Production
+# Next.js Application optimized for production
+
+services:
+  frontend:
+    build:
+      context: ../../../frontend
+      dockerfile: ../../../environments/dockerfiles/frontend-prod.Dockerfile
+    container_name: servereye-frontend-prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../secrets/prod/frontend.env
+      - ../../secrets/prod/shared.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - servereye-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  servereye-prod:
+    external: true
+    name: servereye-prod-network

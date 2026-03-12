@@ -4,11 +4,16 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ServerEye.Core.DTOs.GoApi;
-using ServerEye.Infrastracture.ExternalServices;
+using ServerEye.Core.Exceptions;
+using ServerEye.Infrastructure.ExternalServices;
+using ServerEye.Infrastructure.ExternalServices.GoApi;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+
+#pragma warning disable CA2000 // Dispose objects before losing scope - HttpResponseMessage is managed by Moq
+#pragma warning disable CA2007 // Do not directly await a Task - ConfigureAwait not needed in tests
 
 public class GoApiClientTests : IDisposable
 {
@@ -19,9 +24,17 @@ public class GoApiClientTests : IDisposable
     public GoApiClientTests()
     {
         this.mockHandler = new Mock<HttpMessageHandler>();
-        var mockLogger1 = new Mock<ILogger<GoApiClient>>();
-        this.httpClient = new HttpClient(this.mockHandler.Object);
-        this.goApiClient = new GoApiClient(this.httpClient, mockLogger1.Object);
+        var mockLogger1 = new Mock<ILogger<GoApiLogger>>();
+        this.httpClient = new HttpClient(this.mockHandler.Object)
+        {
+            BaseAddress = new Uri("http://localhost:8080")
+        };
+        
+        var httpHandler = new GoApiHttpHandler(this.httpClient);
+        var logger = new GoApiLogger(mockLogger1.Object);
+        var operationFactory = new GoApiOperationFactory(httpHandler, logger);
+        
+        this.goApiClient = new GoApiClient(operationFactory);
     }
 
     public void Dispose()
@@ -43,8 +56,10 @@ public class GoApiClientTests : IDisposable
             Message = "Source added successfully"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
-        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -52,28 +67,26 @@ public class GoApiClientTests : IDisposable
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(responseMessage);
+            .ReturnsAsync(responseMessage)
+            .Verifiable();
 
         // Act
         var result = await this.goApiClient.AddServerSourceAsync(serverId, source);
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotNull(result!.ServerId);
-        Assert.Equal(serverId, result.ServerId);
+        Assert.Equal(serverId, result!.ServerId);
         Assert.Equal(source, result.Source);
         Assert.Equal("Source added successfully", result.Message);
 
-        this.mockHandler
-            .Protected()
-            .Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req => 
-                    req.Method == HttpMethod.Post &&
-                    req.RequestUri != null &&
-                    req.RequestUri.ToString().Contains($"/api/servers/{serverId}/sources")),
-                ItExpr.IsAny<CancellationToken>());
+        this.mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(req => 
+                req.Method == HttpMethod.Post &&
+                req.RequestUri != null &&
+                req.RequestUri.AbsolutePath.Contains($"/api/servers/{serverId}/sources")),
+            ItExpr.IsAny<CancellationToken>());
     }
 
     [Fact]
@@ -89,8 +102,10 @@ public class GoApiClientTests : IDisposable
             Message = "Source added successfully"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
-        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -144,8 +159,10 @@ public class GoApiClientTests : IDisposable
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
-        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -201,8 +218,10 @@ public class GoApiClientTests : IDisposable
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
-        responseMessage.Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(expectedResponse), Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -237,14 +256,16 @@ public class GoApiClientTests : IDisposable
     }
 
     [Fact]
-    public async Task AddServerSourceAsync_ShouldReturnNull_WhenApiCallFails()
+    public async Task AddServerSourceAsync_ShouldThrowException_WhenApiCallFails()
     {
         // Arrange
         const string serverId = "srv_123";
         const string source = "Web";
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest);
-        responseMessage.Content = new StringContent("Bad request", Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("Bad request", Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -254,15 +275,13 @@ public class GoApiClientTests : IDisposable
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(responseMessage);
 
-        // Act
-        var result = await this.goApiClient.AddServerSourceAsync(serverId, source);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<GoApiException>(
+            async () => await this.goApiClient.AddServerSourceAsync(serverId, source));
     }
 
     [Fact]
-    public async Task AddServerSourceIdentifiersAsync_ShouldReturnNull_WhenApiCallFails()
+    public async Task AddServerSourceIdentifiersAsync_ShouldThrowException_WhenApiCallFails()
     {
         // Arrange
         const string serverId = "srv_123";
@@ -273,8 +292,10 @@ public class GoApiClientTests : IDisposable
             IdentifierType = "user_id"
         };
 
-        using var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError);
-        responseMessage.Content = new StringContent("Internal server error", Encoding.UTF8, "application/json");
+        var responseMessage = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal server error", Encoding.UTF8, "application/json")
+        };
 
         this.mockHandler
             .Protected()
@@ -284,10 +305,8 @@ public class GoApiClientTests : IDisposable
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(responseMessage);
 
-        // Act
-        var result = await this.goApiClient.AddServerSourceIdentifiersAsync(serverId, request);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        await Assert.ThrowsAsync<GoApiException>(
+            async () => await this.goApiClient.AddServerSourceIdentifiersAsync(serverId, request));
     }
 }

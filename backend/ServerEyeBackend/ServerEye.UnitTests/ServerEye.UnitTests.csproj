@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ServerEye.Core\ServerEye.Core.csproj" />
-    <ProjectReference Include="..\ServerEye.Infrastracture\ServerEye.Infrastracture.csproj" />
+    <ProjectReference Include="..\ServerEye.Infrastructure\ServerEye.Infrastructure.csproj" />
     <ProjectReference Include="..\ServerEye.API\ServerEye.API.csproj" />
   </ItemGroup>
 

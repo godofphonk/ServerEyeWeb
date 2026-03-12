@@ -1,0 +1,46 @@
+# Backend Service for Production
+# ASP.NET Core Web API with Doppler secrets
+
+services:
+  backend:
+    build:
+      context: ../../../backend/ServerEyeBackend
+      dockerfile: ../../../environments/dockerfiles/backend-prod.Dockerfile
+    container_name: servereye-backend-prod
+    ports:
+      - "5246:80"
+      - "5247:443"
+    env_file:
+      - ../../secrets/prod/backend.env
+      - ../../secrets/prod/shared.env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - DOPPLER_PROJECT=${DOPPLER_PROJECT}
+      - DOPPLER_CONFIG=${DOPPLER_CONFIG}
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
+    volumes:
+      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Production.json:/app/appsettings.Production.json:ro
+    depends_on:
+      - postgres-main
+      - postgres-ticket
+      - redis
+    restart: unless-stopped
+    networks:
+      - servereye-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  servereye-prod:
+    external: true
+    name: servereye-prod-network

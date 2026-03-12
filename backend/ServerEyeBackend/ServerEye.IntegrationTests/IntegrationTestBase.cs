@@ -1,7 +1,7 @@
 namespace ServerEye.IntegrationTests;
 
 using Microsoft.Extensions.DependencyInjection;
-using ServerEye.Infrastracture;
+using ServerEye.Infrastructure;
 
 public class IntegrationTestBase : IClassFixture<TestApplicationFactory>
 {
@@ -13,10 +13,7 @@ public class IntegrationTestBase : IClassFixture<TestApplicationFactory>
         this.Factory = factory;
         this.Client = factory.CreateClient();
         
-        // Clean database before each test
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ServerEyeDbContext>();
-        db.Database.EnsureDeleted();
-        db.Database.EnsureCreated();
+        // Clean database before each test using the factory method
+        factory.ResetDatabaseAsync().GetAwaiter().GetResult();
     }
 }

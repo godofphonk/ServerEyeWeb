@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.API", "ServerEye.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.Core", "ServerEye.Core\ServerEye.Core.csproj", "{816C6818-2C20-4EAC-A00F-304E4D8BD661}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.Infrastracture", "ServerEye.Infrastracture\ServerEye.Infrastracture.csproj", "{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.Infrastructure", "ServerEye.Infrastructure\ServerEye.Infrastructure.csproj", "{39D91CBC-A7BB-4792-8888-3877A8DD9BEF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerEye.UnitTests", "ServerEye.UnitTests\ServerEye.UnitTests.csproj", "{0B8ED2D4-5322-48CF-8E39-A719EC3330A4}"
 EndProject
