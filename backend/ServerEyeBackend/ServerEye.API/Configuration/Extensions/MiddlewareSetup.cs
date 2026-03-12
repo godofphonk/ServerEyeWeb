@@ -16,7 +16,7 @@ public static class MiddlewareSetup
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var corsSettings = configuration.GetSection("CorsSettings").Get<CorsSettings>() 
+        var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() 
             ?? new CorsSettings();
 
         // Configure Response Compression

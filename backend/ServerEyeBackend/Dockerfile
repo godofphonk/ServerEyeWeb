@@ -9,7 +9,7 @@ COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["ServerEye.API/ServerEye.API.csproj", "ServerEye.API/"]
 COPY ["ServerEye.Core/ServerEye.Core.csproj", "ServerEye.Core/"]
-COPY ["ServerEye.Infrastracture/ServerEye.Infrastracture.csproj", "ServerEye.Infrastracture/"]
+COPY ["ServerEye.Infrastructure/ServerEye.Infrastructure.csproj", "ServerEye.Infrastructure/"]
 RUN dotnet restore "ServerEye.API/ServerEye.API.csproj"
 COPY . .
 WORKDIR "/src/ServerEye.API"
