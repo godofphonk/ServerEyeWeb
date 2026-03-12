@@ -17,10 +17,12 @@ export function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
   response.headers.set('Server', '');
 
-  // Skip middleware for static files (but allow API routes for OAuth)
+  // Skip middleware for static files and API routes
   if (
     request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/static')
+    request.nextUrl.pathname.startsWith('/static') ||
+    request.nextUrl.pathname.startsWith('/api') ||
+    request.nextUrl.pathname.startsWith('/debug')
   ) {
     return response;
   }
@@ -70,8 +72,9 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Middleware - Error checking admin role:', error);
+      // For non-admin routes, continue without admin check
+      if (!request.nextUrl.pathname.startsWith('/admin')) {
+        return response;
       }
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -83,13 +86,8 @@ export function middleware(request: NextRequest) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
 
-  console.log('[Middleware] Checking URL:', url.pathname, url.search);
-  console.log('[Middleware] Code:', code, 'State:', state, 'Linking param:', linkingParam);
-
   // Check for OAuth callback with linking state
   if (code && state && state.startsWith('linking_')) {
-    console.log('[Middleware] Detected OAuth linking callback with linking state:', state);
-    
     // Redirect to intercept page for processing
     const interceptUrl = new URL('/oauth/intercept', request.url);
     interceptUrl.searchParams.set('code', code);
@@ -100,16 +98,11 @@ export function middleware(request: NextRequest) {
 
   // Check for redirect to oauth/intercept (from backend callback)
   if (url.pathname === '/oauth/intercept' && code && state) {
-    console.log('[Middleware] Intercepted redirect to oauth/intercept with code and state');
-    console.log('[Middleware] State is linking:', state.startsWith('linking_'));
-    
     // Let the request continue to oauth/intercept page
     return NextResponse.next();
   }
 
   if (linkingParam === 'true' && code && state) {
-    console.log('[Middleware] Detected OAuth linking with code and state');
-    
     // Redirect to intercept page for processing
     const interceptUrl = new URL('/oauth/intercept', request.url);
     interceptUrl.searchParams.set('code', code);

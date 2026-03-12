@@ -131,3 +131,9 @@ workdocs/
 
 # Local development settings
 appsettings.Development.json
+
+# Windsurf workspace
+.windsurf/
+
+# Documentation
+docs/

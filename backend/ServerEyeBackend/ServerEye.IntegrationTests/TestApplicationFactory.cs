@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Infrastracture;
+using Infrastructure;
 using Testcontainers.PostgreSql;
 using System.Globalization;
 
@@ -28,12 +28,8 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
     {
         await this.postgresContainer.StartAsync();
         
-        // Create database schema directly via DbContext
-        var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
-        optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
-
-        await using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
-        await serverEyeDb.Database.EnsureCreatedAsync();
+        // Let migrations handle all database creation
+        // Don't create any schema here to avoid conflicts
     }
 
     public async Task EnsureDatabaseCreatedAsync()
@@ -49,32 +45,47 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
     public async Task ResetDatabaseAsync()
     {
-        // Use direct DbContext connection instead of Services
+        // Use direct DbContext connection to clean data
         var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
         optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
         
         await using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
         
-        // Clear all data from tables if they exist
         try
         {
             if (await serverEyeDb.Database.CanConnectAsync())
             {
-                // Truncate tables if they exist
+                // Clear all data from tables in correct order (respecting foreign keys)
                 await serverEyeDb.Database.ExecuteSqlRawAsync(
                     """
                     DO $$ 
-                                        BEGIN
-                                            IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'Users') THEN
-                                                TRUNCATE TABLE "RefreshTokens", "Users" CASCADE;
-                                            END IF;
-                                        END $$;
+                    BEGIN
+                        -- Truncate tables in correct order to avoid foreign key constraints
+                        -- Start with dependent tables, then parent tables
+                        TRUNCATE TABLE "UserServerAccess" CASCADE;
+                        TRUNCATE TABLE "TicketMessages" CASCADE;
+                        TRUNCATE TABLE "TicketAttachments" CASCADE;
+                        TRUNCATE TABLE "Tickets" CASCADE;
+                        TRUNCATE TABLE "Notifications" CASCADE;
+                        TRUNCATE TABLE "MonitoredServers" CASCADE;
+                        TRUNCATE TABLE "UserExternalLogins" CASCADE;
+                        TRUNCATE TABLE "UserSessions" CASCADE;
+                        TRUNCATE TABLE "RefreshTokens" CASCADE;
+                        TRUNCATE TABLE "PasswordResetTokens" CASCADE;
+                        TRUNCATE TABLE "EmailVerifications" CASCADE;
+                        TRUNCATE TABLE "AccountDeletions" CASCADE;
+                        TRUNCATE TABLE "Users" CASCADE;
+                    EXCEPTION
+                        WHEN OTHERS THEN
+                            -- Ignore errors if tables don't exist yet
+                            NULL;
+                    END $$;
                     """);
             }
         }
         catch
         {
-            // Ignore errors if tables don't exist yet
+            // Ignore errors if database doesn't exist yet
         }
     }
 
@@ -95,7 +106,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
                 ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:TicketDbConnection"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:Redis"] = "localhost:6379"
+                ["ConnectionStrings:Redis"] = "localhost:6379",
+                // Disable email verification for tests
+                ["Authentication:RequireEmailVerification"] = "false",
+                ["EmailSettings:EnableEmailVerification"] = "false"
             });
         });
 
