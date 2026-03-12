@@ -1,6 +1,7 @@
 namespace ServerEye.Core.Services;
 
 using System.Globalization;
+using Microsoft.Extensions.Configuration;
 using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
@@ -9,13 +10,14 @@ using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IJwtService jwtService = jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
     private readonly IAuthService authService = authService;
+    private readonly IConfiguration configuration = configuration;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
@@ -175,6 +177,13 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             return false;
         }
 
+        // Check if email verification is disabled (for testing)
+        var requireEmailVerification = this.configuration.GetValue<bool>("Authentication:RequireEmailVerification", true);
+        if (!requireEmailVerification)
+        {
+            return true;
+        }
+
         // OAuth users without email (Telegram) - access allowed
         if (!user.HasPassword && string.IsNullOrEmpty(user.Email))
         {
@@ -187,7 +196,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             return user.IsEmailVerified;
         }
 
-        return false;
+        return true;
     }
 
     public async Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
