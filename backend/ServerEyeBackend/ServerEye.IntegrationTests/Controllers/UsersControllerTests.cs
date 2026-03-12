@@ -3,6 +3,7 @@ namespace ServerEye.IntegrationTests.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using ServerEye.Core.DTOs.UserDto;
 
 [Collection("UsersController Tests")]
@@ -170,7 +171,8 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Be("Healthy");
+        var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
+        healthReport.GetProperty("status").GetString().Should().Be("Healthy");
     }
 
     [Fact]
@@ -181,6 +183,7 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Be("Healthy");
+        var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
+        healthReport.GetProperty("status").GetString().Should().Be("Healthy");
     }
 }
