@@ -29,8 +29,11 @@ public static class DependencyInjectionSetup
         // Register repositories
         RegisterRepositories(services);
 
-        // Register core services
-        RegisterCoreServices(services);
+        // Register domain services by logical grouping
+        RegisterDomainServices(services);
+        
+        // Register API-specific services
+        RegisterApiServices(services);
 
         // Register infrastructure services
         RegisterInfrastructureServices(services);
@@ -77,23 +80,29 @@ public static class DependencyInjectionSetup
         services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
     }
 
-    private static void RegisterCoreServices(IServiceCollection services)
+    /// <summary>
+    /// Registers domain-specific services organized by business logic.
+    /// </summary>
+    private static void RegisterDomainServices(IServiceCollection services)
     {
-        services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();
+        RegisterAuthServices(services);
+        RegisterEmailServices(services);
+        RegisterEncryptionServices(services);
+        RegisterMetricsServices(services);
+        RegisterNotificationServices(services);
+        RegisterServerServices(services);
+        RegisterTicketServices(services);
+        RegisterUserServices(services);
+    }
+
+    /// <summary>
+    /// Registers authentication and authorization services.
+    /// </summary>
+    private static void RegisterAuthServices(IServiceCollection services)
+    {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IOAuthService, OAuthService>();
-        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IMetricsCacheService, Infrastructure.Caching.MetricsCacheService>();
-        services.AddScoped<IServerAccessService, ServerAccessService>();
-        services.AddScoped<IServerDiscoveryService, ServerDiscoveryService>();
-        services.AddScoped<IMetricsService, MetricsService>();
-        services.AddScoped<IStaticInfoService, StaticInfoService>();
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<INotificationService, NotificationService>();
-        services.AddScoped<ITicketService, TicketService>();
-        services.AddScoped<IServersService, ServersService>();
-        services.AddScoped<IMockDataProvider, MockDataProvider>();
 
         // JWT Service with factory
         services.AddScoped<IJwtService>(provider =>
@@ -105,9 +114,86 @@ public static class DependencyInjectionSetup
         });
     }
 
+    /// <summary>
+    /// Registers email-related services.
+    /// </summary>
+    private static void RegisterEmailServices(IServiceCollection services)
+    {
+        services.AddScoped<IEmailService, EmailService>();
+    }
+
+    /// <summary>
+    /// Registers encryption and security services.
+    /// </summary>
+    private static void RegisterEncryptionServices(IServiceCollection services)
+    {
+        services.AddScoped<IEncryptionService, EncryptionService>();
+    }
+
+    /// <summary>
+    /// Registers metrics and monitoring services.
+    /// </summary>
+    private static void RegisterMetricsServices(IServiceCollection services)
+    {
+        services.AddScoped<IMetricsService, MetricsService>();
+        services.AddScoped<IMetricsCacheService, Infrastructure.Caching.MetricsCacheService>();
+    }
+
+    /// <summary>
+    /// Registers notification services.
+    /// </summary>
+    private static void RegisterNotificationServices(IServiceCollection services)
+    {
+        services.AddScoped<INotificationService, NotificationService>();
+    }
+
+    /// <summary>
+    /// Registers server management services.
+    /// </summary>
+    private static void RegisterServerServices(IServiceCollection services)
+    {
+        services.AddScoped<IServerAccessService, ServerAccessService>();
+        services.AddScoped<IServerDiscoveryService, ServerDiscoveryService>();
+        services.AddScoped<IServersService, ServersService>();
+        services.AddScoped<IStaticInfoService, StaticInfoService>();
+        services.AddScoped<IMockDataProvider, MockDataProvider>();
+    }
+
+    /// <summary>
+    /// Registers ticket management services.
+    /// </summary>
+    private static void RegisterTicketServices(IServiceCollection services)
+    {
+        services.AddScoped<ITicketService, TicketService>();
+    }
+
+    /// <summary>
+    /// Registers user management services.
+    /// </summary>
+    private static void RegisterUserServices(IServiceCollection services)
+    {
+        services.AddScoped<IUserService, UserService>();
+    }
+
+    /// <summary>
+    /// Registers API-specific services that don't belong to domain layer.
+    /// </summary>
+    private static void RegisterApiServices(IServiceCollection services)
+    {
+        services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();
+    }
+
+    /// <summary>
+    /// Registers infrastructure services that don't fit into specific domains.
+    /// </summary>
     private static void RegisterInfrastructureServices(IServiceCollection services)
     {
-        services.AddScoped<IMetricsCacheService, Infrastructure.Caching.MetricsCacheService>();
+        // Infrastructure services are now registered in their respective domain methods
+        // This method is kept for future infrastructure-specific services
+        // Parameter is kept for consistency with other registration methods
+#pragma warning disable IDE0060 // Remove unused parameter
+        _ = services; // Suppress unused parameter warning
+#pragma warning restore IDE0060
     }
 
     private static void RegisterGoApiServices(IServiceCollection services, IConfiguration configuration)
