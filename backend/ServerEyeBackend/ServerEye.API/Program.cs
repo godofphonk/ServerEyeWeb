@@ -1,7 +1,10 @@
 #pragma warning disable CA1303 // Localize strings
 
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +34,32 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+
+// Configure Health Check endpoints with JSON response
+var healthCheckOptions = new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+};
+
+app.MapHealthChecks("/health", healthCheckOptions);
+app.MapHealthChecks("/health/live", healthCheckOptions);
+app.MapHealthChecks("/health/ready", healthCheckOptions);
 
 // Apply database migrations
 app.ApplyDatabaseMigrations();
