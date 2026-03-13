@@ -2,6 +2,7 @@ namespace ServerEye.Core.Services;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
@@ -12,6 +13,7 @@ public class ServerDiscoveryService(
     IGoApiClient goApiClient,
     IMonitoredServerRepository serverRepository,
     IUserServerAccessRepository accessRepository,
+    IUserExternalLoginRepository externalLoginRepository,
     IEncryptionService encryptionService,
     IConfiguration configuration,
     ILogger<ServerDiscoveryService> logger) : IServerDiscoveryService
@@ -85,6 +87,9 @@ public class ServerDiscoveryService(
         var imported = new List<ServerResponse>();
         var errors = new List<string>();
 
+        // Get telegram_id if user has Telegram OAuth linked
+        var telegramId = await this.GetUserTelegramIdAsync(userId);
+
         foreach (var serverId in serverIds)
         {
             try
@@ -106,6 +111,57 @@ public class ServerDiscoveryService(
                     continue;
                 }
 
+                // Add Telegram source to Go API for discovered servers
+                var decryptedKey = string.IsNullOrEmpty(existingServer.ServerKey)
+                    ? string.Empty
+                    : encryptionService.Decrypt(existingServer.ServerKey);
+
+                if (!string.IsNullOrEmpty(decryptedKey))
+                {
+                    // Add Telegram source to Go API
+                    var sourceResponse = await goApiClient.AddServerSourceByKeyAsync(decryptedKey, "Telegram");
+                    if (sourceResponse == null)
+                    {
+                        logger.LogWarning("Failed to add Telegram source to Go API for server {ServerId}", serverId);
+
+                        // Continue with import even if source add fails
+                    }
+                    else
+                    {
+                        logger.LogInformation("Successfully added Telegram source to Go API for server {ServerId}", serverId);
+
+                        // Add user identifier to Telegram source
+                        var identifiersRequest = new GoApiSourceIdentifiersRequest
+                        {
+                            SourceType = "Telegram",
+                            Identifiers = new List<string> { userId.ToString() },
+                            IdentifierType = "user_id",
+                            TelegramId = telegramId,
+                            Metadata = new Dictionary<string, object>
+                            {
+                                { "added_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                                { "source", "ServerEyeWeb" },
+                                { "discovery_method", "TelegramBot" }
+                            }
+                        };
+
+                        if (telegramId.HasValue)
+                        {
+                            identifiersRequest.Metadata!["telegram_linked_at"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                        }
+
+                        var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(decryptedKey, identifiersRequest);
+                        if (identifiersResponse == null)
+                        {
+                            logger.LogWarning("Failed to add user identifier to Telegram source for server {ServerId}", serverId);
+                        }
+                        else
+                        {
+                            logger.LogInformation("Successfully added user identifier to Telegram source for server {ServerId}", serverId);
+                        }
+                    }
+                }
+
                 await accessRepository.AddAccessAsync(new UserServerAccess
                 {
                     Id = Guid.NewGuid(),
@@ -114,10 +170,6 @@ public class ServerDiscoveryService(
                     AccessLevel = AccessLevel.Viewer,
                     AddedAt = DateTime.UtcNow
                 });
-
-                var decryptedKey = string.IsNullOrEmpty(existingServer.ServerKey)
-                    ? string.Empty
-                    : encryptionService.Decrypt(existingServer.ServerKey);
 
                 imported.Add(new ServerResponse
                 {
@@ -136,8 +188,7 @@ public class ServerDiscoveryService(
             }
             catch (Exception ex)
             {
-                var errorMessage = $"Failed to import server {serverId}: {ex.Message}";
-                errors.Add(errorMessage);
+                errors.Add($"Server {serverId}: {ex.Message}");
                 logger.LogError(ex, "Error importing server {ServerId} for user {UserId}", serverId, userId);
             }
         }
@@ -155,5 +206,29 @@ public class ServerDiscoveryService(
             Servers = imported,
             Errors = errors
         };
+    }
+
+    private async Task<long?> GetUserTelegramIdAsync(Guid userId)
+    {
+        logger.LogInformation("Getting telegram_id for user {UserId}", userId);
+
+        var telegramLogin = await externalLoginRepository.GetByUserIdAndProviderAsync(userId, OAuthProvider.Telegram);
+
+        if (telegramLogin == null)
+        {
+            logger.LogWarning("No Telegram OAuth found for user {UserId}", userId);
+            return null;
+        }
+
+        logger.LogInformation("Found Telegram OAuth for user {UserId}: ProviderUserId = {ProviderUserId}", userId, telegramLogin.ProviderUserId);
+
+        if (long.TryParse(telegramLogin.ProviderUserId, out var telegramId))
+        {
+            logger.LogInformation("Successfully parsed telegram_id {TelegramId} for user {UserId}", telegramId, userId);
+            return telegramId;
+        }
+
+        logger.LogWarning("Failed to parse telegram_id for user {UserId}: {ProviderUserId}", userId, telegramLogin.ProviderUserId);
+        return null;
     }
 }

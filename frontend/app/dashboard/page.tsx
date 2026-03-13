@@ -24,6 +24,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import { hasUserAccess } from '@/lib/authUtils';
+import ServerSourcesBadge from '@/components/ServerSourcesBadge';
 import {
   MonitoredServer,
   DashboardMetrics,
@@ -667,6 +668,16 @@ export default function DashboardPage() {
                                 {server.staticInfo.memory_info?.total_gb || 'N/A'}GB RAM
                               </p>
                             )}
+                            <div className='mt-2'>
+                              <ServerSourcesBadge
+                                serverKey={server.serverKey}
+                                serverId={server.serverId}
+                                hostname={server.staticInfo?.hostname || server.hostname || server.serverId}
+                                sources={server.sources || []}
+                                compact={true}
+                                onSourceUpdated={loadServers}
+                              />
+                            </div>
                           </div>
                           <div className='flex items-center gap-3'>
                             <div className='flex items-center gap-2'>

@@ -224,6 +224,65 @@ public class ServerAccessService(
             throw new UnauthorizedAccessException("You don't have access to this server");
         }
 
+        // Get server to find server key
+        var server = await serverRepository.GetByServerIdAsync(serverId);
+        if (server == null)
+        {
+            logger.LogWarning("Server {ServerId} not found, removing access from DB only", serverId);
+            await accessRepository.RemoveAccessAsync(userId, serverId);
+            return;
+        }
+
+        // Decrypt server key for Go API call
+        string decryptedKey;
+        try
+        {
+            decryptedKey = string.IsNullOrEmpty(server.ServerKey) 
+                ? string.Empty 
+                : encryptionService.Decrypt(server.ServerKey);
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId);
+            decryptedKey = string.Empty;
+        }
+
+        if (string.IsNullOrEmpty(decryptedKey))
+        {
+            logger.LogWarning("Decrypted server key is empty for server {ServerId}, removing access from DB only", serverId);
+            await accessRepository.RemoveAccessAsync(userId, serverId);
+            return;
+        }
+
+        // Try to remove user's identifier from Web source in Go API
+        // This is the enterprise-level approach from Telegram bot
+        try
+        {
+            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey);
+            
+            var request = new GoApiDeleteSourceIdentifiersRequest
+            {
+                Identifiers = new List<string> { userId.ToString() }
+            };
+
+            var result = await goApiClient.DeleteServerSourceIdentifiersByTypeAsync(decryptedKey, "Web", request);
+            
+            if (result != null)
+            {
+                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey);
+            }
+            else
+            {
+                logger.LogWarning("Go API returned null when removing identifier, continuing with DB removal");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Graceful degradation - if API fails, still remove from DB
+            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey);
+        }
+
+        // Always remove access from DB (even if API call failed)
         await accessRepository.RemoveAccessAsync(userId, serverId);
 
         logger.LogInformation("User {UserId} removed access to server {ServerId}", userId, serverId);

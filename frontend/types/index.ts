@@ -107,6 +107,7 @@ export interface MonitoredServer {
   lastSeen: string;
   isActive: boolean;
   serverName?: string; // Custom server name
+  sources?: string[]; // List of sources (Web, Telegram, etc.)
 }
 
 export interface AddServerRequest {
@@ -466,6 +467,45 @@ export interface ServerFormData {
   ipAddress: string;
   os: string;
   tags: string[];
+}
+
+// Source Management types
+export interface DeleteSourceRequest {
+  server_key: string;
+}
+
+export interface DeleteSourceResponse {
+  message: string;
+  server_id: string;
+  source: string;
+  deleted_identifiers: string[];
+  success: boolean;
+}
+
+export interface DeleteSourceIdentifiersRequest {
+  identifiers: string[];
+}
+
+export interface DeleteSourceIdentifiersResponse {
+  message: string;
+  server_id: string;
+  source_type: string;
+  deleted_identifiers: string[];
+  success: boolean;
+}
+
+export interface SourceInfo {
+  source_type: string;
+  identifiers: Array<{
+    id: number;
+    server_id: string;
+    source_type: string;
+    identifier: string;
+    identifier_type: string;
+    metadata?: Record<string, any>;
+    created_at: string;
+    updated_at: string;
+  }>;
 }
 
 // Support Ticket types
