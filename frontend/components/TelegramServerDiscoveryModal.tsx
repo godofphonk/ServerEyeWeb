@@ -151,7 +151,7 @@ export function TelegramServerDiscoveryModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
         onClick={onDismiss}
       >
         <motion.div
@@ -159,14 +159,14 @@ export function TelegramServerDiscoveryModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-          className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden"
+          className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700/50 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden backdrop-blur-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
+          <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <Bot className="w-6 h-6 text-blue-400" />
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Bot className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Telegram Servers Discovered</h2>
@@ -177,7 +177,7 @@ export function TelegramServerDiscoveryModal({
             </div>
             <button
               onClick={onDismiss}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               disabled={importProgress.importing}
             >
               <X className="w-5 h-5 text-gray-400" />
@@ -185,11 +185,14 @@ export function TelegramServerDiscoveryModal({
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[50vh]">
+          <div className="p-6 overflow-y-auto max-h-[50vh] bg-gradient-to-b from-transparent to-gray-900/30">
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-4" />
-                <p className="text-gray-400">Discovering servers...</p>
+                <div className="relative">
+                  <div className="w-8 h-8 border-2 border-gray-700 rounded-full"></div>
+                  <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin absolute top-0"></div>
+                </div>
+                <p className="text-gray-400 mt-4">Discovering servers...</p>
               </div>
             )}
 
@@ -229,17 +232,17 @@ export function TelegramServerDiscoveryModal({
               <div>
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+                  <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-xl p-4 text-center backdrop-blur-sm">
                     <div className="text-2xl font-bold text-white">{discovered.total_count}</div>
                     <div className="text-sm text-gray-400">Total Servers</div>
                   </div>
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-400">
+                  <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl p-4 text-center backdrop-blur-sm">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                       {discovered.servers.filter(s => s.can_import).length}
                     </div>
                     <div className="text-sm text-blue-300/80">Available</div>
                   </div>
-                  <div className="bg-gray-800/50 rounded-xl p-4 text-center">
+                  <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-xl p-4 text-center backdrop-blur-sm">
                     <div className="text-2xl font-bold text-gray-400">
                       {discovered.servers.filter(s => !s.can_import).length}
                     </div>
@@ -253,13 +256,13 @@ export function TelegramServerDiscoveryModal({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleSelectAll}
-                        className="px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 text-gray-300 rounded-lg hover:from-gray-700 hover:to-gray-600 transition-all duration-200 text-sm border border-gray-600/50"
                       >
                         Select All
                       </button>
                       <button
                         onClick={handleDeselectAll}
-                        className="px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-700 text-gray-300 rounded-lg hover:from-gray-700 hover:to-gray-600 transition-all duration-200 text-sm border border-gray-600/50"
                       >
                         Deselect All
                       </button>
@@ -271,30 +274,31 @@ export function TelegramServerDiscoveryModal({
                 )}
 
                 {/* Server List */}
-                <div className="space-y-3">
+                <div className="relative space-y-3">
+                  <div className="absolute inset-0 bg-gradient-to-b from-gray-800/10 via-gray-900/20 to-gray-800/10 rounded-2xl pointer-events-none"></div>
                   {discovered.servers.map((server) => (
                     <motion.div
                       key={server.server_id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3 }}
-                      className={`border rounded-xl p-4 transition-all cursor-pointer ${
+                      className={`border rounded-xl p-4 transition-all cursor-pointer backdrop-blur-sm relative z-10 ${
                         server.can_import
                           ? selectedServers.has(server.server_id)
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
-                          : 'border-gray-800 bg-gray-800/50 opacity-60'
+                            ? 'border-blue-500/60 bg-gradient-to-r from-blue-500/15 to-purple-500/15 shadow-lg shadow-blue-500/30'
+                            : 'border-gray-700/60 bg-gray-800/50 hover:border-blue-500/40 hover:bg-gray-800/70'
+                          : 'border-gray-800/60 bg-gray-800/40 opacity-60'
                       }`}
                       onClick={() => server.can_import && handleServerToggle(server.server_id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="text-2xl">{getServerIcon(server)}</div>
+                          <div className="text-2xl filter drop-shadow-sm">{getServerIcon(server)}</div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-medium text-white">{server.hostname}</h3>
                               {!server.can_import && (
-                                <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded-full">
+                                <span className="px-2 py-1 bg-gradient-to-r from-gray-700 to-gray-600 text-gray-400 text-xs rounded-full border border-gray-600/50">
                                   Already Added
                                 </span>
                               )}
@@ -316,13 +320,13 @@ export function TelegramServerDiscoveryModal({
                               <div className="text-xs text-gray-500">Added via</div>
                               <div className="text-sm text-blue-400">{server.added_via}</div>
                             </div>
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                               selectedServers.has(server.server_id)
-                                ? 'border-blue-500 bg-blue-500'
-                                : 'border-gray-600'
+                                ? 'border-blue-500 bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg'
+                                : 'border-gray-600 bg-gray-800/50'
                             }`}>
                               {selectedServers.has(server.server_id) && (
-                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                <CheckCircle2 className="w-3 h-3 text-white drop-shadow-sm" />
                               )}
                             </div>
                           </div>
@@ -336,9 +340,9 @@ export function TelegramServerDiscoveryModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-800">
+          <div className="flex items-center justify-between p-6 border-t border-gray-800/50 bg-gradient-to-r from-gray-900/80 via-gray-800/60 to-gray-900/80 backdrop-blur-md">
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <Shield className="w-4 h-4" />
+              <Shield className="w-4 h-4 text-blue-400" />
               <span>Secure import via Telegram bot</span>
             </div>
             
@@ -347,7 +351,7 @@ export function TelegramServerDiscoveryModal({
               <button
                 onClick={onRetry}
                 disabled={importProgress.importing}
-                className="px-3 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-3 py-2 bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-gray-300 rounded-lg hover:from-gray-600/80 hover:to-gray-500/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border border-gray-600/50 backdrop-blur-sm"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -356,7 +360,7 @@ export function TelegramServerDiscoveryModal({
               <button
                 onClick={onDismiss}
                 disabled={importProgress.importing}
-                className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-gradient-to-r from-gray-800/80 to-gray-700/80 text-gray-300 rounded-lg hover:from-gray-700/80 hover:to-gray-600/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-600/50 backdrop-blur-sm"
               >
                 {showSuccess ? 'Close' : 'Skip'}
               </button>
@@ -365,7 +369,7 @@ export function TelegramServerDiscoveryModal({
                 <button
                   onClick={handleImport}
                   disabled={selectedServers.size === 0 || importProgress.importing}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
                   {importProgress.importing ? (
                     <>
