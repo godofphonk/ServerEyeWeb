@@ -576,6 +576,7 @@ public class AuthController : ControllerBase
                 Secure = false, // Set to true in production with HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
+                
                 // Domain removed - browser will set it for current host
                 Path = "/"
             };
@@ -586,6 +587,7 @@ public class AuthController : ControllerBase
                 Secure = false, // Set to true in production with HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
+                
                 // Domain removed - browser will set it for current host
                 Path = "/"
             };
@@ -600,7 +602,8 @@ public class AuthController : ControllerBase
 
             // Redirect to frontend OAuth callback page with token in query
             var callbackUrl = $"http://localhost:3001/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}";
-            if (!string.IsNullOrEmpty(response.RefreshToken)) {
+            if (!string.IsNullOrEmpty(response.RefreshToken))
+            {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
             }
             return this.Redirect(callbackUrl);

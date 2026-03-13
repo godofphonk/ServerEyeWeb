@@ -3,6 +3,7 @@ namespace ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Discovery;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Infrastructure.ExternalServices.GoApi;
 using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
+using System.Text.Json;
 
 /// <summary>
 /// Operation to find servers by Telegram ID.
@@ -29,7 +30,13 @@ public class FindServersByTelegramIdOperation : GoApiOperation<List<GoApiServerI
 
     protected override List<GoApiServerInfo>? ProcessResponse(string content)
     {
-        var servers = GoApiJsonSerializer.DeserializeServersList(content);
+        // Parse the Go API response structure
+        using var jsonDoc = JsonDocument.Parse(content ?? string.Empty);
+        var serversElement = jsonDoc.RootElement.GetProperty("servers");
+        
+        var servers = JsonSerializer.Deserialize<List<GoApiServerInfo>>(serversElement.GetRawText());
+        var count = servers?.Count ?? 0;
+        
         return servers ?? new List<GoApiServerInfo>();
     }
 
