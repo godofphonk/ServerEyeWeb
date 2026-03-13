@@ -62,4 +62,24 @@ public class GoApiHttpHandler(HttpClient httpClient)
     {
         return await _httpClient.PostAsJsonAsync(url, content);
     }
+
+    /// <summary>
+    /// Performs DELETE request.
+    /// </summary>
+    public async Task<HttpResponseMessage> DeleteAsync(Uri url)
+    {
+        return await _httpClient.DeleteAsync(url);
+    }
+
+    /// <summary>
+    /// Performs DELETE request with JSON content.
+    /// </summary>
+    public async Task<HttpResponseMessage> DeleteAsJsonAsync<T>(Uri url, T content)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, url)
+        {
+            Content = JsonContent.Create(content)
+        };
+        return await _httpClient.SendAsync(request);
+    }
 }

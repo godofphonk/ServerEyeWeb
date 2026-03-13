@@ -84,6 +84,27 @@ public class GoApiOperationFactory
         return new AddSourceIdentifiersByKeyOperation(httpHandler, logger, serverKey, request);
     }
 
+    public GetSourceIdentifiersByKeyOperation CreateGetSourceIdentifiersByKey(string serverKey)
+    {
+        return new GetSourceIdentifiersByKeyOperation(httpHandler, logger, serverKey);
+    }
+
+    // Source Deletion Operations
+    public DeleteServerSourceByKeyOperation CreateDeleteServerSourceByKey(string serverKey, string source)
+    {
+        return new DeleteServerSourceByKeyOperation(httpHandler, logger, serverKey, source);
+    }
+
+    public DeleteSourceIdentifiersByKeyOperation CreateDeleteSourceIdentifiersByKey(string serverKey, GoApiDeleteSourceIdentifiersRequest request)
+    {
+        return new DeleteSourceIdentifiersByKeyOperation(httpHandler, logger, serverKey, request);
+    }
+
+    public DeleteSourceIdentifiersByTypeOperation CreateDeleteSourceIdentifiersByType(string serverKey, string sourceType, GoApiDeleteSourceIdentifiersRequest request)
+    {
+        return new DeleteSourceIdentifiersByTypeOperation(httpHandler, logger, serverKey, sourceType, request);
+    }
+
     // Discovery Operations
     public FindServersByTelegramIdOperation CreateFindServersByTelegramId(long telegramId)
     {

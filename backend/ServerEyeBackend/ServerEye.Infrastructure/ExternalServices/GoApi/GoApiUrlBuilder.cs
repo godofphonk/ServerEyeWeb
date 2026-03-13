@@ -110,4 +110,28 @@ public static class GoApiUrlBuilder
     {
         return new Uri($"/api/servers/by-telegram/{telegramId}", UriKind.Relative);
     }
+
+    /// <summary>
+    /// Builds delete server source URL by key.
+    /// </summary>
+    public static Uri BuildDeleteServerSourceByKeyUrl(string serverKey, string source)
+    {
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/{Uri.EscapeDataString(source)}", UriKind.Relative);
+    }
+
+    /// <summary>
+    /// Builds delete server source identifiers URL by key.
+    /// </summary>
+    public static Uri BuildDeleteServerSourceIdentifiersByKeyUrl(string serverKey)
+    {
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/identifiers", UriKind.Relative);
+    }
+
+    /// <summary>
+    /// Builds delete server source identifiers URL by source type.
+    /// </summary>
+    public static Uri BuildDeleteServerSourceIdentifiersByTypeUrl(string serverKey, string sourceType)
+    {
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/sources/{Uri.EscapeDataString(sourceType)}/identifiers", UriKind.Relative);
+    }
 }

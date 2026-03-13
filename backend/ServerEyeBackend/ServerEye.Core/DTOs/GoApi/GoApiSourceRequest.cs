@@ -36,7 +36,33 @@ public class GoApiSourceIdentifiersResponse
 {
     public string Message { get; init; } = string.Empty;
     public string ServerId { get; init; } = string.Empty;
+    public List<string> Sources { get; init; } = new();
+    public Dictionary<string, List<SourceIdentifierInfo>> Identifiers { get; init; } = new();
+}
+
+public class SourceIdentifierInfo
+{
+    public int Id { get; init; }
+    public string ServerId { get; init; } = string.Empty;
     public string SourceType { get; init; } = string.Empty;
-    public List<string> Identifiers { get; init; } = new();
+    public string Identifier { get; init; } = string.Empty;
     public string IdentifierType { get; init; } = string.Empty;
+    public long? TelegramId { get; init; }
+    public Dictionary<string, object> Metadata { get; init; } = new();
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+}
+
+public class GoApiDeleteSourceIdentifiersRequest
+{
+    [JsonPropertyName("identifiers")]
+    public List<string> Identifiers { get; init; } = new();
+}
+
+public class GoApiDeleteSourceResponse
+{
+    public string Message { get; init; } = string.Empty;
+    public string ServerId { get; init; } = string.Empty;
+    public string Source { get; init; } = string.Empty;
+    public List<string> DeletedIdentifiers { get; init; } = new();
 }

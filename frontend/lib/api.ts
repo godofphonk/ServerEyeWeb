@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { GoApiError, GoApiErrorResponse } from '@/types';
+import { GoApiError, GoApiErrorResponse, DeleteSourceResponse, DeleteSourceIdentifiersResponse, DeleteSourceIdentifiersRequest } from '@/types';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -143,6 +143,23 @@ class ApiClient {
   async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
+  }
+
+  // Source Management methods
+  async deleteServerSource(serverKey: string, source: string): Promise<DeleteSourceResponse> {
+    return this.delete<DeleteSourceResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(source)}`);
+  }
+
+  async deleteServerSourceIdentifiers(serverKey: string, request: DeleteSourceIdentifiersRequest): Promise<DeleteSourceIdentifiersResponse> {
+    return this.delete<DeleteSourceIdentifiersResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/identifiers`, {
+      data: request
+    });
+  }
+
+  async deleteServerSourceIdentifiersByType(serverKey: string, sourceType: string, request: DeleteSourceIdentifiersRequest): Promise<DeleteSourceIdentifiersResponse> {
+    return this.delete<DeleteSourceIdentifiersResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(sourceType)}/identifiers`, {
+      data: request
+    });
   }
 }
 

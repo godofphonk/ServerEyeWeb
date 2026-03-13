@@ -159,6 +159,7 @@ public static class DependencyInjectionSetup
         services.AddScoped<IServersService, ServersService>();
         services.AddScoped<IStaticInfoService, StaticInfoService>();
         services.AddScoped<IMockDataProvider, MockDataProvider>();
+        services.AddScoped<ISourceManagementService, SourceManagementService>();
     }
 
     /// <summary>

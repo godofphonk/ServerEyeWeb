@@ -96,6 +96,14 @@ public static class GoApiJsonSerializer
     }
 
     /// <summary>
+    /// Deserializes Go API delete source response.
+    /// </summary>
+    public static GoApiDeleteSourceResponse? DeserializeDeleteSourceResponse(string content)
+    {
+        return TryDeserialize<GoApiDeleteSourceResponse>(content);
+    }
+
+    /// <summary>
     /// Serializes object to JSON for debugging.
     /// </summary>
     public static string SerializeForDebug<T>(T obj)

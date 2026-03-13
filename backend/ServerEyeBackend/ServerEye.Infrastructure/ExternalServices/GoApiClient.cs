@@ -85,6 +85,31 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
         return await operation.ExecuteAsync();
     }
 
+    public async Task<GoApiSourceIdentifiersResponse?> GetServerSourceIdentifiersByKeyAsync(string serverKey)
+    {
+        var operation = operationFactory.CreateGetSourceIdentifiersByKey(serverKey);
+        return await operation.ExecuteAsync();
+    }
+
+    // Source deletion methods
+    public async Task<GoApiDeleteSourceResponse?> DeleteServerSourceByKeyAsync(string serverKey, string source)
+    {
+        var operation = operationFactory.CreateDeleteServerSourceByKey(serverKey, source);
+        return await operation.ExecuteAsync();
+    }
+
+    public async Task<GoApiDeleteSourceResponse?> DeleteServerSourceIdentifiersByKeyAsync(string serverKey, GoApiDeleteSourceIdentifiersRequest request)
+    {
+        var operation = operationFactory.CreateDeleteSourceIdentifiersByKey(serverKey, request);
+        return await operation.ExecuteAsync();
+    }
+
+    public async Task<GoApiDeleteSourceResponse?> DeleteServerSourceIdentifiersByTypeAsync(string serverKey, string sourceType, GoApiDeleteSourceIdentifiersRequest request)
+    {
+        var operation = operationFactory.CreateDeleteSourceIdentifiersByType(serverKey, sourceType, request);
+        return await operation.ExecuteAsync();
+    }
+
     public async Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId)
     {
         try
