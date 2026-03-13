@@ -87,7 +87,14 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
 
     public async Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId)
     {
-        var operation = operationFactory.CreateFindServersByTelegramId(telegramId);
-        return await operation.ExecuteAsync();
+        try
+        {
+            var operation = operationFactory.CreateFindServersByTelegramId(telegramId);
+            return await operation.ExecuteAsync();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

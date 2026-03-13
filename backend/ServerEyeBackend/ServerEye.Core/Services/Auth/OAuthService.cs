@@ -160,10 +160,17 @@ public sealed class OAuthService(
         var existingExternalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
         User? user = null;
 
+        this.logger.LogInformation(
+            "OAuth callback - Provider: {Provider}, UserId: {UserId}, ExternalLoginFound: {ExternalLoginFound}", 
+            provider, 
+            userInfo.Id, 
+            existingExternalLogin != null);
+
         if (existingExternalLogin != null)
         {
             // User with this external login already exists
             user = await this.userRepository.GetByIdAsync(existingExternalLogin.UserId);
+            this.logger.LogInformation("Found existing user via external login - UserId: {UserId}", user?.Id);
         }
 
         // Apply action-based logic
@@ -193,6 +200,12 @@ public sealed class OAuthService(
                 // Create new user
                 user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
                 this.logger.LogInformation("OAuth registration successful for new user {UserId}", user.Id);
+            }
+            else if (action.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                // AUTO mode (backward compatibility): find or create user
+                user = await this.FindOrCreateUserAsync(provider, userInfo, cancellationToken);
+                this.logger.LogInformation("OAuth auto mode - user {UserId} authenticated", user.Id);
             }
         }
         else
@@ -472,13 +485,18 @@ public sealed class OAuthService(
 
     private async Task<User> FindOrCreateUserAsync(OAuthProvider provider, OAuthUserInfoDto userInfo, CancellationToken cancellationToken)
     {
+        this.logger.LogInformation("FindOrCreateUserAsync - Provider: {Provider}, UserId: {UserId}", provider, userInfo.Id);
+        
         // Check if external login already exists
         var externalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
         if (externalLogin != null)
         {
+            this.logger.LogInformation("Found existing external login - UserId: {UserId}", externalLogin.UserId);
             return await this.userRepository.GetByIdAsync(externalLogin.UserId)
                    ?? throw new InvalidOperationException("User not found");
         }
+
+        this.logger.LogInformation("External login not found, checking for existing user by email");
 
         // Check if user with same email exists
         if (!string.IsNullOrEmpty(userInfo.Email))
@@ -486,9 +504,12 @@ public sealed class OAuthService(
             var existingUser = await this.userRepository.GetByEmailAsync(userInfo.Email);
             if (existingUser != null)
             {
+                this.logger.LogInformation("Found existing user by email - UserId: {UserId}", existingUser.Id);
                 return existingUser;
             }
         }
+
+        this.logger.LogInformation("Creating new user for OAuth - Username: {Username}", userInfo.Username);
 
         // Create new user
         var newUser = new User
@@ -507,6 +528,7 @@ public sealed class OAuthService(
         };
 
         await this.userRepository.AddAsync(newUser);
+        this.logger.LogInformation("Created new user - UserId: {UserId}", newUser.Id);
         return newUser;
     }
 

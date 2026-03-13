@@ -31,6 +31,9 @@ export default function OAuthCallbackPage() {
             if (refreshToken) {
               localStorage.setItem('refresh_token', refreshToken);
             }
+            
+            // Set flag for Telegram OAuth completion to trigger server discovery
+            sessionStorage.setItem('telegram_oauth_completed', 'true');
           }
           
           // Set cookies via API call
@@ -51,10 +54,14 @@ export default function OAuthCallbackPage() {
           }
           
           // Force auth check
+          console.log('[OAuth Callback] Before checkAuth - isAuthenticated:', isAuthenticated);
           await checkAuth();
+          console.log('[OAuth Callback] After checkAuth - isAuthenticated:', isAuthenticated);
           
           // Give time for auth to complete
           await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          console.log('[OAuth Callback] Final isAuthenticated:', isAuthenticated);
           
           if (isAuthenticated) {
             setStatus('success');
@@ -63,6 +70,7 @@ export default function OAuthCallbackPage() {
             // Clean URL and redirect to dashboard
             window.history.replaceState({}, '', '/oauth/callback');
             setTimeout(() => {
+              console.log('[OAuth Callback] Redirecting to dashboard...');
               router.push('/dashboard');
             }, 1000);
           } else {

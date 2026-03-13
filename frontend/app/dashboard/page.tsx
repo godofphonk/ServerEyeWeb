@@ -17,6 +17,7 @@ import {
   Server as ServerIcon,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -35,6 +36,8 @@ import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
 import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/components/ui/MonitoringServiceError';
 import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
+import { TelegramServerDiscoveryModal } from '@/components/TelegramServerDiscoveryModal';
+import { useTelegramServerDiscovery } from '@/hooks/useTelegramServerDiscovery';
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
@@ -77,6 +80,12 @@ export default function DashboardPage() {
   const [goApiError, setGoApiError] = useState<GoApiError | null>(null);
   const [serverError, setServerError] = useState<any>(null);
   const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError | any>>({});
+
+  // Telegram Server Discovery integration
+  const telegramDiscovery = useTelegramServerDiscovery({
+    autoTrigger: true,
+    triggerDelay: 2000, // Wait 2 seconds after dashboard loads
+  });
 
   // Auto-login for development - CORS is fixed!
   const autoLoginAttempted = useRef(false);
@@ -278,6 +287,21 @@ export default function DashboardPage() {
       console.log('[Dashboard] Loading servers finished');
     }
   }, [loadServerMetrics, toast]); // Add dependencies
+
+  // Handle server import from Telegram discovery
+  const handleTelegramImport = useCallback(async (serverIds: string[]) => {
+    try {
+      await telegramDiscovery.importServers(serverIds);
+      
+      // Refresh servers list after successful import
+      await loadServers();
+      
+      toast.success('Import Successful', `Successfully imported ${serverIds.length} server(s) from Telegram bot`);
+    } catch (error) {
+      console.error('[Dashboard] Failed to import Telegram servers:', error);
+      toast.error('Import Failed', 'Failed to import some servers. Please try again.');
+    }
+  }, [telegramDiscovery, loadServers, toast]);
 
   useEffect(() => {
     console.log('[Dashboard] useEffect triggered:', {
@@ -484,6 +508,14 @@ export default function DashboardPage() {
                 <Button onClick={() => router.push('/dashboard/servers/new')}>
                   <Plus className='w-5 h-5 mr-2' />
                   Add Server
+                </Button>
+                {/* TODO: FIX - Remove this test button before production release */}
+                <Button 
+                  onClick={() => telegramDiscovery.discoverServers()}
+                  className='bg-blue-500 hover:bg-blue-600'
+                >
+                  <Search className='w-5 h-5 mr-2' />
+                  Test Discovery
                 </Button>
               </div>
             </div>
@@ -802,6 +834,17 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Telegram Server Discovery Modal */}
+      <TelegramServerDiscoveryModal
+        isOpen={telegramDiscovery.shouldShowModal}
+        discovered={telegramDiscovery.discovered}
+        isLoading={telegramDiscovery.isLoading}
+        error={telegramDiscovery.error}
+        onImport={handleTelegramImport}
+        onDismiss={telegramDiscovery.dismissModal}
+        onRetry={telegramDiscovery.discoverServers}
+      />
     </main>
   );
 }
