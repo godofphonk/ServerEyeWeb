@@ -6,33 +6,28 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Enums;
-using ServerEye.Core.Interfaces.Repository.Billing;
 using ServerEye.Core.Interfaces.Services.Billing;
 
 public class StripePaymentProvider : IPaymentProvider
 {
-    private readonly StripeClient stripeClient;
+    private readonly StripeConfiguration config;
     private readonly ILogger<StripePaymentProvider> logger;
-    private readonly ISubscriptionPlanRepository planRepository;
-    private readonly StripeOptions options;
+
+    public PaymentProvider ProviderType => PaymentProvider.Stripe;
 
     public StripePaymentProvider(
-        IOptions<StripeOptions> options,
-        ILogger<StripePaymentProvider> logger,
-        ISubscriptionPlanRepository planRepository)
+        IOptions<StripeConfiguration> config,
+        ILogger<StripePaymentProvider> logger)
     {
-        this.options = options.Value;
+        this.config = config.Value;
         this.logger = logger;
-        this.planRepository = planRepository;
-        
-        this.stripeClient = new StripeClient(this.options.SecretKey);
+        StripeConfiguration.ApiKey = this.config.SecretKey;
     }
 
-    public async Task<CreateCustomerResult> CreateCustomerAsync(Guid userId, string email, string? name = null)
+    public async Task<string> CreateCustomerAsync(Guid userId, string email, string? name = null)
     {
         try
         {
-            var customerService = new CustomerService(stripeClient);
             var options = new CustomerCreateOptions
             {
                 Email = email,
@@ -43,232 +38,33 @@ public class StripePaymentProvider : IPaymentProvider
                 }
             };
 
-            var customer = await customerService.CreateAsync(options);
-            
+            var service = new CustomerService();
+            var customer = await service.CreateAsync(options);
+
             logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
-            
-            return new CreateCustomerResult(true, customer.Id);
+            return customer.Id;
         }
         catch (StripeException ex)
         {
             logger.LogError(ex, "Failed to create Stripe customer for user {UserId}", userId);
-            return new CreateCustomerResult(false, null, ex.Message);
+            throw;
         }
     }
 
-    public async Task<CreatePaymentIntentResult> CreatePaymentIntentAsync(CreatePaymentIntentRequest request)
+    public async Task<CreateSubscriptionResponse> CreateCheckoutSessionAsync(
+        string customerId,
+        SubscriptionPlan planType,
+        bool isYearly,
+        string successUrl,
+        string cancelUrl)
     {
         try
         {
-            var paymentIntentService = new PaymentIntentService(stripeClient);
-            var options = new PaymentIntentCreateOptions
-            {
-                Amount = (long)(request.Amount * 100),
-                Currency = request.Currency.ToLower(),
-                Description = request.Description,
-                Metadata = request.Metadata?.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value?.ToString() ?? string.Empty
-                ) ?? new Dictionary<string, string>()
-            };
+            var priceId = GetPriceId(planType, isYearly);
 
-            options.Metadata["user_id"] = request.UserId.ToString();
-
-            var paymentIntent = await paymentIntentService.CreateAsync(options);
-            
-            logger.LogInformation("Created payment intent {PaymentIntentId} for user {UserId}", 
-                paymentIntent.Id, request.UserId);
-            
-            return new CreatePaymentIntentResult(
-                true,
-                paymentIntent.Id,
-                paymentIntent.ClientSecret
-            );
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to create payment intent for user {UserId}", request.UserId);
-            return new CreatePaymentIntentResult(false, null, null, ex.Message);
-        }
-    }
-
-    public async Task<CreateSubscriptionResult> CreateSubscriptionAsync(CreateSubscriptionRequest request)
-    {
-        try
-        {
-            var plan = await planRepository.GetByIdAsync(request.PlanId);
-            if (plan == null)
-            {
-                return new CreateSubscriptionResult(false, null, null, null, "Plan not found");
-            }
-
-            var priceId = plan.Metadata.TryGetValue("stripe_price_id", out var value) 
-                ? value?.ToString() 
-                : null;
-
-            if (string.IsNullOrEmpty(priceId))
-            {
-                return new CreateSubscriptionResult(false, null, null, null, "Stripe price ID not configured for plan");
-            }
-
-            var subscriptionService = new SubscriptionService(stripeClient);
-            var options = new SubscriptionCreateOptions
-            {
-                Customer = request.CustomerId,
-                Items = new List<SubscriptionItemOptions>
-                {
-                    new SubscriptionItemOptions { Price = priceId }
-                },
-                PaymentBehavior = "default_incomplete",
-                PaymentSettings = new SubscriptionPaymentSettingsOptions
-                {
-                    SaveDefaultPaymentMethod = "on_subscription"
-                },
-                Metadata = request.Metadata?.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value?.ToString() ?? string.Empty
-                ) ?? new Dictionary<string, string>()
-            };
-
-            if (request.PaymentMethodId != null)
-            {
-                options.DefaultPaymentMethod = request.PaymentMethodId;
-            }
-
-            if (request.TrialDays.HasValue && request.TrialDays.Value > 0)
-            {
-                options.TrialPeriodDays = request.TrialDays.Value;
-            }
-
-            options.Metadata["plan_id"] = request.PlanId.ToString();
-
-            var subscription = await subscriptionService.CreateAsync(options);
-            
-            logger.LogInformation("Created Stripe subscription {SubscriptionId} for customer {CustomerId}", 
-                subscription.Id, request.CustomerId);
-            
-            var status = MapStripeStatus(subscription.Status);
-            
-            return new CreateSubscriptionResult(
-                true,
-                subscription.Id,
-                subscription.LatestInvoice?.PaymentIntent?.ClientSecret,
-                status
-            );
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to create subscription for customer {CustomerId}", request.CustomerId);
-            return new CreateSubscriptionResult(false, null, null, null, ex.Message);
-        }
-    }
-
-    public async Task<CancelSubscriptionResult> CancelSubscriptionAsync(string subscriptionId, bool immediately = false)
-    {
-        try
-        {
-            var subscriptionService = new SubscriptionService(stripeClient);
-            
-            Subscription subscription;
-            if (immediately)
-            {
-                subscription = await subscriptionService.CancelAsync(subscriptionId);
-            }
-            else
-            {
-                subscription = await subscriptionService.UpdateAsync(subscriptionId, new SubscriptionUpdateOptions
-                {
-                    CancelAtPeriodEnd = true
-                });
-            }
-            
-            logger.LogInformation("Canceled Stripe subscription {SubscriptionId}, immediately: {Immediately}", 
-                subscriptionId, immediately);
-            
-            return new CancelSubscriptionResult(
-                true,
-                subscription.Id,
-                subscription.CanceledAt
-            );
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to cancel subscription {SubscriptionId}", subscriptionId);
-            return new CancelSubscriptionResult(false, null, null, ex.Message);
-        }
-    }
-
-    public async Task<UpdateSubscriptionResult> UpdateSubscriptionAsync(string subscriptionId, UpdateSubscriptionRequest request)
-    {
-        try
-        {
-            var plan = await planRepository.GetByIdAsync(request.NewPlanId);
-            if (plan == null)
-            {
-                return new UpdateSubscriptionResult(false, null, "Plan not found");
-            }
-
-            var priceId = plan.Metadata.TryGetValue("stripe_price_id", out var value) 
-                ? value?.ToString() 
-                : null;
-
-            if (string.IsNullOrEmpty(priceId))
-            {
-                return new UpdateSubscriptionResult(false, null, "Stripe price ID not configured for plan");
-            }
-
-            var subscriptionService = new SubscriptionService(stripeClient);
-            var subscription = await subscriptionService.GetAsync(subscriptionId);
-
-            var options = new SubscriptionUpdateOptions
-            {
-                Items = new List<SubscriptionItemOptions>
-                {
-                    new SubscriptionItemOptions
-                    {
-                        Id = subscription.Items.Data[0].Id,
-                        Price = priceId
-                    }
-                },
-                ProrationBehavior = request.ProrationBehavior ? "create_prorations" : "none"
-            };
-
-            var updatedSubscription = await subscriptionService.UpdateAsync(subscriptionId, options);
-            
-            logger.LogInformation("Updated Stripe subscription {SubscriptionId} to plan {PlanId}", 
-                subscriptionId, request.NewPlanId);
-            
-            return new UpdateSubscriptionResult(true, updatedSubscription.Id);
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to update subscription {SubscriptionId}", subscriptionId);
-            return new UpdateSubscriptionResult(false, null, ex.Message);
-        }
-    }
-
-    public async Task<CreateCheckoutSessionResult> CreateCheckoutSessionAsync(CreateCheckoutSessionRequest request)
-    {
-        try
-        {
-            var plan = await planRepository.GetByIdAsync(request.PlanId);
-            if (plan == null)
-            {
-                return new CreateCheckoutSessionResult(false, null, null, "Plan not found");
-            }
-
-            var priceId = plan.Metadata.TryGetValue("stripe_price_id", out var value) 
-                ? value?.ToString() 
-                : null;
-
-            if (string.IsNullOrEmpty(priceId))
-            {
-                return new CreateCheckoutSessionResult(false, null, null, "Stripe price ID not configured for plan");
-            }
-
-            var sessionService = new SessionService(stripeClient);
             var options = new SessionCreateOptions
             {
+                Customer = customerId,
                 Mode = "subscription",
                 LineItems = new List<SessionLineItemOptions>
                 {
@@ -278,113 +74,177 @@ public class StripePaymentProvider : IPaymentProvider
                         Quantity = 1
                     }
                 },
-                SuccessUrl = request.SuccessUrl,
-                CancelUrl = request.CancelUrl,
-                Metadata = request.Metadata?.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value?.ToString() ?? string.Empty
-                ) ?? new Dictionary<string, string>()
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl,
+                AllowPromotionCodes = true,
+                BillingAddressCollection = "auto",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "plan_type", planType.ToString() },
+                    { "is_yearly", isYearly.ToString() }
+                }
             };
 
-            options.Metadata["user_id"] = request.UserId.ToString();
-            options.Metadata["plan_id"] = request.PlanId.ToString();
+            var service = new SessionService();
+            var session = await service.CreateAsync(options);
 
-            if (request.TrialDays.HasValue && request.TrialDays.Value > 0)
+            logger.LogInformation("Created Stripe checkout session {SessionId} for customer {CustomerId}", 
+                session.Id, customerId);
+
+            return new CreateSubscriptionResponse
             {
-                options.SubscriptionData = new SessionSubscriptionDataOptions
+                SessionId = session.Id,
+                SessionUrl = session.Url
+            };
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to create Stripe checkout session for customer {CustomerId}", customerId);
+            throw;
+        }
+    }
+
+    public async Task<string> CreateSubscriptionAsync(
+        string customerId,
+        string priceId,
+        DateTime? trialEnd = null)
+    {
+        try
+        {
+            var options = new SubscriptionCreateOptions
+            {
+                Customer = customerId,
+                Items = new List<SubscriptionItemOptions>
                 {
-                    TrialPeriodDays = request.TrialDays.Value
-                };
-            }
-
-            var session = await sessionService.CreateAsync(options);
-            
-            logger.LogInformation("Created Stripe checkout session {SessionId} for user {UserId}", 
-                session.Id, request.UserId);
-            
-            return new CreateCheckoutSessionResult(
-                true,
-                session.Id,
-                session.Url
-            );
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to create checkout session for user {UserId}", request.UserId);
-            return new CreateCheckoutSessionResult(false, null, null, ex.Message);
-        }
-    }
-
-    public async Task<AttachPaymentMethodResult> AttachPaymentMethodAsync(string customerId, string paymentMethodId)
-    {
-        try
-        {
-            var paymentMethodService = new PaymentMethodService(stripeClient);
-            await paymentMethodService.AttachAsync(paymentMethodId, new PaymentMethodAttachOptions
-            {
-                Customer = customerId
-            });
-            
-            logger.LogInformation("Attached payment method {PaymentMethodId} to customer {CustomerId}", 
-                paymentMethodId, customerId);
-            
-            return new AttachPaymentMethodResult(true, paymentMethodId);
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to attach payment method {PaymentMethodId}", paymentMethodId);
-            return new AttachPaymentMethodResult(false, null, ex.Message);
-        }
-    }
-
-    public async Task<DetachPaymentMethodResult> DetachPaymentMethodAsync(string paymentMethodId)
-    {
-        try
-        {
-            var paymentMethodService = new PaymentMethodService(stripeClient);
-            await paymentMethodService.DetachAsync(paymentMethodId);
-            
-            logger.LogInformation("Detached payment method {PaymentMethodId}", paymentMethodId);
-            
-            return new DetachPaymentMethodResult(true);
-        }
-        catch (StripeException ex)
-        {
-            logger.LogError(ex, "Failed to detach payment method {PaymentMethodId}", paymentMethodId);
-            return new DetachPaymentMethodResult(false, ex.Message);
-        }
-    }
-
-    public async Task<SetDefaultPaymentMethodResult> SetDefaultPaymentMethodAsync(string customerId, string paymentMethodId)
-    {
-        try
-        {
-            var customerService = new CustomerService(stripeClient);
-            await customerService.UpdateAsync(customerId, new CustomerUpdateOptions
-            {
-                InvoiceSettings = new CustomerInvoiceSettingsOptions
+                    new SubscriptionItemOptions { Price = priceId }
+                },
+                TrialEnd = trialEnd.HasValue ? trialEnd.Value : null,
+                PaymentBehavior = "default_incomplete",
+                PaymentSettings = new SubscriptionPaymentSettingsOptions
                 {
-                    DefaultPaymentMethod = paymentMethodId
+                    SaveDefaultPaymentMethod = "on_subscription"
                 }
-            });
-            
-            logger.LogInformation("Set default payment method {PaymentMethodId} for customer {CustomerId}", 
-                paymentMethodId, customerId);
-            
-            return new SetDefaultPaymentMethodResult(true);
+            };
+
+            var service = new SubscriptionService();
+            var subscription = await service.CreateAsync(options);
+
+            logger.LogInformation("Created Stripe subscription {SubscriptionId} for customer {CustomerId}", 
+                subscription.Id, customerId);
+
+            return subscription.Id;
         }
         catch (StripeException ex)
         {
-            logger.LogError(ex, "Failed to set default payment method for customer {CustomerId}", customerId);
-            return new SetDefaultPaymentMethodResult(false, ex.Message);
+            logger.LogError(ex, "Failed to create Stripe subscription for customer {CustomerId}", customerId);
+            throw;
         }
     }
 
-    public async Task<RefundPaymentResult> RefundPaymentAsync(string paymentId, decimal? amount = null)
+    public async Task UpdateSubscriptionAsync(string subscriptionId, string newPriceId)
     {
         try
         {
-            var refundService = new RefundService(stripeClient);
+            var service = new SubscriptionService();
+            var subscription = await service.GetAsync(subscriptionId);
+
+            var options = new SubscriptionUpdateOptions
+            {
+                Items = new List<SubscriptionItemOptions>
+                {
+                    new SubscriptionItemOptions
+                    {
+                        Id = subscription.Items.Data[0].Id,
+                        Price = newPriceId
+                    }
+                },
+                ProrationBehavior = "create_prorations"
+            };
+
+            await service.UpdateAsync(subscriptionId, options);
+
+            logger.LogInformation("Updated Stripe subscription {SubscriptionId} to price {PriceId}", 
+                subscriptionId, newPriceId);
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to update Stripe subscription {SubscriptionId}", subscriptionId);
+            throw;
+        }
+    }
+
+    public async Task CancelSubscriptionAsync(string subscriptionId, bool cancelImmediately)
+    {
+        try
+        {
+            var service = new SubscriptionService();
+
+            if (cancelImmediately)
+            {
+                await service.CancelAsync(subscriptionId);
+                logger.LogInformation("Canceled Stripe subscription {SubscriptionId} immediately", subscriptionId);
+            }
+            else
+            {
+                var options = new SubscriptionUpdateOptions
+                {
+                    CancelAtPeriodEnd = true
+                };
+                await service.UpdateAsync(subscriptionId, options);
+                logger.LogInformation("Scheduled Stripe subscription {SubscriptionId} for cancellation at period end", 
+                    subscriptionId);
+            }
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to cancel Stripe subscription {SubscriptionId}", subscriptionId);
+            throw;
+        }
+    }
+
+    public async Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
+        string customerId,
+        decimal amount,
+        string currency,
+        Dictionary<string, string>? metadata = null)
+    {
+        try
+        {
+            var options = new PaymentIntentCreateOptions
+            {
+                Amount = (long)(amount * 100),
+                Currency = currency,
+                Customer = customerId,
+                AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
+                {
+                    Enabled = true
+                },
+                Metadata = metadata ?? new Dictionary<string, string>()
+            };
+
+            var service = new PaymentIntentService();
+            var paymentIntent = await service.CreateAsync(options);
+
+            logger.LogInformation("Created Stripe payment intent {PaymentIntentId} for customer {CustomerId}", 
+                paymentIntent.Id, customerId);
+
+            return new CreatePaymentIntentResponse
+            {
+                ClientSecret = paymentIntent.ClientSecret,
+                PaymentIntentId = paymentIntent.Id
+            };
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to create Stripe payment intent for customer {CustomerId}", customerId);
+            throw;
+        }
+    }
+
+    public async Task<bool> RefundPaymentAsync(string paymentId, decimal? amount = null)
+    {
+        try
+        {
             var options = new RefundCreateOptions
             {
                 PaymentIntent = paymentId
@@ -395,58 +255,86 @@ public class StripePaymentProvider : IPaymentProvider
                 options.Amount = (long)(amount.Value * 100);
             }
 
-            var refund = await refundService.CreateAsync(options);
-            
-            logger.LogInformation("Created refund {RefundId} for payment {PaymentId}", 
+            var service = new RefundService();
+            var refund = await service.CreateAsync(options);
+
+            logger.LogInformation("Created Stripe refund {RefundId} for payment {PaymentId}", 
                 refund.Id, paymentId);
-            
-            return new RefundPaymentResult(
-                true,
-                refund.Id,
-                refund.Amount / 100m
-            );
+
+            return refund.Status == "succeeded";
         }
         catch (StripeException ex)
         {
-            logger.LogError(ex, "Failed to refund payment {PaymentId}", paymentId);
-            return new RefundPaymentResult(false, null, null, ex.Message);
+            logger.LogError(ex, "Failed to refund Stripe payment {PaymentId}", paymentId);
+            return false;
         }
     }
 
-    public Task<WebhookEventResult> HandleWebhookAsync(string payload, string signature)
+    public async Task<object> GetSubscriptionDetailsAsync(string subscriptionId)
     {
         try
         {
-            var stripeEvent = EventUtility.ConstructEvent(
-                payload,
-                signature,
-                options.WebhookSecret
-            );
-
-            logger.LogInformation("Received Stripe webhook event: {EventType}", stripeEvent.Type);
-
-            return Task.FromResult(new WebhookEventResult(true, stripeEvent.Type));
+            var service = new SubscriptionService();
+            return await service.GetAsync(subscriptionId);
         }
         catch (StripeException ex)
         {
-            logger.LogError(ex, "Failed to process Stripe webhook");
-            return Task.FromResult(new WebhookEventResult(false, null, ex.Message));
+            logger.LogError(ex, "Failed to get Stripe subscription {SubscriptionId}", subscriptionId);
+            throw;
         }
     }
 
-    private static SubscriptionStatus MapStripeStatus(string stripeStatus)
+    public async Task<object> GetPaymentDetailsAsync(string paymentId)
     {
-        return stripeStatus switch
+        try
         {
-            "trialing" => SubscriptionStatus.Trialing,
-            "active" => SubscriptionStatus.Active,
-            "past_due" => SubscriptionStatus.PastDue,
-            "canceled" => SubscriptionStatus.Canceled,
-            "unpaid" => SubscriptionStatus.Unpaid,
-            "incomplete" => SubscriptionStatus.Incomplete,
-            "incomplete_expired" => SubscriptionStatus.IncompleteExpired,
-            "paused" => SubscriptionStatus.Paused,
-            _ => SubscriptionStatus.Incomplete
-        };
+            var service = new PaymentIntentService();
+            return await service.GetAsync(paymentId);
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to get Stripe payment {PaymentId}", paymentId);
+            throw;
+        }
+    }
+
+    public Task<bool> VerifyWebhookSignatureAsync(string payload, string signature, string secret)
+    {
+        try
+        {
+            EventUtility.ConstructEvent(payload, signature, secret);
+            return Task.FromResult(true);
+        }
+        catch (StripeException ex)
+        {
+            logger.LogWarning(ex, "Failed to verify Stripe webhook signature");
+            return Task.FromResult(false);
+        }
+    }
+
+    public Task<(string EventType, object Data)> ParseWebhookEventAsync(string payload)
+    {
+        try
+        {
+            var stripeEvent = EventUtility.ParseEvent(payload);
+            return Task.FromResult((stripeEvent.Type, stripeEvent.Data.Object));
+        }
+        catch (StripeException ex)
+        {
+            logger.LogError(ex, "Failed to parse Stripe webhook event");
+            throw;
+        }
+    }
+
+    private string GetPriceId(SubscriptionPlan planType, bool isYearly)
+    {
+        var key = $"{planType}_{(isYearly ? "Yearly" : "Monthly")}";
+        
+        if (!config.PriceIds.TryGetValue(key, out var priceId))
+        {
+            throw new InvalidOperationException($"Price ID not configured for {key}");
+        }
+
+        return priceId;
     }
 }
