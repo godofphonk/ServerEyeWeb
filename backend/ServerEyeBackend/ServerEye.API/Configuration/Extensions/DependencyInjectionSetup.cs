@@ -64,6 +64,9 @@ public static class DependencyInjectionSetup
         services.AddSingleton(emailSettings);
         services.AddSingleton(encryptionSettings);
         services.AddSingleton(serversConfiguration);
+        
+        services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
+            configuration.GetSection("Stripe"));
     }
 
     private static void RegisterRepositories(IServiceCollection services)
@@ -80,6 +83,11 @@ public static class DependencyInjectionSetup
         services.AddScoped<IPasswordResetTokenRepository, Infrastructure.Repositories.PasswordResetTokenRepository>();
         services.AddScoped<IAccountDeletionRepository, Infrastructure.Repositories.AccountDeletionRepository>();
         services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
+        
+        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.ISubscriptionRepository, Infrastructure.Repositories.Billing.SubscriptionRepository>();
+        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.IPaymentRepository, Infrastructure.Repositories.Billing.PaymentRepository>();
+        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.ISubscriptionPlanRepository, Infrastructure.Repositories.Billing.SubscriptionPlanRepository>();
+        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.IWebhookEventRepository, Infrastructure.Repositories.Billing.WebhookEventRepository>();
     }
 
     /// <summary>
@@ -95,6 +103,7 @@ public static class DependencyInjectionSetup
         RegisterServerServices(services);
         RegisterTicketServices(services);
         RegisterUserServices(services);
+        RegisterBillingServices(services);
     }
 
     /// <summary>
@@ -223,5 +232,14 @@ public static class DependencyInjectionSetup
             var operationFactory = new GoApiOperationFactory(httpHandler, logger);
             return new GoApiClient(operationFactory);
         });
+    }
+
+    private static void RegisterBillingServices(IServiceCollection services)
+    {
+        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.ISubscriptionService, ServerEye.Core.Services.Billing.SubscriptionService>();
+        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentService, ServerEye.Core.Services.Billing.PaymentService>();
+        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IWebhookService, ServerEye.Core.Services.Billing.WebhookService>();
+        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
+        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
     }
 }

@@ -5,64 +5,91 @@ import { Check, Zap, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { useEffect, useState } from 'react';
+import { billingApi, SubscriptionPlan } from '@/lib/billingApi';
+import { useAuth } from '@/contexts/AuthContext';
 
-const plans = [
-  {
-    name: 'Free',
-    price: 0,
-    description: 'Perfect for personal projects',
-    features: [
-      'Up to 3 servers',
-      'Basic metrics',
-      '7-day data retention',
-      'Email support',
-      'Community access',
-    ],
-    cta: 'Go to Dashboard',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: 29,
-    description: 'For growing teams',
-    features: [
-      'Up to 25 servers',
-      'Advanced metrics',
-      '30-day data retention',
-      'Priority support',
-      'Custom alerts',
-      'API access',
-      'Team collaboration',
-    ],
-    cta: 'Buy Now',
-    popular: false,
-  },
-  {
-    name: 'Enterprise',
-    price: null,
-    description: 'For large organizations',
-    features: [
-      'Unlimited servers',
-      'All metrics',
-      'Unlimited data retention',
-      '24/7 dedicated support',
-      'Custom integrations',
-      'SLA guarantee',
-      'On-premise option',
-      'Advanced security',
-    ],
-    cta: 'Custom Plan',
-    popular: false,
-  },
-];
+enum PlanType {
+  Free = 0,
+  Basic = 1,
+  Pro = 2,
+  Enterprise = 3
+}
 
 export default function PricingPage() {
+  const { isAuthenticated } = useAuth();
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isYearly, setIsYearly] = useState(false);
+
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      const data = await billingApi.getPlans();
+      setPlans(data);
+    } catch (error) {
+      console.error('Failed to load plans:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubscribe = async (plan: SubscriptionPlan) => {
+    if (!isAuthenticated) {
+      window.location.href = '/auth?redirect=/pricing';
+      return;
+    }
+
+    if (plan.planType === PlanType.Free) {
+      window.location.href = '/dashboard';
+      return;
+    }
+
+    if (plan.planType === PlanType.Enterprise) {
+      window.location.href = '/contact';
+      return;
+    }
+
+    try {
+      const response = await billingApi.createCheckout({
+        planType: plan.planType,
+        isYearly,
+        successUrl: `${window.location.origin}/dashboard?subscription=success`,
+        cancelUrl: `${window.location.origin}/pricing?subscription=canceled`
+      });
+
+      window.location.href = response.sessionUrl;
+    } catch (error) {
+      console.error('Failed to create checkout:', error);
+      alert('Failed to start checkout. Please try again.');
+    }
+  };
+
+  const getPrice = (plan: SubscriptionPlan) => {
+    return isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+  };
+
+  const getFeatures = (plan: SubscriptionPlan) => {
+    const features = [
+      `Up to ${plan.maxServers === 999 ? 'unlimited' : plan.maxServers} servers`,
+      `${plan.metricsRetentionDays}-day data retention`,
+    ];
+
+    if (plan.hasAlerts) features.push('Custom alerts');
+    if (plan.hasApiAccess) features.push('API access');
+    if (plan.hasPrioritySupport) features.push('Priority support');
+
+    return [...features, ...plan.features];
+  };
+
   return (
     <main className='min-h-screen bg-black text-white'>
       <div className='absolute inset-0 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10' />
 
       <div className='relative z-10'>
-        {/* Header */}
         <div className='container mx-auto px-6 py-20'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -75,74 +102,91 @@ export default function PricingPage() {
             </div>
             <h1 className='text-5xl md:text-6xl font-bold mb-6'>Choose Your Plan</h1>
             <p className='text-xl text-gray-400'>Start free, scale as you grow. No hidden fees.</p>
+
+            <div className='flex items-center justify-center gap-4 mt-8'>
+              <span className={!isYearly ? 'text-white font-semibold' : 'text-gray-400'}>Monthly</span>
+              <button
+                onClick={() => setIsYearly(!isYearly)}
+                className='relative w-14 h-7 bg-gray-700 rounded-full transition-colors hover:bg-gray-600'
+              >
+                <div
+                  className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                    isYearly ? 'transform translate-x-7' : ''
+                  }`}
+                />
+              </button>
+              <span className={isYearly ? 'text-white font-semibold' : 'text-gray-400'}>
+                Yearly <span className='text-green-400 text-sm'>(Save 15%)</span>
+              </span>
+            </div>
           </motion.div>
 
-          {/* Pricing Cards */}
-          <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
-            {plans.map((plan, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className='relative'
-              >
-                {plan.popular && (
-                  <div className='absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold'>
-                    Most Popular
-                  </div>
-                )}
-                <Card className={plan.popular ? 'border-blue-500/50' : ''}>
-                  <CardHeader>
-                    <CardTitle className='text-2xl'>{plan.name}</CardTitle>
-                    <p className='text-gray-400 mt-2'>{plan.description}</p>
-                    <div className='mt-6'>
-                      {plan.price === null ? (
-                        <div className='text-4xl font-bold'>Custom</div>
-                      ) : (
-                        <>
-                          <div className='text-5xl font-bold'>
-                            ${plan.price}
-                            <span className='text-xl text-gray-400 font-normal'>/month</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      variant={
-                        plan.name === 'Pro' || plan.name === 'Enterprise' ? 'primary' : 'secondary'
-                      }
-                      fullWidth
-                      className='mb-6'
-                      onClick={() => {
-                        if (plan.name === 'Free') {
-                          window.location.href = '/dashboard';
-                        } else if (plan.name === 'Pro') {
-                          // Handle Pro plan purchase
-                          console.log('Buy Pro plan');
-                        } else if (plan.name === 'Enterprise') {
-                          // Handle Enterprise plan
-                          console.log('Custom Enterprise plan');
-                        }
-                      }}
-                    >
-                      {plan.cta}
-                    </Button>
-                    <div className='space-y-3'>
-                      {plan.features.map((feature, j) => (
-                        <div key={j} className='flex items-start gap-3'>
-                          <Check className='w-5 h-5 text-green-400 flex-shrink-0 mt-0.5' />
-                          <span className='text-gray-300'>{feature}</span>
+          {loading ? (
+            <div className='text-center'>Loading plans...</div>
+          ) : (
+            <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
+              {plans.map((plan, i) => {
+                const price = getPrice(plan);
+                const isPopular = plan.planType === PlanType.Pro;
+
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className='relative'
+                  >
+                    {isPopular && (
+                      <div className='absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold'>
+                        Most Popular
+                      </div>
+                    )}
+                    <Card className={isPopular ? 'border-blue-500/50' : ''}>
+                      <CardHeader>
+                        <CardTitle className='text-2xl'>{plan.name}</CardTitle>
+                        <p className='text-gray-400 mt-2'>{plan.description}</p>
+                        <div className='mt-6'>
+                          {plan.planType === PlanType.Enterprise ? (
+                            <div className='text-4xl font-bold'>Custom</div>
+                          ) : (
+                            <div className='text-5xl font-bold'>
+                              ${price}
+                              <span className='text-xl text-gray-400 font-normal'>
+                                /{isYearly ? 'year' : 'month'}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Button
+                          variant={isPopular ? 'primary' : 'secondary'}
+                          fullWidth
+                          className='mb-6'
+                          onClick={() => handleSubscribe(plan)}
+                        >
+                          {plan.planType === PlanType.Free
+                            ? 'Get Started'
+                            : plan.planType === PlanType.Enterprise
+                            ? 'Contact Sales'
+                            : 'Subscribe Now'}
+                        </Button>
+                        <div className='space-y-3'>
+                          {getFeatures(plan).map((feature, j) => (
+                            <div key={j} className='flex items-start gap-3'>
+                              <Check className='w-5 h-5 text-green-400 flex-shrink-0 mt-0.5' />
+                              <span className='text-gray-300'>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
 
           {/* FAQ */}
           <motion.div

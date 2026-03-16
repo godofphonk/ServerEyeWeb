@@ -1,0 +1,101 @@
+namespace ServerEye.API.Controllers.Billing;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using ServerEye.Core.Enums;
+using ServerEye.Core.Interfaces.Services.Billing;
+using ServerEye.Infrastructure.ExternalServices.Stripe;
+
+[ApiController]
+[Route("api/webhooks")]
+public class WebhookController : ControllerBase
+{
+    private readonly IWebhookService webhookService;
+    private readonly IPaymentProviderFactory providerFactory;
+    private readonly StripeConfiguration stripeConfig;
+    private readonly ILogger<WebhookController> logger;
+
+    public WebhookController(
+        IWebhookService webhookService,
+        IPaymentProviderFactory providerFactory,
+        IOptions<StripeConfiguration> stripeConfig,
+        ILogger<WebhookController> logger)
+    {
+        this.webhookService = webhookService;
+        this.providerFactory = providerFactory;
+        this.stripeConfig = stripeConfig.Value;
+        this.logger = logger;
+    }
+
+    [HttpPost("stripe")]
+    public async Task<IActionResult> HandleStripeWebhook()
+    {
+        try
+        {
+            var payload = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            var signature = Request.Headers["Stripe-Signature"].ToString();
+
+            if (string.IsNullOrEmpty(signature))
+            {
+                logger.LogWarning("Stripe webhook received without signature");
+                return BadRequest(new { message = "Missing signature" });
+            }
+
+            var provider = providerFactory.GetProvider(PaymentProvider.Stripe);
+            var isValid = await provider.VerifyWebhookSignatureAsync(
+                payload,
+                signature,
+                stripeConfig.WebhookSecret);
+
+            if (!isValid)
+            {
+                logger.LogWarning("Invalid Stripe webhook signature");
+                return Unauthorized(new { message = "Invalid signature" });
+            }
+
+            var success = await webhookService.ProcessWebhookAsync(
+                PaymentProvider.Stripe,
+                payload,
+                signature);
+
+            if (success)
+            {
+                return Ok();
+            }
+
+            return StatusCode(500, new { message = "Failed to process webhook" });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling Stripe webhook");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("yookassa")]
+    public async Task<IActionResult> HandleYooKassaWebhook()
+    {
+        try
+        {
+            var payload = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            var signature = Request.Headers["X-YooKassa-Signature"].ToString();
+
+            var success = await webhookService.ProcessWebhookAsync(
+                PaymentProvider.YooKassa,
+                payload,
+                signature);
+
+            if (success)
+            {
+                return Ok();
+            }
+
+            return StatusCode(500, new { message = "Failed to process webhook" });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling YooKassa webhook");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+}
