@@ -32,7 +32,11 @@ public class WebhookController : ControllerBase
     {
         try
         {
-            var payload = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            string payload;
+            using (var reader = new StreamReader(HttpContext.Request.Body))
+            {
+                payload = await reader.ReadToEndAsync();
+            }
             var signature = Request.Headers["Stripe-Signature"].ToString();
 
             if (string.IsNullOrEmpty(signature))
@@ -77,7 +81,11 @@ public class WebhookController : ControllerBase
     {
         try
         {
-            var payload = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            string payload;
+            using (var reader = new StreamReader(HttpContext.Request.Body))
+            {
+                payload = await reader.ReadToEndAsync();
+            }
             var signature = Request.Headers["X-YooKassa-Signature"].ToString();
 
             var success = await webhookService.ProcessWebhookAsync(

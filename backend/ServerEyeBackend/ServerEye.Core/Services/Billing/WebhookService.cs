@@ -8,22 +8,16 @@ using ServerEye.Core.Interfaces.Services.Billing;
 
 public class WebhookService : IWebhookService
 {
-    private readonly IWebhookEventRepository webhookRepository;
-    private readonly ISubscriptionRepository subscriptionRepository;
-    private readonly IPaymentRepository paymentRepository;
+    private readonly IWebhookEventRepository webhookEventRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<WebhookService> logger;
 
     public WebhookService(
-        IWebhookEventRepository webhookRepository,
-        ISubscriptionRepository subscriptionRepository,
-        IPaymentRepository paymentRepository,
+        IWebhookEventRepository webhookEventRepository,
         IPaymentProviderFactory providerFactory,
         ILogger<WebhookService> logger)
     {
-        this.webhookRepository = webhookRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.paymentRepository = paymentRepository;
+        this.webhookEventRepository = webhookEventRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
     }
@@ -41,7 +35,7 @@ public class WebhookService : IWebhookService
 
             var (eventType, data) = await paymentProvider.ParseWebhookEventAsync(payload);
 
-            var existingEvent = await webhookRepository.GetByEventIdAsync(eventType);
+            var existingEvent = await webhookEventRepository.GetByEventIdAsync(eventType);
             if (existingEvent != null)
             {
                 logger.LogWarning("Webhook event {EventId} already processed", eventType);
@@ -56,17 +50,16 @@ public class WebhookService : IWebhookService
                 EventType = eventType,
                 Payload = payload,
                 IsProcessed = false,
-                ProcessingAttempts = 0,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await webhookRepository.AddAsync(webhookEvent);
+            await webhookEventRepository.AddAsync(webhookEvent);
 
             await ProcessWebhookEventAsync(webhookEvent, data);
 
             webhookEvent.IsProcessed = true;
             webhookEvent.ProcessedAt = DateTime.UtcNow;
-            await webhookRepository.UpdateAsync(webhookEvent);
+            await webhookEventRepository.UpdateAsync(webhookEvent);
 
             logger.LogInformation("Successfully processed webhook event {EventId}", eventType);
             return true;
@@ -82,7 +75,7 @@ public class WebhookService : IWebhookService
     {
         logger.LogInformation("Processing pending webhooks");
 
-        var pendingEvents = await webhookRepository.GetUnprocessedAsync();
+        var pendingEvents = await webhookEventRepository.GetUnprocessedAsync();
 
         foreach (var webhookEvent in pendingEvents)
         {
@@ -95,7 +88,7 @@ public class WebhookService : IWebhookService
 
                 webhookEvent.IsProcessed = true;
                 webhookEvent.ProcessedAt = DateTime.UtcNow;
-                await webhookRepository.UpdateAsync(webhookEvent);
+                await webhookEventRepository.UpdateAsync(webhookEvent);
 
                 logger.LogInformation("Processed pending webhook event {EventId}", webhookEvent.EventId);
             }
@@ -103,10 +96,12 @@ public class WebhookService : IWebhookService
             {
                 webhookEvent.ProcessingAttempts++;
                 webhookEvent.ProcessingError = ex.Message;
-                await webhookRepository.UpdateAsync(webhookEvent);
+                await webhookEventRepository.UpdateAsync(webhookEvent);
 
-                logger.LogError(ex, "Failed to process pending webhook event {EventId}, attempt {Attempt}", 
-                    webhookEvent.EventId, webhookEvent.ProcessingAttempts);
+                logger.LogInformation(
+                    "Processing webhook event {EventId} of type {EventType}",
+                    webhookEvent.EventId,
+                    webhookEvent.EventType);
             }
         }
     }
@@ -155,43 +150,59 @@ public class WebhookService : IWebhookService
         }
     }
 
-    private async Task HandleCheckoutSessionCompletedAsync(object data)
+    private Task HandleCheckoutSessionCompletedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling checkout session completed");
+        return Task.CompletedTask;
     }
 
-    private async Task HandleSubscriptionCreatedAsync(object data)
+    private Task HandleSubscriptionCreatedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling subscription created");
+        return Task.CompletedTask;
     }
 
-    private async Task HandleSubscriptionUpdatedAsync(object data)
+    private Task HandleSubscriptionUpdatedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling subscription updated");
+        return Task.CompletedTask;
     }
 
-    private async Task HandleSubscriptionDeletedAsync(object data)
+    private Task HandleSubscriptionDeletedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling subscription deleted");
+        return Task.CompletedTask;
     }
 
-    private async Task HandleInvoicePaymentSucceededAsync(object data)
+    private Task HandleInvoicePaymentSucceededAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling invoice payment succeeded");
+        return Task.CompletedTask;
     }
 
-    private async Task HandleInvoicePaymentFailedAsync(object data)
+    private Task HandleInvoicePaymentFailedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling invoice payment failed");
+        return Task.CompletedTask;
     }
 
-    private async Task HandlePaymentIntentSucceededAsync(object data)
+    private Task HandlePaymentIntentSucceededAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling payment intent succeeded");
+        return Task.CompletedTask;
     }
 
-    private async Task HandlePaymentIntentFailedAsync(object data)
+    private Task HandlePaymentIntentFailedAsync(object data)
     {
+        _ = data;
         logger.LogInformation("Handling payment intent failed");
+        return Task.CompletedTask;
     }
 }

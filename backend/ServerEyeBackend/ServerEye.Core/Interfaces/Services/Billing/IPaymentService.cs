@@ -4,13 +4,13 @@ using ServerEye.Core.DTOs.Billing;
 
 public interface IPaymentService
 {
-    Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
+    public Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
         Guid userId,
         CreatePaymentIntentRequest request);
-    
-    Task<List<PaymentDto>> GetUserPaymentsAsync(Guid userId, int limit = 50);
-    
-    Task<PaymentDto?> GetPaymentByIdAsync(Guid paymentId);
-    
-    Task<bool> RefundPaymentAsync(Guid paymentId, decimal? amount = null);
+
+    public Task<List<PaymentDto>> GetUserPaymentsAsync(Guid userId, int limit = 50);
+
+    public Task<PaymentDto?> GetPaymentByIdAsync(Guid paymentId);
+
+    public Task<bool> RefundPaymentAsync(Guid paymentId, decimal? amount = null);
 }

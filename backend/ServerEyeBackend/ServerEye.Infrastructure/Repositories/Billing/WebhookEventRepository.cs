@@ -3,16 +3,12 @@ namespace ServerEye.Infrastructure.Repositories.Billing;
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Interfaces.Repository.Billing;
-using ServerEye.Infrastructure.Data;
 
 public class WebhookEventRepository : IWebhookEventRepository
 {
     private readonly ServerEyeDbContext context;
 
-    public WebhookEventRepository(ServerEyeDbContext context)
-    {
-        this.context = context;
-    }
+    public WebhookEventRepository(ServerEyeDbContext context) => this.context = context;
 
     public async Task<WebhookEvent?> GetByEventIdAsync(string eventId)
     {

@@ -5,27 +5,27 @@ using ServerEye.Core.Enums;
 
 public interface ISubscriptionService
 {
-    Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId);
-    
-    Task<CreateSubscriptionResponse> CreateSubscriptionCheckoutAsync(
+    public Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId);
+
+    public Task<CreateSubscriptionResponse> CreateSubscriptionCheckoutAsync(
         Guid userId,
         CreateSubscriptionRequest request);
-    
-    Task<SubscriptionDto> UpdateSubscriptionPlanAsync(
+
+    public Task<SubscriptionDto> UpdateSubscriptionPlanAsync(
         Guid userId,
         UpdateSubscriptionRequest request);
-    
-    Task CancelSubscriptionAsync(
+
+    public Task CancelSubscriptionAsync(
         Guid userId,
         CancelSubscriptionRequest request);
-    
-    Task<SubscriptionDto> ReactivateSubscriptionAsync(Guid userId);
-    
-    Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync();
-    
-    Task<bool> HasActiveSubscriptionAsync(Guid userId);
-    
-    Task<bool> CanAccessFeatureAsync(Guid userId, string featureName);
-    
-    Task<int> GetMaxServersForUserAsync(Guid userId);
+
+    public Task<SubscriptionDto> ReactivateSubscriptionAsync(Guid userId);
+
+    public Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync();
+
+    public Task<bool> HasActiveSubscriptionAsync(Guid userId);
+
+    public Task<bool> CanAccessFeatureAsync(Guid userId, string featureName);
+
+    public Task<int> GetMaxServersForUserAsync(Guid userId);
 }

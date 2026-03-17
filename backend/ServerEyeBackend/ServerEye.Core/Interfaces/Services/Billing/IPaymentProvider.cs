@@ -1,52 +1,54 @@
 namespace ServerEye.Core.Interfaces.Services.Billing;
 
+using System.Diagnostics.CodeAnalysis;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Enums;
 
 public interface IPaymentProvider
 {
-    PaymentProvider ProviderType { get; }
+    public PaymentProvider ProviderType { get; }
 
-    Task<string> CreateCustomerAsync(Guid userId, string email, string? name = null);
+    public Task<string> CreateCustomerAsync(Guid userId, string email, string? name = null);
 
-    Task<CreateSubscriptionResponse> CreateCheckoutSessionAsync(
+    [SuppressMessage("Design", "CA1054:URI parameters should not be strings", Justification = "Stripe API requires string URLs")]
+    public Task<CreateSubscriptionResponse> CreateCheckoutSessionAsync(
         string customerId,
         SubscriptionPlan planType,
         bool isYearly,
         string successUrl,
         string cancelUrl);
 
-    Task<string> CreateSubscriptionAsync(
+    public Task<string> CreateSubscriptionAsync(
         string customerId,
         string priceId,
         DateTime? trialEnd = null);
 
-    Task UpdateSubscriptionAsync(
+    public Task UpdateSubscriptionAsync(
         string subscriptionId,
         string newPriceId);
 
-    Task CancelSubscriptionAsync(
+    public Task CancelSubscriptionAsync(
         string subscriptionId,
         bool cancelImmediately);
 
-    Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
+    public Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
         string customerId,
         decimal amount,
         string currency,
         Dictionary<string, string>? metadata = null);
 
-    Task<bool> RefundPaymentAsync(
+    public Task<bool> RefundPaymentAsync(
         string paymentId,
         decimal? amount = null);
 
-    Task<object> GetSubscriptionDetailsAsync(string subscriptionId);
+    public Task<object> GetSubscriptionDetailsAsync(string subscriptionId);
 
-    Task<object> GetPaymentDetailsAsync(string paymentId);
+    public Task<object> GetPaymentDetailsAsync(string paymentId);
 
-    Task<bool> VerifyWebhookSignatureAsync(
+    public Task<bool> VerifyWebhookSignatureAsync(
         string payload,
         string signature,
         string secret);
 
-    Task<(string EventType, object Data)> ParseWebhookEventAsync(string payload);
+    public Task<(string EventType, object Data)> ParseWebhookEventAsync(string payload);
 }

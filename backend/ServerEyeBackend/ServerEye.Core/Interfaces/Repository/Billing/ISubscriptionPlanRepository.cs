@@ -5,9 +5,13 @@ using ServerEye.Core.Enums;
 
 public interface ISubscriptionPlanRepository
 {
-    Task<SubscriptionPlanEntity?> GetByIdAsync(Guid id);
-    Task<SubscriptionPlanEntity?> GetByPlanTypeAsync(SubscriptionPlan planType);
-    Task<List<SubscriptionPlanEntity>> GetAllActiveAsync();
-    Task AddAsync(SubscriptionPlanEntity plan);
-    Task UpdateAsync(SubscriptionPlanEntity plan);
+    public Task<SubscriptionPlanEntity?> GetByIdAsync(Guid id);
+
+    public Task<SubscriptionPlanEntity?> GetByPlanTypeAsync(SubscriptionPlan planType);
+
+    public Task<List<SubscriptionPlanEntity>> GetAllActiveAsync();
+
+    public Task AddAsync(SubscriptionPlanEntity plan);
+
+    public Task UpdateAsync(SubscriptionPlanEntity plan);
 }

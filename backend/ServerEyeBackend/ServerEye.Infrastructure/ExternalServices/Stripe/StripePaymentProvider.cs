@@ -13,16 +13,16 @@ public class StripePaymentProvider : IPaymentProvider
     private readonly StripeConfiguration config;
     private readonly ILogger<StripePaymentProvider> logger;
 
-    public PaymentProvider ProviderType => PaymentProvider.Stripe;
-
     public StripePaymentProvider(
         IOptions<StripeConfiguration> config,
         ILogger<StripePaymentProvider> logger)
     {
         this.config = config.Value;
         this.logger = logger;
-        StripeConfiguration.ApiKey = this.config.SecretKey;
+        global::Stripe.StripeConfiguration.ApiKey = this.config.SecretKey;
     }
+
+    public PaymentProvider ProviderType => PaymentProvider.Stripe;
 
     public async Task<string> CreateCustomerAsync(Guid userId, string email, string? name = null)
     {
@@ -88,8 +88,10 @@ public class StripePaymentProvider : IPaymentProvider
             var service = new SessionService();
             var session = await service.CreateAsync(options);
 
-            logger.LogInformation("Created Stripe checkout session {SessionId} for customer {CustomerId}", 
-                session.Id, customerId);
+            logger.LogInformation(
+                "Created Stripe checkout session {SessionId} for customer {CustomerId}",
+                session.Id,
+                customerId);
 
             return new CreateSubscriptionResponse
             {
@@ -129,8 +131,10 @@ public class StripePaymentProvider : IPaymentProvider
             var service = new SubscriptionService();
             var subscription = await service.CreateAsync(options);
 
-            logger.LogInformation("Created Stripe subscription {SubscriptionId} for customer {CustomerId}", 
-                subscription.Id, customerId);
+            logger.LogInformation(
+                "Created Stripe subscription {SubscriptionId} for customer {CustomerId}",
+                subscription.Id,
+                customerId);
 
             return subscription.Id;
         }
@@ -163,8 +167,10 @@ public class StripePaymentProvider : IPaymentProvider
 
             await service.UpdateAsync(subscriptionId, options);
 
-            logger.LogInformation("Updated Stripe subscription {SubscriptionId} to price {PriceId}", 
-                subscriptionId, newPriceId);
+            logger.LogInformation(
+                "Updated Stripe subscription {SubscriptionId} to price {PriceId}",
+                subscription.Id,
+                newPriceId);
         }
         catch (StripeException ex)
         {
@@ -182,7 +188,10 @@ public class StripePaymentProvider : IPaymentProvider
             if (cancelImmediately)
             {
                 await service.CancelAsync(subscriptionId);
-                logger.LogInformation("Canceled Stripe subscription {SubscriptionId} immediately", subscriptionId);
+                logger.LogInformation(
+                "Canceled Stripe subscription {SubscriptionId}, immediate: {Immediate}",
+                subscriptionId,
+                cancelImmediately);
             }
             else
             {
@@ -191,7 +200,8 @@ public class StripePaymentProvider : IPaymentProvider
                     CancelAtPeriodEnd = true
                 };
                 await service.UpdateAsync(subscriptionId, options);
-                logger.LogInformation("Scheduled Stripe subscription {SubscriptionId} for cancellation at period end", 
+                logger.LogInformation(
+                    "Scheduled Stripe subscription {SubscriptionId} for cancellation at period end",
                     subscriptionId);
             }
         }
@@ -225,8 +235,10 @@ public class StripePaymentProvider : IPaymentProvider
             var service = new PaymentIntentService();
             var paymentIntent = await service.CreateAsync(options);
 
-            logger.LogInformation("Created Stripe payment intent {PaymentIntentId} for customer {CustomerId}", 
-                paymentIntent.Id, customerId);
+            logger.LogInformation(
+                "Created Stripe payment intent {PaymentIntentId} for customer {CustomerId}",
+                paymentIntent.Id,
+                customerId);
 
             return new CreatePaymentIntentResponse
             {
@@ -258,8 +270,10 @@ public class StripePaymentProvider : IPaymentProvider
             var service = new RefundService();
             var refund = await service.CreateAsync(options);
 
-            logger.LogInformation("Created Stripe refund {RefundId} for payment {PaymentId}", 
-                refund.Id, paymentId);
+            logger.LogInformation(
+                "Created Stripe refund {RefundId} for payment {PaymentId}",
+                refund.Id,
+                paymentId);
 
             return refund.Status == "succeeded";
         }
@@ -317,7 +331,7 @@ public class StripePaymentProvider : IPaymentProvider
         try
         {
             var stripeEvent = EventUtility.ParseEvent(payload);
-            return Task.FromResult((stripeEvent.Type, stripeEvent.Data.Object));
+            return Task.FromResult((stripeEvent.Type, (object)stripeEvent.Data.Object));
         }
         catch (StripeException ex)
         {
