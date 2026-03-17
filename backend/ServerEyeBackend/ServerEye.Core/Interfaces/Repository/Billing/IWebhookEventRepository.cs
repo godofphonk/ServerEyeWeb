@@ -4,8 +4,11 @@ using ServerEye.Core.Entities.Billing;
 
 public interface IWebhookEventRepository
 {
-    Task<WebhookEvent?> GetByEventIdAsync(string eventId);
-    Task<List<WebhookEvent>> GetUnprocessedAsync(int limit = 100);
-    Task AddAsync(WebhookEvent webhookEvent);
-    Task UpdateAsync(WebhookEvent webhookEvent);
+    public Task<WebhookEvent?> GetByEventIdAsync(string eventId);
+
+    public Task<List<WebhookEvent>> GetUnprocessedAsync(int limit = 100);
+
+    public Task AddAsync(WebhookEvent webhookEvent);
+
+    public Task UpdateAsync(WebhookEvent webhookEvent);
 }

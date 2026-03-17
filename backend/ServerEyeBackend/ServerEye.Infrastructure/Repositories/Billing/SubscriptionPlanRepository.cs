@@ -1,19 +1,16 @@
 namespace ServerEye.Infrastructure.Repositories.Billing;
 
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
-using ServerEye.Infrastructure.Data;
 
 public class SubscriptionPlanRepository : ISubscriptionPlanRepository
 {
     private readonly ServerEyeDbContext context;
 
-    public SubscriptionPlanRepository(ServerEyeDbContext context)
-    {
-        this.context = context;
-    }
+    public SubscriptionPlanRepository(ServerEyeDbContext context) => this.context = context;
 
     public async Task<SubscriptionPlanEntity?> GetByIdAsync(Guid id)
     {

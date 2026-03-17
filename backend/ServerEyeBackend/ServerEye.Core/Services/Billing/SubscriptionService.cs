@@ -62,14 +62,13 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        logger.LogInformation("Creating subscription checkout for user {UserId}, plan {PlanType}", 
-            userId, request.PlanType);
+        logger.LogInformation(
+            "Creating subscription checkout for user {UserId}, plan {PlanType}",
+            userId,
+            request.PlanType);
 
-        var user = await userRepository.GetByIdAsync(userId);
-        if (user == null)
-        {
-            throw new InvalidOperationException("User not found");
-        }
+        var user = await userRepository.GetByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found");
 
         var existingSubscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (existingSubscription != null && existingSubscription.Status == SubscriptionStatus.Active)
@@ -77,11 +76,8 @@ public class SubscriptionService : ISubscriptionService
             throw new InvalidOperationException("User already has an active subscription");
         }
 
-        var plan = await planRepository.GetByPlanTypeAsync(request.PlanType);
-        if (plan == null)
-        {
-            throw new InvalidOperationException($"Plan {request.PlanType} not found");
-        }
+        var plan = await planRepository.GetByPlanTypeAsync(request.PlanType)
+            ?? throw new InvalidOperationException($"Plan {request.PlanType} not found");
 
         var provider = providerFactory.GetDefaultProvider();
 
@@ -92,7 +88,7 @@ public class SubscriptionService : ISubscriptionService
         }
         else
         {
-            customerId = await provider.CreateCustomerAsync(userId, user.Email, user.Username);
+            customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
         }
 
         var successUrl = request.SuccessUrl ?? "http://localhost:3000/dashboard?subscription=success";
@@ -125,8 +121,10 @@ public class SubscriptionService : ISubscriptionService
             await subscriptionRepository.AddAsync(subscription);
         }
 
-        logger.LogInformation("Created checkout session {SessionId} for user {UserId}", 
-            checkoutResponse.SessionId, userId);
+        logger.LogInformation(
+            "Created checkout session {SessionId} for user {UserId}",
+            checkoutResponse.SessionId,
+            userId);
 
         return checkoutResponse;
     }
@@ -135,14 +133,13 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         UpdateSubscriptionRequest request)
     {
-        logger.LogInformation("Updating subscription for user {UserId} to plan {PlanType}", 
-            userId, request.NewPlanType);
+        logger.LogInformation(
+            "Updating subscription for user {UserId} to plan {PlanType}",
+            userId,
+            request.NewPlanType);
 
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
-        if (subscription == null)
-        {
-            throw new InvalidOperationException("No subscription found");
-        }
+        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
+            ?? throw new InvalidOperationException("No subscription found");
 
         if (subscription.Status != SubscriptionStatus.Active)
         {
@@ -154,11 +151,8 @@ public class SubscriptionService : ISubscriptionService
             throw new InvalidOperationException("Already on this plan");
         }
 
-        var newPlan = await planRepository.GetByPlanTypeAsync(request.NewPlanType);
-        if (newPlan == null)
-        {
-            throw new InvalidOperationException($"Plan {request.NewPlanType} not found");
-        }
+        var newPlan = await planRepository.GetByPlanTypeAsync(request.NewPlanType)
+            ?? throw new InvalidOperationException($"Plan {request.NewPlanType} not found");
 
         var provider = providerFactory.GetProvider(subscription.Provider);
 
@@ -172,10 +166,12 @@ public class SubscriptionService : ISubscriptionService
 
         await subscriptionRepository.UpdateAsync(subscription);
 
-        logger.LogInformation("Updated subscription {SubscriptionId} to plan {PlanType}", 
-            subscription.Id, request.NewPlanType);
+        logger.LogInformation(
+            "Updated subscription {SubscriptionId} to plan {PlanType}",
+            subscription.Id,
+            request.NewPlanType);
 
-        return await GetUserSubscriptionAsync(userId) 
+        return await GetUserSubscriptionAsync(userId)
             ?? throw new InvalidOperationException("Failed to retrieve updated subscription");
     }
 
@@ -185,11 +181,8 @@ public class SubscriptionService : ISubscriptionService
     {
         logger.LogInformation("Canceling subscription for user {UserId}", userId);
 
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
-        if (subscription == null)
-        {
-            throw new InvalidOperationException("No subscription found");
-        }
+        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
+            ?? throw new InvalidOperationException("No subscription found");
 
         if (subscription.Status == SubscriptionStatus.Canceled)
         {
@@ -212,19 +205,18 @@ public class SubscriptionService : ISubscriptionService
 
         await subscriptionRepository.UpdateAsync(subscription);
 
-        logger.LogInformation("Canceled subscription {SubscriptionId} for user {UserId}", 
-            subscription.Id, userId);
+        logger.LogInformation(
+            "Canceled subscription {SubscriptionId} for user {UserId}",
+            subscription.Id,
+            userId);
     }
 
     public async Task<SubscriptionDto> ReactivateSubscriptionAsync(Guid userId)
     {
         logger.LogInformation("Reactivating subscription for user {UserId}", userId);
 
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
-        if (subscription == null)
-        {
-            throw new InvalidOperationException("No subscription found");
-        }
+        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
+            ?? throw new InvalidOperationException("No subscription found");
 
         if (subscription.Status == SubscriptionStatus.Active)
         {
@@ -237,10 +229,12 @@ public class SubscriptionService : ISubscriptionService
 
         await subscriptionRepository.UpdateAsync(subscription);
 
-        logger.LogInformation("Reactivated subscription {SubscriptionId} for user {UserId}", 
-            subscription.Id, userId);
+        logger.LogInformation(
+            "Reactivated subscription {SubscriptionId} for user {UserId}",
+            subscription.Id,
+            userId);
 
-        return await GetUserSubscriptionAsync(userId) 
+        return await GetUserSubscriptionAsync(userId)
             ?? throw new InvalidOperationException("Failed to retrieve reactivated subscription");
     }
 
@@ -285,11 +279,11 @@ public class SubscriptionService : ISubscriptionService
             return false;
         }
 
-        return featureName.ToLower() switch
+        return featureName.ToUpperInvariant() switch
         {
-            "alerts" => plan.HasAlerts,
-            "api" => plan.HasApiAccess,
-            "priority_support" => plan.HasPrioritySupport,
+            "ALERTS" => plan.HasAlerts,
+            "API" => plan.HasApiAccess,
+            "PRIORITY_SUPPORT" => plan.HasPrioritySupport,
             _ => false
         };
     }
@@ -307,7 +301,7 @@ public class SubscriptionService : ISubscriptionService
         return plan?.MaxServers ?? 1;
     }
 
-    private string GetPriceIdForPlan(SubscriptionPlan planType, bool isYearly)
+    private static string GetPriceIdForPlan(SubscriptionPlan planType, bool isYearly)
     {
         return $"{planType}_{(isYearly ? "Yearly" : "Monthly")}";
     }

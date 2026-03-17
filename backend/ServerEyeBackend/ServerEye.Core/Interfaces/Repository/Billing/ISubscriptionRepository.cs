@@ -5,12 +5,19 @@ using ServerEye.Core.Enums;
 
 public interface ISubscriptionRepository
 {
-    Task<Subscription?> GetByIdAsync(Guid id);
-    Task<Subscription?> GetByUserIdAsync(Guid userId);
-    Task<Subscription?> GetByProviderSubscriptionIdAsync(string providerSubscriptionId);
-    Task<List<Subscription>> GetByStatusAsync(SubscriptionStatus status);
-    Task<List<Subscription>> GetExpiringSubscriptionsAsync(DateTime beforeDate);
-    Task AddAsync(Subscription subscription);
-    Task UpdateAsync(Subscription subscription);
-    Task DeleteAsync(Guid id);
+    public Task<Subscription?> GetByIdAsync(Guid id);
+
+    public Task<Subscription?> GetByUserIdAsync(Guid userId);
+
+    public Task<Subscription?> GetByProviderSubscriptionIdAsync(string providerSubscriptionId);
+
+    public Task<List<Subscription>> GetByStatusAsync(SubscriptionStatus status);
+
+    public Task<List<Subscription>> GetExpiringSubscriptionsAsync(DateTime beforeDate);
+
+    public Task AddAsync(Subscription subscription);
+
+    public Task UpdateAsync(Subscription subscription);
+
+    public Task DeleteAsync(Guid id);
 }

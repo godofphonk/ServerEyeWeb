@@ -34,14 +34,13 @@ public class PaymentService : IPaymentService
         Guid userId,
         CreatePaymentIntentRequest request)
     {
-        logger.LogInformation("Creating payment intent for user {UserId}, amount {Amount}", 
-            userId, request.Amount);
+        logger.LogInformation(
+            "Creating payment intent for user {UserId}, amount {Amount}",
+            userId,
+            request.Amount);
 
-        var user = await userRepository.GetByIdAsync(userId);
-        if (user == null)
-        {
-            throw new InvalidOperationException("User not found");
-        }
+        var user = await userRepository.GetByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found");
 
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         var provider = providerFactory.GetDefaultProvider();
@@ -53,7 +52,7 @@ public class PaymentService : IPaymentService
         }
         else
         {
-            customerId = await provider.CreateCustomerAsync(userId, user.Email, user.Username);
+            customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
         }
 
         var metadata = request.Metadata ?? new Dictionary<string, string>();
@@ -81,8 +80,10 @@ public class PaymentService : IPaymentService
 
         await paymentRepository.AddAsync(payment);
 
-        logger.LogInformation("Created payment intent {PaymentIntentId} for user {UserId}", 
-            response.PaymentIntentId, userId);
+        logger.LogInformation(
+            "Created payment intent {PaymentIntentId} for user {UserId}",
+            response.PaymentIntentId,
+            userId);
 
         return response;
     }
@@ -129,11 +130,8 @@ public class PaymentService : IPaymentService
     {
         logger.LogInformation("Refunding payment {PaymentId}, amount {Amount}", paymentId, amount);
 
-        var payment = await paymentRepository.GetByIdAsync(paymentId);
-        if (payment == null)
-        {
-            throw new InvalidOperationException("Payment not found");
-        }
+        var payment = await paymentRepository.GetByIdAsync(paymentId)
+            ?? throw new InvalidOperationException("Payment not found");
 
         if (payment.Status != PaymentStatus.Succeeded)
         {
@@ -148,8 +146,8 @@ public class PaymentService : IPaymentService
 
         if (success)
         {
-            payment.Status = amount.HasValue && amount.Value < payment.Amount 
-                ? PaymentStatus.PartiallyRefunded 
+            payment.Status = amount.HasValue && amount.Value < payment.Amount
+                ? PaymentStatus.PartiallyRefunded
                 : PaymentStatus.Refunded;
             payment.RefundedAmount = amount ?? payment.Amount;
             payment.RefundedAt = DateTime.UtcNow;

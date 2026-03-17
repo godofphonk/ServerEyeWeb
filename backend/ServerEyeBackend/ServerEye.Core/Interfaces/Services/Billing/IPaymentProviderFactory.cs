@@ -4,7 +4,7 @@ using ServerEye.Core.Enums;
 
 public interface IPaymentProviderFactory
 {
-    IPaymentProvider GetProvider(PaymentProvider providerType);
-    
-    IPaymentProvider GetDefaultProvider();
+    public IPaymentProvider GetProvider(PaymentProvider providerType);
+
+    public IPaymentProvider GetDefaultProvider();
 }
