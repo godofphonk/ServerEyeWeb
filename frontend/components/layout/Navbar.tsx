@@ -37,7 +37,8 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/';
+    // Force page reload to ensure all state is cleared
+    window.location.reload();
   };
 
   // Hide navbar on auth pages
