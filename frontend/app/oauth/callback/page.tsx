@@ -19,6 +19,7 @@ function OAuthCallbackContent() {
         const auth = searchParams.get('auth');
         const token = searchParams.get('token');
         const refreshToken = searchParams.get('refresh_token');
+        const provider = searchParams.get('provider');
         
         // If this is a success redirect from backend with tokens
         if (auth === 'success' && token) {
@@ -33,7 +34,11 @@ function OAuthCallbackContent() {
             }
             
             // Set flag for Telegram OAuth completion to trigger server discovery
-            sessionStorage.setItem('telegram_oauth_completed', 'true');
+            // Only for Telegram provider
+            if (provider === 'telegram') {
+              sessionStorage.setItem('telegram_oauth_completed', 'true');
+              console.log('[OAuth Callback] Set telegram_oauth_completed flag for Telegram provider');
+            }
           }
           
           // Set cookies via API call

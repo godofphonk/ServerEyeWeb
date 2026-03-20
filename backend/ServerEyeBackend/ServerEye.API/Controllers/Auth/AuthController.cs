@@ -601,7 +601,7 @@ public class AuthController : ControllerBase
             refreshTokenOptions.Expires);
 
             // Redirect to frontend OAuth callback page with token in query
-            var callbackUrl = $"http://localhost:3001/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}";
+            var callbackUrl = $"http://localhost:3001/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
