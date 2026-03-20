@@ -386,11 +386,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('refresh_token');
-      // Clear all cookies
+      // Clear all cookies with comprehensive path and domain coverage
       document.cookie.split(';').forEach(c => {
-        document.cookie = c
-          .replace(/^ +/, '')
-          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        const cookie = c.trim();
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        
+        // Clear cookie with all possible combinations
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname};`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname};`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
       });
     }
     setUserWithLogging(null);
@@ -412,6 +418,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore logout API errors
     } finally {
       clearAuthData();
+      // Force re-check auth state after logout
+      checkAuthCalled.current = false;
+      setLoading(false);
     }
   };
 
