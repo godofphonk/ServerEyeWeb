@@ -154,9 +154,20 @@ public class GoApiClientTests : IDisposable
         {
             Message = "Identifiers added successfully",
             ServerId = serverId,
-            SourceType = "Web",
-            Identifiers = ["user123"],
-            IdentifierType = "user_id"
+            Sources = ["Web"],
+            Identifiers = new Dictionary<string, List<SourceIdentifierInfo>>
+            {
+                ["user_id"] = [new SourceIdentifierInfo
+                {
+                    Id = 1,
+                    ServerId = serverId,
+                    SourceType = "Web",
+                    Identifier = "user123",
+                    IdentifierType = "user_id",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }]
+            }
         };
 
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
@@ -179,10 +190,13 @@ public class GoApiClientTests : IDisposable
         Assert.NotNull(result);
         Assert.NotNull(result!.ServerId);
         Assert.Equal(serverId, result.ServerId);
-        Assert.Equal("Web", result.SourceType);
+        Assert.Single(result.Sources);
+        Assert.Equal("Web", result.Sources[0]);
         Assert.Single(result.Identifiers);
-        Assert.Equal("user123", result.Identifiers[0]);
-        Assert.Equal("user_id", result.IdentifierType);
+        Assert.True(result.Identifiers.ContainsKey("user_id"));
+        Assert.Single(result.Identifiers["user_id"]);
+        Assert.Equal("user123", result.Identifiers["user_id"][0].Identifier);
+        Assert.Equal("user_id", result.Identifiers["user_id"][0].IdentifierType);
         Assert.Equal("Identifiers added successfully", result.Message);
 
         this.mockHandler
@@ -213,9 +227,20 @@ public class GoApiClientTests : IDisposable
         {
             Message = "Identifiers added successfully",
             ServerId = "srv_123",
-            SourceType = "Web",
-            Identifiers = ["user123"],
-            IdentifierType = "user_id"
+            Sources = ["Web"],
+            Identifiers = new Dictionary<string, List<SourceIdentifierInfo>>
+            {
+                ["user_id"] = [new SourceIdentifierInfo
+                {
+                    Id = 1,
+                    ServerId = "srv_123",
+                    SourceType = "Web",
+                    Identifier = "user123",
+                    IdentifierType = "user_id",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }]
+            }
         };
 
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
@@ -238,10 +263,13 @@ public class GoApiClientTests : IDisposable
         Assert.NotNull(result);
         Assert.NotNull(result!.ServerId);
         Assert.Equal("srv_123", result.ServerId);
-        Assert.Equal("Web", result.SourceType);
+        Assert.Single(result.Sources);
+        Assert.Equal("Web", result.Sources[0]);
         Assert.Single(result.Identifiers);
-        Assert.Equal("user123", result.Identifiers[0]);
-        Assert.Equal("user_id", result.IdentifierType);
+        Assert.True(result.Identifiers.ContainsKey("user_id"));
+        Assert.Single(result.Identifiers["user_id"]);
+        Assert.Equal("user123", result.Identifiers["user_id"][0].Identifier);
+        Assert.Equal("user_id", result.Identifiers["user_id"][0].IdentifierType);
 
         this.mockHandler
             .Protected()

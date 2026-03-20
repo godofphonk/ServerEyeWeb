@@ -67,9 +67,20 @@ public class ServerAccessServiceTests
         {
             Message = "Identifiers added successfully",
             ServerId = "srv_123",
-            SourceType = "Web",
-            Identifiers = new List<string> { userId.ToString() },
-            IdentifierType = "user_id"
+            Sources = ["Web"],
+            Identifiers = new Dictionary<string, List<SourceIdentifierInfo>>
+            {
+                ["user_id"] = [new SourceIdentifierInfo
+                {
+                    Id = 1,
+                    ServerId = "srv_123",
+                    SourceType = "Web",
+                    Identifier = userId.ToString(),
+                    IdentifierType = "user_id",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }]
+            }
         };
 
         // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
@@ -176,9 +187,20 @@ public class ServerAccessServiceTests
         {
             Message = "Identifiers added successfully",
             ServerId = "srv_123",
-            SourceType = "Web",
-            Identifiers = new List<string> { userId.ToString() },
-            IdentifierType = "user_id"
+            Sources = ["Web"],
+            Identifiers = new Dictionary<string, List<SourceIdentifierInfo>>
+            {
+                ["user_id"] = [new SourceIdentifierInfo
+                {
+                    Id = 1,
+                    ServerId = "srv_123",
+                    SourceType = "Web",
+                    Identifier = userId.ToString(),
+                    IdentifierType = "user_id",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }]
+            }
         };
 
         // Mock GetUserTelegramIdAsync to return null (no Telegram OAuth)
@@ -273,9 +295,20 @@ public class ServerAccessServiceTests
         {
             Message = "Identifiers added successfully",
             ServerId = "srv_123",
-            SourceType = "Web",
-            Identifiers = new List<string> { userId.ToString() },
-            IdentifierType = "user_id"
+            Sources = ["Web"],
+            Identifiers = new Dictionary<string, List<SourceIdentifierInfo>>
+            {
+                ["user_id"] = [new SourceIdentifierInfo
+                {
+                    Id = 1,
+                    ServerId = "srv_123",
+                    SourceType = "Web",
+                    Identifier = userId.ToString(),
+                    IdentifierType = "user_id",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }]
+            }
         };
 
         // Mock GetUserTelegramIdAsync to return telegram ID
