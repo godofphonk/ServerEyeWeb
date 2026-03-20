@@ -2,6 +2,7 @@ namespace ServerEye.API.Configuration.Extensions;
 
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Infrastructure;
+using ServerEye.Infrastructure.Data;
 
 /// <summary>
 /// Database configuration and health checks setup.
@@ -17,6 +18,7 @@ public static class DatabaseSetup
     {
         var serverEyeConnectionString = GetServerEyeConnectionString(configuration);
         var ticketConnectionString = GetTicketConnectionString(configuration);
+        var billingConnectionString = GetBillingConnectionString(configuration);
 
         // Register DbContexts
         services.AddDbContext<ServerEyeDbContext>(options =>
@@ -24,6 +26,9 @@ public static class DatabaseSetup
 
         services.AddDbContext<TicketDbContext>(options =>
             options.UseNpgsql(ticketConnectionString));
+
+        services.AddDbContext<BillingDbContext>(options =>
+            options.UseNpgsql(billingConnectionString));
 
         // Add Health Checks
         services.AddHealthChecks()
@@ -34,6 +39,10 @@ public static class DatabaseSetup
             .AddNpgSql(
                 connectionString: ticketConnectionString,
                 name: "postgres-tickets",
+                tags: ["db", "postgres", "ready"])
+            .AddNpgSql(
+                connectionString: billingConnectionString,
+                name: "postgres-billing",
                 tags: ["db", "postgres", "ready"]);
 
         return services;
@@ -42,7 +51,7 @@ public static class DatabaseSetup
     /// <summary>
     /// Applies database migrations.
     /// </summary>
-    public static IApplicationBuilder ApplyDatabaseMigrations(this IApplicationBuilder app)
+    public static async Task ApplyDatabaseMigrations(this IApplicationBuilder app)
     {
         using var scope = app.ApplicationServices.CreateScope();
         var services = scope.ServiceProvider;
@@ -50,24 +59,26 @@ public static class DatabaseSetup
         try
         {
             var serverEyeContext = services.GetRequiredService<ServerEyeDbContext>();
-            serverEyeContext.Database.Migrate();
 
+            // Skip migrations for existing database
+            // await serverEyeContext.Database.MigrateAsync();
             var ticketContext = services.GetRequiredService<TicketDbContext>();
-            ticketContext.Database.Migrate();
+
+            // Skip migrations for existing database
+            // await ticketContext.Database.MigrateAsync();
+            // Billing plans are now hardcoded in SubscriptionService, no DB needed
         }
         catch (Exception ex)
         {
             var logger = services.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "Critical error: Failed to apply database migrations. Application cannot continue.");
-            
+
             // In production, we want the application to fail fast instead of running with broken database
             if (!app.ApplicationServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
             {
                 throw new InvalidOperationException("Database migration failed. Application startup terminated.", ex);
             }
         }
-
-        return app;
     }
 
     private static string GetServerEyeConnectionString(IConfiguration configuration)
@@ -82,6 +93,15 @@ public static class DatabaseSetup
     {
         return configuration["TICKET_DB_CONNECTION_STRING"]
             ?? configuration.GetConnectionString("TicketDbContext")
+            ?? configuration.GetConnectionString("TicketConnection")
             ?? throw new InvalidOperationException("Ticket database connection string not found");
+    }
+
+    private static string GetBillingConnectionString(IConfiguration configuration)
+    {
+        return configuration["BILLING_DB_CONNECTION_STRING"]
+            ?? configuration.GetConnectionString("BillingDbContext")
+            ?? configuration.GetConnectionString("BillingConnection")
+            ?? throw new InvalidOperationException("Billing database connection string not found");
     }
 }

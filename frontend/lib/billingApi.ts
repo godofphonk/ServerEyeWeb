@@ -62,14 +62,12 @@ export interface SubscriptionLimits {
 
 export const billingApi = {
   async getPlans(): Promise<SubscriptionPlan[]> {
-    const response = await apiClient.get<SubscriptionPlan[]>('/subscription/plans');
-    return response.data;
+    return await apiClient.get<SubscriptionPlan[]>('/subscription/plans');
   },
 
   async getCurrentSubscription(): Promise<Subscription | null> {
     try {
-      const response = await apiClient.get<Subscription>('/subscription/current');
-      return response.data;
+      return await apiClient.get<Subscription>('/subscription/current');
     } catch (error: any) {
       if (error.response?.status === 404) {
         return null;
@@ -79,16 +77,14 @@ export const billingApi = {
   },
 
   async createCheckout(request: CreateCheckoutRequest): Promise<CreateCheckoutResponse> {
-    const response = await apiClient.post<CreateCheckoutResponse>('/subscription/checkout', request);
-    return response.data;
+    return await apiClient.post<CreateCheckoutResponse>('/subscription/checkout', request);
   },
 
   async updatePlan(planType: number, isYearly: boolean): Promise<Subscription> {
-    const response = await apiClient.put<Subscription>('/subscription/plan', {
+    return await apiClient.put<Subscription>('/subscription/plan', {
       newPlanType: planType,
       isYearly
     });
-    return response.data;
   },
 
   async cancelSubscription(cancelImmediately: boolean = false): Promise<void> {
@@ -99,17 +95,14 @@ export const billingApi = {
   },
 
   async reactivateSubscription(): Promise<Subscription> {
-    const response = await apiClient.post<Subscription>('/subscription/reactivate');
-    return response.data;
+    return await apiClient.post<Subscription>('/subscription/reactivate');
   },
 
   async getLimits(): Promise<SubscriptionLimits> {
-    const response = await apiClient.get<SubscriptionLimits>('/subscription/limits');
-    return response.data;
+    return await apiClient.get<SubscriptionLimits>('/subscription/limits');
   },
 
   async getPaymentHistory(limit: number = 50): Promise<Payment[]> {
-    const response = await apiClient.get<Payment[]>(`/payment/history?limit=${limit}`);
-    return response.data;
+    return await apiClient.get<Payment[]>(`/payment/history?limit=${limit}`);
   }
 };
