@@ -511,19 +511,27 @@ public class AuthController : ControllerBase
                 
                 if (Guid.TryParse(linkingUserId, out var userGuid))
                 {
-                    var linkRequest = new OAuthLinkRequestDto
+                    try
                     {
-                        Provider = linkingProvider,
-                        Code = code ?? hash ?? string.Empty,
-                        State = actualState
-                    };
-                    
-                    var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
-                    
-                    this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
-                    
-                    // Redirect to profile page with success
-                    return this.Redirect("http://localhost:3001/profile?linking=success");
+                        var linkRequest = new OAuthLinkRequestDto
+                        {
+                            Provider = linkingProvider,
+                            Code = code ?? hash ?? string.Empty,
+                            State = actualState
+                        };
+                        
+                        var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
+                        
+                        this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
+                        
+                        // Redirect to profile page with success
+                        return this.Redirect("http://localhost:3001/profile?linking=success");
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
+                        return this.Redirect("http://localhost:3001/profile?error=already_linked");
+                    }
                 }
                 else
                 {
@@ -547,19 +555,27 @@ public class AuthController : ControllerBase
             {
                 this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
                 
-                var linkRequest = new OAuthLinkRequestDto
+                try
                 {
-                    Provider = request.Provider,
-                    Code = request.Code,
-                    State = request.State
-                };
-                
-                var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
-                
-                this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
-                
-                // Redirect to profile page with success
-                return this.Redirect("http://localhost:3001/profile?linking=success");
+                    var linkRequest = new OAuthLinkRequestDto
+                    {
+                        Provider = request.Provider,
+                        Code = request.Code,
+                        State = request.State
+                    };
+                    
+                    var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
+                    
+                    this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
+                    
+                    // Redirect to profile page with success
+                    return this.Redirect("http://localhost:3001/profile?linking=success");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
+                {
+                    this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
+                    return this.Redirect("http://localhost:3001/profile?error=already_linked");
+                }
             }
 
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
