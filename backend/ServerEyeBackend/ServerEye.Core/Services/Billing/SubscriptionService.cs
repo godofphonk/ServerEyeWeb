@@ -240,23 +240,57 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync()
     {
-        var plans = await planRepository.GetAllActiveAsync();
-
-        return plans.Select(p => new SubscriptionPlanDto
+        // Return hardcoded plans - no need for database storage
+        var plans = new List<SubscriptionPlanDto>
         {
-            Id = p.Id,
-            PlanType = p.PlanType,
-            Name = p.Name,
-            Description = p.Description,
-            MonthlyPrice = p.MonthlyPrice,
-            YearlyPrice = p.YearlyPrice,
-            MaxServers = p.MaxServers,
-            MetricsRetentionDays = p.MetricsRetentionDays,
-            HasAlerts = p.HasAlerts,
-            HasApiAccess = p.HasApiAccess,
-            HasPrioritySupport = p.HasPrioritySupport,
-            Features = p.Features.Values.ToList()
-        }).ToList();
+            new()
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                PlanType = SubscriptionPlan.Free,
+                Name = "Free",
+                Description = "Perfect for getting started with server monitoring",
+                MonthlyPrice = 0m,
+                YearlyPrice = 0m,
+                MaxServers = 3,
+                MetricsRetentionDays = 7,
+                HasAlerts = true,
+                HasApiAccess = false,
+                HasPrioritySupport = false,
+                Features = new List<string> { "maxAlerts: 10", "webhooks: false" }
+            },
+            new()
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                PlanType = SubscriptionPlan.Pro,
+                Name = "Pro",
+                Description = "Advanced features for professional teams",
+                MonthlyPrice = 9.99m,
+                YearlyPrice = 99.99m,
+                MaxServers = 10,
+                MetricsRetentionDays = 30,
+                HasAlerts = true,
+                HasApiAccess = true,
+                HasPrioritySupport = false,
+                Features = new List<string> { "maxAlerts: 100", "webhooks: false" }
+            },
+            new()
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                PlanType = SubscriptionPlan.Enterprise,
+                Name = "Enterprise",
+                Description = "Complete solution for large organizations",
+                MonthlyPrice = 29.99m,
+                YearlyPrice = 299.99m,
+                MaxServers = 50,
+                MetricsRetentionDays = 90,
+                HasAlerts = true,
+                HasApiAccess = true,
+                HasPrioritySupport = true,
+                Features = new List<string> { "maxAlerts: 1000", "webhooks: true" }
+            }
+        };
+
+        return await Task.FromResult(plans);
     }
 
     public async Task<bool> HasActiveSubscriptionAsync(Guid userId)

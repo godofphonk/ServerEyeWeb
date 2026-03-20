@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { useEffect, useState } from 'react';
 import { billingApi, SubscriptionPlan } from '@/lib/billingApi';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 enum PlanType {
   Free = 0,
-  Basic = 1,
-  Pro = 2,
-  Enterprise = 3
+  Pro = 1,
+  Enterprise = 2
 }
 
 export default function PricingPage() {
@@ -29,6 +28,7 @@ export default function PricingPage() {
   const loadPlans = async () => {
     try {
       const data = await billingApi.getPlans();
+      console.log('Loaded plans:', data);
       setPlans(data);
     } catch (error) {
       console.error('Failed to load plans:', error);
@@ -125,7 +125,7 @@ export default function PricingPage() {
             <div className='text-center'>Loading plans...</div>
           ) : (
             <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
-              {plans.map((plan, i) => {
+              {plans?.map((plan, i) => {
                 const price = getPrice(plan);
                 const isPopular = plan.planType === PlanType.Pro;
 
@@ -137,12 +137,12 @@ export default function PricingPage() {
                     transition={{ delay: i * 0.1 }}
                     className='relative'
                   >
-                    {isPopular && (
-                      <div className='absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold'>
-                        Most Popular
-                      </div>
-                    )}
-                    <Card className={isPopular ? 'border-blue-500/50' : ''}>
+                    <Card className={isPopular ? 'border-blue-500/50 relative' : ''}>
+                      {isPopular && (
+                        <div className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold z-10'>
+                          Most Popular
+                        </div>
+                      )}
                       <CardHeader>
                         <CardTitle className='text-2xl'>{plan.name}</CardTitle>
                         <p className='text-gray-400 mt-2'>{plan.description}</p>
