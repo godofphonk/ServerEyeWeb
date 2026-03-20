@@ -60,7 +60,11 @@ export default function PricingPage() {
   };
 
   const getButtonText = (plan: SubscriptionPlan) => {
+    // For Free plan, check if user has no active subscription
     if (plan.planType === PlanType.Free) {
+      if (!subscription || subscription.planType === PlanType.Free) {
+        return 'Current Plan';
+      }
       return 'Get Started';
     }
     
@@ -77,6 +81,12 @@ export default function PricingPage() {
   };
 
   const isCurrentPlan = (plan: SubscriptionPlan) => {
+    // Free plan is current if user has no subscription or has Free plan
+    if (plan.planType === PlanType.Free) {
+      return !subscription || subscription.planType === PlanType.Free;
+    }
+    
+    // For paid plans, check if user has this specific plan
     return subscription?.planType === plan.planType;
   };
 

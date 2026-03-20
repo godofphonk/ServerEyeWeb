@@ -253,21 +253,14 @@ export default function ProfilePage() {
           {/* Profile Information */}
           <Card className='mb-8'>
             <CardHeader>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-3'>
-                  <div className='w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center'>
-                    <User className='w-6 h-6' />
-                  </div>
-                  <div>
-                    <CardTitle>Profile Information</CardTitle>
-                    <p className='text-sm text-gray-400 mt-1'>Update your account details</p>
-                  </div>
+              <div className='flex items-center gap-3'>
+                <div className='w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center'>
+                  <User className='w-6 h-6' />
                 </div>
-                {!isEditing && (
-                  <Button variant='secondary' onClick={() => setIsEditing(true)}>
-                    Edit
-                  </Button>
-                )}
+                <div>
+                  <CardTitle>Profile Information</CardTitle>
+                  <p className='text-sm text-gray-400 mt-1'>Update your account details</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -276,7 +269,7 @@ export default function ProfilePage() {
                   label='Username'
                   value={profileData.username}
                   onChange={e => setProfileData({ ...profileData, username: e.target.value })}
-                  disabled={!isEditing || isSaving}
+                  disabled={true}
                 />
                 <div className='space-y-2'>
                   <div className='relative'>
