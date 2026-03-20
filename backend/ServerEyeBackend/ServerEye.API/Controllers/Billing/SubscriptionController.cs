@@ -44,22 +44,6 @@ public class SubscriptionController : ControllerBase
         }
     }
 
-    [HttpGet("plans")]
-    [AllowAnonymous]
-    public async Task<ActionResult<List<SubscriptionPlanDto>>> GetAvailablePlans()
-    {
-        try
-        {
-            var plans = await subscriptionService.GetAvailablePlansAsync();
-            return Ok(plans);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error getting available plans");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
     [HttpPost("checkout")]
     public async Task<ActionResult<CreateSubscriptionResponse>> CreateCheckoutSession(
         [FromBody] CreateSubscriptionRequest request)
@@ -143,6 +127,22 @@ public class SubscriptionController : ControllerBase
         catch (Exception ex)
         {
             logger.LogError(ex, "Error reactivating subscription");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("plans")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<SubscriptionPlanDto>>> GetPlans()
+    {
+        try
+        {
+            var plans = await subscriptionService.GetAvailablePlansAsync();
+            return Ok(plans);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting subscription plans");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }

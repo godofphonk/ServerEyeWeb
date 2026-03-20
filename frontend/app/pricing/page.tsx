@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check, Zap, Star } from 'lucide-react';
+import { Check, Zap, Star, ChevronRight } from 'lucide-react';
+import StripeIcon from './stripe-icon.svg';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -20,6 +21,8 @@ export default function PricingPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isYearly, setIsYearly] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -37,14 +40,9 @@ export default function PricingPage() {
     }
   };
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
+  const handleSubscribe = (plan: SubscriptionPlan) => {
     if (!isAuthenticated) {
-      window.location.href = '/auth?redirect=/pricing';
-      return;
-    }
-
-    if (plan.planType === PlanType.Free) {
-      window.location.href = '/dashboard';
+      window.location.href = '/auth/login';
       return;
     }
 
@@ -53,18 +51,33 @@ export default function PricingPage() {
       return;
     }
 
-    try {
-      const response = await billingApi.createCheckout({
-        planType: plan.planType,
-        isYearly,
-        successUrl: `${window.location.origin}/dashboard?subscription=success`,
-        cancelUrl: `${window.location.origin}/pricing?subscription=canceled`
-      });
+    // Show payment method selection modal
+    setSelectedPlan(plan);
+    setShowPaymentModal(true);
+  };
 
-      window.location.href = response.sessionUrl;
+  const handlePaymentMethod = async (method: 'stripe' | 'yukassa') => {
+    if (!selectedPlan) return;
+
+    try {
+      if (method === 'stripe') {
+        const response = await billingApi.createCheckout({
+          planType: selectedPlan.planType,
+          isYearly,
+          successUrl: `${window.location.origin}/dashboard?subscription=success`,
+          cancelUrl: `${window.location.origin}/pricing?subscription=canceled`
+        });
+        window.location.href = response.sessionUrl;
+      } else if (method === 'yukassa') {
+        // TODO: Implement YooKassa checkout
+        alert('YooKassa coming soon!');
+      }
     } catch (error) {
       console.error('Failed to create checkout:', error);
       alert('Failed to start checkout. Please try again.');
+    } finally {
+      setShowPaymentModal(false);
+      setSelectedPlan(null);
     }
   };
 
@@ -253,6 +266,63 @@ export default function PricingPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Payment Method Modal */}
+      {showPaymentModal && selectedPlan && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+          <div className='bg-gray-900 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700'>
+            <h3 className='text-2xl font-bold mb-2'>Choose Payment Method</h3>
+            <p className='text-gray-400 mb-6'>
+              Select how you'd like to pay for the {selectedPlan.name} plan
+              {isYearly && ' (yearly)'}
+            </p>
+            
+            <div className='space-y-3'>
+              <button
+                onClick={() => handlePaymentMethod('stripe')}
+                className='w-full flex items-center justify-between p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors'
+              >
+                <div className='flex items-center gap-3'>
+                  <div className='w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-2xl'>
+                    S
+                  </div>
+                  <div className='text-left'>
+                    <div className='font-semibold'>Credit Card</div>
+                    <div className='text-sm text-gray-400'>Visa, Mastercard, Amex</div>
+                  </div>
+                </div>
+                <ChevronRight className='w-5 h-5 text-gray-400' />
+              </button>
+
+              <button
+                onClick={() => handlePaymentMethod('yukassa')}
+                className='w-full flex items-center justify-between p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors'
+              >
+                <div className='flex items-center gap-3'>
+                  <div className='w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl border border-gray-300'>
+                    Ю
+                  </div>
+                  <div className='text-left'>
+                    <div className='font-semibold'>YooKassa</div>
+                    <div className='text-sm text-gray-400'>Карты, СБП, QIWI</div>
+                  </div>
+                </div>
+                <ChevronRight className='w-5 h-5 text-gray-400' />
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowPaymentModal(false);
+                setSelectedPlan(null);
+              }}
+              className='w-full mt-6 py-2 text-gray-400 hover:text-white transition-colors'
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

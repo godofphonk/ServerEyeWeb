@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
+using ServerEye.Infrastructure.Data;
 
 public class PaymentRepository : IPaymentRepository
 {
-    private readonly ServerEyeDbContext context;
+    private readonly BillingDbContext context;
 
-    public PaymentRepository(ServerEyeDbContext context) => this.context = context;
+    public PaymentRepository(BillingDbContext context) => this.context = context;
 
     public async Task<Payment?> GetByIdAsync(Guid id)
     {

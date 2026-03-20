@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
+using ServerEye.Infrastructure.Data;
 
 public class SubscriptionRepository : ISubscriptionRepository
 {
-    private readonly ServerEyeDbContext context;
+    private readonly BillingDbContext context;
 
-    public SubscriptionRepository(ServerEyeDbContext context) => this.context = context;
+    public SubscriptionRepository(BillingDbContext context) => this.context = context;
 
     public async Task<Subscription?> GetByIdAsync(Guid id)
     {
