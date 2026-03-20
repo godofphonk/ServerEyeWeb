@@ -13,8 +13,12 @@ import {
   Shield,
   Zap,
   RefreshCw,
+  Link,
+  MessageCircle,
 } from 'lucide-react';
-import { DiscoveredServersResponse, DiscoveredServer } from '@/types';
+import { DiscoveredServersResponse, DiscoveredServer, ExternalLogin, OAuthProvider } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/Button';
 
 interface TelegramServerDiscoveryModalProps {
   isOpen: boolean;
@@ -24,6 +28,7 @@ interface TelegramServerDiscoveryModalProps {
   onImport: (serverIds: string[]) => Promise<void>;
   onDismiss: () => void;
   onRetry: () => void;
+  onDiscoverServers?: () => Promise<DiscoveredServersResponse | null>; // Add this for manual discovery
 }
 
 interface ImportProgress {
@@ -41,7 +46,9 @@ export function TelegramServerDiscoveryModal({
   onImport,
   onDismiss,
   onRetry,
+  onDiscoverServers,
 }: TelegramServerDiscoveryModalProps) {
+  const { getExternalLogins, linkExternalAccount, getOAuthChallenge } = useAuth();
   const [selectedServers, setSelectedServers] = useState<Set<string>>(new Set());
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     importing: false,
@@ -50,6 +57,8 @@ export function TelegramServerDiscoveryModal({
     errors: [],
   });
   const [showSuccess, setShowSuccess] = useState(false);
+  const [externalLogins, setExternalLogins] = useState<ExternalLogin[]>([]);
+  const [isLinkingTelegram, setIsLinkingTelegram] = useState(false);
 
   // Reset selection when discovered data changes
   React.useEffect(() => {
@@ -61,6 +70,51 @@ export function TelegramServerDiscoveryModal({
       setSelectedServers(new Set(importableServerIds));
     }
   }, [discovered]);
+
+  // Load external logins to check if Telegram is linked
+  React.useEffect(() => {
+    const loadExternalLogins = async () => {
+      try {
+        const response = await getExternalLogins();
+        setExternalLogins(response.externalLogins || []);
+        
+        // If Telegram is now linked and we have discoverServers function, trigger discovery
+        const isLinked = response.externalLogins?.some(login => login.provider === OAuthProvider.Telegram);
+        if (isLinked && onDiscoverServers && !discovered && !isLoading) {
+          console.log('[TelegramDiscoveryModal] Telegram is linked, triggering discovery');
+          onDiscoverServers();
+        }
+      } catch (error) {
+        console.error('Failed to load external logins:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadExternalLogins();
+    }
+  }, [isOpen, getExternalLogins, onDiscoverServers, discovered, isLoading]);
+
+  const isTelegramLinked = externalLogins.some(login => login.provider === OAuthProvider.Telegram);
+
+  const handleLinkTelegram = async () => {
+    try {
+      setIsLinkingTelegram(true);
+      const challenge = await getOAuthChallenge('telegram', window.location.href, 'link');
+      
+      // Store linking info in sessionStorage
+      sessionStorage.setItem('oauth_linking', JSON.stringify({
+        action: 'link',
+        provider: 'telegram',
+        state: challenge.state,
+      }));
+      
+      // Redirect to Telegram OAuth
+      window.location.href = challenge.challengeUrl.toString();
+    } catch (error) {
+      console.error('Failed to link Telegram:', error);
+      setIsLinkingTelegram(false);
+    }
+  };
 
   const handleServerToggle = (serverId: string) => {
     setSelectedServers(prev => {
@@ -186,7 +240,49 @@ export function TelegramServerDiscoveryModal({
 
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[50vh] bg-gradient-to-b from-transparent to-gray-900/30">
-            {isLoading && (
+            {/* Telegram not linked state */}
+            {!isTelegramLinked && !isLoading && !error && (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30">
+                  <MessageCircle className="w-8 h-8 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Connect Telegram Bot</h3>
+                <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                  To discover servers from Telegram, you need to link your Telegram account first. 
+                  This allows us to securely access your bot's server information.
+                </p>
+                
+                <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-xl p-4 mb-6 max-w-sm mx-auto backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Shield className="w-5 h-5 text-green-400 flex-shrink-0" />
+                    <span className="text-green-400 font-medium">Secure Connection</span>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    We use OAuth to securely link your account without storing your Telegram credentials.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleLinkTelegram}
+                  disabled={isLinkingTelegram}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLinkingTelegram ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Link className="w-5 h-5 mr-2" />
+                      Link Telegram Account
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {isLoading && isTelegramLinked && (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="relative">
                   <div className="w-8 h-8 border-2 border-gray-700 rounded-full"></div>
@@ -228,7 +324,7 @@ export function TelegramServerDiscoveryModal({
               </div>
             )}
 
-            {discovered && !isLoading && !error && (
+            {discovered && !isLoading && !error && isTelegramLinked && (
               <div>
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
