@@ -5,6 +5,7 @@ import { DiscoveredServersResponse, ImportServersResponse } from '@/types';
 interface UseTelegramServerDiscoveryOptions {
   autoTrigger?: boolean;
   triggerDelay?: number;
+  forceShowModal?: boolean; // New option to force modal show
 }
 
 interface UseTelegramServerDiscoveryReturn {
@@ -13,6 +14,7 @@ interface UseTelegramServerDiscoveryReturn {
   error: string | null;
   shouldShowModal: boolean;
   discoverServers: () => Promise<DiscoveredServersResponse | null>;
+  discoverServersForced: () => Promise<DiscoveredServersResponse | null>; // Force modal show
   importServers: (serverIds: string[]) => Promise<ImportServersResponse>;
   dismissModal: () => void;
   clearError: () => void;
@@ -26,6 +28,7 @@ const DISMISSAL_KEY = 'telegram_discovery_dismissed';
 export function useTelegramServerDiscovery({
   autoTrigger = false,
   triggerDelay = 1000,
+  forceShowModal = false,
 }: UseTelegramServerDiscoveryOptions = {}): UseTelegramServerDiscoveryReturn {
   const [discovered, setDiscovered] = useState<DiscoveredServersResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,7 +102,25 @@ export function useTelegramServerDiscovery({
     // }
   }, []);
 
+  const discoverServersForced = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
+  // Force modal show without API call
+  console.log('[TelegramDiscovery] Force showing modal without API call');
+  setShouldShowModal(true);
+  setError(null);
+  setIsLoading(false);
+  return null;
+  }, []);
+
   const discoverServers = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
+    // Always show modal first when forced
+    if (forceShowModal) {
+      console.log('[TelegramDiscovery] Force showing modal');
+      setShouldShowModal(true);
+      setError(null);
+      setIsLoading(false);
+      return null;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -110,7 +131,7 @@ export function useTelegramServerDiscovery({
       setDiscovered(result);
       setLastDiscoveryTime();
       
-      // Enterprise logic: show modal only if servers found and not dismissed
+      // Show modal if servers found and not dismissed
       if (result && result.total_count > 0 && !isModalDismissed()) {
         console.log(`[TelegramDiscovery] Found ${result.total_count} servers, showing modal`);
         setShouldShowModal(true);
@@ -137,7 +158,7 @@ export function useTelegramServerDiscovery({
     } finally {
       setIsLoading(false);
     }
-  }, [isModalDismissed, shouldShowModal, setDiscoveryState, setLastDiscoveryTime]);
+  }, [isModalDismissed, forceShowModal, setDiscoveryState, setLastDiscoveryTime]);
 
   const importServers = useCallback(async (serverIds: string[]): Promise<ImportServersResponse> => {
     if (!discovered) {
@@ -297,6 +318,7 @@ export function useTelegramServerDiscovery({
     error,
     shouldShowModal,
     discoverServers,
+    discoverServersForced,
     importServers,
     dismissModal,
     clearError,
