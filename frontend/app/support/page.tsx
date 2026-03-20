@@ -244,21 +244,32 @@ export default function SupportPage() {
 
                       <form onSubmit={handleSubmit} className='space-y-6'>
                         <div className='grid md:grid-cols-2 gap-6'>
-                          <Input
-                            label='Name'
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            disabled={isSubmitting}
-                          />
-                          <Input
-                            type='email'
-                            label='Email'
-                            value={formData.email}
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            required
-                            disabled={isSubmitting}
-                          />
+                          <div>
+                            <Input
+                              label='Name'
+                              value={formData.name}
+                              onChange={e => setFormData({ ...formData, name: e.target.value })}
+                              required
+                              disabled={isSubmitting || isAuthenticated}
+                              placeholder={isAuthenticated ? formData.name : 'Enter your name'}
+                            />
+                            {isAuthenticated && (
+                              <p className='text-xs text-gray-400 mt-1'>
+                                Name is locked to your account profile
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <Input
+                              type='email'
+                              label='Email'
+                              value={formData.email}
+                              onChange={e => setFormData({ ...formData, email: e.target.value })}
+                              required
+                              disabled={isSubmitting}
+                              placeholder='Enter your email'
+                            />
+                          </div>
                         </div>
 
                         <Input
