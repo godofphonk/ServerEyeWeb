@@ -9,6 +9,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { useEffect, useState } from 'react';
 import { billingApi, SubscriptionPlan } from '@/lib/billingApi';
 import { useAuth } from '@/context/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
+import { cn } from '@/lib/utils';
 
 enum PlanType {
   Free = 0,
@@ -18,6 +20,7 @@ enum PlanType {
 
 export default function PricingPage() {
   const { isAuthenticated } = useAuth();
+  const { subscription } = useSubscription();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isYearly, setIsYearly] = useState(false);
@@ -54,6 +57,27 @@ export default function PricingPage() {
     // Show payment method selection modal
     setSelectedPlan(plan);
     setShowPaymentModal(true);
+  };
+
+  const getButtonText = (plan: SubscriptionPlan) => {
+    if (plan.planType === PlanType.Free) {
+      return 'Get Started';
+    }
+    
+    if (plan.planType === PlanType.Enterprise) {
+      return 'Contact Sales';
+    }
+
+    // For Pro plan, check if user already has this plan
+    if (subscription && subscription.planType === plan.planType) {
+      return 'Current Plan';
+    }
+
+    return 'Subscribe Now';
+  };
+
+  const isCurrentPlan = (plan: SubscriptionPlan) => {
+    return subscription?.planType === plan.planType;
   };
 
   const handlePaymentMethod = async (method: 'stripe' | 'yukassa') => {
@@ -150,10 +174,19 @@ export default function PricingPage() {
                     transition={{ delay: i * 0.1 }}
                     className='relative'
                   >
-                    <Card className={isPopular ? 'border-blue-500/50 relative' : ''}>
-                      {isPopular && (
+                    <Card className={cn(
+                      isPopular ? 'border-blue-500/50 relative' : '',
+                      isCurrentPlan(plan) && 'border-green-500/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5'
+                    )}>
+                      {isPopular && !isCurrentPlan(plan) && (
                         <div className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold z-10'>
                           Most Popular
+                        </div>
+                      )}
+                      {isCurrentPlan(plan) && (
+                        <div className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full text-sm font-semibold z-10 flex items-center gap-1'>
+                          <Check className='w-3 h-3' />
+                          Current Plan
                         </div>
                       )}
                       <CardHeader>
@@ -178,12 +211,9 @@ export default function PricingPage() {
                           fullWidth
                           className='mb-6'
                           onClick={() => handleSubscribe(plan)}
+                          disabled={subscription?.planType === plan.planType}
                         >
-                          {plan.planType === PlanType.Free
-                            ? 'Get Started'
-                            : plan.planType === PlanType.Enterprise
-                            ? 'Contact Sales'
-                            : 'Subscribe Now'}
+                          {getButtonText(plan)}
                         </Button>
                         <div className='space-y-3'>
                           {getFeatures(plan).map((feature, j) => (

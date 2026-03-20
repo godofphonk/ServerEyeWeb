@@ -315,6 +315,22 @@ export default function DashboardPage() {
       effectCalled: effectCalled.current
     });
     
+    // Check for subscription status from URL parameters
+    if (typeof window !== 'undefined' && isAuthenticated && user) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const subscriptionStatus = urlParams.get('subscription');
+      
+      if (subscriptionStatus === 'success') {
+        toast.success('Subscription Activated!', 'Welcome to your premium plan! Enjoy all the features.');
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (subscriptionStatus === 'canceled') {
+        toast.info('Subscription Canceled', 'You can always subscribe again from the pricing page.');
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+    
     // Ничего не делаем пока идет загрузка auth
     if (authLoading) {
       console.log('[Dashboard] Auth still loading, skipping...');
