@@ -122,6 +122,8 @@ class ApiClient {
     console.log('[API] GET request:', url);
     const response = await this.client.get<T>(url, config);
     console.log('[API] GET response:', response.status, url);
+    console.log('[API] Response data:', response.data);
+    console.log('[API] Full response:', response);
     return response.data;
   }
 

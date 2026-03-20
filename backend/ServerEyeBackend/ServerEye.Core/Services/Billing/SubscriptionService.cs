@@ -11,20 +11,17 @@ using ServerEye.Core.Interfaces.Services.Billing;
 public class SubscriptionService : ISubscriptionService
 {
     private readonly ISubscriptionRepository subscriptionRepository;
-    private readonly ISubscriptionPlanRepository planRepository;
     private readonly IUserRepository userRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<SubscriptionService> logger;
 
     public SubscriptionService(
         ISubscriptionRepository subscriptionRepository,
-        ISubscriptionPlanRepository planRepository,
         IUserRepository userRepository,
         IPaymentProviderFactory providerFactory,
         ILogger<SubscriptionService> logger)
     {
         this.subscriptionRepository = subscriptionRepository;
-        this.planRepository = planRepository;
         this.userRepository = userRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
@@ -38,7 +35,7 @@ public class SubscriptionService : ISubscriptionService
             return null;
         }
 
-        var plan = await planRepository.GetByPlanTypeAsync(subscription.PlanType);
+        var plan = GetHardcodedPlan(subscription.PlanType);
 
         return new SubscriptionDto
         {
@@ -76,8 +73,7 @@ public class SubscriptionService : ISubscriptionService
             throw new InvalidOperationException("User already has an active subscription");
         }
 
-        var plan = await planRepository.GetByPlanTypeAsync(request.PlanType)
-            ?? throw new InvalidOperationException($"Plan {request.PlanType} not found");
+        var plan = GetHardcodedPlan(request.PlanType);
 
         var provider = providerFactory.GetDefaultProvider();
 
@@ -151,8 +147,7 @@ public class SubscriptionService : ISubscriptionService
             throw new InvalidOperationException("Already on this plan");
         }
 
-        var newPlan = await planRepository.GetByPlanTypeAsync(request.NewPlanType)
-            ?? throw new InvalidOperationException($"Plan {request.NewPlanType} not found");
+        var newPlan = GetHardcodedPlan(request.NewPlanType);
 
         var provider = providerFactory.GetProvider(subscription.Provider);
 
@@ -241,56 +236,12 @@ public class SubscriptionService : ISubscriptionService
     public async Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync()
     {
         // Return hardcoded plans - no need for database storage
-        var plans = new List<SubscriptionPlanDto>
+        return new List<SubscriptionPlanDto>
         {
-            new()
-            {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                PlanType = SubscriptionPlan.Free,
-                Name = "Free",
-                Description = "Perfect for getting started with server monitoring",
-                MonthlyPrice = 0m,
-                YearlyPrice = 0m,
-                MaxServers = 3,
-                MetricsRetentionDays = 7,
-                HasAlerts = true,
-                HasApiAccess = false,
-                HasPrioritySupport = false,
-                Features = new List<string> { "maxAlerts: 10", "webhooks: false" }
-            },
-            new()
-            {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                PlanType = SubscriptionPlan.Pro,
-                Name = "Pro",
-                Description = "Advanced features for professional teams",
-                MonthlyPrice = 9.99m,
-                YearlyPrice = 99.99m,
-                MaxServers = 10,
-                MetricsRetentionDays = 30,
-                HasAlerts = true,
-                HasApiAccess = true,
-                HasPrioritySupport = false,
-                Features = new List<string> { "maxAlerts: 100", "webhooks: false" }
-            },
-            new()
-            {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
-                PlanType = SubscriptionPlan.Enterprise,
-                Name = "Enterprise",
-                Description = "Complete solution for large organizations",
-                MonthlyPrice = 29.99m,
-                YearlyPrice = 299.99m,
-                MaxServers = 50,
-                MetricsRetentionDays = 90,
-                HasAlerts = true,
-                HasApiAccess = true,
-                HasPrioritySupport = true,
-                Features = new List<string> { "maxAlerts: 1000", "webhooks: true" }
-            }
+            GetHardcodedPlan(SubscriptionPlan.Free),
+            GetHardcodedPlan(SubscriptionPlan.Pro),
+            GetHardcodedPlan(SubscriptionPlan.Enterprise)
         };
-
-        return await Task.FromResult(plans);
     }
 
     public async Task<bool> HasActiveSubscriptionAsync(Guid userId)
@@ -307,7 +258,7 @@ public class SubscriptionService : ISubscriptionService
             return false;
         }
 
-        var plan = await planRepository.GetByPlanTypeAsync(subscription.PlanType);
+        var plan = GetHardcodedPlan(subscription.PlanType);
         if (plan == null)
         {
             return false;
@@ -327,16 +278,69 @@ public class SubscriptionService : ISubscriptionService
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null || subscription.Status != SubscriptionStatus.Active)
         {
-            var freePlan = await planRepository.GetByPlanTypeAsync(SubscriptionPlan.Free);
+            var freePlan = GetHardcodedPlan(SubscriptionPlan.Free);
             return freePlan?.MaxServers ?? 1;
         }
 
-        var plan = await planRepository.GetByPlanTypeAsync(subscription.PlanType);
+        var plan = GetHardcodedPlan(subscription.PlanType);
         return plan?.MaxServers ?? 1;
     }
 
     private static string GetPriceIdForPlan(SubscriptionPlan planType, bool isYearly)
     {
         return $"{planType}_{(isYearly ? "Yearly" : "Monthly")}";
+    }
+
+    private static SubscriptionPlanDto GetHardcodedPlan(SubscriptionPlan planType)
+    {
+        return planType switch
+        {
+            SubscriptionPlan.Free => new SubscriptionPlanDto
+            {
+                Id = Guid.NewGuid(),
+                PlanType = SubscriptionPlan.Free,
+                Name = "Free",
+                Description = "Basic monitoring for single server",
+                MonthlyPrice = 0,
+                YearlyPrice = 0,
+                MaxServers = 1,
+                MetricsRetentionDays = 7,
+                HasAlerts = false,
+                HasApiAccess = false,
+                HasPrioritySupport = false,
+                Features = new List<string> { "1 server monitoring", "7 days retention" }
+            },
+            SubscriptionPlan.Pro => new SubscriptionPlanDto
+            {
+                Id = Guid.NewGuid(),
+                PlanType = SubscriptionPlan.Pro,
+                Name = "Pro",
+                Description = "Advanced monitoring for multiple servers",
+                MonthlyPrice = 10,
+                YearlyPrice = 100,
+                MaxServers = 10,
+                MetricsRetentionDays = 30,
+                HasAlerts = true,
+                HasApiAccess = true,
+                HasPrioritySupport = false,
+                Features = new List<string> { "10 servers", "30 days retention", "Real-time alerts", "API access" }
+            },
+            SubscriptionPlan.Enterprise => new SubscriptionPlanDto
+            {
+                Id = Guid.NewGuid(),
+                PlanType = SubscriptionPlan.Enterprise,
+                Name = "Enterprise",
+                Description = "Enterprise-grade monitoring with unlimited servers",
+                MonthlyPrice = 50,
+                YearlyPrice = 500,
+                MaxServers = -1,
+                MetricsRetentionDays = 90,
+                HasAlerts = true,
+                HasApiAccess = true,
+                HasPrioritySupport = true,
+                Features = new List<string> { "Unlimited servers", "90 days retention", "Advanced alerts", "Full API access", "Priority support" }
+            },
+            _ => throw new InvalidOperationException($"Unknown plan type: {planType}")
+        };
     }
 }

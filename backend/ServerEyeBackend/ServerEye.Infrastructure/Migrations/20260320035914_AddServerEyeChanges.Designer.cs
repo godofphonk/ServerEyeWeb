@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ServerEye.Infrastructure;
@@ -11,9 +12,11 @@ using ServerEye.Infrastructure;
 namespace ServerEye.Infrastructure.Migrations
 {
     [DbContext(typeof(ServerEyeDbContext))]
-    partial class ServerEyeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260320035914_AddServerEyeChanges")]
+    partial class AddServerEyeChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

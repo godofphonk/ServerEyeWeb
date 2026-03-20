@@ -62,8 +62,8 @@ app.MapHealthChecks("/health/live", healthCheckOptions);
 app.MapHealthChecks("/health/ready", healthCheckOptions);
 
 // Apply database migrations
-app.ApplyDatabaseMigrations();
+await app.ApplyDatabaseMigrations();
 
-app.Run();
+await app.RunAsync();
 
 #pragma warning restore CA1303 // Localize strings
