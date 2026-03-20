@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, User, LogOut, AlertTriangle, Mail } from 'lucide-react';
+import { Menu, X, User, LogOut, AlertTriangle, Mail, Crown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const publicLinks = [
   { href: '/', label: 'Home' },
@@ -29,6 +30,7 @@ const privateLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout, isEmailVerified } = useAuth();
+  const { hasPremium, loading } = useSubscription();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const links = isAuthenticated ? privateLinks : publicLinks;
@@ -42,6 +44,9 @@ export function Navbar() {
   if (pathname === '/login' || pathname === '/register') {
     return null;
   }
+
+  // Don't show premium styling if loading or not authenticated
+  const showPremium = isAuthenticated && hasPremium && !loading;
 
   return (
     <nav className='fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/10'>
@@ -75,9 +80,26 @@ export function Navbar() {
               <>
                 {/* <NotificationBell /> */}
                 <Link href='/profile'>
-                  <Button variant='ghost' size='sm' className='relative'>
+                  <Button 
+                    variant='ghost' 
+                    size='sm' 
+                    className={cn(
+                      'relative',
+                      showPremium && [
+                        'bg-gradient-to-r from-purple-500/20 to-blue-500/20',
+                        'border border-purple-500/30',
+                        'shadow-lg shadow-purple-500/10',
+                        'hover:from-purple-500/30 hover:to-blue-500/30',
+                        'hover:border-purple-500/50',
+                        'hover:shadow-purple-500/20'
+                      ]
+                    )}
+                  >
                     <User className='w-4 h-4 mr-2' />
                     {user?.username}
+                    {showPremium && (
+                      <Crown className='w-3 h-3 ml-1 text-yellow-400' />
+                    )}
                     {!isEmailVerified && (
                       <div className='absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center'>
                         <AlertTriangle className='w-2 h-2 text-black' />
@@ -142,9 +164,27 @@ export function Navbar() {
                 {isAuthenticated ? (
                   <>
                     <Link href='/profile' onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant='ghost' size='sm' fullWidth>
+                      <Button 
+                        variant='ghost' 
+                        size='sm' 
+                        fullWidth
+                        className={cn(
+                          'relative',
+                          showPremium && [
+                            'bg-gradient-to-r from-purple-500/20 to-blue-500/20',
+                            'border border-purple-500/30',
+                            'shadow-lg shadow-purple-500/10',
+                            'hover:from-purple-500/30 hover:to-blue-500/30',
+                            'hover:border-purple-500/50',
+                            'hover:shadow-purple-500/20'
+                          ]
+                        )}
+                      >
                         <User className='w-4 h-4 mr-2' />
                         {user?.username}
+                        {showPremium && (
+                          <Crown className='w-3 h-3 ml-1 text-yellow-400' />
+                        )}
                       </Button>
                     </Link>
                     {isAdmin(user) && (
