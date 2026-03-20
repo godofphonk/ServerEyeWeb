@@ -51,6 +51,18 @@ export default function ProfilePage() {
       return;
     }
     
+    // Check for error=already_linked
+    if (error === 'already_linked') {
+      console.log('[Profile] Detected already_linked error from backend');
+      
+      toast.error('Error', 'This account is already linked to another user');
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+      
+      return;
+    }
+    
     // Check for linking=error
     if (linking === 'error') {
       console.log('[Profile] Detected linking=error from backend');
