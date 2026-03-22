@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Wifi, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -11,17 +12,18 @@ interface NetworkTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
   networkDetails?: NetworkDetails | null;
-  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
 }
 
 export default function NetworkTab({
   dashboardMetrics,
   historicalMetrics,
   networkDetails,
-  timeRange = '1h',
-  onTimeRangeChange,
+  loadHistoricalMetrics,
 }: NetworkTabProps) {
+  // Independent time range states for network charts
+  const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [networkTxTimeRange, setNetworkTxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   console.log('[NetworkTab] networkDetails:', networkDetails);
   return (
     <div className='space-y-6'>
@@ -75,10 +77,11 @@ export default function NetworkTab({
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
           <Card className='p-6'>
             <div className='flex justify-between items-center mb-4'>
-              <h4 className='text-sm font-medium text-gray-400'>Network Traffic</h4>
-              {onTimeRangeChange && (
-                <TimeRangeSelector timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
-              )}
+              <h4 className='text-sm font-medium text-gray-400'>Network Traffic (RX)</h4>
+              <TimeRangeSelector 
+                timeRange={networkRxTimeRange} 
+                onTimeRangeChange={setNetworkRxTimeRange} 
+              />
             </div>
             <div className='h-80'>
               <MetricsLineChart
@@ -87,7 +90,7 @@ export default function NetworkTab({
                 title=''
                 color='#10b981'
                 unit='MB/s'
-                timeRange={timeRange}
+                timeRange={networkRxTimeRange}
               />
             </div>
           </Card>

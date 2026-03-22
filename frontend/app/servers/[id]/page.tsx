@@ -49,8 +49,6 @@ export default function ServerDetailPage() {
   const [historicalMetrics, setHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [networkDetails, setNetworkDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  // Unified time range state - all charts use the same range
-  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [activeTab, setActiveTab] = useState('cpu');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -87,7 +85,7 @@ export default function ServerDetailPage() {
           // Load dashboard metrics and historical metrics (optimized - 1 request instead of 8)
           const [dashboardMetrics, historicalMetrics] = await Promise.all([
             loadDashboardMetrics(),
-            loadHistoricalMetrics(timeRange), // Single request for all metrics
+            loadHistoricalMetrics('1h'), // Load default 1h data initially
           ]);
 
           // Set dashboard metrics
@@ -110,7 +108,7 @@ export default function ServerDetailPage() {
   }, [
     user,
     serverId,
-    timeRange, // Only reload when time range changes
+    // Removed timeRange dependency - each tab manages its own time range
   ]);
 
   // Helper function to get server info (optimized)
@@ -691,11 +689,10 @@ export default function ServerDetailPage() {
               historicalMetrics={historicalMetrics}
               staticInfo={staticInfo}
               server={server}
-              timeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
               networkDetails={networkDetails}
               activeTab={activeTab}
               onActiveTabChange={setActiveTab}
+              loadHistoricalMetrics={loadHistoricalMetrics}
             />
           </div>
         </div>
