@@ -22,6 +22,7 @@ import {
   getServerKey,
   getCachedMonitoredServers,
   getCachedMetrics,
+  getCachedTieredMetrics,
 } from '@/lib/serverApi';
 import {
   MonitoredServer,
@@ -396,10 +397,14 @@ export default function ServerDetailPage() {
 
   const loadHistoricalMetrics = async (range: '1h' | '6h' | '24h' | '7d' | '30d' = '1h') => {
     const perfStart = performance.now();
-    const end = new Date();
-    const start = new Date();
+    const now = new Date();
+    
+    // Round to nearest minute for better alignment with Go API data
+    const end = new Date(now);
+    end.setSeconds(0, 0); // Round to minute
+    const start = new Date(end);
 
-    console.log(`[HistoricalMetrics] Loading historical metrics for range: ${range}`);
+    console.log(`[HistoricalMetrics] Loading tiered metrics for range: ${range}`);
 
     switch (range) {
       case '1h':
@@ -419,35 +424,15 @@ export default function ServerDetailPage() {
         break;
     }
 
-    // Determine granularity based on time range
-    let granularity = '1h';
-    switch (range) {
-      case '1h':
-        granularity = '1m';
-        break;
-      case '6h':
-        granularity = '5m';
-        break;
-      case '24h':
-        granularity = '15m';
-        break;
-      case '7d':
-        granularity = '1h';
-        break;
-      case '30d':
-        granularity = '6h';
-        break;
-    }
-
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
 
-    const response = await getCachedMetrics(
-      serverKey,
-      start.toISOString(),
-      end.toISOString(),
-      granularity,
-    );
+    // Use tiered endpoint for 1 hour range (optimized for graphs)
+    console.log(`[HistoricalMetrics] Time range: ${start.toISOString()} to ${end.toISOString()}`);
+    
+    const response = range === '1h' 
+      ? await getCachedTieredMetrics(serverKey, start.toISOString(), end.toISOString())
+      : await getCachedMetrics(serverKey, start.toISOString(), end.toISOString(), '1m');
 
     console.log(
       `[HistoricalMetrics] Historical metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
@@ -467,23 +452,7 @@ export default function ServerDetailPage() {
       console.log(`  Last: ${lastPoint.toISOString()} (${minutesAgoLast} minutes ago)`);
       console.log(`  Range: ${response.dataPoints.length} points`);
 
-      // Если данные старые (агент переустановлен), показываем только последние 5 минут
-      if (minutesAgoFirst > 10) {
-        console.log(
-          `[HistoricalMetrics] ⚠️  Agent reinstalled! Showing only last 5 minutes of data.`,
-        );
-
-        // Фильтруем данные - оставляем только последние 5 минут
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        const recentData = response.dataPoints.filter(
-          (point: any) => new Date(point.timestamp) >= fiveMinutesAgo,
-        );
-
-        console.log(
-          `[HistoricalMetrics] Filtered from ${response.dataPoints.length} to ${recentData.length} points (last 5 minutes)`,
-        );
-        response.dataPoints = recentData;
-      }
+      // Фильтр переустановки агента отключен - показываем все данные
     }
 
     // Детальное логирование первых и последних точек данных
@@ -523,19 +492,8 @@ export default function ServerDetailPage() {
       }
     }
 
-    // Определяем гранулярность в минутах для заполнения
-    const granularityMinutes =
-      granularity === '1m'
-        ? 1
-        : granularity === '5m'
-          ? 5
-          : granularity === '15m'
-            ? 15
-            : granularity === '1h'
-              ? 60
-              : granularity === '6h'
-                ? 360
-                : 1;
+    // Определяем гранулярность в минутах для заполнения на основе range
+    const granularityMinutes = range === '1h' ? 1 : 1;
 
     // Заполняем пропущенные данные нулями
     const filledDataPoints = fillMissingDataPoints(

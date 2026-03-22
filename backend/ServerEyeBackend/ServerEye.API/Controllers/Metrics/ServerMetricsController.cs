@@ -61,70 +61,33 @@ public class ServerMetricsController : BaseApiController
         });
     }
 
-    [HttpGet("{serverId}/metrics/tiered")]
-    public async Task<ActionResult<RawMetricsResponse>> GetTieredMetrics(string serverId, [FromQuery] MetricsRequest request)
+    [HttpGet("by-key/{serverKey}/metrics/tiered")]
+    public async Task<ActionResult<RawMetricsResponse>> GetTieredMetricsByKey(string serverKey, [FromQuery] MetricsRequest request)
     {
         return await ExecuteWithErrorHandling(async () =>
         {
-            this.logger.LogInformation(
-                "GetTieredMetrics called: ServerId={ServerId}, Start={Start}, End={End}, Granularity={Granularity}",
-                serverId,
-                request.Start,
-                request.End,
-                request.Granularity);
+            this.logger.LogInformation("GetTieredMetricsByKey called: ServerKey={ServerKey}", serverKey);
             
             var userId = GetUserId();
             
-            // Handle nullable parameters
+            // Handle nullable parameters - tiered endpoint requires start and end
             DateTime? start = request.Start;
             DateTime? end = request.End;
-            string? granularity = request.Granularity;
             
-            // If no parameters provided, use default behavior (like dashboard)
-            if (!start.HasValue && !end.HasValue && string.IsNullOrEmpty(granularity))
+            // If no parameters provided, use default behavior (last 1 hour for graphs)
+            if (!start.HasValue || !end.HasValue)
             {
-                this.logger.LogInformation("No parameters provided, using default behavior");
+                end = DateTime.UtcNow;
+                start = end.Value.AddHours(-1);
+                this.logger.LogInformation("No time range provided, using default: last 1 hour");
             }
         
-            var metrics = await metricsService.GetMetricsAsync(userId, serverId, start, end, granularity);
-            return metrics;
-        });
-    }
-
-    [HttpGet("{serverId}/metrics/realtime")]
-    public async Task<ActionResult<RawMetricsResponse>> GetRealtimeMetrics(string serverId, [FromQuery] string? duration = null)
-    {
-        return await ExecuteWithErrorHandling(async () =>
-        {
-            var userId = GetUserId();
-            TimeSpan? durationSpan = null;
-
-            if (!string.IsNullOrEmpty(duration))
-            {
-                if (duration.EndsWith('m'))
-                {
-                    var minutes = int.Parse(duration.TrimEnd('m'));
-                    durationSpan = TimeSpan.FromMinutes(minutes);
-                }
-                else if (duration.EndsWith('h'))
-                {
-                    var hours = int.Parse(duration.TrimEnd('h'));
-                    durationSpan = TimeSpan.FromHours(hours);
-                }
-            }
-
-            var metrics = await metricsService.GetRealtimeMetricsAsync(userId, serverId, durationSpan);
-            return metrics;
-        });
-    }
-
-    [HttpGet("{serverId}/metrics/dashboard")]
-    public async Task<ActionResult<RawMetricsResponse>> GetDashboardMetrics(string serverId)
-    {
-        return await ExecuteWithErrorHandling(async () =>
-        {
-            var userId = GetUserId();
-            var metrics = await metricsService.GetDashboardMetricsAsync(userId, serverId);
+            this.logger.LogInformation(
+                "GetTieredMetricsByKey: Parameters - Start={Start}, End={End}",
+                start,
+                end);
+        
+            var metrics = await metricsService.GetTieredMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value);
             return metrics;
         });
     }

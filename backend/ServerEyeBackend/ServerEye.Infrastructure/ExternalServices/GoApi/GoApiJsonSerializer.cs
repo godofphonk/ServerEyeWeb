@@ -44,7 +44,18 @@ public static class GoApiJsonSerializer
     /// </summary>
     public static GoApiMetricsResponse? DeserializeMetricsResponse(string content)
     {
-        return TryDeserialize<GoApiMetricsResponse>(content);
+        try
+        {
+            var result = JsonSerializer.Deserialize<GoApiMetricsResponse>(content, DefaultOptions);
+            Console.WriteLine($"[GoApiJsonSerializer] Successfully deserialized {result?.DataPoints?.Count ?? 0} data points");
+            return result;
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"[GoApiJsonSerializer] JSON deserialization failed: {ex.Message}");
+            Console.WriteLine($"[GoApiJsonSerializer] Content preview: {content[..Math.Min(500, content.Length)]}...");
+            return null;
+        }
     }
 
     /// <summary>

@@ -55,22 +55,21 @@ public class MetricsService : IMetricsService
     }
 
     #pragma warning disable SA1202 // 'public' members should come before 'private' members
-    public async Task<RawMetricsResponse> GetMetricsAsync(Guid userId, string serverId, DateTime start, DateTime endTime, string? granularity = null)
+    public async Task<RawMetricsResponse> GetTieredMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime)
 #pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
-            "[PERF] GetMetricsAsync started for server ID {ServerId} with Start={Start}, End={End}, Granularity={Granularity}",
-            serverId,
+            "[PERF] GetTieredMetricsByKeyAsync started for server key {ServerKey} with Start={Start}, End={End}",
+            serverKey,
             start,
-            endTime,
-            granularity);
+            endTime);
 
         try
         {
-            // Validate server ID and get server info for access check
+            // Validate server key and get server info for access check
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverId);
+            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
             #pragma warning disable IDE0270 // Simplify null check
             if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
@@ -83,8 +82,8 @@ public class MetricsService : IMetricsService
             accessCheckTime.Stop();
             this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
-            // Generate cache key based on server ID
-            var cacheKey = $"metrics:by-id:{serverId}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}:{granularity ?? "auto"}";
+            // Generate cache key based on server key for tiered metrics
+            var cacheKey = $"metrics:tiered:{serverKey}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}";
             var ttl = this.cacheService.CalculateTTL(start, endTime);
 
             var cacheTime = System.Diagnostics.Stopwatch.StartNew();
@@ -92,23 +91,25 @@ public class MetricsService : IMetricsService
                 cacheKey,
                 async () =>
                 {
-                    this.logger.LogInformation("[PERF] Cache miss - fetching from Go API by ID");
+                    this.logger.LogInformation("[PERF] Cache miss - fetching tiered metrics from Go API");
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                    var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start, endTime, granularity);
+                    var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey, start, endTime);
                     goApiTime.Stop();
                     
                     if (goResponse == null)
                     {
                         this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
-                        throw new InvalidOperationException("Failed to retrieve metrics from Go API");
+                        throw new InvalidOperationException("Failed to retrieve tiered metrics from Go API");
                     }
                     
                     if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
                     {
-                        this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
+                        this.logger.LogWarning("[PERF] Go API returned empty tiered data after {Ms}ms", goApiTime.ElapsedMilliseconds);
                     }
                     
-                    // Return raw Go API response without mapping
+                    this.logger.LogInformation("[PERF] Go API tiered response received in {GoApiMs}ms with {Points} data points", goApiTime.ElapsedMilliseconds, goResponse.DataPoints?.Count ?? 0);
+                    
+                    // Return raw Go API response
                     var rawResponse = new RawMetricsResponse
                     {
                         ServerId = goResponse.ServerId,
@@ -141,19 +142,18 @@ public class MetricsService : IMetricsService
             if (!string.IsNullOrEmpty(response.Message))
             {
                 this.logger.LogInformation(
-                    "Go API message for server ID {ServerId}: {Message}",
-                    serverId,
+                    "Go API tiered message for server key {ServerKey}: {Message}",
+                    serverKey,
                     response.Message);
             }
 
             stopwatch.Stop();
             this.logger.LogInformation(
-                "[PERF] GetMetricsAsync completed in {TotalMs}ms (access: {AccessMs}ms, cache: {CacheMs}ms) for server ID {ServerId}, granularity: {Granularity}, data points: {Points}",
+                "[PERF] GetTieredMetricsByKeyAsync completed in {TotalMs}ms (access: {AccessMs}ms, cache: {CacheMs}ms) for server key {ServerKey}, data points: {Points}",
                 stopwatch.ElapsedMilliseconds,
                 accessCheckTime.ElapsedMilliseconds,
                 cacheTime.ElapsedMilliseconds,
-                serverId,
-                granularity ?? "auto",
+                serverKey,
                 response.DataPoints?.Count ?? 0);
 
             return response;
@@ -161,12 +161,14 @@ public class MetricsService : IMetricsService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            this.logger.LogError(ex, "[PERF] Error in GetMetricsAsync after {Ms}ms", stopwatch.ElapsedMilliseconds);
+            this.logger.LogError(ex, "[PERF] Error in GetTieredMetricsByKeyAsync after {Ms}ms", stopwatch.ElapsedMilliseconds);
             throw;
         }
     }
 
+    #pragma warning disable SA1202 // 'public' members should come before 'private' members
     public async Task<RawMetricsResponse> GetMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime, string? granularity = null)
+#pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
@@ -296,11 +298,13 @@ public class MetricsService : IMetricsService
         dbQueryTime.Stop();
         this.logger.LogInformation("[PERF] Database query took {Ms}ms", dbQueryTime.ElapsedMilliseconds);
 
-        // Handle null parameters - use default behavior for dashboard
+        // Handle null parameters - use default behavior
         if (!start.HasValue && !endTime.HasValue)
         {
-            this.logger.LogInformation("No time range provided, using dashboard default behavior");
-            return await this.GetDashboardMetricsAsync(userId, serverId);
+            this.logger.LogInformation("No time range provided, using default behavior");
+            endTime = DateTime.UtcNow;
+            start = endTime.Value.AddMinutes(-5);
+            granularity = "1m";
         }
 
         var cacheKey = $"metrics:{serverId}:{start!.Value:yyyyMMddHHmmss}:{endTime!.Value:yyyyMMddHHmmss}:{granularity ?? "auto"}";
@@ -313,7 +317,7 @@ public class MetricsService : IMetricsService
             {
                 this.logger.LogInformation("[PERF] Cache miss - fetching from Go API");
                 var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                var goResponse = await this.goApiClient.GetMetricsAsync(serverId, start!.Value, endTime!.Value, granularity);
+                var goResponse = await this.goApiClient.GetMetricsByKeyAsync(server.ServerKey, start!.Value, endTime!.Value, granularity);
                 goApiTime.Stop();
                 
                 if (goResponse == null)
@@ -339,6 +343,7 @@ public class MetricsService : IMetricsService
                     TotalPoints = goResponse.TotalPoints,
                     Message = goResponse.Message,
                     Status = goResponse.Status?.Online == true ? "success" : "error",
+                    Summary = CalculateSummary(goResponse.DataPoints ?? new()),
                     TemperatureDetails = goResponse.TemperatureDetails,
                     NetworkDetails = goResponse.NetworkDetails,
                     DiskDetails = goResponse.DiskDetails,
@@ -376,23 +381,6 @@ public class MetricsService : IMetricsService
             response.DataPoints?.Count ?? 0);
 
         return response;
-    }
-
-    public async Task<RawMetricsResponse> GetRealtimeMetricsAsync(Guid userId, string serverId, TimeSpan? duration = null)
-    {
-        var actualDuration = duration ?? TimeSpan.FromMinutes(5);
-        var end = DateTime.UtcNow;
-        var start = end - actualDuration;
-        
-        return await this.GetMetricsAsync(userId, serverId, start, end, "1m");
-    }
-
-    public async Task<RawMetricsResponse> GetDashboardMetricsAsync(Guid userId, string serverId)
-    {
-        var end = DateTime.UtcNow;
-        var start = end - TimeSpan.FromMinutes(5);
-        
-        return await this.GetMetricsAsync(userId, serverId, start, end, "1m");
     }
 
     private async Task ValidateAccessAsync(Guid userId, string serverId)
