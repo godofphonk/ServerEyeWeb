@@ -14,7 +14,7 @@ public static class GoApiDataTransformer
     /// </summary>
     public static GoApiMetricsResponse? ConvertSnapshotToTimeSeries(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string? granularity)
     {
-        var dataPoints = GenerateDataPointsFromSnapshot(snapshot, start, end, granularity ?? "minute");
+        var dataPoints = GenerateDataPointsFromSnapshot(snapshot);
         var summary = CalculateSummary(dataPoints);
 
         return new GoApiMetricsResponse
@@ -109,7 +109,7 @@ public static class GoApiDataTransformer
     /// NOTE: This is a fallback for when historical data is not available.
     /// It creates a single data point from the current snapshot.
     /// </summary>
-    private static List<GoApiDataPoint> GenerateDataPointsFromSnapshot(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string granularity)
+    private static List<GoApiDataPoint> GenerateDataPointsFromSnapshot(GoApiSnapshotResponse snapshot)
     {
         var dataPoints = new List<GoApiDataPoint>();
         
@@ -138,21 +138,6 @@ public static class GoApiDataTransformer
         return dataPoints;
     }
 
-    /// <summary>
-    /// Gets time interval for granularity.
-    /// </summary>
-    private static TimeSpan GetInterval(string granularity)
-    {
-        return granularity.ToUpperInvariant() switch
-        {
-            "MINUTE" => TimeSpan.FromMinutes(1),
-            "5MINUTES" or "5M" => TimeSpan.FromMinutes(5),
-            "15MINUTES" or "15M" => TimeSpan.FromMinutes(15),
-            "HOUR" or "1H" => TimeSpan.FromHours(1),
-            "DAY" => TimeSpan.FromDays(1),
-            _ => TimeSpan.FromMinutes(1)
-        };
-    }
 
     /// <summary>
     /// Calculates metrics summary.
