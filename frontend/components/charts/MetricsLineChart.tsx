@@ -72,26 +72,26 @@ export default function MetricsLineChart({
     if (active && payload && payload.length) {
       return (
         <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
-          <p className='text-sm text-gray-400 mb-2'>{payload[0].payload.time}</p>
+          <p className='text-sm text-gray-400 mb-2'>{payload[0]?.payload?.time}</p>
           <div className='space-y-1'>
             <p className='text-sm'>
               <span className='text-blue-400'>Avg:</span>{' '}
               <span className='font-semibold'>
-                {payload[0].value.toFixed(1)}
+                {payload[0]?.value?.toFixed(1) || '0'}
                 {unit}
               </span>
             </p>
             <p className='text-sm'>
               <span className='text-green-400'>Max:</span>{' '}
               <span className='font-semibold'>
-                {payload[1].value.toFixed(1)}
+                {payload[1]?.value?.toFixed(1) || '0'}
                 {unit}
               </span>
             </p>
             <p className='text-sm'>
               <span className='text-yellow-400'>Min:</span>{' '}
               <span className='font-semibold'>
-                {payload[2].value.toFixed(1)}
+                {payload[2]?.value?.toFixed(1) || '0'}
                 {unit}
               </span>
             </p>

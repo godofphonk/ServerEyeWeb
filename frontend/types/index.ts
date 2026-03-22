@@ -61,6 +61,11 @@ export interface MemoryInfo {
   total_gb: number;
   type: string;
   speed_mhz: number;
+  cached_gb?: number;
+  available_gb?: number;
+  used_gb?: number;
+  free_gb?: number;
+  buffers_gb?: number;
 }
 
 export interface MotherboardInfo {
@@ -292,6 +297,16 @@ export interface CurrentMetrics {
   temperature: number;
   gpu_temperature?: number;
   load: number;
+  
+  // Additional memory details
+  memoryCache?: number;
+  memoryBuffers?: number;
+  memoryAvailable?: number;
+  memorySwap?: number;
+  
+  // Disk I/O metrics
+  diskReadSpeed?: number;
+  diskWriteSpeed?: number;
 }
 
 export interface MetricTrends {

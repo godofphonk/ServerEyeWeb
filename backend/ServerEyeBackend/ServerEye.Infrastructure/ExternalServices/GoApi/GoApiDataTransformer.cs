@@ -43,7 +43,7 @@ public static class GoApiDataTransformer
     /// <summary>
     /// Converts Go API static info response to static info.
     /// </summary>
-    public static GoApiStaticInfo ConvertToStaticInfo(GoApiStaticInfoResponse response)
+    public static GoApiStaticInfo ConvertToStaticInfo(GoApiStaticInfoResponse response, GoApiServerStatus? serverStatus = null)
     {
         return new GoApiStaticInfo
         {
@@ -52,7 +52,7 @@ public static class GoApiDataTransformer
             OperatingSystem = $"{response.ServerInfo.Os} {response.ServerInfo.OsVersion}".Trim(),
             Kernel = response.ServerInfo.Kernel,
             Architecture = response.ServerInfo.Architecture,
-            AgentVersion = string.Empty, // Will be populated from metrics endpoint
+            AgentVersion = serverStatus?.AgentVersion ?? string.Empty,
             LastUpdated = response.ServerInfo.UpdatedAt,
             CpuInfo = response.HardwareInfo != null
                 ? new StaticCpuInfo
@@ -115,24 +115,58 @@ public static class GoApiDataTransformer
         
         // Create a single data point from current snapshot
         // This is NOT historical data - just current metrics formatted as a data point
+        var validTimestamp = snapshot.Timestamp > DateTime.MinValue && snapshot.Timestamp.Year > 1970 
+            ? snapshot.Timestamp 
+            : DateTime.UtcNow;
+        
+        // Log values for debugging
+        var cpuTemp = snapshot.Metrics?.TemperatureDetails?.CpuTemperature ?? 0;
+        var highestTemp = snapshot.Metrics?.TemperatureDetails?.HighestTemperature ?? 0;
+        var load1Min = snapshot.Metrics?.CpuUsage?.LoadAverage?.Load1Min ?? 0;
+        
+        // Use new direct mappings from Go API
+        var directTemp = snapshot.Metrics?.TemperatureCelsius ?? 0;
+        var directCpuTemp = snapshot.Metrics?.Temperatures?.Cpu ?? 0;
+        var directHighestTemp = snapshot.Metrics?.Temperatures?.Highest ?? 0;
+        var directLoad1Min = snapshot.Metrics?.LoadAverage?.Load1Min ?? 0;
+        
+        // Choose best values (new direct mappings first, then fallback to old structure)
+        var finalTemp = directTemp > 0 ? directTemp : (directCpuTemp > 0 ? directCpuTemp : cpuTemp);
+        var finalHighestTemp = directHighestTemp > 0 ? directHighestTemp : highestTemp;
+        var finalLoad = directLoad1Min > 0 ? directLoad1Min : load1Min;
+        
+        Console.WriteLine($"[GoApiDataTransformer] Snapshot values - CPU: {snapshot.Metrics?.Cpu}, Memory: {snapshot.Metrics?.Memory}, Temp: {finalTemp}, HighestTemp: {finalHighestTemp}, Load: {finalLoad}");
+            
         dataPoints.Add(new GoApiDataPoint
         {
-            Timestamp = snapshot.Timestamp,
-            CpuAvg = snapshot.Metrics.Cpu,
-            CpuMax = snapshot.Metrics.Cpu,
-            CpuMin = snapshot.Metrics.Cpu,
-            MemoryAvg = snapshot.Metrics.Memory,
-            MemoryMax = snapshot.Metrics.Memory,
-            MemoryMin = snapshot.Metrics.Memory,
-            DiskAvg = snapshot.Metrics.Disk,
-            DiskMax = snapshot.Metrics.Disk,
-            NetworkAvg = snapshot.Metrics.Network,
-            NetworkMax = snapshot.Metrics.Network,
-            TempAvg = snapshot.Metrics.TemperatureDetails.CpuTemperature,
-            TempMax = snapshot.Metrics.TemperatureDetails.HighestTemperature,
-            LoadAvg = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-            LoadMax = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-            SampleCount = 1
+            Timestamp = validTimestamp,
+            CpuAvg = snapshot.Metrics?.Cpu ?? 0,
+            CpuMax = snapshot.Metrics?.Cpu ?? 0,
+            CpuMin = snapshot.Metrics?.Cpu ?? 0,
+            MemoryAvg = snapshot.Metrics?.Memory ?? 0,
+            MemoryMax = snapshot.Metrics?.Memory ?? 0,
+            MemoryMin = snapshot.Metrics?.Memory ?? 0,
+            DiskAvg = snapshot.Metrics?.Disk ?? 0,
+            DiskMax = snapshot.Metrics?.Disk ?? 0,
+            NetworkAvg = snapshot.Metrics?.Network ?? 0,
+            NetworkMax = snapshot.Metrics?.Network ?? 0,
+            TempAvg = finalTemp,
+            TempMax = finalHighestTemp,
+            LoadAvg = finalLoad,
+            LoadMax = finalLoad,
+            SampleCount = 1,
+            
+            // Memory details from snapshot
+            MemoryCacheGb = snapshot.Metrics?.MemoryDetails?.CachedGb ?? 0,
+            MemoryBuffersGb = snapshot.Metrics?.MemoryDetails?.BuffersGb ?? 0,
+            MemoryAvailableGb = snapshot.Metrics?.MemoryDetails?.AvailableGb ?? 0,
+            MemorySwapPercent = 0, // TODO: Add swap data when available from Go API
+            
+            // Disk I/O metrics from snapshot
+            DiskReadMb = snapshot.Metrics?.DiskReadMb ?? 0,
+            DiskWriteMb = snapshot.Metrics?.DiskWriteMb ?? 0,
+            DiskReadBytesSec = snapshot.Metrics?.DiskReadBytesSec ?? 0,
+            DiskWriteBytesSec = snapshot.Metrics?.DiskWriteBytesSec ?? 0
         });
 
         return dataPoints;
