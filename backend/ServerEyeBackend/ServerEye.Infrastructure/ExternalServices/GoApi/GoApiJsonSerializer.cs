@@ -72,6 +72,14 @@ public static class GoApiJsonSerializer
     }
 
     /// <summary>
+    /// Deserializes Go API server status.
+    /// </summary>
+    public static GoApiServerStatus? DeserializeServerStatus(string content)
+    {
+        return TryDeserialize<GoApiServerStatus>(content);
+    }
+
+    /// <summary>
     /// Deserializes Go API servers list.
     /// </summary>
     public static List<GoApiServerInfo>? DeserializeServersList(string content)

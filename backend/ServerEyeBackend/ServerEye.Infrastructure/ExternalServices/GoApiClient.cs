@@ -43,6 +43,12 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
         return await operation.ExecuteAsync();
     }
 
+    public async Task<GoApiServerStatus?> GetServerStatusAsync(string serverKey)
+    {
+        var operation = operationFactory.CreateGetServerStatus(serverKey);
+        return await operation.ExecuteAsync();
+    }
+
     public async Task<GoApiServerInfo?> GetServerInfoAsync(string serverId)
     {
         var operation = operationFactory.CreateGetServerInfo(serverId);

@@ -47,6 +47,42 @@ public class StaticInfoService : IStaticInfoService
                 throw new InvalidOperationException("Failed to retrieve static info from Go API");
             }
 
+            // Get server status to retrieve agent version
+            GoApiServerStatus? serverStatus = null;
+            try
+            {
+                serverStatus = await this.goApiClient.GetServerStatusAsync(serverKey);
+                if (serverStatus?.AgentVersion != null)
+                {
+                    this.logger.LogInformation("[PERF] Got agent version {Version} from status endpoint", serverStatus.AgentVersion);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "[PERF] Failed to get server status for agent version");
+            }
+
+            // Update agent version if available from status
+            if (serverStatus?.AgentVersion != null && staticInfo.AgentVersion != serverStatus.AgentVersion)
+            {
+                staticInfo = new GoApiStaticInfo
+                {
+                    ServerId = staticInfo.ServerId,
+                    Hostname = staticInfo.Hostname,
+                    OperatingSystem = staticInfo.OperatingSystem,
+                    Kernel = staticInfo.Kernel,
+                    Architecture = staticInfo.Architecture,
+                    AgentVersion = serverStatus.AgentVersion,
+                    LastUpdated = staticInfo.LastUpdated,
+                    CpuInfo = staticInfo.CpuInfo,
+                    MemoryInfo = staticInfo.MemoryInfo,
+                    DiskInfo = staticInfo.DiskInfo,
+                    NetworkInterfaces = staticInfo.NetworkInterfaces,
+                    MotherboardInfo = staticInfo.MotherboardInfo,
+                    GpuInfo = staticInfo.GpuInfo
+                };
+            }
+
             stopwatch.Stop();
             this.logger.LogInformation(
                 "[PERF] GetStaticInfoAsync completed in {TotalMs}ms (access: {AccessMs}ms, goApi: {GoApiMs}ms) for server {ServerId}",

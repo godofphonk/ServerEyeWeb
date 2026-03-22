@@ -56,6 +56,14 @@ public static class GoApiUrlBuilder
     }
 
     /// <summary>
+    /// Builds server status URL by key.
+    /// </summary>
+    public static Uri BuildServerStatusUrl(string serverKey)
+    {
+        return new Uri($"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/status", UriKind.Relative);
+    }
+
+    /// <summary>
     /// Builds server info URL.
     /// </summary>
     public static Uri BuildServerInfoUrl(string serverId)

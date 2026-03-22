@@ -53,6 +53,11 @@ public class GoApiOperationFactory
         return new GetStaticInfoOperation(httpHandler, logger, serverKey);
     }
 
+    public GetServerStatusOperation CreateGetServerStatus(string serverKey)
+    {
+        return new GetServerStatusOperation(httpHandler, logger, serverKey);
+    }
+
     public ValidateServerKeyOperation CreateValidateServerKey(string serverKey)
     {
         return new ValidateServerKeyOperation(httpHandler, logger, serverKey);
