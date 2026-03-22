@@ -19,9 +19,9 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
         return await operation.ExecuteAsync();
     }
 
-    public async Task<GoApiMetricsResponse?> GetTieredMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime)
+    public async Task<GoApiMetricsResponse?> GetTieredMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null)
     {
-        var operation = operationFactory.CreateGetTieredMetricsByKey(serverKey, start, endTime);
+        var operation = operationFactory.CreateGetTieredMetricsByKey(serverKey, start, endTime, granularity);
         return await operation.ExecuteAsync();
     }
 

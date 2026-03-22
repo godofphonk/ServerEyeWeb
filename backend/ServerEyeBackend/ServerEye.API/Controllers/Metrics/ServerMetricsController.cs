@@ -73,21 +73,24 @@ public class ServerMetricsController : BaseApiController
             // Handle nullable parameters - tiered endpoint requires start and end
             DateTime? start = request.Start;
             DateTime? end = request.End;
+            string? granularity = request.Granularity;
             
             // If no parameters provided, use default behavior (last 1 hour for graphs)
             if (!start.HasValue || !end.HasValue)
             {
                 end = DateTime.UtcNow;
                 start = end.Value.AddHours(-1);
-                this.logger.LogInformation("No time range provided, using default: last 1 hour");
+                granularity = "1m"; // Default granularity for 1 hour
+                this.logger.LogInformation("No time range provided, using default: last 1 hour with 1m granularity");
             }
         
             this.logger.LogInformation(
-                "GetTieredMetricsByKey: Parameters - Start={Start}, End={End}",
+                "GetTieredMetricsByKey: Parameters - Start={Start}, End={End}, Granularity={Granularity}",
                 start,
-                end);
+                end,
+                granularity);
         
-            var metrics = await metricsService.GetTieredMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value);
+            var metrics = await metricsService.GetTieredMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
             return metrics;
         });
     }

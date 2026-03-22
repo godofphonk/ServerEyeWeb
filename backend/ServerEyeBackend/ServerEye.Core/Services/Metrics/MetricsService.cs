@@ -55,7 +55,7 @@ public class MetricsService : IMetricsService
     }
 
     #pragma warning disable SA1202 // 'public' members should come before 'private' members
-    public async Task<RawMetricsResponse> GetTieredMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime)
+    public async Task<RawMetricsResponse> GetTieredMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime, string? granularity = null)
 #pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -93,7 +93,7 @@ public class MetricsService : IMetricsService
                 {
                     this.logger.LogInformation("[PERF] Cache miss - fetching tiered metrics from Go API");
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                    var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey, start, endTime);
+                    var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey, start, endTime, granularity);
                     goApiTime.Stop();
                     
                     if (goResponse == null)
