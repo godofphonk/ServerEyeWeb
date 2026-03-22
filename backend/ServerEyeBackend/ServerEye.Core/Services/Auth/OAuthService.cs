@@ -161,16 +161,45 @@ public sealed class OAuthService(
         User? user = null;
 
         this.logger.LogInformation(
-            "OAuth callback - Provider: {Provider}, UserId: {UserId}, ExternalLoginFound: {ExternalLoginFound}", 
+            "OAuth callback - Provider: {Provider}, ProviderUserId: {ProviderUserId}, ExternalLoginFound: {ExternalLoginFound}, LinkingAction: {LinkingAction}, RequestUserId: {RequestUserId}", 
             provider, 
             userInfo.Id, 
-            existingExternalLogin != null);
+            existingExternalLogin != null,
+            request.LinkingAction,
+            request.UserId ?? "null");
 
         if (existingExternalLogin != null)
         {
             // User with this external login already exists
             user = await this.userRepository.GetByIdAsync(existingExternalLogin.UserId);
             this.logger.LogInformation("Found existing user via external login - UserId: {UserId}", user?.Id);
+            
+            // CRITICAL: Check if this is a linking attempt to a DIFFERENT user account
+            // If LinkingAction is true OR UserId is provided, this is a linking attempt
+            if (request.LinkingAction || !string.IsNullOrEmpty(request.UserId))
+            {
+                // Parse the requesting user ID
+                Guid? requestingUserId = null;
+                if (!string.IsNullOrEmpty(request.UserId) && Guid.TryParse(request.UserId, out var parsedUserId))
+                {
+                    requestingUserId = parsedUserId;
+                }
+                
+                // If the provider is already linked to a DIFFERENT user, this is an error
+                if (requestingUserId.HasValue && existingExternalLogin.UserId != requestingUserId.Value)
+                {
+                    this.logger.LogWarning(
+                        "OAuth linking attempt failed - Provider {Provider} is already linked to user {ExistingUserId}, but user {RequestingUserId} is trying to link it",
+                        provider,
+                        existingExternalLogin.UserId,
+                        requestingUserId.Value);
+                    throw new InvalidOperationException("This external account is already linked to another user");
+                }
+                
+                this.logger.LogInformation(
+                    "OAuth linking detected but provider is already linked to the same user {UserId} - proceeding with login",
+                    existingExternalLogin.UserId);
+            }
         }
 
         // Apply action-based logic

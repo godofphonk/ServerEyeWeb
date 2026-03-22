@@ -43,7 +43,7 @@ function OAuthCallbackContent() {
           sessionStorage.removeItem('oauth_linking');
           
           // Redirect to backend callback with linkingAction=true and userId
-          const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&provider=${encodeURIComponent(provider)}&linkingAction=true&userId=${encodeURIComponent(userId)}`;
+          const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&provider=${encodeURIComponent(provider)}&linkingAction=true&userId=${encodeURIComponent(userId)}`;
           
           console.log('[OAuth Callback] Redirecting to backend callback with linking:', callbackUrl);
           window.location.href = callbackUrl;
@@ -62,7 +62,7 @@ function OAuthCallbackContent() {
     console.log('[OAuth Callback] Not a linking request, forwarding to backend callback');
     
     // Forward to backend callback
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
     window.location.href = callbackUrl;
   }, [searchParams, router]);
 

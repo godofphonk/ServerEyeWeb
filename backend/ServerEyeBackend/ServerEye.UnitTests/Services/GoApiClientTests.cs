@@ -27,7 +27,7 @@ public class GoApiClientTests : IDisposable
         var mockLogger1 = new Mock<ILogger<GoApiLogger>>();
         this.httpClient = new HttpClient(this.mockHandler.Object)
         {
-            BaseAddress = new Uri("http://localhost:8080")
+            BaseAddress = new Uri("http://127.0.0.1:8080")
         };
         
         var httpHandler = new GoApiHttpHandler(this.httpClient);

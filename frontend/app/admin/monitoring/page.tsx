@@ -231,7 +231,7 @@ export default function SystemMonitoringPage() {
                   </div>
                 </div>
                 <a
-                  href='http://localhost:9090'
+                  href='http://127.0.0.1:9090'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg transition-colors'
@@ -255,7 +255,7 @@ export default function SystemMonitoringPage() {
                   </div>
                 </div>
                 <a
-                  href='http://localhost:3001'
+                  href='http://127.0.0.1:3001'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='flex items-center gap-2 px-4 py-2 bg-pink-500/20 hover:bg-pink-500/30 rounded-lg transition-colors'

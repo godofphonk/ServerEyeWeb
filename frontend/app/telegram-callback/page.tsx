@@ -41,6 +41,18 @@ function TelegramCallbackContent() {
           const telegramData = JSON.parse(decodedResult);
           console.log('[Telegram Callback] Parsed Telegram data:', telegramData);
           
+          // Check for linking information in sessionStorage
+          let linkingInfo = null;
+          try {
+            const storedLinkingInfo = sessionStorage.getItem('oauth_linking');
+            if (storedLinkingInfo) {
+              linkingInfo = JSON.parse(storedLinkingInfo);
+              console.log('[Telegram Callback] Found linking info:', linkingInfo);
+            }
+          } catch (err) {
+            console.error('[Telegram Callback] Error parsing linking info:', err);
+          }
+          
           // Send Telegram data to backend for processing
           fetch('/api/auth/telegram/callback', {
             method: 'POST',
@@ -49,12 +61,16 @@ function TelegramCallbackContent() {
             },
             body: JSON.stringify({
               telegramData,
-              action: 'register'
+              action: linkingInfo ? 'link' : 'register',
+              linkingInfo: linkingInfo
             }),
           })
           .then(response => response.json())
           .then(data => {
             console.log('[Telegram Callback] Backend response:', data);
+            
+            // Clear linking info from sessionStorage
+            sessionStorage.removeItem('oauth_linking');
             
             if (data.success && (data.token || data.refreshToken)) {
               // Store tokens
@@ -72,11 +88,30 @@ function TelegramCallbackContent() {
               sessionStorage.setItem('telegram_oauth_completed', 'true');
               console.log('[Telegram Callback] Set telegram_oauth_completed flag');
               
-              // Redirect to dashboard
-              window.location.href = '/dashboard';
+              // If this was a linking attempt, redirect to profile
+              if (linkingInfo) {
+                window.location.href = '/profile?linking=success';
+              } else {
+                // Otherwise redirect to dashboard
+                window.location.href = '/dashboard';
+              }
             } else {
               console.error('[Telegram Callback] Authentication failed:', data);
-              window.location.href = `/login?error=${encodeURIComponent(data.message || 'telegram_auth_failed')}`;
+              
+              // Check if this is a linking error
+              if (linkingInfo) {
+                if (data.message && data.message.toLowerCase().includes('already linked to another user')) {
+                  window.location.href = '/profile?error=already_linked';
+                } else if (data.message && data.message.toLowerCase().includes('already linked')) {
+                  window.location.href = '/profile?error=already_linked';
+                } else {
+                  // Pass the actual error message to the profile page
+                  const errorMessage = data.message || 'Failed to link Telegram account';
+                  window.location.href = `/profile?error=linking_failed&message=${encodeURIComponent(errorMessage)}`;
+                }
+              } else {
+                window.location.href = `/login?error=${encodeURIComponent(data.message || 'telegram_auth_failed')}`;
+              }
             }
           })
           .catch(error => {

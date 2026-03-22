@@ -45,7 +45,7 @@ public class OAuthProviderInfoDto
 
 public class OAuthChallengeResponseDto
 {
-    public Uri ChallengeUrl { get; init; } = new Uri("https://localhost");
+    public Uri ChallengeUrl { get; init; } = new Uri("https://127.0.0.1");
     public string State { get; set; } = string.Empty;
     public string CodeVerifier { get; set; } = string.Empty;
     public string? Action { get; set; }
