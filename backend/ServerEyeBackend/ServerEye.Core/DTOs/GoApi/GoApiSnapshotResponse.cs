@@ -25,9 +25,16 @@ public class GoApiSnapshotResponse
 
 public class GoApiSnapshotMetrics
 {
+    [JsonPropertyName("cpu_percent")]
     public double Cpu { get; init; }
+    
+    [JsonPropertyName("memory_percent")]
     public double Memory { get; init; }
+    
+    [JsonPropertyName("disk_percent")]
     public double Disk { get; init; }
+    
+    [JsonPropertyName("network_mbps")]
     public double Network { get; init; }
 
     [JsonPropertyName("cpu_usage")]
@@ -66,7 +73,10 @@ public class GoApiCpuUsage
     [JsonPropertyName("load_average")]
     public GoApiLoadAverage LoadAverage { get; init; } = new();
 
+    [JsonPropertyName("cores")]
     public int Cores { get; init; }
+    
+    [JsonPropertyName("frequency_mhz")]
     public double Frequency { get; init; }
 }
 
@@ -108,6 +118,7 @@ public class GoApiMemoryDetails
 
 public class GoApiDiskDetail
 {
+    [JsonPropertyName("path")]
     public string Path { get; init; } = string.Empty;
     [JsonPropertyName("total_gb")]
     public double TotalGb { get; init; }
@@ -117,6 +128,7 @@ public class GoApiDiskDetail
     public double FreeGb { get; init; }
     [JsonPropertyName("used_percent")]
     public double UsedPercent { get; init; }
+    [JsonPropertyName("filesystem")]
     public string Filesystem { get; init; } = string.Empty;
 }
 
@@ -134,19 +146,28 @@ public class GoApiNetworkDetails
 
 public class GoApiNetworkInterface
 {
+    [JsonPropertyName("name")]
     public string Name { get; init; } = string.Empty;
+    
     [JsonPropertyName("rx_bytes")]
     public long RxBytes { get; init; }
+    
     [JsonPropertyName("tx_bytes")]
     public long TxBytes { get; init; }
+    
     [JsonPropertyName("rx_packets")]
     public long RxPackets { get; init; }
+    
     [JsonPropertyName("tx_packets")]
     public long TxPackets { get; init; }
+    
     [JsonPropertyName("rx_speed_mbps")]
     public double RxSpeedMbps { get; init; }
+    
     [JsonPropertyName("tx_speed_mbps")]
     public double TxSpeedMbps { get; init; }
+    
+    [JsonPropertyName("status")]
     public string Status { get; init; } = string.Empty;
 }
 
@@ -173,25 +194,42 @@ public class GoApiTemperatureDetails
 
 public class GoApiStorageTemperature
 {
+    [JsonPropertyName("device")]
     public string Device { get; init; } = string.Empty;
+    
+    [JsonPropertyName("type")]
     public string Type { get; init; } = string.Empty;
+    
+    [JsonPropertyName("temperature")]
     public double Temperature { get; init; }
 }
 
 public class GoApiSystemDetails
 {
+    [JsonPropertyName("hostname")]
     public string Hostname { get; init; } = string.Empty;
+    
+    [JsonPropertyName("os")]
     public string Os { get; init; } = string.Empty;
+    
+    [JsonPropertyName("kernel")]
     public string Kernel { get; init; } = string.Empty;
+    
+    [JsonPropertyName("architecture")]
     public string Architecture { get; init; } = string.Empty;
+    
     [JsonPropertyName("uptime_seconds")]
     public long UptimeSeconds { get; init; }
+    
     [JsonPropertyName("uptime_human")]
     public string UptimeHuman { get; init; } = string.Empty;
+    
     [JsonPropertyName("processes_total")]
     public int ProcessesTotal { get; init; }
+    
     [JsonPropertyName("processes_running")]
     public int ProcessesRunning { get; init; }
+    
     [JsonPropertyName("processes_sleeping")]
     public int ProcessesSleeping { get; init; }
 }
