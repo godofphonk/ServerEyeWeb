@@ -10,6 +10,7 @@ import { DashboardMetrics, MetricsResponse } from '@/types';
 interface StorageTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
+  staticInfo?: any;
   timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
@@ -17,6 +18,7 @@ interface StorageTabProps {
 export default function StorageTab({
   dashboardMetrics,
   historicalMetrics,
+  staticInfo,
   timeRange = '1h',
   onTimeRangeChange,
 }: StorageTabProps) {
@@ -42,24 +44,24 @@ export default function StorageTab({
               <CurrentMetricsCard
                 icon={Database}
                 label='Total Space'
-                value={1000}
+                value={staticInfo?.disk_info?.total_gb || 1000}
                 unit='GB'
                 color='blue'
               />
               <CurrentMetricsCard
                 icon={Activity}
                 label='Read Speed'
-                value={125.5}
+                value={dashboardMetrics.current.diskReadSpeed || 0}
                 unit='MB/s'
-                trend='5.2'
+                trend="-"
                 color='green'
               />
               <CurrentMetricsCard
                 icon={TrendingUp}
                 label='Write Speed'
-                value={89.3}
+                value={dashboardMetrics.current.diskWriteSpeed || 0}
                 unit='MB/s'
-                trend='-2.1'
+                trend="-"
                 color='orange'
               />
             </>
@@ -114,22 +116,22 @@ export default function StorageTab({
                 <div>
                   <div className='flex justify-between text-sm mb-2'>
                     <span className='text-gray-400'>Home (/home)</span>
-                    <span>45.2%</span>
+                    <span>-</span>
                   </div>
                   <div className='w-full bg-gray-700 rounded-full h-2'>
-                    <div className='bg-blue-500 h-2 rounded-full' style={{ width: '45.2%' }} />
+                    <div className='bg-blue-500 h-2 rounded-full' style={{ width: '0%' }} />
                   </div>
-                  <div className='text-xs text-gray-500 mt-1'>226 GB used of 500 GB</div>
+                  <div className='text-xs text-gray-500 mt-1'>- GB used of - GB</div>
                 </div>
                 <div>
                   <div className='flex justify-between text-sm mb-2'>
                     <span className='text-gray-400'>Data (/data)</span>
-                    <span>78.9%</span>
+                    <span>-</span>
                   </div>
                   <div className='w-full bg-gray-700 rounded-full h-2'>
-                    <div className='bg-orange-500 h-2 rounded-full' style={{ width: '78.9%' }} />
+                    <div className='bg-orange-500 h-2 rounded-full' style={{ width: '0%' }} />
                   </div>
-                  <div className='text-xs text-gray-500 mt-1'>1.5 TB used of 2 TB</div>
+                  <div className='text-xs text-gray-500 mt-1'>- TB used of - TB</div>
                 </div>
               </div>
             </CardContent>
@@ -158,15 +160,15 @@ export default function StorageTab({
               <div className='space-y-2 text-sm'>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Primary Disk:</span>
-                  <span>Samsung SSD 980 Pro</span>
+                  <span>-</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Capacity:</span>
-                  <span>1 TB NVMe</span>
+                  <span>-</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>File System:</span>
-                  <span>ext4</span>
+                  <span>-</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Mount Point:</span>
@@ -179,19 +181,19 @@ export default function StorageTab({
               <div className='space-y-2 text-sm'>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Read Speed:</span>
-                  <span>125.5 MB/s</span>
+                  <span>{(dashboardMetrics?.current?.diskReadSpeed || 0).toFixed(1)} MB/s</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Write Speed:</span>
-                  <span>89.3 MB/s</span>
+                  <span>{(dashboardMetrics?.current?.diskWriteSpeed || 0).toFixed(1)} MB/s</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>IOPS:</span>
-                  <span className='text-green-400'>85,420</span>
+                  <span className='text-green-400'>-</span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-gray-400'>Latency:</span>
-                  <span className='text-green-400'>0.2ms</span>
+                  <span className='text-green-400'>-</span>
                 </div>
               </div>
             </div>

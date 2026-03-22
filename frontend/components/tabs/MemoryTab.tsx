@@ -43,26 +43,26 @@ export default function MemoryTab({
               />
               <CurrentMetricsCard
                 icon={Database}
-                label='Swap Usage'
-                value={12.5}
-                unit='%'
-                trend='-2.3'
+                label='Total'
+                value={staticInfo?.memory_info?.total_gb || 32}
+                unit='GB'
+                trend="-"
                 color='blue'
               />
               <CurrentMetricsCard
                 icon={Zap}
                 label='Cache'
-                value={2.4}
+                value={12.9} // TODO: Get from Go API memory_details.cached_gb
                 unit='GB'
-                trend='0.5'
+                trend="-"
                 color='green'
               />
               <CurrentMetricsCard
                 icon={TrendingUp}
                 label='Available'
-                value={16 - (16 * dashboardMetrics.current.memory) / 100}
+                value={14.7} // TODO: Get from Go API memory_details.available_gb
                 unit='GB'
-                trend='1.2'
+                trend="-"
                 color='cyan'
               />
             </>
@@ -113,10 +113,10 @@ export default function MemoryTab({
                 <div>
                   <div className='flex justify-between text-sm mb-2'>
                     <span className='text-gray-400'>Cache</span>
-                    <span>2.4 GB (15%)</span>
+                    <span>12.9 GB (40.3%)</span>
                   </div>
                   <div className='w-full bg-gray-700 rounded-full h-2'>
-                    <div className='bg-blue-500 h-2 rounded-full' style={{ width: '15%' }} />
+                    <div className='bg-blue-500 h-2 rounded-full' style={{ width: '40.3%' }} />
                   </div>
                 </div>
                 <div>
@@ -211,16 +211,8 @@ export default function MemoryTab({
                   <span>{dashboardMetrics?.current.memory?.toFixed(1) || 'N/A'}%</span>
                 </div>
                 <div className='flex justify-between'>
-                  <span className='text-gray-400'>Swap Usage:</span>
-                  <span>12.5%</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Cache Hit Rate:</span>
-                  <span className='text-green-400'>94.2%</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Memory Pressure:</span>
-                  <span className='text-green-400'>Low</span>
+                  <span className='text-gray-400'>Total Memory:</span>
+                  <span>{staticInfo?.memory_info?.total_gb || 'N/A'} GB</span>
                 </div>
               </div>
             </div>

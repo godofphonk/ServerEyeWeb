@@ -117,6 +117,7 @@ export default function MetricsTabs({
           <StorageTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={diskHistoricalMetrics}
+            staticInfo={staticInfo}
             timeRange={diskTimeRange}
             onTimeRangeChange={onDiskTimeRangeChange}
           />
