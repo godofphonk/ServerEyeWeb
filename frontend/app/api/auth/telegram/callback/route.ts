@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('[Telegram Callback API] Request body:', body);
     
-    const { telegramData, action } = body;
+    const { telegramData, action, linkingInfo } = body;
     
     if (!telegramData) {
       console.error('[Telegram Callback API] Missing telegramData');
@@ -15,6 +15,16 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Missing telegram data' },
         { status: 400 }
       );
+    }
+    
+    // Check for linking information
+    let isLinking = false;
+    let userId: string | null = null;
+    
+    if (linkingInfo) {
+      isLinking = linkingInfo.action === 'link';
+      userId = linkingInfo.userId;
+      console.log('[Telegram Callback API] Linking info detected:', { isLinking, userId });
     }
     
     // Transform data to match backend expectations
@@ -26,13 +36,15 @@ export async function POST(request: NextRequest) {
         authDate: telegramData.auth_date || telegramData.authDate || 0,
         hash: telegramData.hash || ''
       },
-      state: `${action || 'register'}_telegram_callback`
+      state: `${action || 'register'}_telegram_callback`,
+      linkingAction: isLinking,
+      userId: userId
     };
     
     console.log('[Telegram Callback API] Transformed request:', backendRequest);
     
     // Forward to backend for processing
-    const backendUrl = `http://servereye-backend-dev/api/auth/oauth/telegram/callback?action=auto`;
+    const backendUrl = `http://servereye-backend-dev/api/auth/oauth/telegram/callback?action=${action || 'auto'}`;
     
     console.log('[Telegram Callback API] Forwarding to backend:', backendUrl);
     

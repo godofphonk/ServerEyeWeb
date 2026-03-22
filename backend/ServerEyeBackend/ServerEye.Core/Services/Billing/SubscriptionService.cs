@@ -1,6 +1,7 @@
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
@@ -14,17 +15,20 @@ public class SubscriptionService : ISubscriptionService
     private readonly IUserRepository userRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<SubscriptionService> logger;
+    private readonly FrontendSettings frontendSettings;
 
     public SubscriptionService(
         ISubscriptionRepository subscriptionRepository,
         IUserRepository userRepository,
         IPaymentProviderFactory providerFactory,
-        ILogger<SubscriptionService> logger)
+        ILogger<SubscriptionService> logger,
+        FrontendSettings frontendSettings)
     {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
+        this.frontendSettings = frontendSettings;
     }
 
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
@@ -87,8 +91,8 @@ public class SubscriptionService : ISubscriptionService
             customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
         }
 
-        var successUrl = request.SuccessUrl ?? "http://localhost:3000/dashboard?subscription=success";
-        var cancelUrl = request.CancelUrl ?? "http://localhost:3000/pricing?subscription=canceled";
+        var successUrl = request.SuccessUrl ?? $"{this.frontendSettings.BaseUrl}dashboard?subscription=success";
+        var cancelUrl = request.CancelUrl ?? $"{this.frontendSettings.BaseUrl}pricing?subscription=canceled";
 
         var checkoutResponse = await provider.CreateCheckoutSessionAsync(
             customerId,

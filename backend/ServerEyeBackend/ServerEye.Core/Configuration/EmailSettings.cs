@@ -16,5 +16,5 @@ public class EmailSettings
     public string AwsRegion { get; init; } = "eu-north-1";
     public string AwsAccessKey { get; init; } = string.Empty;
     public string AwsSecretKey { get; init; } = string.Empty;
-    public Uri FrontendUrl { get; init; } = new Uri("http://localhost:3000");
+    public Uri FrontendUrl { get; init; } = new Uri("http://127.0.0.1:3000");
 }

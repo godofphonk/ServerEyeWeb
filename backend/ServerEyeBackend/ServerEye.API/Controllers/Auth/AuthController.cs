@@ -3,6 +3,7 @@ namespace ServerEye.API.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Auth;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
@@ -17,14 +18,16 @@ public class AuthController : ControllerBase
     private readonly IAuthService authService;
     private readonly IOAuthService oauthService;
     private readonly ILogger<AuthController> logger;
+    private readonly FrontendSettings frontendSettings;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, ILogger<AuthController> logger)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, ILogger<AuthController> logger, FrontendSettings frontendSettings)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.authService = authService;
         this.oauthService = oauthService;
         this.logger = logger;
+        this.frontendSettings = frontendSettings;
     }
 
     [HttpPost("refresh")]
@@ -525,12 +528,22 @@ public class AuthController : ControllerBase
                         this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
                         
                         // Redirect to profile page with success
-                        return this.Redirect("http://localhost:3001/profile?linking=success");
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
                     }
                     catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
                     {
                         this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
-                        return this.Redirect("http://localhost:3001/profile?error=already_linked");
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.LogError(ex, "OAuth linking failed with unexpected error");
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=linking_failed");
                     }
                 }
                 else
@@ -545,8 +558,8 @@ public class AuthController : ControllerBase
                 Provider = provider ?? string.Empty,
                 Code = code ?? hash ?? string.Empty, // Use code or hash for Telegram
                 State = isLinking && !string.IsNullOrEmpty(actualState) ? actualState : ExtractStateFromState(state), // Use actualState from linking or extract from regular state
-                LinkingAction = linkingAction,
-                UserId = userId,
+                LinkingAction = linkingAction || isLinking, // Set to true if linking detected from state OR query parameter
+                UserId = userId ?? linkingUserId, // Use userId from query parameter OR from linking state
                 Action = action // Pass action parameter from query
             };
 
@@ -569,12 +582,22 @@ public class AuthController : ControllerBase
                     this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
                     
                     // Redirect to profile page with success
-                    return this.Redirect("http://localhost:3001/profile?linking=success");
+                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
                 {
                     this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
-                    return this.Redirect("http://localhost:3001/profile?error=already_linked");
+                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
+                {
+                    this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
+                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "OAuth linking failed with unexpected error");
+                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=linking_failed");
                 }
             }
 
@@ -617,7 +640,7 @@ public class AuthController : ControllerBase
             refreshTokenOptions.Expires);
 
             // Redirect to frontend OAuth callback page with token in query
-            var callbackUrl = $"http://localhost:3001/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+            var callbackUrl = $"{this.frontendSettings.BaseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
@@ -633,16 +656,16 @@ public class AuthController : ControllerBase
             if (ex.Message == "user_not_found")
             {
                 this.logger.LogWarning("OAuth login failed - user not found, redirecting to login page");
-                return this.Redirect("http://localhost:3001/login?error=user_not_found");
+                return this.Redirect($"{this.frontendSettings.BaseUrl}login?error=user_not_found");
             }
             else if (ex.Message == "user_already_exists")
             {
                 this.logger.LogWarning("OAuth registration failed - user already exists, redirecting to register page");
-                return this.Redirect("http://localhost:3001/register?error=user_already_exists");
+                return this.Redirect($"{this.frontendSettings.BaseUrl}register?error=user_already_exists");
             }
             
             this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
-            return this.Redirect("http://localhost:3001/auth/callback?error=oauth_failed");
+            return this.Redirect($"{this.frontendSettings.BaseUrl}auth/callback?error=oauth_failed");
         }
     }
 
@@ -748,17 +771,30 @@ public class AuthController : ControllerBase
             // Telegram doesn't return state in callback, so we need to handle this
             var state = $"telegram_temp_{Guid.NewGuid():N}";
             
-            this.logger.LogInformation("Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}", state, action ?? "null");
+            this.logger.LogInformation(
+                "Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}, LinkingAction: {LinkingAction}, UserId: {UserId}", 
+                state, 
+                action ?? "null",
+                request.LinkingAction,
+                request.UserId ?? "null");
             
             var oauthRequest = new OAuthCallbackRequestDto
             {
                 Provider = "telegram",
                 Code = telegramCode,
                 State = state,
-                Action = action // Pass action from query parameter
+                Action = action, // Pass action from query parameter
+                LinkingAction = request.LinkingAction, // Pass linking flag from frontend
+                UserId = request.UserId // Pass userId from frontend for linking validation
             };
 
-            this.logger.LogInformation("Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}", oauthRequest.Provider, oauthRequest.Action, oauthRequest.State);
+            this.logger.LogInformation(
+                "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}", 
+                oauthRequest.Provider, 
+                oauthRequest.Action, 
+                oauthRequest.State,
+                oauthRequest.LinkingAction,
+                oauthRequest.UserId ?? "null");
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
 
@@ -787,7 +823,7 @@ public class AuthController : ControllerBase
                 response.Token.Length > 20 ? $"{response.Token[..20]}..." : response.Token);
 
             // Return tokens in response body for frontend to handle
-            // Frontend will redirect to localhost:3001 with tokens
+            // Frontend will redirect with tokens
             return this.Ok(new
             {
                 success = true,

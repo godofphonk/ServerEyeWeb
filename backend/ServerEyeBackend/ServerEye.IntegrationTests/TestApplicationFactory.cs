@@ -106,7 +106,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
                 ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:TicketDbConnection"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:Redis"] = "localhost:6379",
+                ["ConnectionStrings:Redis"] = "127.0.0.1:6379",
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false"

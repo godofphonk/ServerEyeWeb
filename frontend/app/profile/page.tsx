@@ -63,6 +63,30 @@ export default function ProfilePage() {
       return;
     }
     
+    // Check for error=linking_failed
+    if (error === 'linking_failed') {
+      console.log('[Profile] Detected linking_failed error from backend');
+      
+      const errorMessage = urlParams.get('message') || 'Failed to link Telegram account';
+      
+      // Show user-friendly error message
+      let userMessage = 'Failed to link Telegram account';
+      if (errorMessage.toLowerCase().includes('already linked to another user')) {
+        userMessage = 'This Telegram account is already linked to another user';
+      } else if (errorMessage.toLowerCase().includes('already linked')) {
+        userMessage = 'This Telegram account is already linked to your account';
+      } else if (errorMessage.toLowerCase().includes('invalid')) {
+        userMessage = 'Invalid Telegram data provided';
+      }
+      
+      toast.error('Linking Failed', userMessage);
+      
+      // Clean URL
+      window.history.replaceState({}, document.title, '/profile');
+      
+      return;
+    }
+    
     // Check for linking=error
     if (linking === 'error') {
       console.log('[Profile] Detected linking=error from backend');

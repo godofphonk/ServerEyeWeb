@@ -126,7 +126,7 @@ export default function LogViewer() {
           </button>
 
           <a
-            href='http://localhost:3001/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D'
+            href='http://127.0.0.1:3001/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D'
             target='_blank'
             rel='noopener noreferrer'
             className='px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 transition-colors'

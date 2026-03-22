@@ -58,10 +58,10 @@ help:
 # Full Stack Development
 dev-up: dev-infra-up dev-backend-up dev-frontend-up
 	@echo "✅ All development services started!"
-	@echo "🌐 Frontend: http://localhost:3000"
-	@echo "🔧 Backend:  http://localhost:5246"
-	@echo "🗄️  PostgreSQL: localhost:5433 (main), localhost:5434 (tickets)"
-	@echo "🔴 Redis: localhost:6380"
+	@echo "🌐 Frontend: http://127.0.0.1:3000"
+	@echo "🔧 Backend:  http://127.0.0.1:5246"
+	@echo "🗄️  PostgreSQL: 127.0.0.1:5433 (main), 127.0.0.1:5434 (tickets)"
+	@echo "🔴 Redis: 127.0.0.1:6380"
 
 dev-down: dev-frontend-down dev-backend-down dev-infra-down
 	@echo "✅ All development services stopped!"
