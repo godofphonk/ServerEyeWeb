@@ -214,18 +214,16 @@ public static class GoApiDataTransformer
     {
         return new NetworkDetails
         {
-            Interfaces = snapshot.Interfaces.ToDictionary(
-                i => i.Name,
-                i => new NetworkInterface
+            Interfaces = snapshot.Interfaces.Select(i => new NetworkInterface
                 {
                     Name = i.Name,
                     RxBytes = i.RxBytes,
                     TxBytes = i.TxBytes,
                     RxPackets = i.RxPackets,
                     TxPackets = i.TxPackets,
-                    Speed = (long)(i.RxSpeedMbps * 1000000), // Convert Mbps to bps
+                    
                     Status = i.Status
-                }),
+                }).ToList(),
             TotalRx = (long)(snapshot.TotalRxMbps * 1000000), // Convert Mbps to bps
             TotalTx = (long)(snapshot.TotalTxMbps * 1000000), // Convert Mbps to bps
             Timestamp = DateTime.UtcNow

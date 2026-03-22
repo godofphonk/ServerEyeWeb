@@ -19,15 +19,9 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
         return await operation.ExecuteAsync();
     }
 
-    public async Task<GoApiMetricsResponse?> GetMetricsAsync(string serverId, DateTime start, DateTime endTime, string? granularity = null)
+    public async Task<GoApiMetricsResponse?> GetTieredMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime)
     {
-        var operation = operationFactory.CreateGetMetrics(serverId, start, endTime, granularity);
-        return await operation.ExecuteAsync();
-    }
-
-    public async Task<GoApiMetricsResponse?> GetRealtimeMetricsAsync(string serverId, TimeSpan? duration = null)
-    {
-        var operation = operationFactory.CreateGetRealtimeMetrics(serverId, duration);
+        var operation = operationFactory.CreateGetTieredMetricsByKey(serverKey, start, endTime);
         return await operation.ExecuteAsync();
     }
 
@@ -52,12 +46,6 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
     public async Task<GoApiServerInfo?> GetServerInfoAsync(string serverId)
     {
         var operation = operationFactory.CreateGetServerInfo(serverId);
-        return await operation.ExecuteAsync();
-    }
-
-    public async Task<GoApiMetricsResponse?> GetDashboardMetricsAsync(string serverId)
-    {
-        var operation = operationFactory.CreateGetDashboardMetrics(serverId);
         return await operation.ExecuteAsync();
     }
 

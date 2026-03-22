@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 public class NetworkDetails
 {
     [JsonPropertyName("interfaces")]
-    public Dictionary<string, NetworkInterface> Interfaces { get; init; } = new();
+    public List<NetworkInterface> Interfaces { get; init; } = new();
 
     [JsonPropertyName("total_rx")]
     public long TotalRx { get; init; }
@@ -34,8 +34,11 @@ public class NetworkInterface
     [JsonPropertyName("tx_packets")]
     public long TxPackets { get; init; }
 
-    [JsonPropertyName("speed")]
-    public long Speed { get; init; }
+    [JsonPropertyName("rx_speed_mbps")]
+    public double RxSpeedMbps { get; init; }
+
+    [JsonPropertyName("tx_speed_mbps")]
+    public double TxSpeedMbps { get; init; }
 
     [JsonPropertyName("duplex")]
     public string Duplex { get; init; } = string.Empty;

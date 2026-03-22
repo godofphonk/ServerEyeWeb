@@ -201,6 +201,45 @@ export function clearStaticInfoCache(serverKey?: string) {
 const metricsCache = new Map<string, { data: any; timestamp: number }>();
 const METRICS_CACHE_DURATION = 10000; // 10 seconds for metrics
 
+// Get cached tiered metrics for graphs (1 hour default)
+export async function getCachedTieredMetrics(
+  serverKey: string,
+  startTime?: string,
+  endTime?: string,
+): Promise<any> {
+  // Default to last 1 hour if not provided
+  const end = endTime || new Date().toISOString();
+  const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  const cacheKey = `tiered-${serverKey}-${start}-${end}`;
+  const cached = metricsCache.get(cacheKey);
+  const now = Date.now();
+
+  // Return cached data if still valid
+  if (cached && now - cached.timestamp < METRICS_CACHE_DURATION) {
+    console.log(
+      `[TieredMetricsCache] Using cached data for ${serverKey}, points: ${cached.data.dataPoints?.length || 0}`,
+    );
+    return cached.data;
+  }
+
+  console.log(`[TieredMetricsCache] Fetching fresh tiered data for ${serverKey}`);
+
+  // Fetch fresh tiered data
+  const response = await apiClient.get<any>(
+    `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}`,
+  );
+
+  console.log(
+    `[TieredMetricsCache] Response: ${response.dataPoints?.length || 0} points, granularity: ${response.granularity}`,
+  );
+
+  // Update cache
+  metricsCache.set(cacheKey, { data: response, timestamp: now });
+
+  return response;
+}
+
 // Get cached metrics or fetch new ones
 export async function getCachedMetrics(
   serverKey: string,
