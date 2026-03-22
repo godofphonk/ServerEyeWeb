@@ -233,14 +233,20 @@ export async function getCachedTieredMetrics(
   
   const response = await apiClient.get<any>(url);
 
+  // Fix status - if we have data points, status should be success
+  const fixedResponse = {
+    ...response,
+    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
+  };
+
   console.log(
-    `[TieredMetricsCache] Response: ${response.dataPoints?.length || 0} points, granularity: ${response.granularity}`,
+    `[TieredMetricsCache] Response: ${fixedResponse.dataPoints?.length || 0} points, granularity: ${fixedResponse.granularity}`,
   );
 
   // Update cache
-  metricsCache.set(cacheKey, { data: response, timestamp: now });
+  metricsCache.set(cacheKey, { data: fixedResponse, timestamp: now });
 
-  return response;
+  return fixedResponse;
 }
 
 // Get cached metrics or fetch new ones
@@ -269,14 +275,20 @@ export async function getCachedMetrics(
     `/servers/by-key/${serverKey}/metrics?start=${startTime}&end=${endTime}&granularity=${granularity}`,
   );
 
+  // Fix status - if we have data points, status should be success
+  const fixedResponse = {
+    ...response,
+    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
+  };
+
   console.log(
-    `[MetricsCache] Response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
+    `[MetricsCache] Response: ${fixedResponse.dataPoints?.length || 0} points, status: ${fixedResponse.status}`,
   );
 
   // Update cache
-  metricsCache.set(cacheKey, { data: response, timestamp: now });
+  metricsCache.set(cacheKey, { data: fixedResponse, timestamp: now });
 
-  return response;
+  return fixedResponse;
 }
 
 // Clear metrics cache

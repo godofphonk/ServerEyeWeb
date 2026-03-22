@@ -12,32 +12,11 @@ import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface MetricsTabsProps {
   dashboardMetrics: DashboardMetrics | null;
-  historicalMetrics: MetricsResponse | null;
-  cpuHistoricalMetrics: MetricsResponse | null;
-  cpuUsageHistoricalMetrics: MetricsResponse | null;
-  cpuLoadHistoricalMetrics: MetricsResponse | null;
-  cpuTemperatureHistoricalMetrics: MetricsResponse | null;
-  memoryHistoricalMetrics: MetricsResponse | null;
-  networkHistoricalMetrics: MetricsResponse | null;
-  diskHistoricalMetrics: MetricsResponse | null;
+  historicalMetrics: MetricsResponse | null; // Unified metrics for all charts
   staticInfo: ServerStaticInfo | null;
   server: any;
   timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuTemperatureTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  memoryTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  networkTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  diskTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuTemperatureTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onMemoryTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onNetworkTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onDiskTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   networkDetails?: any;
 }
 
@@ -51,32 +30,11 @@ const tabs = [
 
 export default function MetricsTabs({
   dashboardMetrics,
-  historicalMetrics,
-  cpuHistoricalMetrics,
-  cpuUsageHistoricalMetrics,
-  cpuLoadHistoricalMetrics,
-  cpuTemperatureHistoricalMetrics,
-  memoryHistoricalMetrics,
-  networkHistoricalMetrics,
-  diskHistoricalMetrics,
+  historicalMetrics, // Use unified metrics for all tabs
   staticInfo,
   server,
   timeRange,
-  cpuTimeRange,
-  cpuUsageTimeRange,
-  cpuLoadTimeRange,
-  cpuTemperatureTimeRange,
-  memoryTimeRange,
-  networkTimeRange,
-  diskTimeRange,
   onTimeRangeChange,
-  onCpuTimeRangeChange,
-  onCpuUsageTimeRangeChange,
-  onCpuLoadTimeRangeChange,
-  onCpuTemperatureTimeRangeChange,
-  onMemoryTimeRangeChange,
-  onNetworkTimeRangeChange,
-  onDiskTimeRangeChange,
   networkDetails,
 }: MetricsTabsProps) {
   const [activeTab, setActiveTab] = useState('cpu');
@@ -89,47 +47,41 @@ export default function MetricsTabs({
         <TabPanel value='cpu' activeTab={activeTab}>
           <CpuTab
             dashboardMetrics={dashboardMetrics}
-            historicalMetrics={cpuHistoricalMetrics}
-            cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
-            cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
-            cpuTemperatureHistoricalMetrics={cpuTemperatureHistoricalMetrics}
+            historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            cpuUsageTimeRange={cpuUsageTimeRange}
-            cpuLoadTimeRange={cpuLoadTimeRange}
-            cpuTemperatureTimeRange={cpuTemperatureTimeRange}
-            onCpuUsageTimeRangeChange={onCpuUsageTimeRangeChange}
-            onCpuLoadTimeRangeChange={onCpuLoadTimeRangeChange}
-            onCpuTemperatureTimeRangeChange={onCpuTemperatureTimeRangeChange}
+            timeRange={timeRange}
+            onTimeRangeChange={onTimeRangeChange}
           />
         </TabPanel>
 
         <TabPanel value='memory' activeTab={activeTab}>
           <MemoryTab
             dashboardMetrics={dashboardMetrics}
-            historicalMetrics={memoryHistoricalMetrics}
+            historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            timeRange={memoryTimeRange}
-            onTimeRangeChange={onMemoryTimeRangeChange}
+            timeRange={timeRange}
+            onTimeRangeChange={onTimeRangeChange}
           />
         </TabPanel>
 
         <TabPanel value='storage' activeTab={activeTab}>
           <StorageTab
             dashboardMetrics={dashboardMetrics}
-            historicalMetrics={diskHistoricalMetrics}
+            historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            timeRange={diskTimeRange}
-            onTimeRangeChange={onDiskTimeRangeChange}
+            timeRange={timeRange}
+            onTimeRangeChange={onTimeRangeChange}
           />
         </TabPanel>
 
         <TabPanel value='network' activeTab={activeTab}>
           <NetworkTab
             dashboardMetrics={dashboardMetrics}
-            historicalMetrics={networkHistoricalMetrics}
+            historicalMetrics={historicalMetrics} // Use unified metrics
+            staticInfo={staticInfo}
+            timeRange={timeRange}
+            onTimeRangeChange={onTimeRangeChange}
             networkDetails={networkDetails}
-            timeRange={networkTimeRange}
-            onTimeRangeChange={onNetworkTimeRangeChange}
           />
         </TabPanel>
 
