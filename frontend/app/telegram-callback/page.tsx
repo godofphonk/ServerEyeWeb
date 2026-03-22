@@ -53,6 +53,11 @@ function TelegramCallbackContent() {
             console.error('[Telegram Callback] Error parsing linking info:', err);
           }
           
+          // Get the action from sessionStorage (set by AuthContext when creating challenge)
+          const storedAction = sessionStorage.getItem('telegram_oauth_action');
+          const action = linkingInfo ? 'link' : (storedAction || 'auto');
+          console.log('[Telegram Callback] Using action:', action, '(stored:', storedAction, ', linking:', !!linkingInfo, ')');
+          
           // Send Telegram data to backend for processing
           fetch('/api/auth/telegram/callback', {
             method: 'POST',
@@ -61,7 +66,7 @@ function TelegramCallbackContent() {
             },
             body: JSON.stringify({
               telegramData,
-              action: linkingInfo ? 'link' : 'register',
+              action: action,
               linkingInfo: linkingInfo
             }),
           })
@@ -69,8 +74,9 @@ function TelegramCallbackContent() {
           .then(data => {
             console.log('[Telegram Callback] Backend response:', data);
             
-            // Clear linking info from sessionStorage
+            // Clear linking info and action from sessionStorage
             sessionStorage.removeItem('oauth_linking');
+            sessionStorage.removeItem('telegram_oauth_action');
             
             if (data.success && (data.token || data.refreshToken)) {
               // Store tokens

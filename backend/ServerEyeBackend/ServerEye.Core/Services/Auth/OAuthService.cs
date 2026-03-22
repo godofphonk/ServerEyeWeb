@@ -175,12 +175,12 @@ public sealed class OAuthService(
             this.logger.LogInformation("Found existing user via external login - UserId: {UserId}", user?.Id);
             
             // CRITICAL: Check if this is a linking attempt to a DIFFERENT user account
-            // If LinkingAction is true OR UserId is provided, this is a linking attempt
-            if (request.LinkingAction || !string.IsNullOrEmpty(request.UserId))
+            // Only check if LinkingAction is explicitly TRUE (not just UserId present)
+            if (request.LinkingAction && !string.IsNullOrEmpty(request.UserId))
             {
                 // Parse the requesting user ID
                 Guid? requestingUserId = null;
-                if (!string.IsNullOrEmpty(request.UserId) && Guid.TryParse(request.UserId, out var parsedUserId))
+                if (Guid.TryParse(request.UserId, out var parsedUserId))
                 {
                     requestingUserId = parsedUserId;
                 }
