@@ -138,7 +138,6 @@ public static class GoApiDataTransformer
         return dataPoints;
     }
 
-
     /// <summary>
     /// Calculates metrics summary.
     /// </summary>
