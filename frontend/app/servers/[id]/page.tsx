@@ -677,7 +677,6 @@ export default function ServerDetailPage() {
             {/* Server Info */}
             <div className='mt-4 flex items-center gap-6 text-sm text-gray-400'>
               <span>Server ID: {server.serverId}</span>
-              <span>Access: {server.accessLevel}</span>
               <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
               <span>Added: {new Date(server.addedAt).toLocaleDateString()}</span>
             </div>

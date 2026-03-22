@@ -778,7 +778,6 @@ export default function DashboardPage() {
                           </div>
                         )}
                         <div className='mt-4 flex items-center justify-between text-xs text-gray-400'>
-                          <span>Access: {server.accessLevel}</span>
                           <div className='flex items-center gap-2'>
                             <span>Last seen: {new Date(server.lastSeen).toLocaleString()}</span>
                             <button
