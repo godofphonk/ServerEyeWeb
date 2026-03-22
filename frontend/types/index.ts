@@ -63,6 +63,18 @@ export interface MemoryInfo {
   speed_mhz: number;
 }
 
+export interface MotherboardInfo {
+  manufacturer: string;
+  model: string;
+  bios_date?: string;
+}
+
+export interface GpuInfo {
+  model: string;
+  driver: string;
+  memory_gb: number;
+}
+
 export interface DiskInfo {
   device: string;
   size_gb: number;
@@ -85,9 +97,13 @@ export interface ServerStaticInfo {
   server_id: string;
   hostname: string;
   operating_system: string;
+  kernel: string;
+  architecture: string;
   agent_version: string;
   cpu_info: CpuInfo;
   memory_info: MemoryInfo;
+  motherboard_info?: MotherboardInfo;
+  gpu_info?: GpuInfo;
   disk_info: DiskInfo[];
   network_interfaces: NetworkInterface[];
   last_updated: string;
