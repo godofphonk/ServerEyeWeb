@@ -14,14 +14,17 @@ function AuthContent() {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
     
-    if (error === 'oauth_failed') {
-      setMessage('OAuth authentication failed. Please try again.');
-    } else if (error) {
-      setMessage(errorDescription || `Authentication error: ${error}`);
-    } else {
-      // No error, redirect to login
-      router.push('/login');
-    }
+    // Temporarily disable auth error page - always redirect to login
+    router.push('/login');
+    
+    // if (error === 'oauth_failed') {
+    //   setMessage('OAuth authentication failed. Please try again.');
+    // } else if (error) {
+    //   setMessage(errorDescription || `Authentication error: ${error}`);
+    // } else {
+    //   // No error, redirect to login
+    //   router.push('/login');
+    // }
   }, [searchParams, router]);
 
   return (

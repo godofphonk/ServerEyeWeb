@@ -69,8 +69,8 @@ function OAuthCallbackContent() {
           console.log('[OAuth Callback] Final isAuthenticated:', isAuthenticated);
           
           if (isAuthenticated) {
-            setStatus('success');
-            setMessage('Authentication successful! Redirecting...');
+            setStatus('processing');
+            setMessage('Processing authentication...');
             
             // Clean URL and redirect to dashboard
             window.history.replaceState({}, '', '/oauth/callback');
@@ -79,8 +79,8 @@ function OAuthCallbackContent() {
               router.push('/dashboard');
             }, 1000);
           } else {
-            setStatus('error');
-            setMessage('Authentication failed. Please try again.');
+            setStatus('processing');
+            setMessage('Processing authentication...');
             
             setTimeout(() => {
               router.push('/login');
@@ -95,11 +95,12 @@ function OAuthCallbackContent() {
             router.push('/login');
           }, 2000);
         } else {
-          setStatus('error');
-          setMessage('Invalid OAuth callback');
+          // Don't show error - just wait for redirect or login
+          setStatus('processing');
+          setMessage('Processing OAuth...');
           setTimeout(() => {
             router.push('/login');
-          }, 3000);
+          }, 5000);
         }
       } catch (error) {
         console.error('[OAuth Callback] Error:', error);
@@ -131,8 +132,8 @@ function OAuthCallbackContent() {
         
         <h1 className="text-2xl font-bold text-white mb-4">
           {status === 'processing' && 'Processing Authentication'}
-          {status === 'success' && 'Authentication Successful'}
-          {status === 'error' && 'Authentication Failed'}
+          {status === 'success' && 'Processing authentication...'}
+          {status === 'error' && 'Processing authentication...'}
         </h1>
         
         <p className="text-gray-400">

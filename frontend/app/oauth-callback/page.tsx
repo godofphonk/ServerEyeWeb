@@ -42,11 +42,58 @@ function OAuthCallbackContent() {
           // Clear linking info
           sessionStorage.removeItem('oauth_linking');
           
-          // Redirect to backend callback with linkingAction=true and userId
-          const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&provider=${encodeURIComponent(provider)}&linkingAction=true&userId=${encodeURIComponent(userId)}`;
+          // Send to backend callback API with linking parameters
+          const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
           
-          console.log('[OAuth Callback] Redirecting to backend callback with linking:', callbackUrl);
-          window.location.href = callbackUrl;
+          console.log('[OAuth Callback] Sending to backend callback with linking:', callbackUrl);
+          
+          fetch(callbackUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code: code,
+              state: state,
+              provider: provider,
+              linkingAction: true,
+              userId: userId,
+              codeVerifier: sessionStorage.getItem('oauth_code_verifier'),
+            }),
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('[OAuth Callback] Backend linking response:', data);
+            
+            if (data.success && (data.token || data.refreshToken)) {
+              // Store tokens
+              if (data.token) {
+                localStorage.setItem('jwt_token', data.token);
+                localStorage.setItem('access_token', data.token);
+                document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
+              }
+              if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+                document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+              }
+              
+              // Redirect to profile for linking success
+              window.location.href = '/profile?linking=success';
+            } else {
+              console.error('[OAuth Callback] Linking failed:', data);
+              
+              // Check for linking errors
+              if (data.message && data.message.toLowerCase().includes('already linked')) {
+                window.location.href = '/profile?error=already_linked';
+              } else {
+                window.location.href = `/profile?error=linking_failed&message=${encodeURIComponent(data.message || 'Failed to link account')}`;
+              }
+            }
+          })
+          .catch(error => {
+            console.error('[OAuth Callback] Backend linking error:', error);
+            window.location.href = '/profile?error=linking_failed';
+          });
           return;
         } else {
           console.warn('[OAuth Callback] State mismatch, clearing linking info');
@@ -59,11 +106,55 @@ function OAuthCallbackContent() {
     }
 
     // Not a linking request, proceed with normal OAuth flow
-    console.log('[OAuth Callback] Not a linking request, forwarding to backend callback');
+    console.log('[OAuth Callback] Not a linking request, sending to backend callback API');
     
-    // Forward to backend callback
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
-    window.location.href = callbackUrl;
+    // Extract provider from state
+    const provider = state.split('_')[0]; // state format: provider_action_randomString
+    
+    // Send to backend callback API and handle response
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
+    
+    console.log('[OAuth Callback] Extracted provider:', provider, 'from state:', state);
+    
+    fetch(callbackUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        provider: provider,
+        code: code,
+        state: state,
+        codeVerifier: sessionStorage.getItem('oauth_code_verifier'),
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('[OAuth Callback] Backend response:', data);
+      
+      if (data.success && (data.token || data.refreshToken)) {
+        // Store tokens
+        if (data.token) {
+          localStorage.setItem('jwt_token', data.token);
+          localStorage.setItem('access_token', data.token);
+          document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
+        }
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+          document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+        }
+        
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
+      } else {
+        console.error('[OAuth Callback] Authentication failed:', data);
+        window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
+      }
+    })
+    .catch(error => {
+      console.error('[OAuth Callback] Backend error:', error);
+      window.location.href = '/login?error=oauth_auth_failed';
+    });
   }, [searchParams, router]);
 
   return (

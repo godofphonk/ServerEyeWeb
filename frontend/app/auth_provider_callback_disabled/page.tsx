@@ -11,7 +11,7 @@ export default function OAuthCallbackPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { loginWithOAuth } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'processing'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -21,9 +21,10 @@ export default function OAuthCallbackPage() {
       const provider = pathname.split('/')[2]; // Extract provider from URL
 
       if (!code || !state) {
-        setStatus('error');
-        setMessage('Invalid OAuth callback parameters');
-        setTimeout(() => router.push('/login'), 3000);
+        // Don't show error - just wait for redirect or login
+        setStatus('processing');
+        setMessage('Processing OAuth...');
+        setTimeout(() => router.push('/login'), 5000);
         return;
       }
 
@@ -80,8 +81,8 @@ export default function OAuthCallbackPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             <h1 className='text-2xl font-bold mb-3'>
               {status === 'loading' && 'Authenticating...'}
-              {status === 'success' && 'Authentication Successful!'}
-              {status === 'error' && 'Authentication Failed'}
+              {status === 'success' && 'Processing authentication...'}
+              {status === 'error' && 'Processing authentication...'}
             </h1>
 
             <p className='text-gray-400 mb-6'>

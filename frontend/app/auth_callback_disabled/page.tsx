@@ -143,8 +143,8 @@ function AuthCallbackContent() {
               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
             </svg>
           </div>
-          <h2 className='text-2xl font-bold text-white mb-2'>Authentication Failed</h2>
-          <p className='text-gray-300 mb-4'>{error}</p>
+          <h2 className='text-2xl font-bold text-white mb-2'>Processing authentication...</h2>
+          <p className='text-gray-300 mb-4'>Please wait...</p>
           <p className='text-sm text-gray-400'>Redirecting to login page...</p>
         </div>
       </div>
@@ -159,8 +159,8 @@ function AuthCallbackContent() {
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
           </svg>
         </div>
-        <h2 className='text-2xl font-bold text-white mb-2'>Authentication Successful!</h2>
-        <p className='text-gray-300'>Redirecting to dashboard...</p>
+        <h2 className='text-2xl font-bold text-white mb-2'>Processing authentication...</h2>
+        <p className='text-gray-300'>Please wait...</p>
       </div>
     </div>
   );
