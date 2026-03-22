@@ -106,41 +106,34 @@ public static class GoApiDataTransformer
 
     /// <summary>
     /// Generates data points from snapshot data.
+    /// NOTE: This is a fallback for when historical data is not available.
+    /// It creates a single data point from the current snapshot.
     /// </summary>
     private static List<GoApiDataPoint> GenerateDataPointsFromSnapshot(GoApiSnapshotResponse snapshot, DateTime start, DateTime end, string granularity)
     {
         var dataPoints = new List<GoApiDataPoint>();
-        var interval = GetInterval(granularity);
-
-        // Generate data points for the requested time range
-        for (var time = start; time <= end; time = time.Add(interval))
+        
+        // Create a single data point from current snapshot
+        // This is NOT historical data - just current metrics formatted as a data point
+        dataPoints.Add(new GoApiDataPoint
         {
-#pragma warning disable CA5394 // Do not use insecure random number generators
-            var random = new Random();
-            var cpuVariation = (random.NextDouble() - 0.5) * 10; // ±5% variation
-            var memoryVariation = (random.NextDouble() - 0.5) * 5; // ±2.5% variation
-#pragma warning restore CA5394 // Do not use insecure random number generators
-
-            dataPoints.Add(new GoApiDataPoint
-            {
-                Timestamp = time,
-                CpuAvg = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation)),
-                CpuMax = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation + 2)),
-                CpuMin = Math.Max(0, Math.Min(100, snapshot.Metrics.Cpu + cpuVariation - 2)),
-                MemoryAvg = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation)),
-                MemoryMax = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation + 1)),
-                MemoryMin = Math.Max(0, Math.Min(100, snapshot.Metrics.Memory + memoryVariation - 1)),
-                DiskAvg = snapshot.Metrics.Disk,
-                DiskMax = snapshot.Metrics.Disk,
-                NetworkAvg = snapshot.Metrics.Network,
-                NetworkMax = snapshot.Metrics.Network,
-                TempAvg = snapshot.Metrics.TemperatureDetails.CpuTemperature,
-                TempMax = snapshot.Metrics.TemperatureDetails.CpuTemperature,
-                LoadAvg = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-                LoadMax = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
-                SampleCount = 1
-            });
-        }
+            Timestamp = snapshot.Timestamp,
+            CpuAvg = snapshot.Metrics.Cpu,
+            CpuMax = snapshot.Metrics.Cpu,
+            CpuMin = snapshot.Metrics.Cpu,
+            MemoryAvg = snapshot.Metrics.Memory,
+            MemoryMax = snapshot.Metrics.Memory,
+            MemoryMin = snapshot.Metrics.Memory,
+            DiskAvg = snapshot.Metrics.Disk,
+            DiskMax = snapshot.Metrics.Disk,
+            NetworkAvg = snapshot.Metrics.Network,
+            NetworkMax = snapshot.Metrics.Network,
+            TempAvg = snapshot.Metrics.TemperatureDetails.CpuTemperature,
+            TempMax = snapshot.Metrics.TemperatureDetails.HighestTemperature,
+            LoadAvg = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
+            LoadMax = snapshot.Metrics.CpuUsage.LoadAverage.Load1Min,
+            SampleCount = 1
+        });
 
         return dataPoints;
     }
