@@ -50,7 +50,9 @@ public static class GoApiDataTransformer
             ServerId = response.ServerInfo.ServerId,
             Hostname = response.ServerInfo.Hostname,
             OperatingSystem = $"{response.ServerInfo.Os} {response.ServerInfo.OsVersion}".Trim(),
-            AgentVersion = "1.1.0", // Default version since not provided by Go API
+            Kernel = response.ServerInfo.Kernel,
+            Architecture = response.ServerInfo.Architecture,
+            AgentVersion = string.Empty, // Will be populated from metrics endpoint
             LastUpdated = response.ServerInfo.UpdatedAt,
             CpuInfo = response.HardwareInfo != null
                 ? new StaticCpuInfo
@@ -61,12 +63,28 @@ public static class GoApiDataTransformer
                     FrequencyMhz = response.HardwareInfo.CpuFrequencyMhz
                 }
                 : null,
-            MemoryInfo = response.MemoryModules.Count > 0
+            MemoryInfo = response.HardwareInfo != null && response.HardwareInfo.TotalMemoryGb > 0
                 ? new StaticMemoryInfo
                 {
-                    TotalGb = response.MemoryModules.Sum(m => m.SizeGb),
-                    Type = response.MemoryModules.First().MemoryType,
-                    SpeedMhz = response.MemoryModules.First().FrequencyMhz
+                    TotalGb = response.HardwareInfo.TotalMemoryGb,
+                    Type = response.MemoryModules.FirstOrDefault()?.MemoryType ?? "Unknown",
+                    SpeedMhz = response.MemoryModules.FirstOrDefault()?.FrequencyMhz ?? 0
+                }
+                : null,
+            MotherboardInfo = response.MotherboardInfo != null && !string.IsNullOrEmpty(response.MotherboardInfo.Model)
+                ? new StaticMotherboardInfo
+                {
+                    Manufacturer = response.MotherboardInfo.Manufacturer,
+                    Model = response.MotherboardInfo.Model,
+                    BiosDate = response.MotherboardInfo.BiosDate != default ? response.MotherboardInfo.BiosDate : null
+                }
+                : null,
+            GpuInfo = response.HardwareInfo != null && !string.IsNullOrEmpty(response.HardwareInfo.GpuModel)
+                ? new StaticGpuInfo
+                {
+                    Model = response.HardwareInfo.GpuModel,
+                    Driver = response.HardwareInfo.GpuDriver,
+                    MemoryGb = response.HardwareInfo.GpuMemoryGb
                 }
                 : null,
             DiskInfo = response.DiskInfo.Select(d => new StaticDiskInfo

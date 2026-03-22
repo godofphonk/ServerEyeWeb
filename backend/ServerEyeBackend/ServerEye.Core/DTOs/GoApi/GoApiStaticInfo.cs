@@ -13,6 +13,12 @@ public class GoApiStaticInfo
     [JsonPropertyName("operating_system")]
     public string OperatingSystem { get; init; } = string.Empty;
 
+    [JsonPropertyName("kernel")]
+    public string Kernel { get; init; } = string.Empty;
+
+    [JsonPropertyName("architecture")]
+    public string Architecture { get; init; } = string.Empty;
+
     [JsonPropertyName("agent_version")]
     public string AgentVersion { get; init; } = string.Empty;
 
@@ -21,6 +27,12 @@ public class GoApiStaticInfo
 
     [JsonPropertyName("memory_info")]
     public StaticMemoryInfo? MemoryInfo { get; init; }
+
+    [JsonPropertyName("motherboard_info")]
+    public StaticMotherboardInfo? MotherboardInfo { get; init; }
+
+    [JsonPropertyName("gpu_info")]
+    public StaticGpuInfo? GpuInfo { get; init; }
 
     [JsonPropertyName("disk_info")]
     public List<StaticDiskInfo> DiskInfo { get; init; } = new();
@@ -57,6 +69,30 @@ public class StaticMemoryInfo
 
     [JsonPropertyName("speed_mhz")]
     public double SpeedMhz { get; init; }
+}
+
+public class StaticMotherboardInfo
+{
+    [JsonPropertyName("manufacturer")]
+    public string Manufacturer { get; init; } = string.Empty;
+
+    [JsonPropertyName("model")]
+    public string Model { get; init; } = string.Empty;
+
+    [JsonPropertyName("bios_date")]
+    public DateTime? BiosDate { get; init; }
+}
+
+public class StaticGpuInfo
+{
+    [JsonPropertyName("model")]
+    public string Model { get; init; } = string.Empty;
+
+    [JsonPropertyName("driver")]
+    public string Driver { get; init; } = string.Empty;
+
+    [JsonPropertyName("memory_gb")]
+    public double MemoryGb { get; init; }
 }
 
 public class StaticDiskInfo
