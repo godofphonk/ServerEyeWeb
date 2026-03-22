@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { HardDrive, Database, Zap, TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -11,17 +12,17 @@ interface MemoryTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
   staticInfo: ServerStaticInfo | null;
-  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
 }
 
 export default function MemoryTab({
   dashboardMetrics,
   historicalMetrics,
   staticInfo,
-  timeRange = '1h',
-  onTimeRangeChange,
+  loadHistoricalMetrics,
 }: MemoryTabProps) {
+  // Independent time range state for memory chart
+  const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   return (
     <div className='space-y-6'>
       {/* Memory Overview Cards */}
@@ -76,9 +77,10 @@ export default function MemoryTab({
           <Card className='p-6'>
             <div className='flex justify-between items-center mb-4'>
               <h4 className='text-sm font-medium text-gray-400'>Memory Usage</h4>
-              {onTimeRangeChange && (
-                <TimeRangeSelector timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
-              )}
+              <TimeRangeSelector 
+                timeRange={memoryTimeRange} 
+                onTimeRangeChange={setMemoryTimeRange} 
+              />
             </div>
             <div className='h-80'>
               <MetricsAreaChart
@@ -87,7 +89,7 @@ export default function MemoryTab({
                 title=''
                 color='#a855f7'
                 unit='%'
-                timeRange={timeRange}
+                timeRange={memoryTimeRange}
               />
             </div>
           </Card>

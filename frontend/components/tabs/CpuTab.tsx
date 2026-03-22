@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Cpu, Activity, Thermometer, Zap, Gauge } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -11,17 +12,52 @@ interface CpuTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null; // Unified metrics for all CPU charts
   staticInfo: ServerStaticInfo | null;
-  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
 }
 
 export default function CpuTab({
   dashboardMetrics,
   historicalMetrics,
   staticInfo,
-  timeRange = '1h',
-  onTimeRangeChange,
+  loadHistoricalMetrics,
 }: CpuTabProps) {
+  // Independent time range states for each chart
+  const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuTemperatureTimeRange, setCpuTemperatureTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+
+  // State for independently loaded metrics
+  const [cpuUsageMetrics, setCpuUsageMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuLoadMetrics, setCpuLoadMetrics] = useState<MetricsResponse | null>(null);
+  const [cpuTemperatureMetrics, setCpuTemperatureMetrics] = useState<MetricsResponse | null>(null);
+
+  // Load data when time ranges change
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[CpuTab] Loading CPU Usage data for range:', cpuUsageTimeRange);
+      loadHistoricalMetrics(cpuUsageTimeRange)
+        .then(data => setCpuUsageMetrics(data))
+        .catch(error => console.error('[CpuTab] Failed to load CPU Usage data:', error));
+    }
+  }, [cpuUsageTimeRange, loadHistoricalMetrics]);
+
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[CpuTab] Loading CPU Load data for range:', cpuLoadTimeRange);
+      loadHistoricalMetrics(cpuLoadTimeRange)
+        .then(data => setCpuLoadMetrics(data))
+        .catch(error => console.error('[CpuTab] Failed to load CPU Load data:', error));
+    }
+  }, [cpuLoadTimeRange, loadHistoricalMetrics]);
+
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[CpuTab] Loading CPU Temperature data for range:', cpuTemperatureTimeRange);
+      loadHistoricalMetrics(cpuTemperatureTimeRange)
+        .then(data => setCpuTemperatureMetrics(data))
+        .catch(error => console.error('[CpuTab] Failed to load CPU Temperature data:', error));
+    }
+  }, [cpuTemperatureTimeRange, loadHistoricalMetrics]);
   return (
     <div className='space-y-6'>
       {/* CPU Overview Cards */}
@@ -80,21 +116,19 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Usage</h4>
-                {onTimeRangeChange && (
-                  <TimeRangeSelector
-                    timeRange={timeRange}
-                    onTimeRangeChange={onTimeRangeChange}
-                  />
-                )}
+                <TimeRangeSelector
+                  timeRange={cpuUsageTimeRange}
+                  onTimeRangeChange={setCpuUsageTimeRange}
+                />
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={historicalMetrics?.data || historicalMetrics?.data}
+                  data={cpuUsageMetrics?.data || historicalMetrics?.data}
                   metricType='cpu'
                   title=''
                   color='#3b82f6'
                   unit='%'
-                  timeRange={timeRange}
+                  timeRange={cpuUsageTimeRange}
                 />
               </div>
             </Card>
@@ -102,20 +136,18 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Load</h4>
-                {onTimeRangeChange && (
-                  <TimeRangeSelector
-                    timeRange={timeRange}
-                    onTimeRangeChange={onTimeRangeChange}
-                  />
-                )}
+                <TimeRangeSelector
+                  timeRange={cpuLoadTimeRange}
+                  onTimeRangeChange={setCpuLoadTimeRange}
+                />
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={historicalMetrics?.data || historicalMetrics?.data}
+                  data={cpuLoadMetrics?.data || historicalMetrics?.data}
                   metricType='load'
                   title=''
                   color='#f59e0b'
-                  timeRange={timeRange}
+                  timeRange={cpuLoadTimeRange}
                 />
               </div>
             </Card>
@@ -123,21 +155,19 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Temperature</h4>
-                {onTimeRangeChange && (
-                  <TimeRangeSelector
-                    timeRange={timeRange}
-                    onTimeRangeChange={onTimeRangeChange}
-                  />
-                )}
+                <TimeRangeSelector
+                  timeRange={cpuTemperatureTimeRange}
+                  onTimeRangeChange={setCpuTemperatureTimeRange}
+                />
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={historicalMetrics?.data || historicalMetrics?.data}
+                  data={cpuTemperatureMetrics?.data || historicalMetrics?.data}
                   metricType='temperature'
                   title=''
                   color='#ef4444'
                   unit='°C'
-                  timeRange={timeRange}
+                  timeRange={cpuTemperatureTimeRange}
                 />
               </div>
             </Card>

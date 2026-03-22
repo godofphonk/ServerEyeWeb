@@ -15,11 +15,10 @@ interface MetricsTabsProps {
   historicalMetrics: MetricsResponse | null; // Unified metrics for all charts
   staticInfo: ServerStaticInfo | null;
   server: any;
-  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   networkDetails?: any;
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
+  loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
 }
 
 const tabs = [
@@ -35,11 +34,10 @@ export default function MetricsTabs({
   historicalMetrics, // Use unified metrics for all tabs
   staticInfo,
   server,
-  timeRange,
-  onTimeRangeChange,
   networkDetails,
   activeTab = 'cpu',
   onActiveTabChange,
+  loadHistoricalMetrics,
 }: MetricsTabsProps) {
 
   return (
@@ -52,8 +50,7 @@ export default function MetricsTabs({
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
+            loadHistoricalMetrics={loadHistoricalMetrics}
           />
         </TabPanel>
 
@@ -62,8 +59,7 @@ export default function MetricsTabs({
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
+            loadHistoricalMetrics={loadHistoricalMetrics}
           />
         </TabPanel>
 
@@ -72,8 +68,7 @@ export default function MetricsTabs({
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
+            loadHistoricalMetrics={loadHistoricalMetrics}
           />
         </TabPanel>
 
@@ -81,10 +76,8 @@ export default function MetricsTabs({
           <NetworkTab
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics} // Use unified metrics
-            staticInfo={staticInfo}
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
             networkDetails={networkDetails}
+            loadHistoricalMetrics={loadHistoricalMetrics}
           />
         </TabPanel>
 
