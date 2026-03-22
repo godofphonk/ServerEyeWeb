@@ -45,40 +45,12 @@ export default function ServerDetailPage() {
   const [server, setServer] = useState<MonitoredServer | null>(null);
   const [staticInfo, setStaticInfo] = useState<ServerStaticInfo | null>(null);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
+  // Unified historical metrics state - all charts use the same data
   const [historicalMetrics, setHistoricalMetrics] = useState<MetricsResponse | null>(null);
-  const [cpuHistoricalMetrics, setCpuHistoricalMetrics] = useState<MetricsResponse | null>(null);
-  const [cpuUsageHistoricalMetrics, setCpuUsageHistoricalMetrics] =
-    useState<MetricsResponse | null>(null);
-  const [cpuLoadHistoricalMetrics, setCpuLoadHistoricalMetrics] = useState<MetricsResponse | null>(
-    null,
-  );
-  const [cpuTemperatureHistoricalMetrics, setCpuTemperatureHistoricalMetrics] =
-    useState<MetricsResponse | null>(null);
-  const [memoryHistoricalMetrics, setMemoryHistoricalMetrics] = useState<MetricsResponse | null>(
-    null,
-  );
-  const [networkHistoricalMetrics, setNetworkHistoricalMetrics] = useState<MetricsResponse | null>(
-    null,
-  );
-  const [diskHistoricalMetrics, setDiskHistoricalMetrics] = useState<MetricsResponse | null>(null);
   const [networkDetails, setNetworkDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // Unified time range state - all charts use the same range
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [cpuTimeRange, setCpuTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
-    '1h',
-  );
-  const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
-    '1h',
-  );
-  const [cpuTemperatureTimeRange, setCpuTemperatureTimeRange] = useState<
-    '1h' | '6h' | '24h' | '7d' | '30d'
-  >('1h');
-  const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [networkTimeRange, setNetworkTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
-    '1h',
-  );
-  const [diskTimeRange, setDiskTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -91,97 +63,51 @@ export default function ServerDetailPage() {
     }
   }, [user, authLoading, router]);
 
-  // Load server info and static data only once
-  useEffect(() => {
-    if (user && serverId && !server && !staticInfo) {
-      loadServerData()
-        .then(({ serverData, staticData }) => {
-          setServer(serverData);
-          setStaticInfo(staticData);
-        })
-        .catch(console.error);
-    }
-  }, [user, serverId, server, staticInfo]);
-
-  // Unified metrics loading - load all required metrics at once
+  // Unified data loading - server info + metrics in one place
   useEffect(() => {
     if (user && serverId) {
-      const loadAllMetrics = async () => {
+      const loadAllData = async () => {
         try {
           setLoading(true);
 
-          // Load all required metrics in parallel
-          const [
-            dashboardMetrics,
-            cpuMetrics,
-            cpuUsageMetrics,
-            cpuLoadMetrics,
-            cpuTemperatureMetrics,
-            memoryMetrics,
-            networkMetrics,
-            diskMetrics,
-          ] = await Promise.all([
+          // Load server info if not already loaded
+          if (!server || !staticInfo) {
+            const serverData = await getServerInfo();
+            const staticData = await getServerStaticInfoCached(serverData.serverKey || serverId);
+            setServer(serverData);
+            setStaticInfo(staticData);
+          }
+
+          // Load dashboard metrics and historical metrics (optimized - 1 request instead of 8)
+          const [dashboardMetrics, historicalMetrics] = await Promise.all([
             loadDashboardMetrics(),
-            loadHistoricalMetrics(cpuTimeRange),
-            loadHistoricalMetrics(cpuUsageTimeRange),
-            loadHistoricalMetrics(cpuLoadTimeRange),
-            loadHistoricalMetrics(cpuTemperatureTimeRange),
-            loadHistoricalMetrics(memoryTimeRange),
-            loadHistoricalMetrics(networkTimeRange),
-            loadHistoricalMetrics(diskTimeRange),
+            loadHistoricalMetrics(timeRange), // Single request for all metrics
           ]);
 
+          // Set dashboard metrics
           setDashboardMetrics(dashboardMetrics);
-          setHistoricalMetrics(cpuMetrics);
-          setCpuHistoricalMetrics(cpuMetrics);
-          setMemoryHistoricalMetrics(memoryMetrics);
-          setNetworkHistoricalMetrics(networkMetrics);
-          setDiskHistoricalMetrics(diskMetrics);
-          setCpuUsageHistoricalMetrics(cpuUsageMetrics);
-          setCpuLoadHistoricalMetrics(cpuLoadMetrics);
-          setCpuTemperatureHistoricalMetrics(cpuTemperatureMetrics);
+          
+          // Set historical metrics for all charts from single response
+          setHistoricalMetrics(historicalMetrics);
         } catch (error) {
-          console.error('Failed to load metrics:', error);
+          console.error('Failed to load data:', error);
         } finally {
           setLoading(false);
         }
       };
 
-      loadAllMetrics();
+      loadAllData();
     }
   }, [
     user,
     serverId,
-    timeRange,
-    cpuTimeRange,
-    cpuUsageTimeRange,
-    cpuLoadTimeRange,
-    cpuTemperatureTimeRange,
-    memoryTimeRange,
-    networkTimeRange,
-    diskTimeRange,
+    timeRange, // Only the time range we actually use
+    server,    // Re-load if server changes
+    staticInfo, // Re-load if static info changes
   ]);
 
-  // Remove individual useEffects since we're using unified one
-
-  const loadServerData = async () => {
-    try {
-      setLoading(true);
-
-      // Get server info and static data
-      const serverData = await loadServerInfo();
-      const staticData = await getServerStaticInfoCached(serverData.serverKey || serverId);
-
-      return { serverData, staticData };
-    } catch (error) {
-      console.error('Failed to load server data:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadServerInfo = async () => {
+  // Helper function to get server info (optimized)
+  const getServerInfo = async () => {
     const start = performance.now();
 
     const serverKey = await getServerKey(serverId);
@@ -547,7 +473,10 @@ export default function ServerDetailPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadServerData();
+    // Force reload server info and metrics
+    setServer(null);
+    setStaticInfo(null);
+    // This will trigger useEffect to reload data
     setIsRefreshing(false);
   };
 
@@ -753,31 +682,10 @@ export default function ServerDetailPage() {
             <MetricsTabs
               dashboardMetrics={dashboardMetrics}
               historicalMetrics={historicalMetrics}
-              cpuHistoricalMetrics={cpuHistoricalMetrics}
-              cpuUsageHistoricalMetrics={cpuUsageHistoricalMetrics}
-              cpuLoadHistoricalMetrics={cpuLoadHistoricalMetrics}
-              cpuTemperatureHistoricalMetrics={cpuTemperatureHistoricalMetrics}
-              memoryHistoricalMetrics={memoryHistoricalMetrics}
-              networkHistoricalMetrics={networkHistoricalMetrics}
-              diskHistoricalMetrics={diskHistoricalMetrics}
               staticInfo={staticInfo}
               server={server}
               timeRange={timeRange}
-              cpuTimeRange={cpuTimeRange}
-              cpuUsageTimeRange={cpuUsageTimeRange}
-              cpuLoadTimeRange={cpuLoadTimeRange}
-              cpuTemperatureTimeRange={cpuTemperatureTimeRange}
-              memoryTimeRange={memoryTimeRange}
-              networkTimeRange={networkTimeRange}
-              diskTimeRange={diskTimeRange}
               onTimeRangeChange={setTimeRange}
-              onCpuTimeRangeChange={setCpuTimeRange}
-              onCpuUsageTimeRangeChange={setCpuUsageTimeRange}
-              onCpuLoadTimeRangeChange={setCpuLoadTimeRange}
-              onCpuTemperatureTimeRangeChange={setCpuTemperatureTimeRange}
-              onMemoryTimeRangeChange={setMemoryTimeRange}
-              onNetworkTimeRangeChange={setNetworkTimeRange}
-              onDiskTimeRangeChange={setDiskTimeRange}
               networkDetails={networkDetails}
             />
           </div>
