@@ -18,6 +18,8 @@ interface MetricsTabsProps {
   timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
   onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
   networkDetails?: any;
+  activeTab?: string;
+  onActiveTabChange?: (tab: string) => void;
 }
 
 const tabs = [
@@ -36,12 +38,13 @@ export default function MetricsTabs({
   timeRange,
   onTimeRangeChange,
   networkDetails,
+  activeTab = 'cpu',
+  onActiveTabChange,
 }: MetricsTabsProps) {
-  const [activeTab, setActiveTab] = useState('cpu');
 
   return (
     <div className='space-y-6'>
-      <TabsNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabsNavigation tabs={tabs} activeTab={activeTab} onTabChange={onActiveTabChange || (() => {})} />
 
       <TabsContent activeTab={activeTab}>
         <TabPanel value='cpu' activeTab={activeTab}>

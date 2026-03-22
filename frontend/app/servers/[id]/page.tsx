@@ -51,6 +51,7 @@ export default function ServerDetailPage() {
   const [loading, setLoading] = useState(true);
   // Unified time range state - all charts use the same range
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [activeTab, setActiveTab] = useState('cpu');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -67,10 +68,15 @@ export default function ServerDetailPage() {
   useEffect(() => {
     if (user && serverId) {
       const loadAllData = async () => {
+        // Only show loading for initial data load, not time range changes
+        const isFirstLoad = !server || !staticInfo;
+        
         try {
-          setLoading(true);
+          if (isFirstLoad) {
+            setLoading(true);
+          }
 
-          // Load server info if not already loaded
+          // Load server info and static data only if not loaded
           if (!server || !staticInfo) {
             const serverData = await getServerInfo();
             const staticData = await getServerStaticInfoCached(serverData.serverKey || serverId);
@@ -92,7 +98,10 @@ export default function ServerDetailPage() {
         } catch (error) {
           console.error('Failed to load data:', error);
         } finally {
-          setLoading(false);
+          // Only hide loading for initial load
+          if (isFirstLoad) {
+            setLoading(false);
+          }
         }
       };
 
@@ -101,9 +110,7 @@ export default function ServerDetailPage() {
   }, [
     user,
     serverId,
-    timeRange, // Only the time range we actually use
-    server,    // Re-load if server changes
-    staticInfo, // Re-load if static info changes
+    timeRange, // Only reload when time range changes
   ]);
 
   // Helper function to get server info (optimized)
@@ -687,6 +694,8 @@ export default function ServerDetailPage() {
               timeRange={timeRange}
               onTimeRangeChange={setTimeRange}
               networkDetails={networkDetails}
+              activeTab={activeTab}
+              onActiveTabChange={setActiveTab}
             />
           </div>
         </div>

@@ -9,32 +9,18 @@ import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface CpuTabProps {
   dashboardMetrics: DashboardMetrics | null;
-  historicalMetrics: MetricsResponse | null;
-  cpuUsageHistoricalMetrics: MetricsResponse | null;
-  cpuLoadHistoricalMetrics: MetricsResponse | null;
-  cpuTemperatureHistoricalMetrics: MetricsResponse | null;
+  historicalMetrics: MetricsResponse | null; // Unified metrics for all CPU charts
   staticInfo: ServerStaticInfo | null;
-  cpuUsageTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuLoadTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  cpuTemperatureTimeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
-  onCpuUsageTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuLoadTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
-  onCpuTemperatureTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
+  timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
+  onTimeRangeChange?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => void;
 }
 
 export default function CpuTab({
   dashboardMetrics,
   historicalMetrics,
-  cpuUsageHistoricalMetrics,
-  cpuLoadHistoricalMetrics,
-  cpuTemperatureHistoricalMetrics,
   staticInfo,
-  cpuUsageTimeRange = '1h',
-  cpuLoadTimeRange = '1h',
-  cpuTemperatureTimeRange = '1h',
-  onCpuUsageTimeRangeChange,
-  onCpuLoadTimeRangeChange,
-  onCpuTemperatureTimeRangeChange,
+  timeRange = '1h',
+  onTimeRangeChange,
 }: CpuTabProps) {
   return (
     <div className='space-y-6'>
@@ -94,21 +80,21 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Usage</h4>
-                {onCpuUsageTimeRangeChange && (
+                {onTimeRangeChange && (
                   <TimeRangeSelector
-                    timeRange={cpuUsageTimeRange}
-                    onTimeRangeChange={onCpuUsageTimeRangeChange}
+                    timeRange={timeRange}
+                    onTimeRangeChange={onTimeRangeChange}
                   />
                 )}
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={cpuUsageHistoricalMetrics?.data || historicalMetrics?.data}
+                  data={historicalMetrics?.data || historicalMetrics?.data}
                   metricType='cpu'
                   title=''
                   color='#3b82f6'
                   unit='%'
-                  timeRange={cpuUsageTimeRange}
+                  timeRange={timeRange}
                 />
               </div>
             </Card>
@@ -116,20 +102,20 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Load</h4>
-                {onCpuLoadTimeRangeChange && (
+                {onTimeRangeChange && (
                   <TimeRangeSelector
-                    timeRange={cpuLoadTimeRange}
-                    onTimeRangeChange={onCpuLoadTimeRangeChange}
+                    timeRange={timeRange}
+                    onTimeRangeChange={onTimeRangeChange}
                   />
                 )}
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={cpuLoadHistoricalMetrics?.data || historicalMetrics?.data}
+                  data={historicalMetrics?.data || historicalMetrics?.data}
                   metricType='load'
                   title=''
                   color='#f59e0b'
-                  timeRange={cpuLoadTimeRange}
+                  timeRange={timeRange}
                 />
               </div>
             </Card>
@@ -137,21 +123,21 @@ export default function CpuTab({
             <Card className='p-6'>
               <div className='flex justify-between items-center mb-4'>
                 <h4 className='text-sm font-medium text-gray-400'>CPU Temperature</h4>
-                {onCpuTemperatureTimeRangeChange && (
+                {onTimeRangeChange && (
                   <TimeRangeSelector
-                    timeRange={cpuTemperatureTimeRange}
-                    onTimeRangeChange={onCpuTemperatureTimeRangeChange}
+                    timeRange={timeRange}
+                    onTimeRangeChange={onTimeRangeChange}
                   />
                 )}
               </div>
               <div className='h-80'>
                 <MetricsLineChart
-                  data={cpuTemperatureHistoricalMetrics?.data || historicalMetrics?.data}
+                  data={historicalMetrics?.data || historicalMetrics?.data}
                   metricType='temperature'
                   title=''
                   color='#ef4444'
                   unit='°C'
-                  timeRange={cpuTemperatureTimeRange}
+                  timeRange={timeRange}
                 />
               </div>
             </Card>
