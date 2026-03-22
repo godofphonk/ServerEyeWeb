@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HardDrive, Database, Zap, TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -23,6 +23,19 @@ export default function MemoryTab({
 }: MemoryTabProps) {
   // Independent time range state for memory chart
   const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  
+  // State for independently loaded metrics
+  const [memoryMetrics, setMemoryMetrics] = useState<MetricsResponse | null>(null);
+
+  // Load data when time range changes
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[MemoryTab] Loading Memory data for range:', memoryTimeRange);
+      loadHistoricalMetrics(memoryTimeRange)
+        .then(data => setMemoryMetrics(data))
+        .catch(error => console.error('[MemoryTab] Failed to load Memory data:', error));
+    }
+  }, [memoryTimeRange, loadHistoricalMetrics]);
   return (
     <div className='space-y-6'>
       {/* Memory Overview Cards */}
@@ -84,7 +97,7 @@ export default function MemoryTab({
             </div>
             <div className='h-80'>
               <MetricsAreaChart
-                data={historicalMetrics.data}
+                data={memoryMetrics?.data || historicalMetrics?.data}
                 metricType='memory'
                 title=''
                 color='#a855f7'
