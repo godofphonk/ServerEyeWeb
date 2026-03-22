@@ -124,16 +124,10 @@ public static class GoApiDataTransformer
         var highestTemp = snapshot.Metrics?.TemperatureDetails?.HighestTemperature ?? 0;
         var load1Min = snapshot.Metrics?.CpuUsage?.LoadAverage?.Load1Min ?? 0;
         
-        // Use new direct mappings from Go API
-        var directTemp = snapshot.Metrics?.TemperatureCelsius ?? 0;
-        var directCpuTemp = snapshot.Metrics?.Temperatures?.Cpu ?? 0;
-        var directHighestTemp = snapshot.Metrics?.Temperatures?.Highest ?? 0;
-        var directLoad1Min = snapshot.Metrics?.LoadAverage?.Load1Min ?? 0;
-        
-        // Choose best values (new direct mappings first, then fallback to old structure)
-        var finalTemp = directTemp > 0 ? directTemp : (directCpuTemp > 0 ? directCpuTemp : cpuTemp);
-        var finalHighestTemp = directHighestTemp > 0 ? directHighestTemp : highestTemp;
-        var finalLoad = directLoad1Min > 0 ? directLoad1Min : load1Min;
+        // Use available values from Go API structure
+        var finalTemp = cpuTemp;
+        var finalHighestTemp = highestTemp;
+        var finalLoad = load1Min;
         
         Console.WriteLine($"[GoApiDataTransformer] Snapshot values - CPU: {snapshot.Metrics?.Cpu}, Memory: {snapshot.Metrics?.Memory}, Temp: {finalTemp}, HighestTemp: {finalHighestTemp}, Load: {finalLoad}");
             
@@ -162,11 +156,11 @@ public static class GoApiDataTransformer
             MemoryAvailableGb = snapshot.Metrics?.MemoryDetails?.AvailableGb ?? 0,
             MemorySwapPercent = 0, // TODO: Add swap data when available from Go API
             
-            // Disk I/O metrics from snapshot
-            DiskReadMb = snapshot.Metrics?.DiskReadMb ?? 0,
-            DiskWriteMb = snapshot.Metrics?.DiskWriteMb ?? 0,
-            DiskReadBytesSec = snapshot.Metrics?.DiskReadBytesSec ?? 0,
-            DiskWriteBytesSec = snapshot.Metrics?.DiskWriteBytesSec ?? 0
+            // Disk I/O metrics - not available in current Go API structure, set to 0
+            DiskReadMb = 0,
+            DiskWriteMb = 0,
+            DiskReadBytesSec = 0,
+            DiskWriteBytesSec = 0
         });
 
         return dataPoints;
