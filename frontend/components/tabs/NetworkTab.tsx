@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wifi, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -24,6 +24,29 @@ export default function NetworkTab({
   // Independent time range states for network charts
   const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
   const [networkTxTimeRange, setNetworkTxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  
+  // State for independently loaded metrics
+  const [networkRxMetrics, setNetworkRxMetrics] = useState<MetricsResponse | null>(null);
+  const [networkTxMetrics, setNetworkTxMetrics] = useState<MetricsResponse | null>(null);
+
+  // Load data when time ranges change
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[NetworkTab] Loading Network RX data for range:', networkRxTimeRange);
+      loadHistoricalMetrics(networkRxTimeRange)
+        .then(data => setNetworkRxMetrics(data))
+        .catch(error => console.error('[NetworkTab] Failed to load Network RX data:', error));
+    }
+  }, [networkRxTimeRange, loadHistoricalMetrics]);
+
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[NetworkTab] Loading Network TX data for range:', networkTxTimeRange);
+      loadHistoricalMetrics(networkTxTimeRange)
+        .then(data => setNetworkTxMetrics(data))
+        .catch(error => console.error('[NetworkTab] Failed to load Network TX data:', error));
+    }
+  }, [networkTxTimeRange, loadHistoricalMetrics]);
   console.log('[NetworkTab] networkDetails:', networkDetails);
   return (
     <div className='space-y-6'>
@@ -85,7 +108,7 @@ export default function NetworkTab({
             </div>
             <div className='h-80'>
               <MetricsLineChart
-                data={historicalMetrics.data}
+                data={networkRxMetrics?.data || historicalMetrics?.data}
                 metricType='network'
                 title=''
                 color='#10b981'

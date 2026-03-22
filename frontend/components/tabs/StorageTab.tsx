@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Database, HardDrive, Activity, TrendingUp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -23,6 +23,19 @@ export default function StorageTab({
 }: StorageTabProps) {
   // Independent time range state for storage chart
   const [storageTimeRange, setStorageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  
+  // State for independently loaded metrics
+  const [storageMetrics, setStorageMetrics] = useState<MetricsResponse | null>(null);
+
+  // Load data when time range changes
+  useEffect(() => {
+    if (loadHistoricalMetrics) {
+      console.log('[StorageTab] Loading Storage data for range:', storageTimeRange);
+      loadHistoricalMetrics(storageTimeRange)
+        .then(data => setStorageMetrics(data))
+        .catch(error => console.error('[StorageTab] Failed to load Storage data:', error));
+    }
+  }, [storageTimeRange, loadHistoricalMetrics]);
   return (
     <div className='space-y-6'>
       {/* Storage Overview Cards */}
@@ -83,7 +96,7 @@ export default function StorageTab({
             </div>
             <div className='h-80'>
               <MetricsLineChart
-                data={historicalMetrics.data}
+                data={storageMetrics?.data || historicalMetrics?.data}
                 metricType='disk'
                 title=''
                 color='#ec4899'
