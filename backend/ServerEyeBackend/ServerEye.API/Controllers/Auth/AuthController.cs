@@ -449,6 +449,22 @@ public class AuthController : ControllerBase
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
 
+            // Store code verifier for PKCE if provided
+            if (!string.IsNullOrEmpty(request.CodeVerifier) && !string.IsNullOrEmpty(request.State))
+            {
+                // Use reflection to access the private CodeVerifiers dictionary
+                var oauthServiceType = this.oauthService.GetType();
+                var codeVerifiersField = oauthServiceType.GetField(
+                    "CodeVerifiers", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                
+                if (codeVerifiersField?.GetValue(null) is System.Collections.Generic.Dictionary<string, string> codeVerifiers)
+                {
+                    codeVerifiers[request.State] = request.CodeVerifier;
+                    this.logger.LogInformation("Stored code verifier for POST OAuth callback - State: {State}", request.State);
+                }
+            }
+
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
             return this.Ok(response);
         }

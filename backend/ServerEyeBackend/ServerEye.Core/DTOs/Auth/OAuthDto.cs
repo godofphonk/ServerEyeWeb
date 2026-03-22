@@ -56,6 +56,7 @@ public class OAuthCallbackRequestDto
     public string Provider { get; init; } = string.Empty;
     public string Code { get; init; } = string.Empty;
     public string State { get; init; } = string.Empty;
+    public string? CodeVerifier { get; set; }
     public string Error { get; set; } = string.Empty;
     public string ErrorDescription { get; set; } = string.Empty;
     public bool LinkingAction { get; set; }
