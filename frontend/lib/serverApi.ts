@@ -206,12 +206,13 @@ export async function getCachedTieredMetrics(
   serverKey: string,
   startTime?: string,
   endTime?: string,
+  granularity?: string,
 ): Promise<any> {
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
   
-  const cacheKey = `tiered-${serverKey}-${start}-${end}`;
+  const cacheKey = `tiered-${serverKey}-${start}-${end}${granularity ? `-${granularity}` : ''}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
 
@@ -225,10 +226,12 @@ export async function getCachedTieredMetrics(
 
   console.log(`[TieredMetricsCache] Fetching fresh tiered data for ${serverKey}`);
 
-  // Fetch fresh tiered data
-  const response = await apiClient.get<any>(
-    `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}`,
-  );
+  // Fetch fresh tiered data with optional granularity
+  const url = granularity 
+    ? `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}&granularity=${granularity}`
+    : `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}`;
+  
+  const response = await apiClient.get<any>(url);
 
   console.log(
     `[TieredMetricsCache] Response: ${response.dataPoints?.length || 0} points, granularity: ${response.granularity}`,

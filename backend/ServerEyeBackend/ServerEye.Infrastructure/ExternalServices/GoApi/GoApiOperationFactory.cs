@@ -32,9 +32,9 @@ public class GoApiOperationFactory
         return new GetMetricsByKeyOperation(httpHandler, logger, serverKey, startTime, endTime, granularity);
     }
 
-    public GetTieredMetricsByKeyOperation CreateGetTieredMetricsByKey(string serverKey, DateTime startTime, DateTime endTime)
+    public GetTieredMetricsByKeyOperation CreateGetTieredMetricsByKey(string serverKey, DateTime startTime, DateTime endTime, string? granularity = null)
     {
-        return new GetTieredMetricsByKeyOperation(httpHandler, logger, serverKey, startTime, endTime);
+        return new GetTieredMetricsByKeyOperation(httpHandler, logger, serverKey, startTime, endTime, granularity);
     }
 
     public GetRealtimeMetricsOperation CreateGetRealtimeMetrics(string serverId, TimeSpan? duration = null)

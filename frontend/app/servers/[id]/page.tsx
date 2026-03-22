@@ -259,6 +259,7 @@ export default function ServerDetailPage() {
     end: Date,
     granularityMinutes: number,
     range: string,
+    expectedPoints: number,
   ) => {
     // Округляем start и end до гранулярности
     const startRounded = roundToGranularity(start, granularityMinutes);
@@ -314,8 +315,6 @@ export default function ServerDetailPage() {
     // Для коротких периодов (1ч, 6ч) используем все данные как есть
     // Для длинных периодов (24ч, 7д, 30д) заполняем нулями после реальных данных
     const periodHours = (endRounded - startRounded) / (1000 * 60 * 60);
-    const expectedPoints =
-      range === '1h' ? 60 : range === '6h' ? 72 : range === '24h' ? 96 : range === '7d' ? 168 : 120;
 
     let actualStart: number = startRounded;
     const useLongPeriodLogic = periodHours >= 24; // 24ч и больше
@@ -427,12 +426,22 @@ export default function ServerDetailPage() {
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
 
-    // Use tiered endpoint for 1 hour range (optimized for graphs)
-    console.log(`[HistoricalMetrics] Time range: ${start.toISOString()} to ${end.toISOString()}`);
+    // Calculate granularity based on range (API optimized)
+    const granularityConfig = {
+      '1h': { granularity: '1m', minutes: 1, expectedPoints: 60 },
+      '6h': { granularity: '10m', minutes: 10, expectedPoints: 36 },
+      '24h': { granularity: '30m', minutes: 30, expectedPoints: 48 },
+      '7d': { granularity: '2h', minutes: 120, expectedPoints: 84 },
+      '30d': { granularity: '6h', minutes: 360, expectedPoints: 120 },
+    };
     
-    const response = range === '1h' 
-      ? await getCachedTieredMetrics(serverKey, start.toISOString(), end.toISOString())
-      : await getCachedMetrics(serverKey, start.toISOString(), end.toISOString(), '1m');
+    const config = granularityConfig[range] || granularityConfig['1h'];
+    const { granularity, expectedPoints } = config;
+
+    console.log(`[HistoricalMetrics] Time range: ${start.toISOString()} to ${end.toISOString()}, granularity: ${granularity}`);
+    
+    // Use tiered endpoint for all ranges with optimized granularity
+    const response = await getCachedTieredMetrics(serverKey, start.toISOString(), end.toISOString(), granularity);
 
     console.log(
       `[HistoricalMetrics] Historical metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
@@ -475,33 +484,20 @@ export default function ServerDetailPage() {
 
     if (response.dataPoints?.length > 0) {
       // Проверяем если данных меньше ожидаемых
-      const expectedPoints =
-        range === '1h'
-          ? 60
-          : range === '6h'
-            ? 72
-            : range === '24h'
-              ? 96
-              : range === '7d'
-                ? 168
-                : 120;
-
       if (response.dataPoints.length < expectedPoints * 0.1) {
         // Меньше 10% от ожидаемых
         // Ограниченные данные
       }
     }
 
-    // Определяем гранулярность в минутах для заполнения на основе range
-    const granularityMinutes = range === '1h' ? 1 : 1;
-
     // Заполняем пропущенные данные нулями
     const filledDataPoints = fillMissingDataPoints(
       response.dataPoints || [],
       start,
       end,
-      granularityMinutes,
+      config.minutes,
       range,
+      expectedPoints,
     );
     console.log(`[ServerDetail] After filling: ${filledDataPoints.length} points`);
 

@@ -42,11 +42,17 @@ public static class GoApiUrlBuilder
     /// <summary>
     /// Builds tiered metrics URL by server key.
     /// </summary>
-    public static Uri BuildTieredMetricsByKeyUrl(string serverKey, DateTime start, DateTime end)
+    public static Uri BuildTieredMetricsByKeyUrl(string serverKey, DateTime start, DateTime end, string? granularity = null)
     {
         var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var endStr = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
         var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics/tiered?start={startStr}&end={endStr}";
+
+        if (!string.IsNullOrEmpty(granularity))
+        {
+            url += $"&granularity={granularity}";
+        }
+
         Console.WriteLine($"[GoApiUrlBuilder] Tiered URL: {url}");
         return new Uri(url, UriKind.Relative);
     }
