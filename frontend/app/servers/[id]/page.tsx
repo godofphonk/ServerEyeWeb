@@ -137,11 +137,12 @@ export default function ServerDetailPage() {
 
     console.log(`[DashboardMetrics] Loading dashboard metrics for ${serverKey}`);
 
-    const response = await getCachedMetrics(
+    // Use tiered endpoint for consistency with historical metrics
+    const response = await getCachedTieredMetrics(
       serverKey,
       startTime.toISOString(),
       end.toISOString(),
-      'minute',
+      'minute', // Use minute granularity for dashboard
     );
 
     console.log(
