@@ -11,21 +11,17 @@ import OpenSource from '@/components/sections/OpenSource';
 import Testimonials from '@/components/sections/Testimonials';
 import Footer from '@/components/sections/Footer';
 
+// Optimized Telegram callback handler
 function TelegramCallbackHandler() {
-  const router = useRouter();
-
   useEffect(() => {
     // Check if this is a Telegram OAuth callback
     const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
     
-    if (urlHash && urlHash.includes('tgAuthResult=')) {
+    if (urlHash?.includes('tgAuthResult=')) {
       console.log('[Home] Detected Telegram OAuth callback, redirecting to telegram-callback');
-      
-      // Redirect to telegram-callback page with the hash
       window.location.href = `/telegram-callback${urlHash}`;
-      return;
     }
-  }, [router]);
+  }, []);
 
   return null;
 }
