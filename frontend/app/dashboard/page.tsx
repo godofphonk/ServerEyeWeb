@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api';
 import {
   getServersWithStaticInfo,
   getServerMetrics,
+  getServerUnifiedData,
   clearServersCache,
   clearMetricsCache,
 } from '@/lib/serverApi';
@@ -101,38 +102,44 @@ export default function DashboardPage() {
       });
 
       try {
-        // Use retry mechanism for metrics loading
+        // Use unified endpoint for optimal performance (metrics + status + static in 1 request)
         const response = await fetchWithRetry(
-          () => apiClient.get<any>(`/servers/by-key/${serverKey}/metrics?granularity=minute`),
+          () => getServerUnifiedData(serverKey, {
+            granularity: 'minute',
+            includeMetrics: true,
+            includeStatus: true,
+            includeStatic: false, // Static info already loaded separately
+          }),
           {
             maxRetries: 2,
             initialDelay: 1000,
           }
         );
 
-        // Transform API response to expected format
+        // Transform unified API response to expected format
+        const metricsData = response.metrics;
         const dashboardMetrics: DashboardMetrics = {
           current: {
-            cpu: response.summary?.avgCpu || 0,
-            memory: response.summary?.avgMemory || 0,
-            disk: response.summary?.avgDisk || 0,
-            network: response.dataPoints?.[response.dataPoints?.length - 1]?.network?.avg || 0,
-            load: response.dataPoints?.[response.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+            cpu: metricsData?.summary?.avgCpu || 0,
+            memory: metricsData?.summary?.avgMemory || 0,
+            disk: metricsData?.summary?.avgDisk || 0,
+            network: metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.network?.avg || 0,
+            load: metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.loadAverage?.avg || 0,
             temperature:
-              response.dataPoints?.[response.dataPoints?.length - 1]?.temperature_details
+              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature_details
                 ?.cpu_temperature ||
-              response.dataPoints?.[response.dataPoints?.length - 1]?.temperature?.avg ||
+              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature?.avg ||
               0,
           },
           trends: {
-            cpu: response.summary?.avgCpu || 0,
-            memory: response.summary?.avgMemory || 0,
-            disk: response.summary?.avgDisk || 0,
+            cpu: metricsData?.summary?.avgCpu || 0,
+            memory: metricsData?.summary?.avgMemory || 0,
+            disk: metricsData?.summary?.avgDisk || 0,
             network: 0,
             load: 0,
             temperature: 0,
           },
-          timestamp: response.endTime || new Date().toISOString(),
+          timestamp: metricsData?.endTime || new Date().toISOString(),
         };
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
@@ -151,16 +158,16 @@ export default function DashboardPage() {
           // Don't show toast for server errors - they're displayed inline
           return;
         }
-        // Handle 401 errors specifically - don't log as error, let auth interceptor handle it
+        // Handle 401 errors specifically
         if (error.response?.status === 401) {
+          // Don't set error for 401 - let auth interceptor handle redirect
           return;
         }
-        // Set empty metrics to prevent continuous loading
-        setMetrics(prev => ({ ...prev, [serverKey]: null }));
-        // Show error toast for other errors
+        // For other errors, store error and show toast
+        setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
         if (error.message !== 'canceled') {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to load server metrics';
-          toast.error(`Failed to load metrics for ${serverKey}`, errorMessage);
+          const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+          toast.error('Failed to load server metrics', errorMessage);
         }
       } finally {
         setLoadingMetrics(prev => {
@@ -170,7 +177,7 @@ export default function DashboardPage() {
         });
       }
     },
-    [loadingMetrics, toast],
+    [toast]
   );
 
   const loadServers = useCallback(async () => {
@@ -190,13 +197,25 @@ export default function DashboardPage() {
       );
       setServers(serversWithStatic || []);
 
-      // Load metrics for each server using serverKey
+      // Load metrics for all servers in parallel (critical optimization)
       if (serversWithStatic && serversWithStatic.length > 0) {
-        for (const server of serversWithStatic) {
-          // Use serverKey for metrics
-          if (server.serverKey) {
-            loadServerMetrics(server.serverKey);
-          }
+        const serverKeys = serversWithStatic
+          .filter(server => server.serverKey)
+          .map(server => server.serverKey);
+
+        if (serverKeys.length > 0) {
+          // Load all metrics in parallel instead of sequentially
+          // This reduces load time from O(n) to O(1) for n servers
+          const metricsPromises = serverKeys.map(serverKey => 
+            loadServerMetrics(serverKey).catch(error => {
+              // Handle individual server errors without failing all requests
+              console.error(`Failed to load metrics for ${serverKey}:`, error);
+              return null;
+            })
+          );
+
+          // Execute all requests in parallel
+          await Promise.all(metricsPromises);
         }
       }
     } catch (error: any) {
