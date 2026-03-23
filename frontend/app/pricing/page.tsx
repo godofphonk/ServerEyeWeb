@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { useEffect, useState } from 'react';
-import { billingApi, SubscriptionPlan } from '@/lib/billingApi';
+import { billingApi } from '@/lib/api/billingApi';
+import { logger } from '@/lib/telemetry/logger';
 import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
@@ -34,10 +35,9 @@ export default function PricingPage() {
   const loadPlans = async () => {
     try {
       const data = await billingApi.getPlans();
-      console.log('Loaded plans:', data);
       setPlans(data);
     } catch (error) {
-      console.error('Failed to load plans:', error);
+      logger.error('Failed to load billing plans', error as Error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +107,7 @@ export default function PricingPage() {
         alert('YooKassa coming soon!');
       }
     } catch (error) {
-      console.error('Failed to create checkout:', error);
+      logger.error('Failed to create checkout session', error as Error, { planId: plan.id });
       alert('Failed to start checkout. Please try again.');
     } finally {
       setShowPaymentModal(false);

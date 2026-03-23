@@ -40,6 +40,7 @@ import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/componen
 import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
 import { TelegramServerDiscoveryModal } from '@/components/TelegramServerDiscoveryModal';
 import { useTelegramServerDiscovery } from '@/hooks/useTelegramServerDiscovery';
+import { logger } from '@/lib/telemetry/logger';
 
 export default function DashboardPage() {
   // Use AuthContext for authentication
@@ -208,8 +209,7 @@ export default function DashboardPage() {
           // This reduces load time from O(n) to O(1) for n servers
           const metricsPromises = serverKeys.map(serverKey => 
             loadServerMetrics(serverKey).catch(error => {
-              // Handle individual server errors without failing all requests
-              console.error(`Failed to load metrics for ${serverKey}:`, error);
+              logger.error('Failed to load server metrics', error, { serverKey });
               return null;
             })
           );
@@ -258,7 +258,7 @@ export default function DashboardPage() {
       await loadServers();
       toast.success('Import Successful', `Successfully imported ${serverIds.length} server(s) from Telegram bot`);
     } catch (error) {
-      console.error('[Dashboard] Failed to import Telegram servers:', error);
+      logger.error('Failed to import Telegram servers', error as Error, { serverCount: serverIds.length });
       toast.error('Import Failed', 'Failed to import some servers. Please try again.');
     }
   }, [telegramDiscovery, loadServers, toast]);
@@ -312,7 +312,7 @@ export default function DashboardPage() {
             return;
           }
         } catch (err) {
-          console.error('[Dashboard] Error processing linking info:', err);
+          logger.error('Error processing OAuth linking info', err as Error);
           sessionStorage.removeItem('oauth_linking');
         }
       }
@@ -383,7 +383,7 @@ export default function DashboardPage() {
 
       setDeleteModal({ isOpen: false, server: null });
     } catch (error: any) {
-      console.error('Failed to delete server:', error);
+      logger.error('Failed to delete server', error, { serverId: deleteModal.server?.id });
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 
@@ -689,7 +689,7 @@ export default function DashboardPage() {
                               <MonitoringServiceErrorInline
                                 error={metricsErrors[server.serverKey]}
                                 onRetry={() => {
-                                  console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
+                                  logger.info('Retrying metrics load', { serverKey: server.serverKey });
                                   loadServerMetrics(server.serverKey);
                                 }}
                               />
@@ -697,7 +697,7 @@ export default function DashboardPage() {
                               <ServerErrorInline
                                 error={metricsErrors[server.serverKey]}
                                 onRetry={() => {
-                                  console.log(`[Dashboard] Retrying metrics for server ${server.serverKey}`);
+                                  logger.info('Retrying metrics load', { serverKey: server.serverKey });
                                   loadServerMetrics(server.serverKey);
                                 }}
                               />

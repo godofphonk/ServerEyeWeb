@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { billingApi } from '@/lib/api/billingApi';
+import { Subscription } from '@/types/billing';
 import { useAuth } from '@/context/AuthContext';
-import { billingApi, Subscription } from '@/lib/billingApi';
+import { logger } from '@/lib/telemetry/logger';
 
 export function useSubscription() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -21,9 +23,9 @@ export function useSubscription() {
       try {
         const sub = await billingApi.getCurrentSubscription();
         setSubscription(sub);
-        setHasPremium(sub ? sub.planType > 0 : false); // 0 = Free, >0 = Paid
+        setHasPremium(sub ? sub.planType > 0 : false);
       } catch (error) {
-        console.error('Failed to load subscription:', error);
+        logger.error('Failed to load subscription', error as Error);
         setSubscription(null);
         setHasPremium(false);
       } finally {
