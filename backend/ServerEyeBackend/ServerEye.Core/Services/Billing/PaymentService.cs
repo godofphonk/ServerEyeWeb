@@ -45,15 +45,8 @@ public class PaymentService : IPaymentService
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         var provider = providerFactory.GetDefaultProvider();
 
-        string customerId;
-        if (subscription?.ProviderCustomerId != null)
-        {
-            customerId = subscription.ProviderCustomerId;
-        }
-        else
-        {
-            customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
-        }
+        // For now, always create a new customer ID since we don't store ProviderCustomerId
+        var customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
 
         var metadata = request.Metadata ?? new Dictionary<string, string>();
         metadata["user_id"] = userId.ToString();

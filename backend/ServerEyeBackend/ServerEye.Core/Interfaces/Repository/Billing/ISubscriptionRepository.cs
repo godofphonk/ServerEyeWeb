@@ -9,8 +9,6 @@ public interface ISubscriptionRepository
 
     public Task<Subscription?> GetByUserIdAsync(Guid userId);
 
-    public Task<Subscription?> GetByProviderSubscriptionIdAsync(string providerSubscriptionId);
-
     public Task<List<Subscription>> GetByStatusAsync(SubscriptionStatus status);
 
     public Task<List<Subscription>> GetExpiringSubscriptionsAsync(DateTime beforeDate);

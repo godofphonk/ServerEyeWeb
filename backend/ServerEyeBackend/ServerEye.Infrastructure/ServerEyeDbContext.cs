@@ -125,25 +125,12 @@ public sealed class ServerEyeDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Billing configuration
-        modelBuilder?.Entity<SubscriptionPlanEntity>(entity =>
-        {
-            entity.HasIndex(sp => sp.PlanType).IsUnique();
-            entity.Property(sp => sp.PlanType).HasConversion<int>();
-            entity.Property(sp => sp.Features)
-                .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
-        });
-
+        // Billing configuration - SubscriptionPlanEntity маппинг в BillingDbContext
         modelBuilder?.Entity<Subscription>(entity =>
         {
             entity.HasIndex(s => s.UserId);
             entity.HasIndex(s => new { s.Status, s.CurrentPeriodEnd });
-            entity.HasIndex(s => s.ProviderSubscriptionId);
-            entity.Property(s => s.PlanType).HasConversion<int>();
             entity.Property(s => s.Status).HasConversion<int>();
-            entity.Property(s => s.Provider).HasConversion<int>();
         });
 
         modelBuilder?.Entity<Payment>(entity =>

@@ -12,23 +12,14 @@ using ServerEye.Core.Interfaces.Services.Billing;
 public class SubscriptionService : ISubscriptionService
 {
     private readonly ISubscriptionRepository subscriptionRepository;
-    private readonly IUserRepository userRepository;
-    private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<SubscriptionService> logger;
-    private readonly FrontendSettings frontendSettings;
 
     public SubscriptionService(
         ISubscriptionRepository subscriptionRepository,
-        IUserRepository userRepository,
-        IPaymentProviderFactory providerFactory,
-        ILogger<SubscriptionService> logger,
-        FrontendSettings frontendSettings)
+        ILogger<SubscriptionService> logger)
     {
         this.subscriptionRepository = subscriptionRepository;
-        this.userRepository = userRepository;
-        this.providerFactory = providerFactory;
         this.logger = logger;
-        this.frontendSettings = frontendSettings;
     }
 
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
@@ -39,22 +30,21 @@ public class SubscriptionService : ISubscriptionService
             return null;
         }
 
-        var plan = GetHardcodedPlan(subscription.PlanType);
-
+        // For now, return hardcoded free plan info since we don't have plan details in the entity
         return new SubscriptionDto
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
-            PlanType = subscription.PlanType,
-            PlanName = plan?.Name ?? subscription.PlanType.ToString(),
+            PlanType = SubscriptionPlan.Free, // Default to free for now
+            PlanName = "Free",
             Status = subscription.Status,
-            Amount = subscription.Amount,
-            Currency = subscription.Currency,
-            IsYearly = subscription.IsYearly,
+            Amount = 0,
+            Currency = "usd",
+            IsYearly = false,
             CurrentPeriodStart = subscription.CurrentPeriodStart,
             CurrentPeriodEnd = subscription.CurrentPeriodEnd,
-            CanceledAt = subscription.CanceledAt,
-            TrialEnd = subscription.TrialEnd,
+            CanceledAt = null,
+            TrialEnd = null,
             CreatedAt = subscription.CreatedAt
         };
     }
@@ -63,178 +53,26 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        logger.LogInformation(
-            "Creating subscription checkout for user {UserId}, plan {PlanType}",
-            userId,
-            request.PlanType);
-
-        var user = await userRepository.GetByIdAsync(userId)
-            ?? throw new InvalidOperationException("User not found");
-
-        var existingSubscription = await subscriptionRepository.GetByUserIdAsync(userId);
-        if (existingSubscription != null && existingSubscription.Status == SubscriptionStatus.Active)
-        {
-            throw new InvalidOperationException("User already has an active subscription");
-        }
-
-        var plan = GetHardcodedPlan(request.PlanType);
-
-        var provider = providerFactory.GetDefaultProvider();
-
-        string customerId;
-        if (existingSubscription?.ProviderCustomerId != null)
-        {
-            customerId = existingSubscription.ProviderCustomerId;
-        }
-        else
-        {
-            customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
-        }
-
-        var successUrl = request.SuccessUrl ?? $"{this.frontendSettings.BaseUrl}dashboard?subscription=success";
-        var cancelUrl = request.CancelUrl ?? $"{this.frontendSettings.BaseUrl}pricing?subscription=canceled";
-
-        var checkoutResponse = await provider.CreateCheckoutSessionAsync(
-            customerId,
-            request.PlanType,
-            request.IsYearly,
-            successUrl,
-            cancelUrl);
-
-        if (existingSubscription == null)
-        {
-            var subscription = new Subscription
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                PlanType = request.PlanType,
-                Status = SubscriptionStatus.Incomplete,
-                Provider = provider.ProviderType,
-                ProviderCustomerId = customerId,
-                Amount = request.IsYearly ? plan.YearlyPrice : plan.MonthlyPrice,
-                Currency = "usd",
-                IsYearly = request.IsYearly,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            await subscriptionRepository.AddAsync(subscription);
-        }
-
-        logger.LogInformation(
-            "Created checkout session {SessionId} for user {UserId}",
-            checkoutResponse.SessionId,
-            userId);
-
-        return checkoutResponse;
+        throw new NotImplementedException("Paid subscriptions not implemented yet");
     }
 
     public async Task<SubscriptionDto> UpdateSubscriptionPlanAsync(
         Guid userId,
         UpdateSubscriptionRequest request)
     {
-        logger.LogInformation(
-            "Updating subscription for user {UserId} to plan {PlanType}",
-            userId,
-            request.NewPlanType);
-
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
-            ?? throw new InvalidOperationException("No subscription found");
-
-        if (subscription.Status != SubscriptionStatus.Active)
-        {
-            throw new InvalidOperationException("Subscription is not active");
-        }
-
-        if (subscription.PlanType == request.NewPlanType && subscription.IsYearly == request.IsYearly)
-        {
-            throw new InvalidOperationException("Already on this plan");
-        }
-
-        var newPlan = GetHardcodedPlan(request.NewPlanType);
-
-        var provider = providerFactory.GetProvider(subscription.Provider);
-
-        var priceId = GetPriceIdForPlan(request.NewPlanType, request.IsYearly);
-        await provider.UpdateSubscriptionAsync(subscription.ProviderSubscriptionId!, priceId);
-
-        subscription.PlanType = request.NewPlanType;
-        subscription.IsYearly = request.IsYearly;
-        subscription.Amount = request.IsYearly ? newPlan.YearlyPrice : newPlan.MonthlyPrice;
-        subscription.UpdatedAt = DateTime.UtcNow;
-
-        await subscriptionRepository.UpdateAsync(subscription);
-
-        logger.LogInformation(
-            "Updated subscription {SubscriptionId} to plan {PlanType}",
-            subscription.Id,
-            request.NewPlanType);
-
-        return await GetUserSubscriptionAsync(userId)
-            ?? throw new InvalidOperationException("Failed to retrieve updated subscription");
+        throw new NotImplementedException("Subscription updates not implemented yet");
     }
 
     public async Task CancelSubscriptionAsync(
         Guid userId,
         CancelSubscriptionRequest request)
     {
-        logger.LogInformation("Canceling subscription for user {UserId}", userId);
-
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
-            ?? throw new InvalidOperationException("No subscription found");
-
-        if (subscription.Status == SubscriptionStatus.Canceled)
-        {
-            throw new InvalidOperationException("Subscription is already canceled");
-        }
-
-        var provider = providerFactory.GetProvider(subscription.Provider);
-
-        await provider.CancelSubscriptionAsync(
-            subscription.ProviderSubscriptionId!,
-            request.CancelImmediately);
-
-        if (request.CancelImmediately)
-        {
-            subscription.Status = SubscriptionStatus.Canceled;
-        }
-
-        subscription.CanceledAt = DateTime.UtcNow;
-        subscription.UpdatedAt = DateTime.UtcNow;
-
-        await subscriptionRepository.UpdateAsync(subscription);
-
-        logger.LogInformation(
-            "Canceled subscription {SubscriptionId} for user {UserId}",
-            subscription.Id,
-            userId);
+        throw new NotImplementedException("Subscription cancellation not implemented yet");
     }
 
     public async Task<SubscriptionDto> ReactivateSubscriptionAsync(Guid userId)
     {
-        logger.LogInformation("Reactivating subscription for user {UserId}", userId);
-
-        var subscription = await subscriptionRepository.GetByUserIdAsync(userId)
-            ?? throw new InvalidOperationException("No subscription found");
-
-        if (subscription.Status == SubscriptionStatus.Active)
-        {
-            throw new InvalidOperationException("Subscription is already active");
-        }
-
-        subscription.Status = SubscriptionStatus.Active;
-        subscription.CanceledAt = null;
-        subscription.UpdatedAt = DateTime.UtcNow;
-
-        await subscriptionRepository.UpdateAsync(subscription);
-
-        logger.LogInformation(
-            "Reactivated subscription {SubscriptionId} for user {UserId}",
-            subscription.Id,
-            userId);
-
-        return await GetUserSubscriptionAsync(userId)
-            ?? throw new InvalidOperationException("Failed to retrieve reactivated subscription");
+        throw new NotImplementedException("Subscription reactivation not implemented yet");
     }
 
     public async Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync()
@@ -262,18 +100,14 @@ public class SubscriptionService : ISubscriptionService
             return false;
         }
 
-        var plan = GetHardcodedPlan(subscription.PlanType);
-        if (plan == null)
-        {
-            return false;
-        }
-
+        // For now, all features are available for active subscriptions
+        // This should be enhanced to check plan features based on PlanId
         return featureName.ToUpperInvariant() switch
         {
-            "ALERTS" => plan.HasAlerts,
-            "API" => plan.HasApiAccess,
-            "PRIORITY_SUPPORT" => plan.HasPrioritySupport,
-            _ => false
+            "ALERTS" => false, // Only for paid plans
+            "API" => false,   // Only for paid plans
+            "PRIORITY_SUPPORT" => false, // Only for enterprise
+            _ => true // Basic features available for free
         };
     }
 
@@ -282,17 +116,45 @@ public class SubscriptionService : ISubscriptionService
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null || subscription.Status != SubscriptionStatus.Active)
         {
-            var freePlan = GetHardcodedPlan(SubscriptionPlan.Free);
-            return freePlan?.MaxServers ?? 1;
+            return 1; // Default to 1 server for free/unsubscribed users
         }
 
-        var plan = GetHardcodedPlan(subscription.PlanType);
-        return plan?.MaxServers ?? 1;
+        // For now, return 1 for all plans
+        // This should be enhanced to check plan features based on PlanId
+        return 1;
     }
 
-    private static string GetPriceIdForPlan(SubscriptionPlan planType, bool isYearly)
+    public async Task CreateFreeSubscriptionAsync(Guid userId)
     {
-        return $"{planType}_{(isYearly ? "Yearly" : "Monthly")}";
+        this.logger.LogInformation("Creating free subscription for user {UserId}", userId);
+
+        // Check if user already has a subscription
+        var existingSubscription = await this.subscriptionRepository.GetByUserIdAsync(userId);
+        if (existingSubscription != null)
+        {
+            this.logger.LogInformation("User {UserId} already has subscription {SubscriptionId}", userId, existingSubscription.Id);
+            return;
+        }
+
+        // Get free plan ID (hardcoded for now - should be configurable)
+        var freePlanId = new Guid("841bb3db-424c-46e5-a752-04641391c993");
+
+        // Create free subscription
+        var freeSubscription = new Subscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PlanId = freePlanId,
+            Status = SubscriptionStatus.Active,
+            CurrentPeriodStart = DateTime.UtcNow,
+            CurrentPeriodEnd = DateTime.UtcNow.AddYears(100), // Never expires for free plan
+            CancelAtPeriodEnd = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await this.subscriptionRepository.AddAsync(freeSubscription);
+        this.logger.LogInformation("Created free subscription {SubscriptionId} for user {UserId}", freeSubscription.Id, userId);
     }
 
     private static SubscriptionPlanDto GetHardcodedPlan(SubscriptionPlan planType)

@@ -24,7 +24,7 @@ public class SubscriptionPlanRepository : ISubscriptionPlanRepository
     {
         return await context.SubscriptionPlans
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.PlanType == planType);
+            .FirstOrDefaultAsync(p => p.Name == planType.ToString());
     }
 
     public async Task<List<SubscriptionPlanEntity>> GetAllActiveAsync()
@@ -32,7 +32,7 @@ public class SubscriptionPlanRepository : ISubscriptionPlanRepository
         return await context.SubscriptionPlans
             .AsNoTracking()
             .Where(p => p.IsActive)
-            .OrderBy(p => p.PlanType)
+            .OrderBy(p => p.Name)
             .ToListAsync();
     }
 
