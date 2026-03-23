@@ -24,7 +24,8 @@ builder.Services
     .AddAuthenticationConfiguration(builder.Configuration)
     .AddCachingConfiguration(builder.Configuration)
     .AddMiddlewareConfiguration(builder.Configuration)
-    .AddApplicationServices(builder.Configuration);
+    .AddApplicationServices(builder.Configuration)
+    .AddOpenTelemetryConfiguration(builder.Configuration);
 
 var app = builder.Build();
 
@@ -61,9 +62,11 @@ app.MapHealthChecks("/health", healthCheckOptions);
 app.MapHealthChecks("/health/live", healthCheckOptions);
 app.MapHealthChecks("/health/ready", healthCheckOptions);
 
-// Apply database migrations
-await app.ApplyDatabaseMigrations();
+// Map Prometheus metrics endpoint
+app.MapPrometheusScrapingEndpoint();
 
+// Apply database migrations
+// await app.ApplyDatabaseMigrations();
 await app.RunAsync();
 
 #pragma warning restore CA1303 // Localize strings

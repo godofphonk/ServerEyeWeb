@@ -4,6 +4,7 @@
     <PackageReference Include="AWSSDK.SimpleEmail" />
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
   

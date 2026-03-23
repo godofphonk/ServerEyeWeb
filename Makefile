@@ -88,6 +88,16 @@ dev-infra-up:
 	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml up -d
 	@echo "✅ Infrastructure started!"
 
+dev-observability-up:
+	@echo "📊 Starting observability stack..."
+	docker-compose -f ./environments/dev/observability/docker-compose.yml up -d
+	@echo "✅ Observability stack started!"
+	@echo "📊 Grafana: http://localhost:3010 (admin/admin)"
+	@echo "📈 Prometheus: http://localhost:9090"
+	@echo "📋 Loki: http://localhost:3100"
+	@echo "🔍 Tempo: http://localhost:3200"
+	@echo "🔧 Alloy: http://localhost:12345"
+
 dev-backend-up:
 	@echo "🔧 Starting development backend..."
 	docker-compose -f ./environments/dev/backend/docker-compose.yml up -d --build
@@ -102,6 +112,10 @@ dev-infra-down:
 	@echo "🛑 Stopping infrastructure..."
 	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml down
 
+dev-observability-down:
+	@echo "🛑 Stopping observability stack..."
+	docker-compose -f ./environments/dev/observability/docker-compose.yml down
+
 dev-backend-down:
 	@echo "🛑 Stopping backend..."
 	docker-compose -f ./environments/dev/backend/docker-compose.yml down
@@ -113,6 +127,10 @@ dev-frontend-down:
 dev-infra-logs:
 	@echo "📋 Infrastructure logs..."
 	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f
+
+dev-observability-logs:
+	@echo "📋 Observability stack logs..."
+	docker-compose -f ./environments/dev/observability/docker-compose.yml logs -f
 
 dev-backend-logs:
 	@echo "📋 Backend logs..."
