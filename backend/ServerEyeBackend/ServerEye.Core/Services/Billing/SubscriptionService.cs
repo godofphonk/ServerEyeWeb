@@ -12,13 +12,16 @@ using ServerEye.Core.Interfaces.Services.Billing;
 public class SubscriptionService : ISubscriptionService
 {
     private readonly ISubscriptionRepository subscriptionRepository;
+    private readonly IPaymentService paymentService;
     private readonly ILogger<SubscriptionService> logger;
 
     public SubscriptionService(
         ISubscriptionRepository subscriptionRepository,
+        IPaymentService paymentService,
         ILogger<SubscriptionService> logger)
     {
         this.subscriptionRepository = subscriptionRepository;
+        this.paymentService = paymentService;
         this.logger = logger;
     }
 
@@ -53,7 +56,7 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        throw new NotImplementedException("Paid subscriptions not implemented yet");
+        return await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
     }
 
     public async Task<SubscriptionDto> UpdateSubscriptionPlanAsync(

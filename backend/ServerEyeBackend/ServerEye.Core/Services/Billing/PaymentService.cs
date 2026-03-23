@@ -81,6 +81,42 @@ public class PaymentService : IPaymentService
         return response;
     }
 
+    public async Task<CreateSubscriptionResponse> CreateSubscriptionCheckoutAsync(
+        Guid userId,
+        CreateSubscriptionRequest request)
+    {
+        logger.LogInformation(
+            "Creating subscription checkout for user {UserId}, plan {PlanType}, yearly {IsYearly}",
+            userId,
+            request.PlanType,
+            request.IsYearly);
+
+        var user = await userRepository.GetByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found");
+
+        var provider = providerFactory.GetDefaultProvider();
+
+        // For now, always create a new customer ID since we don't store ProviderCustomerId
+        var customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
+
+        var successUrl = request.SuccessUrl ?? "https://localhost:3000/dashboard?subscription=success";
+        var cancelUrl = request.CancelUrl ?? "https://localhost:3000/pricing?subscription=canceled";
+
+        var response = await provider.CreateCheckoutSessionAsync(
+            customerId,
+            request.PlanType,
+            request.IsYearly,
+            successUrl,
+            cancelUrl);
+
+        logger.LogInformation(
+            "Created subscription checkout {SessionId} for user {UserId}",
+            response.SessionId,
+            userId);
+
+        return response;
+    }
+
     public async Task<List<PaymentDto>> GetUserPaymentsAsync(Guid userId, int limit = 50)
     {
         var payments = await paymentRepository.GetByUserIdAsync(userId, limit);
