@@ -3,10 +3,8 @@
 
 services:
   frontend:
-    build:
-      context: /home/gospodin/ServerEyeWeb/frontend
-      dockerfile: /home/gospodin/ServerEyeWeb/environments/dockerfiles/frontend-dev.Dockerfile
-    container_name: servereye-frontend-dev
+    image: test-frontend
+    container_name: ServerEyeWeb-frontend-dev
     ports:
       - "3001:3000"
     env_file:
@@ -17,7 +15,15 @@ services:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       # Mount source code for hot reload
-      - /home/gospodin/ServerEyeWeb/frontend:/app
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+      - ./frontend/app:/app/app
+      - ./frontend/components:/app/components
+      - ./frontend/lib:/app/lib
+      - ./frontend/public:/app/public
+      - ./frontend/styles:/app/styles
+      - ./frontend/next.config.js:/app/next.config.js
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
       - /app/node_modules
       - /app/.next
     restart: unless-stopped

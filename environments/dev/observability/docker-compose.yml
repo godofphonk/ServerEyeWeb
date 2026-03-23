@@ -1,0 +1,183 @@
+# Observability Stack for Development
+# LGTM + Alloy Stack: Loki, Grafana, Tempo, Metrics (Prometheus), Alloy
+
+services:
+  # Grafana Alloy - Unified Collector
+  alloy:
+    image: grafana/alloy:latest
+    container_name: ServerEyeWeb-alloy-dev
+    ports:
+      - "12345:12345"  # Alloy UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    volumes:
+      - ./alloy-config.yaml:/etc/alloy/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.yaml
+    environment:
+      - ALLOY_LOG_LEVEL=info
+    restart: unless-stopped
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:12345/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: ServerEyeWeb-loki-dev
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus - Metrics Storage
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ServerEyeWeb-prometheus-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Tempo - Distributed Tracing
+  tempo:
+    image: grafana/tempo:2.3.0
+    container_name: ServerEyeWeb-tempo-dev
+    ports:
+      - "3200:3200"   # Tempo HTTP
+      - "4319:4317"   # OTLP gRPC (alternative port)
+    volumes:
+      - ./tempo-config.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    command: -config.file=/etc/tempo/tempo.yaml
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana - Visualization Platform
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ServerEyeWeb-grafana-dev
+    ports:
+      - "3010:3000"
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3010
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    restart: unless-stopped
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL Exporter for monitoring databases
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: ServerEyeWeb-postgres-exporter-dev
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@ServerEyeWeb-postgres-main-dev:5432/ServerEyeWeb_Dev?sslmode=disable
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis Exporter for monitoring cache
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: ServerEyeWeb-redis-exporter-dev
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9121/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  servereye-network:
+    external: true
+    name: servereye-network
+
+volumes:
+  loki_data:
+    driver: local
+    name: ServerEyeWeb_loki_dev
+  prometheus_data:
+    driver: local
+    name: ServerEyeWeb_prometheus_dev
+  tempo_data:
+    driver: local
+    name: ServerEyeWeb_tempo_dev
+  grafana_data:
+    driver: local
+    name: ServerEyeWeb_grafana_dev
