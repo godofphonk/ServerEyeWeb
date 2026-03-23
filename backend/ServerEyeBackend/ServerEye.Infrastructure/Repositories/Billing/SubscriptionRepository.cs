@@ -29,13 +29,6 @@ public class SubscriptionRepository : ISubscriptionRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<Subscription?> GetByProviderSubscriptionIdAsync(string providerSubscriptionId)
-    {
-        return await context.Subscriptions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.ProviderSubscriptionId == providerSubscriptionId);
-    }
-
     public async Task<List<Subscription>> GetByStatusAsync(SubscriptionStatus status)
     {
         return await context.Subscriptions

@@ -1,25 +1,34 @@
 namespace ServerEye.Core.Entities.Billing;
 
+using System.ComponentModel.DataAnnotations.Schema;
 using ServerEye.Core.Enums;
 
 public class Subscription
 {
+    [Column("id")]
     public Guid Id { get; set; }
+
+    [Column("userid")]
     public Guid UserId { get; set; }
-    public SubscriptionPlan PlanType { get; set; }
+
+    [Column("planid")]
+    public Guid PlanId { get; set; }
+
+    [Column("status")]
     public SubscriptionStatus Status { get; set; }
-    public PaymentProvider Provider { get; set; }
-    public string? ProviderCustomerId { get; set; }
-    public string? ProviderSubscriptionId { get; set; }
-    public string? ProviderPriceId { get; set; }
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = "usd";
-    public bool IsYearly { get; set; }
+
+    [Column("currentperiodstart")]
     public DateTime? CurrentPeriodStart { get; set; }
+
+    [Column("currentperiodend")]
     public DateTime? CurrentPeriodEnd { get; set; }
-    public DateTime? CanceledAt { get; set; }
-    public DateTime? TrialStart { get; set; }
-    public DateTime? TrialEnd { get; set; }
+
+    [Column("cancelatperiodend")]
+    public bool CancelAtPeriodEnd { get; set; }
+
+    [Column("createdat")]
     public DateTime CreatedAt { get; set; }
+
+    [Column("updatedat")]
     public DateTime UpdatedAt { get; set; }
 }
