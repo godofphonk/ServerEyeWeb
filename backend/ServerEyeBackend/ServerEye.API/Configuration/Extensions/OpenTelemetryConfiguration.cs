@@ -80,6 +80,7 @@ public static class OpenTelemetryConfiguration
                     options.Protocol = OtlpExportProtocol.Grpc;
                 }))
             .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddMeter(serviceName)
                 .AddPrometheusExporter()
