@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Cpu, Activity, Thermometer, Zap, Gauge } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -31,30 +31,51 @@ export default function CpuTab({
   const [cpuLoadMetrics, setCpuLoadMetrics] = useState<MetricsResponse | null>(null);
   const [cpuTemperatureMetrics, setCpuTemperatureMetrics] = useState<MetricsResponse | null>(null);
 
-  // Load data when time ranges change
-  useEffect(() => {
-    if (loadHistoricalMetrics) {
-      loadHistoricalMetrics(cpuUsageTimeRange)
-        .then(data => setCpuUsageMetrics(data))
-        .catch(error => console.error('[CpuTab] Failed to load CPU Usage data:', error));
-    }
-  }, [cpuUsageTimeRange, loadHistoricalMetrics]);
+  // Memoize time ranges to prevent unnecessary effect triggers
+  const timeRanges = useMemo(() => ({
+    cpuUsage: cpuUsageTimeRange,
+    cpuLoad: cpuLoadTimeRange,
+    temperature: cpuTemperatureTimeRange,
+  }), [cpuUsageTimeRange, cpuLoadTimeRange, cpuTemperatureTimeRange]);
 
+  // Load all metrics in parallel when any time range changes
   useEffect(() => {
-    if (loadHistoricalMetrics) {
-      loadHistoricalMetrics(cpuLoadTimeRange)
-        .then(data => setCpuLoadMetrics(data))
-        .catch(error => console.error('[CpuTab] Failed to load CPU Load data:', error));
-    }
-  }, [cpuLoadTimeRange, loadHistoricalMetrics]);
+    if (!loadHistoricalMetrics) return;
 
-  useEffect(() => {
-    if (loadHistoricalMetrics) {
-      loadHistoricalMetrics(cpuTemperatureTimeRange)
-        .then(data => setCpuTemperatureMetrics(data))
-        .catch(error => console.error('[CpuTab] Failed to load CPU Temperature data:', error));
-    }
-  }, [cpuTemperatureTimeRange, loadHistoricalMetrics]);
+    const loadAllMetrics = async () => {
+      try {
+        // Load all three metrics in parallel for optimal performance
+        const [usageResult, loadResult, tempResult] = await Promise.allSettled([
+          loadHistoricalMetrics(cpuUsageTimeRange),
+          loadHistoricalMetrics(cpuLoadTimeRange),
+          loadHistoricalMetrics(cpuTemperatureTimeRange),
+        ]);
+
+        // Handle results individually to prevent one failure from affecting others
+        if (usageResult.status === 'fulfilled') {
+          setCpuUsageMetrics(usageResult.value);
+        } else {
+          console.error('[CpuTab] Failed to load CPU Usage data:', usageResult.reason);
+        }
+
+        if (loadResult.status === 'fulfilled') {
+          setCpuLoadMetrics(loadResult.value);
+        } else {
+          console.error('[CpuTab] Failed to load CPU Load data:', loadResult.reason);
+        }
+
+        if (tempResult.status === 'fulfilled') {
+          setCpuTemperatureMetrics(tempResult.value);
+        } else {
+          console.error('[CpuTab] Failed to load CPU Temperature data:', tempResult.reason);
+        }
+      } catch (error) {
+        console.error('[CpuTab] Unexpected error loading metrics:', error);
+      }
+    };
+
+    loadAllMetrics();
+  }, [timeRanges, loadHistoricalMetrics]);
   return (
     <div className='space-y-6'>
       {/* CPU Overview Cards */}

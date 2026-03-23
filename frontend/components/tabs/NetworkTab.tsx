@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Wifi, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -29,22 +29,43 @@ export default function NetworkTab({
   const [networkRxMetrics, setNetworkRxMetrics] = useState<MetricsResponse | null>(null);
   const [networkTxMetrics, setNetworkTxMetrics] = useState<MetricsResponse | null>(null);
 
-  // Load data when time ranges change
-  useEffect(() => {
-    if (loadHistoricalMetrics) {
-      loadHistoricalMetrics(networkRxTimeRange)
-        .then(data => setNetworkRxMetrics(data))
-        .catch(error => console.error('[NetworkTab] Failed to load Network RX data:', error));
-    }
-  }, [networkRxTimeRange, loadHistoricalMetrics]);
+  // Memoize time ranges to prevent unnecessary effect triggers
+  const timeRanges = useMemo(() => ({
+    networkRx: networkRxTimeRange,
+    networkTx: networkTxTimeRange,
+  }), [networkRxTimeRange, networkTxTimeRange]);
 
+  // Load all network metrics in parallel when any time range changes
   useEffect(() => {
-    if (loadHistoricalMetrics) {
-      loadHistoricalMetrics(networkTxTimeRange)
-        .then(data => setNetworkTxMetrics(data))
-        .catch(error => console.error('[NetworkTab] Failed to load Network TX data:', error));
-    }
-  }, [networkTxTimeRange, loadHistoricalMetrics]);
+    if (!loadHistoricalMetrics) return;
+
+    const loadAllNetworkMetrics = async () => {
+      try {
+        // Load both RX and TX metrics in parallel for optimal performance
+        const [rxResult, txResult] = await Promise.allSettled([
+          loadHistoricalMetrics(networkRxTimeRange),
+          loadHistoricalMetrics(networkTxTimeRange),
+        ]);
+
+        // Handle results individually to prevent one failure from affecting the other
+        if (rxResult.status === 'fulfilled') {
+          setNetworkRxMetrics(rxResult.value);
+        } else {
+          console.error('[NetworkTab] Failed to load Network RX data:', rxResult.reason);
+        }
+
+        if (txResult.status === 'fulfilled') {
+          setNetworkTxMetrics(txResult.value);
+        } else {
+          console.error('[NetworkTab] Failed to load Network TX data:', txResult.reason);
+        }
+      } catch (error) {
+        console.error('[NetworkTab] Unexpected error loading network metrics:', error);
+      }
+    };
+
+    loadAllNetworkMetrics();
+  }, [timeRanges, loadHistoricalMetrics]);
   
   return (
     <div className='space-y-6'>
