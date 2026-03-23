@@ -12,6 +12,7 @@ using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 using ServerEye.Core.Services.OAuth.Factory;
 
 public sealed class OAuthService(
@@ -20,6 +21,7 @@ public sealed class OAuthService(
     IJwtService jwtService,
     IOAuthProviderFactory providerFactory,
     IDistributedCache cache,
+    ISubscriptionService subscriptionService,
     ILogger<OAuthService> logger) : IOAuthService
 {
     private readonly IUserRepository userRepository = userRepository;
@@ -27,6 +29,7 @@ public sealed class OAuthService(
     private readonly IJwtService jwtService = jwtService;
     private readonly IOAuthProviderFactory providerFactory = providerFactory;
     private readonly IDistributedCache cache = cache;
+    private readonly ISubscriptionService subscriptionService = subscriptionService;
     private readonly ILogger<OAuthService> logger = logger;
 
     // Public interface implementation
@@ -569,6 +572,20 @@ public sealed class OAuthService(
 
         await this.userRepository.AddAsync(newUser);
         this.logger.LogInformation("Created new user - UserId: {UserId}", newUser.Id);
+
+        // Create free subscription for new user
+        try
+        {
+            await this.subscriptionService.CreateFreeSubscriptionAsync(newUser.Id);
+            this.logger.LogInformation("Created free subscription for new user - UserId: {UserId}", newUser.Id);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Failed to create free subscription for user - UserId: {UserId}", newUser.Id);
+
+            // Don't fail the OAuth flow if subscription creation fails
+        }
+
         return newUser;
     }
 
