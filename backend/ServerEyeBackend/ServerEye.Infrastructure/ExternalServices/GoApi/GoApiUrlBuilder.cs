@@ -53,7 +53,6 @@ public static class GoApiUrlBuilder
             url += $"&granularity={granularity}";
         }
 
-        Console.WriteLine($"[GoApiUrlBuilder] Tiered URL: {url}");
         return new Uri(url, UriKind.Relative);
     }
 

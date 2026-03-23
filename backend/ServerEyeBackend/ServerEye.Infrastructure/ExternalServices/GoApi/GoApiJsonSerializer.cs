@@ -1,6 +1,7 @@
 namespace ServerEye.Infrastructure.ExternalServices.GoApi;
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.GoApi;
 
 /// <summary>
@@ -8,6 +9,12 @@ using ServerEye.Core.DTOs.GoApi;
 /// </summary>
 public static class GoApiJsonSerializer
 {
+    private static ILogger? _logger;
+    public static void SetLogger(ILogger logger)
+    {
+        _logger = logger;
+    }
+
     private static readonly JsonSerializerOptions DefaultOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -47,13 +54,12 @@ public static class GoApiJsonSerializer
         try
         {
             var result = JsonSerializer.Deserialize<GoApiMetricsResponse>(content, DefaultOptions);
-            Console.WriteLine($"[GoApiJsonSerializer] Successfully deserialized {result?.DataPoints?.Count ?? 0} data points");
+            _logger?.LogDebug("Successfully deserialized {DataPointCount} data points", result?.DataPoints?.Count ?? 0);
             return result;
         }
         catch (JsonException ex)
         {
-            Console.WriteLine($"[GoApiJsonSerializer] JSON deserialization failed: {ex.Message}");
-            Console.WriteLine($"[GoApiJsonSerializer] Content preview: {content[..Math.Min(500, content.Length)]}...");
+            _logger?.LogWarning(ex, "JSON deserialization failed. Content preview: {ContentPreview}", content[..Math.Min(500, content.Length)]);
             return null;
         }
     }

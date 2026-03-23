@@ -1,5 +1,6 @@
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -89,6 +90,33 @@ public static class OpenTelemetryConfiguration
                     options.Endpoint = new Uri(otlpEndpoint);
                     options.Protocol = OtlpExportProtocol.Grpc;
                 }));
+
+        // Configure logging with OpenTelemetry
+        services.AddLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+            logging.AddOpenTelemetry(options =>
+            {
+                options.SetResourceBuilder(ResourceBuilder.CreateDefault()
+                    .AddService(serviceName, serviceVersion: serviceVersion)
+                    .AddAttributes(new Dictionary<string, object>
+                    {
+                        ["environment"] = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Development",
+                        ["host.name"] = Environment.MachineName
+                    }));
+
+                options.IncludeFormattedMessage = true;
+                options.IncludeScopes = true;
+                options.ParseStateValues = true;
+
+                options.AddOtlpExporter(otlpOptions =>
+                {
+                    otlpOptions.Endpoint = new Uri(otlpEndpoint);
+                    otlpOptions.Protocol = OtlpExportProtocol.Grpc;
+                });
+            });
+        });
 
         return services;
     }

@@ -81,22 +81,20 @@ public sealed class TelegramOAuthProvider(
         // Telegram OAuth returns user data as JSON in the "hash" parameter
         // The accessToken here is actually the user data JSON from Telegram
         
-        // DEBUG: Log what we receive
-        Console.WriteLine($"[DEBUG] Telegram GetTelegramUserInfoAsync received: {accessToken}");
-        
         try
         {
-            var userData = JsonSerializer.Deserialize<Dictionary<string, object>>(accessToken, JsonOptions)
+            var userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
                    ?? throw new InvalidOperationException("Failed to parse Telegram user data");
             
-            // DEBUG: Log parsed data
-            Console.WriteLine($"[DEBUG] Parsed Telegram user data: {string.Join(", ", userData.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+            Logger.LogInformation("Parsed Telegram user data: {UserData}", userData);
 
             // Extract user information from Telegram data
             // Telegram data comes directly, not nested in "user" field
             var userDict = userData; // userData is already a Dictionary<string, object>
 
-            var userId = userDict.GetValueOrDefault("Id")?.ToString() ?? "unknown";
+            var userId = userDict.GetValueOrDefault("id")?.GetString() ?? "unknown";
+            var name = $"{userDict.GetValueOrDefault("first_name")?.GetString() ?? string.Empty} {userDict.GetValueOrDefault("last_name")?.GetString() ?? string.Empty}".Trim();
+            var username = userDict.GetValueOrDefault("username")?.GetString() ?? string.Empty;
             var name = $"{userDict.GetValueOrDefault("FirstName")?.ToString() ?? string.Empty} {userDict.GetValueOrDefault("LastName")?.ToString() ?? string.Empty}".Trim();
             var username = userDict.GetValueOrDefault("Username")?.ToString() ?? string.Empty;
 

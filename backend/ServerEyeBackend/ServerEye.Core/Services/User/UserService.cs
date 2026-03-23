@@ -2,6 +2,7 @@ namespace ServerEye.Core.Services;
 
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
@@ -10,7 +11,7 @@ using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration, ILogger<UserService> logger) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
@@ -18,6 +19,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
     private readonly IAuthService authService = authService;
     private readonly IConfiguration configuration = configuration;
+    private readonly ILogger<UserService> logger = logger;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
@@ -118,7 +120,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to send verification code to {user.Email}: {ex.Message}");
+            this.logger.LogWarning(ex, "Failed to send verification code to user {Email}", user.Email);
         }
         
         return new AuthResponseDto
