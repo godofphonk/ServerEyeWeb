@@ -18,7 +18,6 @@ function TelegramCallbackHandler() {
     const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
     
     if (urlHash?.includes('tgAuthResult=')) {
-      console.log('[Home] Detected Telegram OAuth callback, redirecting to telegram-callback');
       window.location.href = `/telegram-callback${urlHash}`;
     }
   }, []);

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { serverDiscoveryApi } from '@/lib/serverDiscoveryApi';
 import { DiscoveredServersResponse, ImportServersResponse } from '@/types';
+import { logger } from '@/lib/telemetry/logger';
 
 interface UseTelegramServerDiscoveryOptions {
   autoTrigger?: boolean;
@@ -53,7 +54,7 @@ export function useTelegramServerDiscovery({
     try {
       localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.warn('[TelegramDiscovery] Failed to save state to localStorage:', error);
+      logger.warn('Failed to save discovery state', { error });
     }
   }, []);
 
@@ -74,7 +75,7 @@ export function useTelegramServerDiscovery({
     try {
       localStorage.setItem(LAST_DISCOVERY_KEY, Date.now().toString());
     } catch (error) {
-      console.warn('[TelegramDiscovery] Failed to save discovery time:', error);
+      logger.warn('Failed to save discovery time', { error });
     }
   }, []);
 
@@ -103,8 +104,6 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const discoverServersForced = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
-  // Force modal show without API call
-  console.log('[TelegramDiscovery] Force showing modal without API call');
   setShouldShowModal(true);
   setError(null);
   setIsLoading(false);
@@ -112,9 +111,7 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const discoverServers = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
-    // Always show modal first when forced
     if (forceShowModal) {
-      console.log('[TelegramDiscovery] Force showing modal');
       setShouldShowModal(true);
       setError(null);
       setIsLoading(false);
@@ -125,18 +122,14 @@ export function useTelegramServerDiscovery({
     setError(null);
 
     try {
-      console.log('[TelegramDiscovery] Starting server discovery...');
       const result = await serverDiscoveryApi.findTelegramServers();
       
       setDiscovered(result);
       setLastDiscoveryTime();
       
-      // Show modal if servers found and not dismissed
       if (result && result.total_count > 0 && !isModalDismissed()) {
-        console.log(`[TelegramDiscovery] Found ${result.total_count} servers, showing modal`);
         setShouldShowModal(true);
       } else {
-        console.log(`[TelegramDiscovery] No servers found or modal dismissed (${result?.total_count || 0} servers)`);
         setShouldShowModal(false);
       }
 
@@ -150,7 +143,7 @@ export function useTelegramServerDiscovery({
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to discover Telegram servers';
       setError(errorMessage);
-      console.error('[TelegramDiscovery] Discovery failed:', errorMessage);
+      logger.error('Telegram server discovery failed', err, { errorMessage });
       
       // Graceful fallback - don't show modal on error
       setShouldShowModal(false);
@@ -169,14 +162,11 @@ export function useTelegramServerDiscovery({
     setError(null);
 
     try {
-      console.log(`[TelegramDiscovery] Importing ${serverIds.length} servers...`);
       const result = await serverDiscoveryApi.importServers(serverIds);
 
       if (result.failed_count > 0) {
-        console.warn('[TelegramDiscovery] Some servers failed to import:', result.errors);
+        logger.warn('Some servers failed to import', { failedCount: result.failed_count, errors: result.errors });
       }
-
-      console.log(`[TelegramDiscovery] Successfully imported ${result.imported_count} servers`);
       
       // TODO: FIX - For production, consider if we need to refresh discovery data
       // For now, update locally to reflect imported servers
@@ -216,7 +206,7 @@ export function useTelegramServerDiscovery({
       }
       
       setError(errorMessage);
-      console.error('[TelegramDiscovery] Import failed:', errorMessage);
+      logger.error('Telegram server import failed', err, { errorMessage, serverCount: serverIds.length });
       throw err;
     } finally {
       setIsLoading(false);
@@ -239,28 +229,17 @@ export function useTelegramServerDiscovery({
     }
   }, []);
 
-  // Auto-trigger logic with enterprise-level constraints
   useEffect(() => {
-    console.log('[TelegramDiscovery] Hook useEffect called - autoTrigger:', autoTrigger);
-    
     if (!autoTrigger) return;
 
     const triggerDiscovery = async () => {
-      console.log('[TelegramDiscovery] triggerDiscovery started');
-      
-      // Check if Telegram OAuth was completed
       const telegramOAuthCompleted = typeof window !== 'undefined' 
         ? sessionStorage.getItem('telegram_oauth_completed') 
         : null;
       
-      console.log('[TelegramDiscovery] telegram_oauth_completed flag:', telegramOAuthCompleted);
-      
       if (!telegramOAuthCompleted) {
-        console.log('[TelegramDiscovery] Skipping auto-trigger - Telegram OAuth not completed');
         return;
       }
-      
-      console.log('[TelegramDiscovery] Telegram OAuth completed, triggering discovery');
       
       // Don't trigger if already loading
       if (isLoading) return;
@@ -272,16 +251,11 @@ export function useTelegramServerDiscovery({
       const lastDiscovery = getLastDiscoveryTime();
       const oneHourAgo = Date.now() - (60 * 60 * 1000);
       
-      // TODO: FIX - Re-enable rate limiting after testing
-      // Proper behavior: Prevent spam by limiting discovery to once per hour
       if (false && lastDiscovery > oneHourAgo) {
-        console.log('[TelegramDiscovery] Skipping auto-trigger - rate limited (last discovery < 1 hour ago)');
         return;
       }
 
-      // Don't trigger if modal was dismissed
       if (isModalDismissed()) {
-        console.log('[TelegramDiscovery] Skipping auto-trigger - modal dismissed by user');
         return;
       }
 

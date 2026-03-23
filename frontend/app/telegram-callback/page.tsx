@@ -2,6 +2,7 @@
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { logger } from '@/lib/telemetry/logger';
 
 function TelegramCallbackContent() {
   const router = useRouter();
@@ -13,14 +14,7 @@ function TelegramCallbackContent() {
     const token = searchParams.get('token');
     
     if (auth === 'success' && token) {
-      // This is a successful OAuth callback from backend
-      console.log('[Telegram Callback] Successful OAuth callback detected');
-      
-      // Set flag for Telegram OAuth completion to trigger server discovery
       sessionStorage.setItem('telegram_oauth_completed', 'true');
-      console.log('[Telegram Callback] Set telegram_oauth_completed flag');
-      
-      // Redirect to dashboard
       window.location.href = '/dashboard';
       return;
     }
@@ -31,19 +25,13 @@ function TelegramCallbackContent() {
     
         
     if (urlHash && urlHash.includes('tgAuthResult=')) {
-      console.log('[Telegram Callback] Processing direct Telegram callback with hash:', urlHash);
-      
-      const hashParams = new URLSearchParams(urlHash.substring(1)); // Remove # and parse
+      const hashParams = new URLSearchParams(urlHash.substring(1));
       const tgAuthResult = hashParams.get('tgAuthResult');
-      console.log('[Telegram Callback] Extracted tgAuthResult:', tgAuthResult?.substring(0, 100) + '...');
       
       if (tgAuthResult) {
         try {
-          // Decode and parse Telegram data
           const decodedResult = atob(tgAuthResult);
-          console.log('[Telegram Callback] Decoded result:', decodedResult);
           const telegramData = JSON.parse(decodedResult);
-          console.log('[Telegram Callback] Parsed Telegram data:', telegramData);
           
           // Check for linking information in sessionStorage
           let linkingInfo = null;
@@ -51,16 +39,13 @@ function TelegramCallbackContent() {
             const storedLinkingInfo = sessionStorage.getItem('oauth_linking');
             if (storedLinkingInfo) {
               linkingInfo = JSON.parse(storedLinkingInfo);
-              console.log('[Telegram Callback] Found linking info:', linkingInfo);
             }
           } catch (err) {
-            console.error('[Telegram Callback] Error parsing linking info:', err);
+            logger.error('Error parsing OAuth linking info', err as Error);
           }
           
-          // Get the action from sessionStorage (set by AuthContext when creating challenge)
           const storedAction = sessionStorage.getItem('telegram_oauth_action');
           const action = linkingInfo ? 'link' : (storedAction || 'auto');
-          console.log('[Telegram Callback] Using action:', action, '(stored:', storedAction, ', linking:', !!linkingInfo, ')');
           
           // Send Telegram data to backend for processing
           const requestBody = {
@@ -76,8 +61,6 @@ function TelegramCallbackContent() {
             UserId: linkingInfo?.userId || null
           };
           
-          console.log('[Telegram Callback] Sending request to backend:', requestBody);
-          
           fetch('http://127.0.0.1:5246/api/auth/oauth/telegram/callback', {
             method: 'POST',
             headers: {
@@ -87,7 +70,6 @@ function TelegramCallbackContent() {
           })
           .then(response => response.json())
           .then(data => {
-            console.log('[Telegram Callback] Backend response:', data);
             
             // Clear linking info and action from sessionStorage
             sessionStorage.removeItem('oauth_linking');

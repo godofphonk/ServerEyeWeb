@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { logger } from '@/lib/telemetry/logger';
 import { Card } from '@/components/ui/Card';
 import {
   Activity,
@@ -41,26 +42,14 @@ export default function SystemMonitoringPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
   useEffect(() => {
-    console.log(
-      '[Admin] useEffect triggered - authLoading:',
-      authLoading,
-      'user:',
-      user?.email,
-      'role:',
-      user?.role,
-    );
-
     if (authLoading) return;
 
-    // Only admins can access
     if (!user || !isAdmin(user)) {
-      console.log('[Admin] Access denied - redirecting to dashboard');
-      console.log('[Admin] User role:', user?.role, typeof user?.role);
+      logger.warn('Admin access denied', { userRole: user?.role });
       router.push('/dashboard');
       return;
     }
 
-    console.log('[Admin] Loading system stats...');
     loadSystemStats();
 
     // Auto-refresh every 30 seconds
@@ -72,9 +61,7 @@ export default function SystemMonitoringPage() {
     try {
       setLoading(true);
 
-      // Fetch real data from API
       const token = localStorage.getItem('jwt_token');
-      console.log('[Admin] Token:', token ? 'exists' : 'missing');
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`, {
         headers: {
@@ -82,21 +69,16 @@ export default function SystemMonitoringPage() {
         },
       });
 
-      console.log('[Admin] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[Admin] Error response:', errorText);
+        logger.error('Failed to fetch admin stats', new Error(errorText), { status: response.status });
         throw new Error('Failed to fetch system stats');
       }
 
       const result = await response.json();
-      console.log('[Admin] Stats loaded:', result);
-      console.log('[Admin] Stats data:', result.data);
-      console.log('[Admin] Services health:', result.data?.services_health);
       setStats(result.data);
     } catch (error) {
-      console.error('[Admin] Failed to load system stats:', error);
+      logger.error('Failed to load system stats', error as Error);
     } finally {
       setLoading(false);
     }

@@ -20,23 +20,18 @@ export default function LoginPage() {
 
   // Clear any OAuth tokens when on login page ONLY if not coming from OAuth callback
   useEffect(() => {
-    // Check if coming from OAuth callback with debug info
     const debugResult = localStorage.getItem('telegram_debug_result');
     
     if (!debugResult) {
-      console.log('[LoginPage] Clearing localStorage tokens (not from OAuth callback)');
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-    } else {
-      console.log('[LoginPage] NOT clearing tokens - coming from OAuth callback');
     }
   }, []);
 
   // Redirect logic is handled by middleware
   // useEffect(() => {
   //   if (!loading && user) {
-  //     console.log('[LoginPage] User already authenticated, redirecting to dashboard');
   //     window.location.href = '/dashboard';
   //     return;
   //   }
@@ -54,22 +49,6 @@ export default function LoginPage() {
     const debugSuccess = localStorage.getItem('telegram_debug_success');
     const debugHasToken = localStorage.getItem('telegram_debug_has_token');
     const debugError = localStorage.getItem('telegram_debug_error');
-    
-    if (debugResult) {
-      console.log('[Login] Telegram OAuth Debug Info:');
-      console.log('- Result:', debugResult);
-      console.log('- Status:', debugStatus);
-      console.log('- Success:', debugSuccess);
-      console.log('- Has Token:', debugHasToken);
-      console.log('- Error:', debugError);
-      if (debugResponse) {
-        try {
-          console.log('- Response Data:', JSON.parse(debugResponse));
-        } catch (e) {
-          console.log('- Response Data (raw):', debugResponse);
-        }
-      }
-    }
     
     if (oauthError) {
       switch (oauthError) {
