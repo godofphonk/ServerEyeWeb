@@ -28,4 +28,6 @@ public interface ISubscriptionService
     public Task<bool> CanAccessFeatureAsync(Guid userId, string featureName);
 
     public Task<int> GetMaxServersForUserAsync(Guid userId);
+
+    public Task CreateFreeSubscriptionAsync(Guid userId);
 }

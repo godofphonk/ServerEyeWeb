@@ -25,6 +25,7 @@ public class GitHubSettings
 
 public class TelegramSettings
 {
+    public string BotId { get; set; } = string.Empty;
     public string BotToken { get; set; } = string.Empty;
     public Uri RedirectUri { get; set; } = new Uri("https://127.0.0.1");
     public bool Enabled { get; set; }

@@ -42,13 +42,13 @@ public sealed class TelegramOAuthProvider(
 
         Logger.LogInformation(
             "Telegram OAuth settings - BotId: {BotId}, RedirectUri: {RedirectUri}, Origin: {Origin}",
-            settings.BotToken,
+            settings.BotId,
             settings.RedirectUri.ToString(),
             origin);
 
         // Telegram OAuth URL with correct parameters
         var url = $"https://oauth.telegram.org/auth?" +
-                  $"bot_id={settings.BotToken}&" + // Use bot_id from configuration
+                  $"bot_id={settings.BotId}&" + // Use bot_id from configuration
                   $"origin={Uri.EscapeDataString(origin)}&" + // Use frontend origin
                   $"request_access=write&" + // Request write access
                   $"redirect_uri={redirectUri}&" + // Use configured RedirectUri

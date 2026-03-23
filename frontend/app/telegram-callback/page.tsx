@@ -27,17 +27,21 @@ function TelegramCallbackContent() {
     
     // Handle direct Telegram callback with tgAuthResult in hash
     const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
+    const fullUrl = typeof window !== 'undefined' ? window.location.href : '';
     
+        
     if (urlHash && urlHash.includes('tgAuthResult=')) {
-      console.log('[Telegram Callback] Processing direct Telegram callback with hash');
+      console.log('[Telegram Callback] Processing direct Telegram callback with hash:', urlHash);
       
       const hashParams = new URLSearchParams(urlHash.substring(1)); // Remove # and parse
       const tgAuthResult = hashParams.get('tgAuthResult');
+      console.log('[Telegram Callback] Extracted tgAuthResult:', tgAuthResult?.substring(0, 100) + '...');
       
       if (tgAuthResult) {
         try {
           // Decode and parse Telegram data
           const decodedResult = atob(tgAuthResult);
+          console.log('[Telegram Callback] Decoded result:', decodedResult);
           const telegramData = JSON.parse(decodedResult);
           console.log('[Telegram Callback] Parsed Telegram data:', telegramData);
           
@@ -59,16 +63,27 @@ function TelegramCallbackContent() {
           console.log('[Telegram Callback] Using action:', action, '(stored:', storedAction, ', linking:', !!linkingInfo, ')');
           
           // Send Telegram data to backend for processing
-          fetch('/api/auth/telegram/callback', {
+          const requestBody = {
+            UserData: {
+              Id: parseInt(telegramData.id || telegramData.Id || '0'),
+              FirstName: telegramData.first_name || telegramData.FirstName || '',
+              Username: telegramData.username || telegramData.Username || '',
+              AuthDate: parseInt(telegramData.auth_date || telegramData.AuthDate || Date.now().toString()),
+              Hash: telegramData.hash || telegramData.Hash || ''
+            },
+            State: `telegram_temp_${Date.now()}`,
+            LinkingAction: !!linkingInfo,
+            UserId: linkingInfo?.userId || null
+          };
+          
+          console.log('[Telegram Callback] Sending request to backend:', requestBody);
+          
+          fetch('http://127.0.0.1:5246/api/auth/oauth/telegram/callback', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              telegramData,
-              action: action,
-              linkingInfo: linkingInfo
-            }),
+            body: JSON.stringify(requestBody),
           })
           .then(response => response.json())
           .then(data => {
@@ -130,10 +145,16 @@ function TelegramCallbackContent() {
         }
       } else {
         console.error('[Telegram Callback] Missing tgAuthResult');
+        console.log('[Telegram Callback] Full URL:', window.location.href);
+        console.log('[Telegram Callback] Hash:', urlHash);
+        console.log('[Telegram Callback] Search params:', window.location.search);
         window.location.href = '/login?error=missing_telegram_data';
       }
     } else {
       console.error('[Telegram Callback] No valid Telegram data found');
+      console.log('[Telegram Callback] Full URL:', window.location.href);
+      console.log('[Telegram Callback] Hash:', urlHash);
+      console.log('[Telegram Callback] Search params:', window.location.search);
       window.location.href = '/login?error=invalid_callback';
     }
   }, [searchParams, router]);
