@@ -8,6 +8,10 @@ public interface IPaymentService
         Guid userId,
         CreatePaymentIntentRequest request);
 
+    public Task<CreateSubscriptionResponse> CreateSubscriptionCheckoutAsync(
+        Guid userId,
+        CreateSubscriptionRequest request);
+
     public Task<List<PaymentDto>> GetUserPaymentsAsync(Guid userId, int limit = 50);
 
     public Task<PaymentDto?> GetPaymentByIdAsync(Guid paymentId);
