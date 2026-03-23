@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { useMemo } from 'react';
 import { MetricsDataPoint } from '@/types';
 import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
@@ -39,68 +40,74 @@ export default function MetricsLineChart({
     );
   }
 
-  const chartData = data.map(point => {
-    // Handle different field names (loadAverage vs load, cpu_frequency)
-    let metricData;
-    if (metricType === 'load') {
-      metricData = point.loadAverage;
-    } else if (metricType === 'cpu_frequency') {
-      metricData = point.cpu_frequency;
-    } else {
-      metricData = point[metricType];
-    }
+  // Memoize chart data to prevent unnecessary recalculations
+  const chartData = useMemo(() => {
+    return data.map(point => {
+      // Handle different field names (loadAverage vs load, cpu_frequency)
+      let metricData;
+      if (metricType === 'load') {
+        metricData = point.loadAverage;
+      } else if (metricType === 'cpu_frequency') {
+        metricData = point.cpu_frequency;
+      } else {
+        metricData = point[metricType];
+      }
 
-    if (!metricData || typeof metricData.avg === 'undefined') {
-      console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);
+      if (!metricData || typeof metricData.avg === 'undefined') {
+        console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);
+        return {
+          time: formatTimeByRange(point.timestamp, timeRange),
+          avg: 0,
+          max: 0,
+          min: 0,
+        };
+      }
+
       return {
         time: formatTimeByRange(point.timestamp, timeRange),
-        avg: 0,
-        max: 0,
-        min: 0,
+        avg: metricData.avg,
+        max: metricData.max,
+        min: metricData.min,
       };
-    }
+    });
+  }, [data, metricType, timeRange]);
 
-    return {
-      time: formatTimeByRange(point.timestamp, timeRange),
-      avg: metricData.avg,
-      max: metricData.max,
-      min: metricData.min,
-    };
-  });
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
-          <p className='text-sm text-gray-400 mb-2'>{payload[0]?.payload?.time}</p>
-          <div className='space-y-1'>
-            <p className='text-sm'>
-              <span className='text-blue-400'>Avg:</span>{' '}
-              <span className='font-semibold'>
-                {payload[0]?.value?.toFixed(1) || '0'}
-                {unit}
-              </span>
-            </p>
-            <p className='text-sm'>
-              <span className='text-green-400'>Max:</span>{' '}
-              <span className='font-semibold'>
-                {payload[1]?.value?.toFixed(1) || '0'}
-                {unit}
-              </span>
-            </p>
-            <p className='text-sm'>
-              <span className='text-yellow-400'>Min:</span>{' '}
-              <span className='font-semibold'>
-                {payload[2]?.value?.toFixed(1) || '0'}
-                {unit}
-              </span>
-            </p>
+  // Memoize CustomTooltip to prevent recreation on every render
+  const CustomTooltip = useMemo(() => {
+    return ({ active, payload }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
+            <p className='text-sm text-gray-400 mb-2'>{payload[0]?.payload?.time}</p>
+            <div className='space-y-1'>
+              <p className='text-sm'>
+                <span className='text-blue-400'>Avg:</span>{' '}
+                <span className='font-semibold'>
+                  {payload[0]?.value?.toFixed(1) || '0'}
+                  {unit}
+                </span>
+              </p>
+              <p className='text-sm'>
+                <span className='text-green-400'>Max:</span>{' '}
+                <span className='font-semibold'>
+                  {payload[1]?.value?.toFixed(1) || '0'}
+                  {unit}
+                </span>
+              </p>
+              <p className='text-sm'>
+                <span className='text-yellow-400'>Min:</span>{' '}
+                <span className='font-semibold'>
+                  {payload[2]?.value?.toFixed(1) || '0'}
+                  {unit}
+                </span>
+              </p>
+            </div>
           </div>
-        </div>
-      );
-    }
-    return null;
-  };
+        );
+      }
+      return null;
+    };
+  }, [unit]);
 
   return (
     <div className='w-full h-full min-h-[200px]'>

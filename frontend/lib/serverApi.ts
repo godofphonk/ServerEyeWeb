@@ -361,3 +361,40 @@ export async function getServerCompleteData(
     metrics,
   };
 }
+
+// Get unified server data (metrics + status + static info) in single request
+export async function getServerUnifiedData(
+  serverKey: string,
+  options?: {
+    start?: Date;
+    end?: Date;
+    granularity?: string;
+    includeMetrics?: boolean;
+    includeStatus?: boolean;
+    includeStatic?: boolean;
+  },
+) {
+  const params = new URLSearchParams();
+  
+  // Add time range parameters if provided
+  if (options?.start) {
+    params.append('start', options.start.toISOString());
+  }
+  if (options?.end) {
+    params.append('end', options.end.toISOString());
+  }
+  if (options?.granularity) {
+    params.append('granularity', options.granularity);
+  }
+  
+  // Add include flags (default to true)
+  params.append('include_metrics', (options?.includeMetrics !== false).toString());
+  params.append('include_status', (options?.includeStatus !== false).toString());
+  params.append('include_static', (options?.includeStatic !== false).toString());
+
+  const response = await apiClient.get<any>(
+    `/servers/by-key/${serverKey}/unified?${params.toString()}`,
+  );
+  
+  return response;
+}

@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useMemo } from 'react';
 import { MetricsDataPoint } from '@/types';
 import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
@@ -29,45 +30,51 @@ export default function MetricsAreaChart({
   unit = '%',
   timeRange = '1h',
 }: MetricsAreaChartProps) {
-  const chartData = data.map(point => {
-    // Handle different field names (loadAverage vs load, cpu_frequency)
-    let metricData;
-    if (metricType === 'load') {
-      metricData = point.loadAverage;
-    } else if (metricType === 'cpu_frequency') {
-      metricData = point.cpu_frequency;
-    } else {
-      metricData = point[metricType];
-    }
+  // Memoize chart data to prevent unnecessary recalculations
+  const chartData = useMemo(() => {
+    return data.map(point => {
+      // Handle different field names (loadAverage vs load, cpu_frequency)
+      let metricData;
+      if (metricType === 'load') {
+        metricData = point.loadAverage;
+      } else if (metricType === 'cpu_frequency') {
+        metricData = point.cpu_frequency;
+      } else {
+        metricData = point[metricType];
+      }
 
-    if (!metricData || typeof metricData.avg === 'undefined') {
-      console.warn(`[MetricsAreaChart] Missing data for metric ${metricType}:`, point);
+      if (!metricData || typeof metricData.avg === 'undefined') {
+        console.warn(`[MetricsAreaChart] Missing data for metric ${metricType}:`, point);
+        return {
+          time: formatTimeByRange(point.timestamp, timeRange),
+          value: 0,
+        };
+      }
+
       return {
         time: formatTimeByRange(point.timestamp, timeRange),
-        value: 0,
+        value: metricData.avg,
       };
-    }
+    });
+  }, [data, metricType, timeRange]);
 
-    return {
-      time: formatTimeByRange(point.timestamp, timeRange),
-      value: metricData.avg,
+  // Memoize CustomTooltip to prevent recreation on every render
+  const CustomTooltip = useMemo(() => {
+    return ({ active, payload }: any) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
+            <p className='text-sm text-gray-400 mb-1'>{payload[0].payload.time}</p>
+            <p className='text-sm font-semibold'>
+              {payload[0].value.toFixed(1)}
+              {unit}
+            </p>
+          </div>
+        );
+      }
+      return null;
     };
-  });
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
-          <p className='text-sm text-gray-400 mb-1'>{payload[0].payload.time}</p>
-          <p className='text-sm font-semibold'>
-            {payload[0].value.toFixed(1)}
-            {unit}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  }, [unit]);
 
   return (
     <div className='w-full h-full min-h-[200px]'>
