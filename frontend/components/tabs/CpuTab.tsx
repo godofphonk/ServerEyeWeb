@@ -34,7 +34,6 @@ export default function CpuTab({
   // Load data when time ranges change
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[CpuTab] Loading CPU Usage data for range:', cpuUsageTimeRange);
       loadHistoricalMetrics(cpuUsageTimeRange)
         .then(data => setCpuUsageMetrics(data))
         .catch(error => console.error('[CpuTab] Failed to load CPU Usage data:', error));
@@ -43,7 +42,6 @@ export default function CpuTab({
 
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[CpuTab] Loading CPU Load data for range:', cpuLoadTimeRange);
       loadHistoricalMetrics(cpuLoadTimeRange)
         .then(data => setCpuLoadMetrics(data))
         .catch(error => console.error('[CpuTab] Failed to load CPU Load data:', error));
@@ -52,7 +50,6 @@ export default function CpuTab({
 
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[CpuTab] Loading CPU Temperature data for range:', cpuTemperatureTimeRange);
       loadHistoricalMetrics(cpuTemperatureTimeRange)
         .then(data => setCpuTemperatureMetrics(data))
         .catch(error => console.error('[CpuTab] Failed to load CPU Temperature data:', error));

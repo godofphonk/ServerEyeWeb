@@ -30,7 +30,6 @@ export default function StorageTab({
   // Load data when time range changes
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[StorageTab] Loading Storage data for range:', storageTimeRange);
       loadHistoricalMetrics(storageTimeRange)
         .then(data => setStorageMetrics(data))
         .catch(error => console.error('[StorageTab] Failed to load Storage data:', error));
