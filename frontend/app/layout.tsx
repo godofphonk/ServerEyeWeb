@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import { initializeTelemetry } from '@/lib/telemetry/tracing';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,6 +19,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Initialize OpenTelemetry for frontend tracing
+  initializeTelemetry();
+  
   return (
     <html lang='en'>
       <body className={inter.className}>
