@@ -1,5 +1,6 @@
 namespace ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Infrastructure.ExternalServices.GoApi;
 
@@ -11,6 +12,7 @@ public abstract class MetricsOperation : GoApiOperation<GoApiMetricsResponse?>
     protected MetricsOperation(GoApiHttpHandler httpHandler, GoApiLogger logger) 
         : base(httpHandler, logger)
     {
+        _logger = logger;
     }
 
     /// <summary>
@@ -21,17 +23,17 @@ public abstract class MetricsOperation : GoApiOperation<GoApiMetricsResponse?>
         // Try to parse as time series first
         var result = GoApiJsonSerializer.DeserializeMetricsResponse(content);
         
-        Console.WriteLine($"[MetricsOperation] Deserialized {result?.DataPoints?.Count ?? 0} points from {GetOperationName()}");
+        _logger.LogInformation($"[MetricsOperation] Deserialized {result?.DataPoints?.Count ?? 0} points from {GetOperationName()}");
         
         // If no data points, try snapshot format
         if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
         {
-            Console.WriteLine($"[MetricsOperation] Trying snapshot format for {GetOperationName()}");
+            _logger.LogInformation($"[MetricsOperation] Trying snapshot format for {GetOperationName()}");
             var snapshotResponse = GoApiJsonSerializer.DeserializeSnapshotResponse(content);
             if (snapshotResponse != null && snapshotResponse.Metrics != null)
             {
                 result = GoApiDataTransformer.ConvertSnapshotToTimeSeries(snapshotResponse, GetStartTime(), GetEndTime(), GetGranularity());
-                Console.WriteLine($"[MetricsOperation] Converted snapshot to {result?.DataPoints?.Count ?? 0} points");
+                _logger.LogInformation($"[MetricsOperation] Converted snapshot to {result?.DataPoints?.Count ?? 0} points");
             }
         }
 

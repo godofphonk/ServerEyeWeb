@@ -128,8 +128,6 @@ public static class GoApiDataTransformer
         var finalTemp = cpuTemp;
         var finalHighestTemp = highestTemp;
         var finalLoad = load1Min;
-        
-        Console.WriteLine($"[GoApiDataTransformer] Snapshot values - CPU: {snapshot.Metrics?.Cpu}, Memory: {snapshot.Metrics?.Memory}, Temp: {finalTemp}, HighestTemp: {finalHighestTemp}, Load: {finalLoad}");
             
         dataPoints.Add(new GoApiDataPoint
         {
