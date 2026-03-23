@@ -32,7 +32,11 @@ public static class OpenTelemetryConfiguration
                     options.RecordException = true;
                     options.Filter = httpContext =>
                     {
-                        return !httpContext.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
+                        var path = httpContext.Request.Path;
+                        
+                        // Exclude health and OAuth endpoints from tracing
+                        return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) &&
+                               !path.StartsWithSegments("/api/auth/oauth", StringComparison.OrdinalIgnoreCase);
                     };
                     options.EnrichWithHttpRequest = (activity, httpRequest) =>
                     {
@@ -76,7 +80,6 @@ public static class OpenTelemetryConfiguration
                     options.Protocol = OtlpExportProtocol.Grpc;
                 }))
             .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddMeter(serviceName)
                 .AddPrometheusExporter()

@@ -15,6 +15,7 @@ services:
       - ../../secrets/dev/shared.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:80
     volumes:
       # Mount appsettings for hot reload
       - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro

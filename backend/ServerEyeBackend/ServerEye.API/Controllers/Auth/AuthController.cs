@@ -11,21 +11,23 @@ using System.Text.Json;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController : BaseApiController
 {
     private readonly IJwtService jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository;
     private readonly IAuthService authService;
     private readonly IOAuthService oauthService;
+    private readonly IUserRepository userRepository;
     private readonly ILogger<AuthController> logger;
     private readonly FrontendSettings frontendSettings;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, ILogger<AuthController> logger, FrontendSettings frontendSettings)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.authService = authService;
         this.oauthService = oauthService;
+        this.userRepository = userRepository;
         this.logger = logger;
         this.frontendSettings = frontendSettings;
     }
@@ -441,6 +443,50 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpGet("session")]
+    public async Task<ActionResult<object>> GetSession()
+    {
+        try
+        {
+            var userId = this.GetUserId();
+            var user = await this.userRepository.GetByIdAsync(userId);
+            
+            if (user == null)
+            {
+                return Ok(new { user = (object?)null });
+            }
+
+            return Ok(new { user });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error getting session");
+            return Ok(new { user = (object?)null });
+        }
+    }
+
+    [HttpPost("session")]
+    public async Task<ActionResult<object>> SetSession()
+    {
+        try
+        {
+            var userId = this.GetUserId();
+            var user = await this.userRepository.GetByIdAsync(userId);
+            
+            if (user == null)
+            {
+                return Ok(new { user = (object?)null });
+            }
+
+            return Ok(new { user });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error setting session");
+            return Ok(new { user = (object?)null });
+        }
+    }
+
     [HttpPost("oauth/callback")]
     public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
     {
@@ -449,22 +495,7 @@ public class AuthController : ControllerBase
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
 
-            // Store code verifier for PKCE if provided
-            if (!string.IsNullOrEmpty(request.CodeVerifier) && !string.IsNullOrEmpty(request.State))
-            {
-                // Use reflection to access the private CodeVerifiers dictionary
-                var oauthServiceType = this.oauthService.GetType();
-                var codeVerifiersField = oauthServiceType.GetField(
-                    "CodeVerifiers", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-                
-                if (codeVerifiersField?.GetValue(null) is System.Collections.Generic.Dictionary<string, string> codeVerifiers)
-                {
-                    codeVerifiers[request.State] = request.CodeVerifier;
-                    this.logger.LogInformation("Stored code verifier for POST OAuth callback - State: {State}", request.State);
-                }
-            }
-
+            // Code verifier is now stored in Redis by OAuthService, no need for manual storage
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
             return this.Ok(response);
         }

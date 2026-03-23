@@ -15,15 +15,15 @@ services:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       # Mount source code for hot reload
-      - ./frontend/package.json:/app/package.json
-      - ./frontend/package-lock.json:/app/package-lock.json
-      - ./frontend/app:/app/app
-      - ./frontend/components:/app/components
-      - ./frontend/lib:/app/lib
-      - ./frontend/public:/app/public
-      - ./frontend/styles:/app/styles
-      - ./frontend/next.config.js:/app/next.config.js
-      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/package.json:/app/package.json
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/package-lock.json:/app/package-lock.json
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/app:/app/app
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/components:/app/components
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/lib:/app/lib
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/public:/app/public
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/styles:/app/styles
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/next.config.js:/app/next.config.js
+      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/tailwind.config.ts:/app/tailwind.config.js
       - /app/node_modules
       - /app/.next
     restart: unless-stopped

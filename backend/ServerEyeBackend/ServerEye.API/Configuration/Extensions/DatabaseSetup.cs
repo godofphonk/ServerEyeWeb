@@ -55,22 +55,21 @@ public static class DatabaseSetup
     {
         using var scope = app.ApplicationServices.CreateScope();
         var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILogger<Program>>();
 
         try
         {
             var serverEyeContext = services.GetRequiredService<ServerEyeDbContext>();
 
-            // Skip migrations for existing database
-            // await serverEyeContext.Database.MigrateAsync();
-            var ticketContext = services.GetRequiredService<TicketDbContext>();
-
-            // Skip migrations for existing database
-            // await ticketContext.Database.MigrateAsync();
+            // Ensure database exists without applying migrations
+            logger.LogInformation("Ensuring database exists...");
+            await serverEyeContext.Database.EnsureCreatedAsync();
+            logger.LogInformation("Database ensured successfully");
+            
             // Billing plans are now hardcoded in SubscriptionService, no DB needed
         }
         catch (Exception ex)
         {
-            var logger = services.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "Critical error: Failed to apply database migrations. Application cannot continue.");
 
             // In production, we want the application to fail fast instead of running with broken database

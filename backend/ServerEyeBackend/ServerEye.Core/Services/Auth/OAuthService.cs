@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
@@ -18,15 +19,14 @@ public sealed class OAuthService(
     IUserExternalLoginRepository externalLoginRepository,
     IJwtService jwtService,
     IOAuthProviderFactory providerFactory,
+    IDistributedCache cache,
     ILogger<OAuthService> logger) : IOAuthService
 {
-    // Simple in-memory storage for code verifiers (in production, use Redis or database)
-    private static readonly Dictionary<string, string> CodeVerifiers = new();
-
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserExternalLoginRepository externalLoginRepository = externalLoginRepository;
     private readonly IJwtService jwtService = jwtService;
     private readonly IOAuthProviderFactory providerFactory = providerFactory;
+    private readonly IDistributedCache cache = cache;
     private readonly ILogger<OAuthService> logger = logger;
 
     // Public interface implementation
@@ -63,7 +63,14 @@ public sealed class OAuthService(
 
         // Store code verifier with the state that will actually be returned by provider
         // For GitHub, this includes the provider prefix; for Google, it doesn't
-        CodeVerifiers[stateWithAction] = codeVerifier;
+        await cache.SetStringAsync(
+            $"oauth:code_verifier:{stateWithAction}", 
+            codeVerifier, 
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) // 10 minutes expiry
+            }, 
+            cancellationToken);
 
         this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
 
@@ -131,18 +138,20 @@ public sealed class OAuthService(
         // For Telegram temporary states, we don't need code verifier
         string? codeVerifier = null;
         
-        if (!isTelegramTemp && !CodeVerifiers.TryGetValue(request.State, out codeVerifier))
-        {
-            this.logger.LogError("Code verifier not found for state: {State}", request.State);
-            throw new InvalidOperationException("Invalid or expired OAuth state");
-        }
-
         if (!isTelegramTemp)
         {
+            codeVerifier = await cache.GetStringAsync($"oauth:code_verifier:{request.State}", cancellationToken);
+            
+            if (codeVerifier == null)
+            {
+                this.logger.LogError("Code verifier not found for state: {State}", request.State);
+                throw new InvalidOperationException("Invalid or expired OAuth state");
+            }
+
             this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State);
 
-            // Remove code verifier from memory
-            CodeVerifiers.Remove(request.State);
+            // Remove code verifier from Redis
+            await cache.RemoveAsync($"oauth:code_verifier:{request.State}", cancellationToken);
         }
         else
         {
@@ -313,16 +322,18 @@ public sealed class OAuthService(
         // For linking external login, we need to retrieve the original code verifier
         var originalState = request.State; // This should be the actualState from linking state
         
-        if (!OAuthService.CodeVerifiers.TryGetValue(originalState, out var storedCodeVerifier))
+        var storedCodeVerifier = await cache.GetStringAsync($"oauth:code_verifier:{originalState}", cancellationToken);
+        
+        if (storedCodeVerifier == null)
         {
             this.logger.LogError("Code verifier not found for linking state: {State}", originalState);
             throw new InvalidOperationException("Invalid or expired OAuth state for linking");
         }
-        
+
         this.logger.LogInformation("Retrieved code verifier for OAuth linking - State: {State}", originalState);
         
-        // Remove code verifier from memory
-        OAuthService.CodeVerifiers.Remove(originalState);
+        // Remove code verifier from Redis
+        await cache.RemoveAsync($"oauth:code_verifier:{originalState}", cancellationToken);
         
         var providerInstance = providerFactory.GetProvider(provider);
         var tokenResponse = await providerInstance.ExchangeCodeAsync(request.Code, storedCodeVerifier, cancellationToken);

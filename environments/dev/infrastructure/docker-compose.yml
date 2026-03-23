@@ -5,7 +5,7 @@ services:
   # PostgreSQL Main Database
   postgres-main:
     image: postgres:16-alpine
-    container_name: servereye-postgres-main-dev
+    container_name: ServerEyeWeb-postgres-main-dev
     ports:
       - "5433:5432"
     environment:
@@ -27,7 +27,7 @@ services:
   # PostgreSQL Ticket Database
   postgres-ticket:
     image: postgres:16-alpine
-    container_name: servereye-postgres-ticket-dev
+    container_name: ServerEyeWeb-postgres-ticket-dev
     ports:
       - "5434:5432"
     environment:
@@ -49,7 +49,7 @@ services:
   # PostgreSQL Billing Database
   postgres-billing:
     image: postgres:16-alpine
-    container_name: servereye-postgres-billing-dev
+    container_name: ServerEyeWeb-postgres-billing-dev
     ports:
       - "5436:5432"
     environment:
@@ -71,7 +71,7 @@ services:
   # Redis Cache
   redis:
     image: redis:8-alpine
-    container_name: servereye-redis-dev
+    container_name: ServerEyeWeb-redis-dev
     ports:
       - "6380:6379"
     restart: unless-stopped
@@ -93,10 +93,10 @@ networks:
 volumes:
   postgres_main_dev_data:
     driver: local
-    name: servereye_postgres_main_dev
+    name: ServerEyeWeb_postgres_main_dev
   postgres_ticket_dev_data:
     driver: local
-    name: servereye_postgres_ticket_dev
+    name: ServerEyeWeb_postgres_ticket_dev
   postgres_billing_dev_data:
     driver: local
-    name: servereye_postgres_billing_dev
+    name: ServerEyeWeb_postgres_billing_dev
