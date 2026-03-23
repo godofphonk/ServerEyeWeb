@@ -30,7 +30,6 @@ export default function MemoryTab({
   // Load data when time range changes
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[MemoryTab] Loading Memory data for range:', memoryTimeRange);
       loadHistoricalMetrics(memoryTimeRange)
         .then(data => setMemoryMetrics(data))
         .catch(error => console.error('[MemoryTab] Failed to load Memory data:', error));

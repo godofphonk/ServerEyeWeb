@@ -152,11 +152,17 @@ export async function getServerKey(serverId: string): Promise<string> {
   const servers = await getCachedMonitoredServers();
   const server = servers.find(s => s.serverId === serverId);
 
-  if (!server || !server.serverKey) {
-    throw new Error(`Server key not found for serverId: ${serverId}`);
+  if (!server) {
+    throw new Error(`Server not found for serverId: ${serverId}`);
   }
 
-  return server.serverKey;
+  // If serverKey exists, use it
+  if (server.serverKey) {
+    return server.serverKey;
+  }
+
+  // If no serverKey, try using serverId (for servers added via Telegram)
+  return serverId;
 }
 
 // Get server static info with caching

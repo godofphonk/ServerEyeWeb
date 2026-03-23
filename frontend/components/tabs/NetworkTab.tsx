@@ -32,7 +32,6 @@ export default function NetworkTab({
   // Load data when time ranges change
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[NetworkTab] Loading Network RX data for range:', networkRxTimeRange);
       loadHistoricalMetrics(networkRxTimeRange)
         .then(data => setNetworkRxMetrics(data))
         .catch(error => console.error('[NetworkTab] Failed to load Network RX data:', error));
@@ -41,13 +40,12 @@ export default function NetworkTab({
 
   useEffect(() => {
     if (loadHistoricalMetrics) {
-      console.log('[NetworkTab] Loading Network TX data for range:', networkTxTimeRange);
       loadHistoricalMetrics(networkTxTimeRange)
         .then(data => setNetworkTxMetrics(data))
         .catch(error => console.error('[NetworkTab] Failed to load Network TX data:', error));
     }
   }, [networkTxTimeRange, loadHistoricalMetrics]);
-  console.log('[NetworkTab] networkDetails:', networkDetails);
+  
   return (
     <div className='space-y-6'>
       {/* Network Overview Cards */}
