@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Wrap setUser to add logging
   const setUserWithLogging = useCallback((newUser: User | null) => {
-    console.log('[AuthContext] setUser called with:', newUser ? `user: ${newUser.email || newUser.username} (${newUser.id})` : 'null');
     setUser(newUser);
   }, []);
   const [loading, setLoading] = useState(true);
@@ -71,44 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasPassword: backendUser.hasPassword ?? true, // По умолчанию true для обратной совместимости
     };
 
-    console.log('[AuthContext] mapBackendUser - Backend user:', {
-      id: backendUser.id,
-      email: backendUser.email,
-      userName: backendUser.userName,
-      role: backendUser.role,
-      isEmailVerified: backendUser.isEmailVerified,
-      hasPassword: backendUser.hasPassword,
-    });
-    console.log('[AuthContext] mapBackendUser - Mapped user:', {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-      isEmailVerified: user.isEmailVerified,
-      hasPassword: user.hasPassword,
-    });
-
     return user;
   };
 
   const checkAuth = useCallback(async () => {
     try {
-      console.log('[AuthContext] checkAuth called');
-      console.log('[AuthContext] Current state:', { user: !!user, loading });
       
       setLoading(true);
       
       // First check if we have tokens in localStorage (from OAuth callback)
       if (typeof window !== 'undefined') {
-        console.log('[AuthContext] Checking localStorage...');
         const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
-        console.log('[AuthContext] Found token:', !!token, token ? token.substring(0, 20) + '...' : 'none');
         
         if (token && !user) {
-          console.log('[AuthContext] Found token in localStorage, attempting to decode user');
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            console.log('[AuthContext] Decoded payload:', payload);
             
             const userId = payload.sub || payload.nameid || payload.userId || payload.id;
             const email = payload.email || payload.Email || '';
@@ -118,13 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const isOAuthUser = !email || email.trim() === '' || email.includes('telegram.local') || email.includes('@oauth.');
             const hasPassword = payload.hasPassword ?? payload.HasPassword ?? !isOAuthUser;
             
-            console.log('[AuthContext] Extracted claims:', { userId, email, username, role, hasPassword, isOAuthUser });
-            console.log('[AuthContext] Token source check - email_verified:', payload.email_verified);
-            console.log('[AuthContext] This looks like OAuth token:', isOAuthUser);
             
             // Clear OAuth tokens from localStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
-              console.log('[AuthContext] Detected OAuth token in localStorage, clearing it...');
               clearAuthData();
               throw new Error('OAuth token detected, clearing and using session API');
             }
@@ -141,37 +113,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               };
               
               setUserWithLogging(localStorageUser);
-              console.log('[AuthContext] User restored from localStorage token:', localStorageUser);
               setLoading(false);
               return;
             }
           } catch (decodeError) {
-            console.log('[AuthContext] Failed to decode localStorage token:', decodeError);
           }
         }
       }
       
       // Always try session API as fallback or if no user found
-      console.log('[AuthContext] Trying session API as fallback');
-      console.log('[AuthContext] Available cookies:', document.cookie);
       
       const res = await fetch('/api/auth/session', { credentials: 'include' });
-      console.log('[AuthContext] Session API response status:', res.status);
-      console.log('[AuthContext] Session API response headers:', Object.fromEntries(res.headers.entries()));
       
       if (res.ok) {
         const data = await res.json();
-        console.log('[AuthContext] Session API response data:', data);
         
         if (data.user) {
           const mappedUser = mapBackendUser(data.user);
           setUserWithLogging(mappedUser);
-          console.log('[AuthContext] User authenticated via session:', mappedUser);
-          console.log('[AuthContext] Email verification status:', mappedUser.isEmailVerified);
-          console.log(
-            '[AuthContext] isEmailVerified computed:',
-            mappedUser?.isEmailVerified || false,
-          );
 
           // Also save token to localStorage for apiClient
           if (typeof window !== 'undefined') {
@@ -182,27 +141,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const tokenData = await tokenResponse.json();
                 if (tokenData.token) {
                   localStorage.setItem('jwt_token', tokenData.token);
-                  console.log(
-                    '[AuthContext] Token saved to localStorage from API, length:',
-                    tokenData.token?.length,
-                  );
                 }
               }
             } catch (error) {
-              console.log('[AuthContext] Failed to get token from API:', error);
             }
           }
           return;
         }
       } else {
-        console.log('[AuthContext] Session API returned status:', res.status);
-        console.log('[AuthContext] Session API response text:', await res.text());
       }
       
-      console.log('[AuthContext] No valid session found');
       clearAuthData();
     } catch (error) {
-      console.log('[AuthContext] checkAuth error:', error);
       clearAuthData();
     } finally {
       setLoading(false);
@@ -210,19 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // Убираем зависимость user чтобы избежать бесконечного цикла
 
   useEffect(() => {
-    console.log('[AuthContext] useEffect called - checkAuthCalled.current:', checkAuthCalled.current);
     checkAuth();
     checkAuthCalled.current = true; // Устанавливаем флаг после вызова
   }, []); // Пустые зависимости - вызывается только при монтировании
 
   const login = async (email: string, password: string) => {
-    console.log('AuthContext login - attempting login with:', {
-      email,
-      passwordLength: password.length,
-    });
 
     const loginUrl = '/api/auth/login?t=' + Date.now();
-    console.log('AuthContext login - full URL:', window.location.origin + loginUrl);
 
     const res = await fetch(loginUrl, {
       method: 'POST',
@@ -237,28 +181,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
-    console.log('AuthContext login - response status:', res.status, res.statusText);
-    console.log('AuthContext login - response headers:', Object.fromEntries(res.headers.entries()));
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      console.log('AuthContext login - error response:', errorData);
       throw new Error(errorData.message || 'Login failed');
     }
 
     const data = await res.json();
-    console.log('AuthContext login - success response:', {
-      hasUser: !!data.user,
-      userId: data.user?.id,
-    });
 
     if (!data.user?.id) {
       throw new Error('Invalid login response');
     }
 
     setUserWithLogging(mapBackendUser(data.user));
-    console.log('AuthContext login - user set successfully');
-    console.log('AuthContext login - mapped user:', mapBackendUser(data.user));
     checkAuthCalled.current = false; // Сбрасываем флаг после успешного входa
 
     // Also save token to localStorage for apiClient
@@ -268,44 +203,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (accessTokenCookie) {
         const token = accessTokenCookie.split('=')[1];
         localStorage.setItem('jwt_token', token);
-        console.log('AuthContext login - token saved to localStorage');
       }
     }
   };
 
   const setTokensFromCallback = async (token: string, refreshToken: string) => {
-    console.log('AuthContext setTokensFromCallback - setting tokens from OAuth callback');
     
     // Store tokens in localStorage for apiClient
     if (typeof window !== 'undefined') {
       localStorage.setItem('jwt_token', token);
       localStorage.setItem('access_token', token);
       localStorage.setItem('refresh_token', refreshToken);
-      console.log('AuthContext setTokensFromCallback - tokens saved to localStorage');
       
       // Also try to set cookies for backend compatibility
       document.cookie = `access_token=${token}; path=/; max-age=3600; SameSite=Lax`;
       document.cookie = `refresh_token=${refreshToken}; path=/; max-age=604800; SameSite=Lax`;
-      console.log('AuthContext setTokensFromCallback - cookies set');
     }
 
     // Decode JWT token to get user info
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('AuthContext setTokensFromCallback - decoded payload:', payload);
       
       // Handle different claim formats
       const userId = payload.sub || payload.nameid || payload.userId || payload.id;
       const email = payload.email || payload.Email;
       const username = payload.username || payload.UserName || payload.name || payload.unique_name;
       const role = payload.role || payload.Role || 'user';
-      
-      console.log('AuthContext setTokensFromCallback - extracted claims:', {
-        userId,
-        email,
-        username,
-        role
-      });
       
       // For OAuth users, email can be empty but userId is required
       if (userId) {
@@ -320,35 +243,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         setUserWithLogging(user);
-        console.log('AuthContext setTokensFromCallback - user set from OAuth:', user);
         return; // Success, don't try fallback
       } else {
-        console.log('AuthContext setTokensFromCallback - missing required claims:', {
-          userId,
-          email,
-          username,
-          role
-        });
       }
     } catch (error) {
-      console.error('AuthContext setTokensFromCallback - failed to decode token:', error);
-      console.log('AuthContext setTokensFromCallback - token structure:', token.split('.')[0], '...', token.split('.')[2]);
-      
       // Fallback: try to get user data from API
       try {
-        console.log('AuthContext setTokensFromCallback - trying API fallback...');
         const res = await fetch('/api/auth/session', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          console.log('AuthContext setTokensFromCallback - API response:', data);
           if (data.user) {
             const mappedUser = mapBackendUser(data.user);
             setUserWithLogging(mappedUser);
-            console.log('AuthContext setTokensFromCallback - user set from API fallback:', mappedUser);
             return;
           }
         } else {
-          console.log('AuthContext setTokensFromCallback - API fallback failed with status:', res.status);
         }
       } catch (fallbackError) {
         console.error('AuthContext setTokensFromCallback - fallback failed:', fallbackError);
@@ -382,7 +291,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearAuthData = () => {
-    console.log('[AuthContext] Clearing auth data');
     if (typeof window !== 'undefined') {
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('refresh_token');
@@ -404,7 +312,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUserData = async () => {
-    console.log('[AuthContext] refreshUserData called');
     await checkAuth();
   };
 
@@ -438,9 +345,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       `/auth/oauth/${provider}/challenge?${params.toString()}`
     );
     
-    console.log('[AuthContext] OAuth challenge response:', response);
-    console.log('[AuthContext] Using challenge URL from backend:', response.challengeUrl);
-    console.log('[AuthContext] Action:', action || 'auto');
     
     return response;
   }, []);

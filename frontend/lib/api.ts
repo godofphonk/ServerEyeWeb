@@ -35,9 +35,7 @@ class ApiClient {
           const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('[API] Adding JWT token to request:', config.url);
           } else {
-            console.log('[API] No JWT token found for request:', config.url);
           }
         }
         return config;
@@ -54,18 +52,11 @@ class ApiClient {
             error.response!.data,
             error.response!.status
           );
-          console.log('[API] Go API error detected:', {
-            errorCode: goApiError.errorCode,
-            errorType: goApiError.errorType,
-            isTemporary: goApiError.isTemporary,
-            userMessage: goApiError.userMessage,
-          });
           return Promise.reject(goApiError);
         }
 
         // Handle 401 errors (authentication)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-          console.log('[API] 401 Unauthorized - attempting token refresh');
           
           // Try to refresh token first
           try {
@@ -81,7 +72,6 @@ class ApiClient {
               const refreshData = await refreshResponse.json();
               if (refreshData.token) {
                 localStorage.setItem('jwt_token', refreshData.token);
-                console.log('[API] Token refreshed successfully');
                 
                 // Retry the original request with new token
                 if (error.config) {
@@ -91,11 +81,9 @@ class ApiClient {
               }
             }
           } catch (refreshError) {
-            console.log('[API] Token refresh failed:', refreshError);
           }
 
           // If refresh failed, clear tokens and redirect to login
-          console.log('[API] Token refresh failed, clearing auth data');
           localStorage.removeItem('jwt_token');
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
@@ -119,11 +107,7 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    console.log('[API] GET request:', url);
     const response = await this.client.get<T>(url, config);
-    console.log('[API] GET response:', response.status, url);
-    console.log('[API] Response data:', response.data);
-    console.log('[API] Full response:', response);
     return response.data;
   }
 

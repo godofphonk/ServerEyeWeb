@@ -42,31 +42,26 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
     
     // Retry 500 Internal Server Error (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 500) {
-      console.log('[Retry] 500 Internal Server Error - retryable');
       return true;
     }
     
     // Retry 502 Bad Gateway (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 502) {
-      console.log('[Retry] 502 Bad Gateway - retryable');
       return true;
     }
     
     // Retry 503 Service Unavailable (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 503) {
-      console.log('[Retry] 503 Service Unavailable - retryable');
       return true;
     }
     
     // Retry 504 Gateway Timeout (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 504) {
-      console.log('[Retry] 504 Gateway Timeout - retryable');
       return true;
     }
     
     // Retry network errors (no response)
     if (!hasResponseStatus(error) && hasErrorCode(error) && error.code === 'ECONNABORTED') {
-      console.log('[Retry] Network timeout - retryable');
       return true;
     }
     
@@ -92,31 +87,25 @@ export async function fetchWithRetry<T>(
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
-      console.log(`[Retry] Attempt ${attempt + 1}/${opts.maxRetries + 1}`);
       return await fetchFn();
     } catch (error: unknown) {
       lastError = error;
 
       if (attempt === opts.maxRetries) {
-        console.log('[Retry] Max retries reached, throwing error');
         throw error;
       }
 
       const shouldRetry = opts.shouldRetry(error, attempt);
       
       if (!shouldRetry) {
-        console.log('[Retry] Error is not retryable, throwing immediately');
         throw error;
       }
 
       const delayMs = calculateDelay(attempt, opts);
       
       if (error instanceof GoApiError) {
-        console.log(`[Retry] Go API temporary error (${error.errorType}), retrying in ${delayMs}ms...`);
       } else if (hasResponseStatus(error)) {
-        console.log(`[Retry] HTTP ${error.response.status} error, retrying in ${delayMs}ms...`);
       } else {
-        console.log(`[Retry] Network error, retrying in ${delayMs}ms...`);
       }
 
       await delay(delayMs);

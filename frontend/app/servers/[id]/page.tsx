@@ -56,7 +56,6 @@ export default function ServerDetailPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      console.log('[ServerDetail] User not authenticated, redirecting to login');
       router.push('/login');
       return;
     }
@@ -105,21 +104,14 @@ export default function ServerDetailPage() {
 
       loadAllData();
     }
-  }, [
-    user,
-    serverId,
-    // Removed timeRange dependency - each tab manages its own time range
-  ]);
+  }, [user, serverId]);
 
   // Helper function to get server info (optimized)
   const getServerInfo = async () => {
-    const start = performance.now();
-
     const serverKey = await getServerKey(serverId);
     const servers = await getCachedMonitoredServers();
     const serverData = servers.find(s => s.serverId === serverId);
 
-    console.log(`[ServerDetail] Server info loaded in ${(performance.now() - start).toFixed(0)}ms`);
     if (!serverData) {
       throw new Error('Server not found');
     }
@@ -127,15 +119,11 @@ export default function ServerDetailPage() {
   };
 
   const loadDashboardMetrics = async () => {
-    const start = performance.now();
-
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
 
     const end = new Date();
     const startTime = new Date(end.getTime() - 5 * 60 * 1000);
-
-    console.log(`[DashboardMetrics] Loading dashboard metrics for ${serverKey}`);
 
     // Use tiered endpoint for consistency with historical metrics
     const response = await getCachedTieredMetrics(
@@ -143,10 +131,6 @@ export default function ServerDetailPage() {
       startTime.toISOString(),
       end.toISOString(),
       'minute', // Use minute granularity for dashboard
-    );
-
-    console.log(
-      `[DashboardMetrics] Dashboard metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
     );
 
     // Transform API response to expected format
@@ -239,10 +223,6 @@ export default function ServerDetailPage() {
     // Находим реальный период данных (когда агент был установлен)
     const firstDataPoint = new Date(dataPoints[0].timestamp);
 
-    console.log(`[FillMissing] Real data period starts: ${firstDataPoint.toISOString()}`);
-    console.log(
-      `[FillMissing] Requested period: ${new Date(startRounded).toISOString()} to ${new Date(endRounded).toISOString()}`,
-    );
 
     // Для коротких периодов (1ч, 6ч) используем все данные как есть
     // Для длинных периодов (24ч, 7д, 30д) заполняем нулями после реальных данных
@@ -251,10 +231,6 @@ export default function ServerDetailPage() {
     let actualStart: number = startRounded;
     const useLongPeriodLogic = periodHours >= 24; // 24ч и больше
 
-    console.log(
-      `[FillMissing] Period: ${range}, hours: ${periodHours}, expected points: ${expectedPoints}`,
-    );
-    console.log(`[FillMissing] Use long period logic: ${useLongPeriodLogic}`);
 
     if (useLongPeriodLogic) {
       // Для длинных периодов проверяем есть ли данные за весь период
@@ -264,24 +240,12 @@ export default function ServerDetailPage() {
       // Если агент установлен менее чем за 70% периода, используем startRounded
       if (dataPeriodMs > totalPeriodMs * 0.7) {
         actualStart = startRounded;
-        console.log(
-          `[FillMissing] Long period but recent data, using requested start: ${new Date(actualStart).toISOString()}`,
-        );
       } else {
         actualStart = Math.max(startRounded, firstDataPoint.getTime());
-        console.log(
-          `[FillMissing] Long period with old data, using actual start: ${new Date(actualStart).toISOString()}`,
-        );
       }
     } else {
-      console.log(
-        `[FillMissing] Short period detected, using requested start: ${new Date(actualStart).toISOString()}`,
-      );
     }
 
-    console.log(
-      `[FillMissing] Final fill period: ${new Date(actualStart).toISOString()} to ${new Date(endRounded).toISOString()}`,
-    );
 
     // Заполняем все временные слоты от actualStart до endRounded
     const result = [];
@@ -320,9 +284,6 @@ export default function ServerDetailPage() {
       current += granularityMinutes * 60 * 1000;
     }
 
-    console.log(
-      `[FillMissing] Generated ${result.length} points, ${dataPoints.length} real, ${result.length - dataPoints.length} zeros`,
-    );
     return result;
   };
 
@@ -335,7 +296,6 @@ export default function ServerDetailPage() {
     end.setSeconds(0, 0); // Round to minute
     const start = new Date(end);
 
-    console.log(`[HistoricalMetrics] Loading tiered metrics for range: ${range}`);
 
     switch (range) {
       case '1h':
@@ -370,14 +330,10 @@ export default function ServerDetailPage() {
     const config = granularityConfig[range] || granularityConfig['1h'];
     const { granularity, expectedPoints } = config;
 
-    console.log(`[HistoricalMetrics] Time range: ${start.toISOString()} to ${end.toISOString()}, granularity: ${granularity}`);
     
     // Use tiered endpoint for all ranges with optimized granularity
     const response = await getCachedTieredMetrics(serverKey, start.toISOString(), end.toISOString(), granularity);
 
-    console.log(
-      `[HistoricalMetrics] Historical metrics response: ${response.dataPoints?.length || 0} points, status: ${response.status}`,
-    );
 
     // Детальное логирование timestamps для проверки актуальности данных
     if (response.dataPoints && response.dataPoints.length > 0) {
@@ -387,31 +343,12 @@ export default function ServerDetailPage() {
       const minutesAgoFirst = Math.floor((now.getTime() - firstPoint.getTime()) / (1000 * 60));
       const minutesAgoLast = Math.floor((now.getTime() - lastPoint.getTime()) / (1000 * 60));
 
-      console.log(`[HistoricalMetrics] Data timestamps:`);
-      console.log(`  Now: ${now.toISOString()}`);
-      console.log(`  First: ${firstPoint.toISOString()} (${minutesAgoFirst} minutes ago)`);
-      console.log(`  Last: ${lastPoint.toISOString()} (${minutesAgoLast} minutes ago)`);
-      console.log(`  Range: ${response.dataPoints.length} points`);
 
       // Фильтр переустановки агента отключен - показываем все данные
     }
 
     // Детальное логирование первых и последних точек данных
     if (response.dataPoints && response.dataPoints.length > 0) {
-      console.log(`[HistoricalMetrics] First data point:`, response.dataPoints[0]);
-      console.log(
-        `[HistoricalMetrics] Last data point:`,
-        response.dataPoints[response.dataPoints.length - 1],
-      );
-      console.log(
-        `[HistoricalMetrics] Load values in first 5 points:`,
-        response.dataPoints.slice(0, 5).map((p: any) => ({
-          timestamp: p.timestamp,
-          load_avg: p.load_avg,
-          load_max: p.load_max,
-          load_min: p.load_min,
-        })),
-      );
     }
 
     if (response.dataPoints?.length > 0) {
@@ -431,7 +368,6 @@ export default function ServerDetailPage() {
       range,
       expectedPoints,
     );
-    console.log(`[ServerDetail] After filling: ${filledDataPoints.length} points`);
 
     // Transform API response - convert flat structure to nested for charts
     const transformedDataPoints = filledDataPoints.map((point: any) => ({

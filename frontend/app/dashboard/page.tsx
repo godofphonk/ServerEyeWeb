@@ -56,13 +56,6 @@ export default function DashboardPage() {
   const redirectAttempted = useRef(false);
   const effectCalled = useRef(false);
 
-  console.log('[Dashboard] Auth state:', {
-    user: user?.email,
-    isAuthenticated,
-    isEmailVerified,
-    authLoading,
-  });
-
   const [servers, setServers] = useState<
     Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>
   >([]);
@@ -143,51 +136,27 @@ export default function DashboardPage() {
         };
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
-        console.log(
-          `[Dashboard] Successfully loaded metrics for server ${serverKey}`,
-          dashboardMetrics,
-        );
       } catch (error: any) {
-        console.error(`Failed to load metrics for server ${serverKey}:`, error);
-        
         // Handle GoApiError specifically
         if (error instanceof GoApiError) {
-          console.log(`[Dashboard] Go API error for server ${serverKey}:`, {
-            errorType: error.errorType,
-            isTemporary: error.isTemporary,
-            userMessage: error.userMessage,
-          });
-          
           // Store error for display
           setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
-          
           // Don't show toast for Go API errors - they're displayed inline
           return;
         }
-        
         // Handle server errors (500, 502, 503, 504)
         if (error.response?.status >= 500) {
-          console.log(`[Dashboard] Server error for server ${serverKey}:`, {
-            status: error.response.status,
-            statusText: error.response.statusText,
-          });
-          
           // Store error for display
           setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
-          
           // Don't show toast for server errors - they're displayed inline
           return;
         }
-        
         // Handle 401 errors specifically - don't log as error, let auth interceptor handle it
         if (error.response?.status === 401) {
-          console.log(`[Dashboard] 401 error for server ${serverKey} metrics, auth will be handled by API interceptor`);
           return;
         }
-        
         // Set empty metrics to prevent continuous loading
         setMetrics(prev => ({ ...prev, [serverKey]: null }));
-        
         // Show error toast for other errors
         if (error.message !== 'canceled') {
           const errorMessage = error.response?.data?.message || error.message || 'Failed to load server metrics';
@@ -205,18 +174,13 @@ export default function DashboardPage() {
   );
 
   const loadServers = useCallback(async () => {
-    console.log('[Dashboard] loadServers called');
-    
     // Clear previous errors
     setGoApiError(null);
     setServerError(null);
 
     try {
       setIsLoadingServers(true);
-      console.log('[Dashboard] Loading servers...');
-
       // Load servers with static info in parallel with retry
-      console.log('[Dashboard] Calling getServersWithStaticInfo...');
       const serversWithStatic = await fetchWithRetry(
         () => getServersWithStaticInfo(),
         {
@@ -224,7 +188,6 @@ export default function DashboardPage() {
           initialDelay: 2000,
         }
       );
-      console.log('[Dashboard] Servers loaded:', serversWithStatic);
       setServers(serversWithStatic || []);
 
       // Load metrics for each server using serverKey
@@ -237,47 +200,27 @@ export default function DashboardPage() {
         }
       }
     } catch (error: any) {
-      console.error('Failed to load servers:', error);
-      
       // Handle GoApiError specifically
       if (error instanceof GoApiError) {
-        console.log('[Dashboard] Go API error detected:', {
-          errorType: error.errorType,
-          isTemporary: error.isTemporary,
-          userMessage: error.userMessage,
-        });
-        
         // Store error for display
         setGoApiError(error);
-        
         // Don't show toast for Go API errors - they're displayed with full UI
         return;
       }
-      
       // Handle server errors (500, 502, 503, 504)
       if (error.response?.status >= 500) {
-        console.log('[Dashboard] Server error detected:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-        });
-        
         // Store error for display
         setServerError(error);
-        
         // Don't show toast for server errors - they're displayed with full UI
         return;
       }
-      
       // Handle 401 errors specifically
       if (error.response?.status === 401) {
-        console.log('[Dashboard] 401 error detected, auth will be handled by API interceptor');
         // Don't set empty servers array, let auth interceptor handle redirect
         return;
       }
-      
       // For other errors, set empty servers
       setServers([]);
-      
       // Show error toast to user
       if (error.message !== 'canceled') {
         const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
@@ -285,7 +228,6 @@ export default function DashboardPage() {
       }
     } finally {
       setIsLoadingServers(false);
-      console.log('[Dashboard] Loading servers finished');
     }
   }, [loadServerMetrics, toast]); // Add dependencies
 
@@ -293,10 +235,8 @@ export default function DashboardPage() {
   const handleTelegramImport = useCallback(async (serverIds: string[]) => {
     try {
       await telegramDiscovery.importServers(serverIds);
-      
       // Refresh servers list after successful import
       await loadServers();
-      
       toast.success('Import Successful', `Successfully imported ${serverIds.length} server(s) from Telegram bot`);
     } catch (error) {
       console.error('[Dashboard] Failed to import Telegram servers:', error);
@@ -305,16 +245,6 @@ export default function DashboardPage() {
   }, [telegramDiscovery, loadServers, toast]);
 
   useEffect(() => {
-    console.log('[Dashboard] useEffect triggered:', {
-      authLoading,
-      isAuthenticated,
-      user: !!user,
-      userId: user?.id,
-      redirectAttempted: redirectAttempted.current,
-      loadServersCalled: loadServersCalled.current,
-      effectCalled: effectCalled.current
-    });
-    
     // Check for subscription status from URL parameters
     if (typeof window !== 'undefined' && isAuthenticated && user) {
       const urlParams = new URLSearchParams(window.location.search);
@@ -333,7 +263,6 @@ export default function DashboardPage() {
     
     // Ничего не делаем пока идет загрузка auth
     if (authLoading) {
-      console.log('[Dashboard] Auth still loading, skipping...');
       return;
     }
     
@@ -348,10 +277,8 @@ export default function DashboardPage() {
         try {
           const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
           
-          console.log('[Dashboard] Found pending linking request:', { action, provider, expectedState, hasCode: !!code, hasState: !!state });
           
           if (action === 'link' && state.includes(expectedState)) {
-            console.log('[Dashboard] Processing pending linking request');
             
             // Update sessionStorage with code and state
             sessionStorage.setItem('oauth_linking', JSON.stringify({
@@ -373,22 +300,18 @@ export default function DashboardPage() {
     }
     
     if (!authLoading && !isAuthenticated && !redirectAttempted.current) {
-      console.log('[Dashboard] User not authenticated, redirecting to login');
       redirectAttempted.current = true;
       setIsLoadingServers(false);
       router.push('/login');
     } else if (!authLoading && isAuthenticated && !redirectAttempted.current) {
       // Проверяем доступ с учетом OAuth пользователей
       const userHasAccess = hasUserAccess(user, isEmailVerified);
-      console.log('[Dashboard] User access check result:', userHasAccess);
       
       if (!userHasAccess) {
-        console.log('[Dashboard] Email not verified, redirecting to verify-email');
         redirectAttempted.current = true;
         setIsLoadingServers(false);
         router.push('/verify-email');
       } else if (!loadServersCalled.current) {
-        console.log('[Dashboard] Loading servers...');
         redirectAttempted.current = false;
         loadServersCalled.current = true;
         loadServers();
@@ -547,11 +470,9 @@ export default function DashboardPage() {
             <EmailVerificationBanner
               email={user.email}
               onVerified={async () => {
-                console.log('[Dashboard] Email verification completed - refreshing user data');
                 try {
                   await refreshUserData();
                 } catch (error) {
-                  console.log('[Dashboard] Failed to refresh user data:', error);
                   // Fallback to page reload
                   window.location.reload();
                 }
@@ -614,7 +535,6 @@ export default function DashboardPage() {
                 <MonitoringServiceError
                   error={goApiError}
                   onRetry={() => {
-                    console.log('[Dashboard] Retrying after Go API error');
                     loadServersCalled.current = false;
                     loadServers();
                   }}
@@ -629,7 +549,6 @@ export default function DashboardPage() {
                 <ServerError
                   error={serverError}
                   onRetry={() => {
-                    console.log('[Dashboard] Retrying after server error');
                     loadServersCalled.current = false;
                     loadServers();
                   }}

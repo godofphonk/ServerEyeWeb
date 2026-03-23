@@ -56,7 +56,6 @@ export const authApi = {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
-      console.log('[AuthAPI] Attempting account deletion with code:', data.confirmationCode);
 
       const response = await axios.post(`${baseURL}/auth/confirm-account-deletion`, data, {
         headers: {
@@ -67,15 +66,8 @@ export const authApi = {
         timeout: 30000,
       });
 
-      console.log('[AuthAPI] Account deletion successful:', response.status, response.data);
       return response.data;
     } catch (error: any) {
-      console.log('[AuthAPI] Account deletion error details:');
-      console.log('  Status:', error.response?.status);
-      console.log('  Status Text:', error.response?.statusText);
-      console.log('  Data:', error.response?.data);
-      console.log('  Message:', error.message);
-      console.log('  Full error:', error);
 
       // Don't automatically redirect - let the component handle it
       throw error;
@@ -87,7 +79,6 @@ export const authApi = {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
-      console.log('[AuthAPI] Attempting direct account deletion (OAuth without email)');
 
       // Call backend directly since Next.js API routes are not working
       const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
@@ -101,7 +92,6 @@ export const authApi = {
         timeout: 30000,
       });
 
-      console.log('[AuthAPI] Direct account deletion successful:', response.status, response.data);
       
       // Clear local storage on successful deletion
       if (typeof window !== 'undefined') {
@@ -112,11 +102,6 @@ export const authApi = {
       
       return response.data;
     } catch (error: any) {
-      console.log('[AuthAPI] Direct account deletion error details:');
-      console.log('  Status:', error.response?.status);
-      console.log('  Status Text:', error.response?.statusText);
-      console.log('  Data:', error.response?.data);
-      console.log('  Message:', error.message);
 
       // Handle specific error cases
       if (error.response?.status === 404) {

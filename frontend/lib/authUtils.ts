@@ -12,27 +12,18 @@ import { User } from '@/types';
  * @returns true если доступ разрешен, false если нет
  */
 export function hasUserAccess(user: User | null, isEmailVerified: boolean | string): boolean {
-  console.log('[hasUserAccess] Input:', { 
-    user: user ? { id: user.id, email: user.email, hasPassword: user.hasPassword } : null, 
-    isEmailVerified 
-  });
-  
   if (!user) {
-    console.log('[hasUserAccess] No user - returning false');
     return false;
   }
 
   // OAuth пользователи (любые, включая Google, GitHub, Telegram) - доступ разрешен
   const isOAuthUser = user.hasPassword === false;
-  console.log('[hasUserAccess] Is OAuth user:', isOAuthUser);
   
   if (isOAuthUser) {
-    console.log('[hasUserAccess] OAuth user - returning true');
     return true;
   }
 
   // Обычные пользователи с паролем - требуется верификация email
-  console.log('[hasUserAccess] Regular user - checking email verification:', isEmailVerified);
   return Boolean(isEmailVerified);
 }
 
