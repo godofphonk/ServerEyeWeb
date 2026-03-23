@@ -24,29 +24,11 @@ export function usehttpPolling({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const pollMetrics = useCallback(async () => {
-    console.log(
-      '[Metrics] pollMetrics called for server:',
-      serverId,
-      'enabled:',
-      enabled,
-      'isLoading:',
-      isLoading,
-    );
-
     if (!enabled || isLoading || shouldStop) {
-      console.log(
-        '[Metrics] Skipping fetch - enabled:',
-        enabled,
-        'isLoading:',
-        isLoading,
-        'shouldStop:',
-        shouldStop,
-      );
       return;
     }
 
     setIsLoading(true);
-    console.log('[Metrics] Starting fetch for server:', serverId);
 
     try {
       // Use C# backend endpoint for real metrics
@@ -55,7 +37,6 @@ export function usehttpPolling({
       const metrics = await apiClient.get<any>(
         `/servers/by-key/${serverId}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`,
       );
-      console.log('[Metrics] Success! Got real metrics:', metrics);
 
       // Process real metrics data from C# backend
       const lastDataPoint = metrics.dataPoints?.[metrics.dataPoints?.length - 1];
@@ -77,15 +58,12 @@ export function usehttpPolling({
         isCached: metrics.isCached || false,
       };
 
-      console.log('[Metrics] Processed real data:', processedData);
 
       // Log message if present
       if (metrics.message) {
-        console.log('[Metrics] API Message:', metrics.message);
 
         // Stop polling if no data found
         if (metrics.message === 'No data found in specified range') {
-          console.log('[Metrics] No data available, stopping polling');
           setShouldStop(true);
           setIsConnected(false);
           setError('No data available');
@@ -101,7 +79,6 @@ export function usehttpPolling({
       onMessage?.(processedData);
     } catch (err: any) {
       console.error('[Metrics] Failed to fetch:', err);
-      console.log('[Metrics] Error status:', err.response?.status);
 
       // Handle errors
       if (err.response?.status === 401) {
@@ -118,7 +95,6 @@ export function usehttpPolling({
 
   // Setup automatic polling - DISABLED TEMPORARILY TO FIX INFINITE LOOP
   useEffect(() => {
-    console.log('[Metrics] Polling disabled to prevent infinite loop');
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

@@ -11,25 +11,17 @@ const CACHE_DURATION = 30000; // 30 seconds
 export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
   const now = Date.now();
 
-  console.log('[ServerAPI] getCachedMonitoredServers called');
-
   if (cachedServers && now - cacheTimestamp < CACHE_DURATION) {
-    console.log('[ServerAPI] Returning cached servers:', cachedServers);
     return cachedServers;
   }
 
-  console.log('[ServerAPI] Fetching servers from API...');
   try {
     cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
-    console.log('[ServerAPI] Servers fetched:', cachedServers);
     cacheTimestamp = now;
     return cachedServers;
   } catch (error: any) {
-    console.error('[ServerAPI] Failed to fetch servers:', error);
-    
     // For 401 errors, don't clear cache - let auth interceptor handle it
     if (error.response?.status === 401) {
-      console.log('[ServerAPI] 401 error, preserving cache and letting auth interceptor handle');
       throw error; // Re-throw to let caller handle it
     }
     
@@ -68,74 +60,97 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
   }
 }
 
-// Get monitored servers with static info
+// Helper function to chunk array for parallel processing
+function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+// Get monitored servers with static info (optimized with chunked parallel requests)
 export async function getServersWithStaticInfo(): Promise<
   Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>
 > {
   // Get monitored servers from cache
   const monitoredServers = await getCachedMonitoredServers();
 
-  // For each server, use the ServerKey from database directly
-  const serversWithStatic = await Promise.allSettled(
-    monitoredServers.map(async server => {
-      try {
-        // Only load static info if serverKey exists
-        if (!server.serverKey) {
+  // Process servers in chunks to avoid overwhelming the backend
+  // 5 concurrent requests at a time for optimal performance
+  const CHUNK_SIZE = 5;
+  const chunks = chunkArray(monitoredServers, CHUNK_SIZE);
+  
+  const allResults: Array<MonitoredServer & { staticInfo?: ServerStaticInfo }> = [];
+  
+  // Process each chunk sequentially, but requests within chunk are parallel
+  for (const chunk of chunks) {
+    const chunkResults = await Promise.allSettled(
+      chunk.map(async server => {
+        try {
+          // Only load static info if serverKey exists
+          if (!server.serverKey) {
+            return {
+              ...server,
+            };
+          }
+
+          // Use cached version with deduplication
+          const staticInfo = await getServerStaticInfoCached(server.serverKey);
+
           return {
             ...server,
+            staticInfo,
+          };
+        } catch (error: any) {
+          console.error(`Failed to load static info for server ${server.serverId}:`, error);
+          
+          // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
+          if (error.response?.status >= 500) {
+            throw error;
+          }
+          
+          // For wrapped errors, check if they contain server error info
+          if (error.message?.includes('Request failed with status code 5')) {
+            // Extract the original error if it's wrapped
+            const statusMatch = error.message.match(/status code (\d{3})/);
+            const statusCode = statusMatch ? parseInt(statusMatch[1]) : 0;
+            if (statusCode >= 500) {
+              // Create a mock error with response status for retry mechanism
+              const mockError = new Error(error.message);
+              (mockError as any).response = { status: statusCode };
+              throw mockError;
+            }
+          }
+          
+          // For other errors, return server without static info
+          return {
+            ...server,
+            staticInfo: undefined,
           };
         }
+      }),
+    );
 
-        const staticInfo = await getServerStaticInfoCached(server.serverKey);
+    // Check if any server errors occurred in this chunk
+    const serverError = chunkResults.find(result => 
+      result.status === 'rejected' && 
+      result.reason?.response?.status >= 500
+    );
+    
+    if (serverError && serverError.status === 'rejected') {
+      throw serverError.reason;
+    }
 
-        return {
-          ...server,
-          staticInfo,
-        };
-      } catch (error: any) {
-        console.error(`Failed to load static info for server ${server.serverId}:`, error);
-        
-        // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
-        if (error.response?.status >= 500) {
-          throw error;
-        }
-        
-        // For wrapped errors, check if they contain server error info
-        if (error.message?.includes('Request failed with status code 5')) {
-          // Extract the original error if it's wrapped
-          const statusMatch = error.message.match(/status code (\d{3})/);
-          const statusCode = statusMatch ? parseInt(statusMatch[1]) : 0;
-          if (statusCode >= 500) {
-            // Create a mock error with response status for retry mechanism
-            const mockError = new Error(error.message);
-            (mockError as any).response = { status: statusCode };
-            throw mockError;
-          }
-        }
-        
-        // For other errors, return server without static info
-        return {
-          ...server,
-          staticInfo: undefined,
-        };
-      }
-    }),
-  );
-
-  // Check if any server errors occurred and rethrow the first one
-  const serverError = serversWithStatic.find(result => 
-    result.status === 'rejected' && 
-    result.reason?.response?.status >= 500
-  );
-  
-  if (serverError && serverError.status === 'rejected') {
-    throw serverError.reason;
+    // Collect successful results from this chunk
+    const successfulResults = chunkResults
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map(result => result.value);
+    
+    allResults.push(...successfulResults);
   }
 
-  // Filter out rejected promises and return successful results
-  return serversWithStatic
-    .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-    .map(result => result.value);
+  return allResults;
 }
 
 // Helper function to convert serverKey for Go API
@@ -165,9 +180,12 @@ export async function getServerKey(serverId: string): Promise<string> {
   return serverId;
 }
 
-// Get server static info with caching
+// Get server static info with caching and deduplication
 const staticInfoCache = new Map<string, { data: ServerStaticInfo; timestamp: number }>();
 const STATIC_INFO_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// In-flight requests map for deduplication
+const inflightRequests = new Map<string, Promise<ServerStaticInfo>>();
 
 export async function getServerStaticInfoCached(serverKey: string): Promise<ServerStaticInfo> {
   const cached = staticInfoCache.get(serverKey);
@@ -178,20 +196,37 @@ export async function getServerStaticInfoCached(serverKey: string): Promise<Serv
     return cached.data;
   }
 
-  // Fetch fresh data
-  const data = await getServerStaticInfo(serverKey);
+  // Check if request is already in-flight (deduplication)
+  const inflightRequest = inflightRequests.get(serverKey);
+  if (inflightRequest) {
+    return inflightRequest;
+  }
 
-  // Update cache
-  staticInfoCache.set(serverKey, { data, timestamp: now });
+  // Create new request
+  const requestPromise = getServerStaticInfo(serverKey)
+    .then(data => {
+      // Update cache
+      staticInfoCache.set(serverKey, { data, timestamp: now });
+      // Remove from in-flight
+      inflightRequests.delete(serverKey);
+      return data;
+    })
+    .catch(error => {
+      // Remove from in-flight on error
+      inflightRequests.delete(serverKey);
+      throw error;
+    });
 
-  return data;
+  // Store in-flight request
+  inflightRequests.set(serverKey, requestPromise);
+
+  return requestPromise;
 }
 
 // Clear servers cache (useful after deletion)
 export function clearServersCache() {
   cachedServers = null;
   cacheTimestamp = 0;
-  console.log('[ServerAPI] Servers cache cleared');
 }
 
 // Clear static info cache (useful for manual refresh)
@@ -224,13 +259,8 @@ export async function getCachedTieredMetrics(
 
   // Return cached data if still valid
   if (cached && now - cached.timestamp < METRICS_CACHE_DURATION) {
-    console.log(
-      `[TieredMetricsCache] Using cached data for ${serverKey}, points: ${cached.data.dataPoints?.length || 0}`,
-    );
     return cached.data;
   }
-
-  console.log(`[TieredMetricsCache] Fetching fresh tiered data for ${serverKey}`);
 
   // Fetch fresh tiered data with optional granularity
   const url = granularity 
@@ -244,10 +274,6 @@ export async function getCachedTieredMetrics(
     ...response,
     status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
   };
-
-  console.log(
-    `[TieredMetricsCache] Response: ${fixedResponse.dataPoints?.length || 0} points, granularity: ${fixedResponse.granularity}`,
-  );
 
   // Update cache
   metricsCache.set(cacheKey, { data: fixedResponse, timestamp: now });
@@ -268,13 +294,8 @@ export async function getCachedMetrics(
 
   // Return cached data if still valid
   if (cached && now - cached.timestamp < METRICS_CACHE_DURATION) {
-    console.log(
-      `[MetricsCache] Using cached data for ${serverKey}, points: ${cached.data.dataPoints?.length || 0}`,
-    );
     return cached.data;
   }
-
-  console.log(`[MetricsCache] Fetching fresh data for ${serverKey}`);
 
   // Fetch fresh data
   const response = await apiClient.get<any>(
@@ -286,10 +307,6 @@ export async function getCachedMetrics(
     ...response,
     status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
   };
-
-  console.log(
-    `[MetricsCache] Response: ${fixedResponse.dataPoints?.length || 0} points, status: ${fixedResponse.status}`,
-  );
 
   // Update cache
   metricsCache.set(cacheKey, { data: fixedResponse, timestamp: now });
@@ -305,28 +322,19 @@ export function clearMetricsCache() {
 // Get metrics using new serverKey endpoint
 export async function getServerMetrics(
   serverKey: string,
-  options?: {
-    start?: Date;
-    end?: Date;
-    granularity?: string;
-  },
-): Promise<MetricsResponse> {
-  // Default time range (last 5 minutes)
-  const end = options?.end || new Date();
-  const start = options?.start || new Date(end.getTime() - 5 * 60 * 1000);
-  const granularity = options?.granularity || 'minute';
-
+  startTime: string,
+  endTime: string,
+  granularity: string,
+): Promise<any> {
   const params = new URLSearchParams({
-    start: start.toISOString(),
-    end: end.toISOString(),
+    start: startTime,
+    end: endTime,
     granularity: granularity,
   });
 
-  console.log(`[ServerMetrics] Fetching metrics for serverKey: ${serverKey}`);
   const response = await apiClient.get<any>(
     `/servers/by-key/${serverKey}/metrics?${params.toString()}`,
   );
-
   return response;
 }
 
@@ -339,9 +347,13 @@ export async function getServerCompleteData(
     granularity?: string;
   },
 ) {
+  const startTime = options?.start?.toISOString() || new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const endTime = options?.end?.toISOString() || new Date().toISOString();
+  const granularity = options?.granularity || 'minute';
+
   const [staticInfo, metrics] = await Promise.all([
     getServerStaticInfoCached(serverKey),
-    getServerMetrics(serverKey, options),
+    getServerMetrics(serverKey, startTime, endTime, granularity),
   ]);
 
   return {
