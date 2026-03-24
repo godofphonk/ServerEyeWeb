@@ -50,8 +50,25 @@ public static class AuthenticationSetup
         services.AddAuthorization();
 
         // Register OAuth settings
-        var oauthSettings = configuration.GetSection("OAuth").Get<OAuthSettings>() 
-            ?? new OAuthSettings();
+        var oauthSettings = new OAuthSettings();
+        
+        // .NET doesn't convert OAUTH_TELEGRAM_BOTID to OAuth__Telegram__Botid properly
+        // Use environment variables directly
+        oauthSettings.Telegram.BotId = configuration["OAUTH_TELEGRAM_BOTID"] ?? string.Empty;
+        oauthSettings.Telegram.BotToken = configuration["OAUTH_TELEGRAM_BOTTOKEN"] ?? string.Empty;
+        oauthSettings.Telegram.RedirectUri = new Uri(configuration["OAuth:Telegram:RedirectUri"] ?? "https://127.0.0.1");
+        oauthSettings.Telegram.Enabled = bool.Parse(configuration["OAuth:Telegram:Enabled"] ?? "false");
+        
+        oauthSettings.Google.ClientId = configuration["OAuth:Google:ClientId"] ?? string.Empty;
+        oauthSettings.Google.ClientSecret = configuration["OAuth:Google:ClientSecret"] ?? string.Empty;
+        oauthSettings.Google.RedirectUri = new Uri(configuration["OAuth:Google:RedirectUri"] ?? "https://127.0.0.1");
+        oauthSettings.Google.Enabled = bool.Parse(configuration["OAuth:Google:Enabled"] ?? "false");
+        
+        oauthSettings.GitHub.ClientId = configuration["OAuth:GitHub:ClientId"] ?? string.Empty;
+        oauthSettings.GitHub.ClientSecret = configuration["OAuth:GitHub:ClientSecret"] ?? string.Empty;
+        oauthSettings.GitHub.RedirectUri = new Uri(configuration["OAuth:GitHub:RedirectUri"] ?? "https://127.0.0.1");
+        oauthSettings.GitHub.Enabled = bool.Parse(configuration["OAuth:GitHub:Enabled"] ?? "false");
+        
         services.AddSingleton(oauthSettings);
 
         // Register OAuth providers
