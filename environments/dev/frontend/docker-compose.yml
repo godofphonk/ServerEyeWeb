@@ -6,7 +6,7 @@ services:
     image: test-frontend
     container_name: ServerEyeWeb-frontend-dev
     ports:
-      - "3001:3000"
+      - "3000:3000"
     env_file:
       - ../../secrets/dev/frontend.docker.env
       - ../../secrets/dev/shared.env

@@ -23,7 +23,7 @@ export function useSubscription() {
         logger.debug('Loading subscription data');
         const sub = await billingApi.getCurrentSubscription();
         setSubscription(sub);
-        const isPremium = sub ? sub.planType > 0 : false;
+        const isPremium = sub ? (sub.planType > 0 || sub.planName === 'Pro' || sub.planName === 'Enterprise') : false;
         setHasPremium(isPremium);
         
         if (sub) {

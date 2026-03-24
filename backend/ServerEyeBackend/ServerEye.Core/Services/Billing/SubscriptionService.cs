@@ -27,24 +27,53 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
     {
-        this.logger.LogDebug("Getting subscription for user: {UserId}", userId);
+        this.logger.LogInformation("Getting subscription for user: {UserId}", userId);
         
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null)
         {
-            this.logger.LogDebug("No subscription found for user: {UserId}", userId);
+            this.logger.LogWarning("No subscription found for user: {UserId}", userId);
             return null;
         }
 
-        // For now, return hardcoded free plan info since we don't have plan details in the entity
+        this.logger.LogInformation(
+            "Found subscription: {SubscriptionId}, PlanId: {PlanId}, Status: {Status}",
+            subscription.Id,
+            subscription.PlanId,
+            subscription.Status);
+
+        // Map plan based on PlanId
+        SubscriptionPlan planType;
+        string planName;
+        
+        switch (subscription.PlanId.ToString())
+        {
+            case var id when id == "f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c": // Free plan ID
+                planType = SubscriptionPlan.Free;
+                planName = "Free";
+                break;
+            case var id when id == "841bb3db-424c-46e5-a752-04641391c993": // Pro plan ID
+                planType = SubscriptionPlan.Pro;
+                planName = "Pro";
+                break;
+            case var id when id == "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d": // Enterprise plan ID
+                planType = SubscriptionPlan.Enterprise;
+                planName = "Enterprise";
+                break;
+            default:
+                planType = SubscriptionPlan.Free;
+                planName = "Free";
+                break;
+        }
+
         return new SubscriptionDto
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
-            PlanType = SubscriptionPlan.Free, // Default to free for now
-            PlanName = "Free",
+            PlanType = planType,
+            PlanName = planName,
             Status = subscription.Status,
-            Amount = 0,
+            Amount = planType == SubscriptionPlan.Free ? 0 : 9.99m, // Default Pro price
             Currency = "usd",
             IsYearly = false,
             CurrentPeriodStart = subscription.CurrentPeriodStart,
