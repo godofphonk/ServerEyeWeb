@@ -38,7 +38,6 @@ export function NotificationDropdown({
       const response = await notificationApi.getNotifications(1, 50);
       setNotifications(response.notifications || []);
     } catch (error) {
-      console.error('[NotificationDropdown] Failed to load notifications:', error);
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +59,6 @@ export function NotificationDropdown({
         router.push(`/admin/tickets?ticketId=${notification.ticketId}`);
       }
     } catch (error) {
-      console.error('[NotificationDropdown] Failed to mark as read:', error);
     }
   };
 
@@ -77,7 +75,6 @@ export function NotificationDropdown({
         toast.success('All Read', `${unreadCount} notifications marked as read`);
       }
     } catch (error: any) {
-      console.error('[NotificationDropdown] Failed to mark all as read:', error);
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

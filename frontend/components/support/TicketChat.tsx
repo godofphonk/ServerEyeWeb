@@ -67,18 +67,11 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      console.log('[TicketChat] Loading messages for ticket:', ticket.id);
       // Load fresh ticket data with messages from backend
       const updatedTicket = await ticketApi.getTicketById(ticket.id);
-      console.log('[TicketChat] Loaded ticket with messages:', updatedTicket.messages?.length || 0);
       setMessages(updatedTicket.messages || []);
     } catch (error) {
-      console.error('Failed to load messages:', error);
       // Fallback to ticket object messages
-      console.log(
-        '[TicketChat] Using fallback messages from ticket object:',
-        ticket.messages?.length || 0,
-      );
       setMessages(ticket.messages || []);
     } finally {
       setIsLoading(false);
@@ -115,9 +108,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       scrollToBottom();
 
       // Send to backend
-      console.log('[TicketChat] Sending message:', messageData);
       await ticketApi.addTicketMessage(ticket.id, messageData);
-      console.log('[TicketChat] Message sent successfully');
 
       toast.info('Message Sent', 'Your message has been sent to the support team');
 
@@ -127,7 +118,6 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
     } catch (error: any) {
-      console.error('Failed to send message:', error);
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

@@ -44,7 +44,6 @@ export default function MetricsAreaChart({
       }
 
       if (!metricData || typeof metricData.avg === 'undefined') {
-        console.warn(`[MetricsAreaChart] Missing data for metric ${metricType}:`, point);
         return {
           time: formatTimeByRange(point.timestamp, timeRange),
           value: 0,

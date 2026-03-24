@@ -32,7 +32,7 @@ export default function MemoryTab({
     if (loadHistoricalMetrics) {
       loadHistoricalMetrics(memoryTimeRange)
         .then(data => setMemoryMetrics(data))
-        .catch(error => console.error('[MemoryTab] Failed to load Memory data:', error));
+        .catch(() => {});
     }
   }, [memoryTimeRange, loadHistoricalMetrics]);
   return (

@@ -13,7 +13,7 @@ export class ServerDiscoveryAPI {
       );
       return response;
     } catch (error: any) {
-      console.error('[ServerDiscovery] Failed to find Telegram servers:', error);
+      
       throw error;
     }
   }
@@ -31,7 +31,7 @@ export class ServerDiscoveryAPI {
       
       return response;
     } catch (error: any) {
-      console.error('[ServerDiscovery] Failed to import servers:', error);
+      
       throw error;
     }
   }

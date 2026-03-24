@@ -43,7 +43,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(data, { status: 200 });
 
   } catch (error) {
-    console.error('[Auth] Delete account direct error:', error);
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

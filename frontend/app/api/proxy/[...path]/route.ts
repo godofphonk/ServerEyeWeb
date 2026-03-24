@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-console.log('Proxy route file loaded!');
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 async function proxyRequest(request: NextRequest, method: string) {
@@ -95,7 +93,6 @@ async function proxyRequest(request: NextRequest, method: string) {
       },
     });
   } catch (error) {
-    console.error('Proxy API route error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

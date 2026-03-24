@@ -78,7 +78,7 @@ export function usehttpPolling({
       setError(null);
       onMessage?.(processedData);
     } catch (err: any) {
-      console.error('[Metrics] Failed to fetch:', err);
+      
 
       // Handle errors
       if (err.response?.status === 401) {

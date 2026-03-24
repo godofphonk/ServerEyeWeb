@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error('Refresh token failed:', response.status);
       return NextResponse.json({ error: 'Refresh token failed' }, { status: response.status });
     }
 
@@ -53,7 +52,6 @@ export async function POST(request: NextRequest) {
 
     return nextResponse;
   } catch (error) {
-    console.error('Refresh API route error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

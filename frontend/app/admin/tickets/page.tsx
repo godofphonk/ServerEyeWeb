@@ -70,20 +70,12 @@ export default function AdminTicketsPage() {
   useEffect(() => {
     if (authLoading) return;
 
-    console.log('[AdminTickets] User role check:', {
-      isAuthenticated,
-      userRole: user?.role,
-      userTypeof: typeof user?.role,
-      isAdmin: isAdmin(user),
-    });
-
+    
     if (!isAuthenticated || !isAdmin(user)) {
-      console.log('[AdminTickets] Access denied - redirecting to dashboard');
       router.push('/dashboard');
       return;
     }
 
-    console.log('[AdminTickets] Access granted - loading data');
     loadData();
   }, [authLoading, isAuthenticated, user, filterStatus]);
 
@@ -99,35 +91,26 @@ export default function AdminTicketsPage() {
 
   const loadTickets = async () => {
     try {
-      console.log('[AdminTickets] Loading tickets with filter:', filterStatus);
 
       let data: Ticket[];
 
       if (filterStatus === 'all') {
-        console.log('[AdminTickets] Calling getAllTickets()');
         const response = await ticketApi.getAllTickets();
-        console.log('[AdminTickets] getAllTickets response:', response);
-        console.log('[AdminTickets] getAllTickets type:', typeof response);
-        console.log('[AdminTickets] getAllTickets isArray?:', Array.isArray(response));
 
         // Handle paginated response {tickets: [...], pagination: {...}}
         if (response && typeof response === 'object' && 'tickets' in response) {
           const paginatedResponse = response as { tickets: Ticket[]; pagination: any };
           data = paginatedResponse.tickets;
-          console.log('[AdminTickets] Extracted tickets from paginated response:', data.length);
         } else if (Array.isArray(response)) {
           data = response;
         } else {
           data = [];
         }
       } else {
-        console.log('[AdminTickets] Calling getTicketsByStatus with status:', filterStatus);
         data = await ticketApi.getTicketsByStatus(filterStatus);
-        console.log('[AdminTickets] getTicketsByStatus response:', data);
       }
 
       let ticketsArray = Array.isArray(data) ? data : [];
-      console.log('[AdminTickets] Setting tickets:', ticketsArray.length, 'items');
 
       // Smart sorting logic:
       // 1. New/Reopened tickets first (need attention)
@@ -153,20 +136,14 @@ export default function AdminTicketsPage() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-      console.log('[AdminTickets] Tickets sorted by priority');
 
       // If no tickets from getAllTickets, try fallback to admin's own tickets
       if (ticketsArray.length === 0 && user) {
-        console.log(
-          '[AdminTickets] No tickets from getAllTickets, trying fallback to admin user tickets...',
-        );
         try {
           const adminTickets = await ticketApi.getTicketsByUserId(user.id, 1, 50);
           const adminTicketsArray = Array.isArray(adminTickets) ? adminTickets : [];
-          console.log('[AdminTickets] Admin fallback tickets:', adminTicketsArray.length);
           setTickets(adminTicketsArray);
         } catch (fallbackErr) {
-          console.error('[AdminTickets] Fallback also failed:', fallbackErr);
           setTickets(ticketsArray);
         }
       } else {
@@ -176,39 +153,17 @@ export default function AdminTicketsPage() {
       // Update stats after tickets are loaded
       await loadStats();
     } catch (error: any) {
-      console.error('[AdminTickets] Failed to load tickets:', error);
-      console.error('[AdminTickets] Error details:', {
-        message: error.message,
-        status: error.status,
-        statusText: error.statusText,
-        response: error.response,
-      });
       setTickets([]);
     }
   };
 
   const loadStats = async () => {
     try {
-      console.log('[AdminTickets] Loading ticket stats...');
-      console.log('[AdminTickets] Current tickets count:', tickets.length);
       const statsData = await ticketApi.getTicketStats();
-      console.log('[AdminTickets] Stats loaded:', statsData);
-      console.log('[AdminTickets] Stats data type:', typeof statsData);
-      console.log('[AdminTickets] Stats data keys:', statsData ? Object.keys(statsData) : 'null');
-      console.log('[AdminTickets] StatusCounts:', statsData.statusCounts);
-      console.log(
-        '[AdminTickets] StatusCounts keys:',
-        statsData.statusCounts ? Object.keys(statsData.statusCounts) : 'null',
-      );
-      console.log(
-        '[AdminTickets] StatusCounts values:',
-        statsData.statusCounts ? Object.values(statsData.statusCounts) : 'null',
-      );
 
       // Log each status count individually
       if (statsData.statusCounts) {
         Object.entries(statsData.statusCounts).forEach(([key, value]) => {
-          console.log(`[AdminTickets] Status ${key}: ${value}`);
         });
       }
 
@@ -223,18 +178,10 @@ export default function AdminTicketsPage() {
         reopened: statsData.statusCounts?.Reopened || 0,
       };
 
-      console.log('[AdminTickets] Mapped stats for frontend:', mappedStats);
       setStats(mappedStats);
     } catch (error: any) {
-      console.error('[AdminTickets] Failed to load stats:', error);
-      console.error('[AdminTickets] Stats error details:', {
-        message: error.message,
-        status: error.status,
-        response: error.response,
-      });
 
       // Fallback: calculate stats from tickets if API fails
-      console.log('[AdminTickets] Calculating stats from tickets as fallback...');
       if (tickets.length > 0) {
         const fallbackStats = {
           total: tickets.length,
@@ -245,7 +192,6 @@ export default function AdminTicketsPage() {
           closed: tickets.filter(t => t.status === TicketStatus.Closed).length,
           reopened: tickets.filter(t => t.status === TicketStatus.Reopened).length,
         };
-        console.log('[AdminTickets] Fallback stats calculated:', fallbackStats);
         setStats(fallbackStats);
       } else {
         // Default empty stats
@@ -258,7 +204,6 @@ export default function AdminTicketsPage() {
           closed: 0,
           reopened: 0,
         };
-        console.log('[AdminTickets] Using empty stats');
         setStats(emptyStats);
       }
     }
@@ -280,15 +225,7 @@ export default function AdminTicketsPage() {
 
   // Debug logging for stats
   useEffect(() => {
-    console.log('[AdminTickets] Stats state changed:', stats);
-    console.log('[AdminTickets] Stats is available:', !!stats);
     if (stats) {
-      console.log('[AdminTickets] Stats values:', {
-        total: stats.total,
-        open: stats.open,
-        inProgress: stats.inProgress,
-        resolved: stats.resolved,
-      });
     }
   }, [stats]);
 

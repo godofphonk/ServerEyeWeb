@@ -97,7 +97,6 @@ export default function SupportPage() {
       };
 
       const response = await ticketApi.createTicket(ticketData);
-      console.log('[SupportPage] Ticket created:', response);
       setSubmitStatus('success');
       setTicketNumber(response.ticketNumber);
       setFormData({ name: '', email: '', subject: '', message: '' });

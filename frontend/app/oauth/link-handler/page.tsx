@@ -20,7 +20,6 @@ export default function OAuthLinkHandlerPage() {
 
         const { action, provider, code, state } = JSON.parse(linkingInfo);
 
-        console.log('[OAuth Link Handler] Processing linking:', { action, provider, hasCode: !!code, hasState: !!state });
 
         if (action !== 'link' || !provider || !code || !state) {
           throw new Error('Invalid linking information');
@@ -33,7 +32,6 @@ export default function OAuthLinkHandlerPage() {
           throw new Error('No authentication token found. Please log in first.');
         }
 
-        console.log('[OAuth Link Handler] Calling backend /api/auth/oauth/link');
 
         // Call backend linking endpoint
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`, {
@@ -55,19 +53,16 @@ export default function OAuthLinkHandlerPage() {
         }
 
         const linkData = await response.json();
-        console.log('[OAuth Link Handler] Successfully linked account:', linkData);
 
         // Update tokens from linking response
         if (linkData.token && linkData.refreshToken) {
           localStorage.setItem('jwt_token', linkData.token);
           localStorage.setItem('refresh_token', linkData.refreshToken);
-          console.log('[OAuth Link Handler] Updated tokens');
         }
 
         // Clear linking sessionStorage
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('oauth_linking');
-          console.log('[OAuth Link Handler] Cleared linking info');
         }
 
         setStatus('success');
@@ -78,7 +73,6 @@ export default function OAuthLinkHandlerPage() {
         }, 1500);
 
       } catch (err) {
-        console.error('[OAuth Link Handler] Error:', err);
         setError(err instanceof Error ? err.message : 'Failed to link account');
         setStatus('error');
 

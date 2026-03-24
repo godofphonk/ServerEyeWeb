@@ -19,7 +19,6 @@ export function NotificationBell() {
       const response = await notificationApi.getUnreadCount();
       setUnreadCount(response.count);
     } catch (error) {
-      console.error('[NotificationBell] Failed to load unread count:', error);
     }
   };
 

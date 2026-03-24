@@ -12,16 +12,13 @@ function OAuthCallbackContent() {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
-    console.log('[OAuth Callback] Intercepted OAuth callback:', { code: !!code, state: !!state, error });
 
     if (error) {
-      console.error('[OAuth Callback] OAuth error:', error);
       router.push(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (!code || !state) {
-      console.error('[OAuth Callback] Missing code or state');
       router.push('/login?error=missing_parameters');
       return;
     }
@@ -33,11 +30,9 @@ function OAuthCallbackContent() {
       try {
         const { action, provider, userId, state: expectedState } = JSON.parse(linkingInfo);
         
-        console.log('[OAuth Callback] Found linking info:', { action, provider, userId, expectedState });
 
         // Verify state matches
         if (state.includes(expectedState)) {
-          console.log('[OAuth Callback] State matches, redirecting to backend callback with linking parameters');
           
           // Clear linking info
           sessionStorage.removeItem('oauth_linking');
@@ -45,7 +40,6 @@ function OAuthCallbackContent() {
           // Send to backend callback API with linking parameters
           const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
           
-          console.log('[OAuth Callback] Sending to backend callback with linking:', callbackUrl);
           
           fetch(callbackUrl, {
             method: 'POST',
@@ -63,7 +57,6 @@ function OAuthCallbackContent() {
           })
           .then(response => response.json())
           .then(data => {
-            console.log('[OAuth Callback] Backend linking response:', data);
             
             if (data.success && (data.token || data.refreshToken)) {
               // Store tokens
@@ -80,7 +73,6 @@ function OAuthCallbackContent() {
               // Redirect to profile for linking success
               window.location.href = '/profile?linking=success';
             } else {
-              console.error('[OAuth Callback] Linking failed:', data);
               
               // Check for linking errors
               if (data.message && data.message.toLowerCase().includes('already linked')) {
@@ -91,22 +83,18 @@ function OAuthCallbackContent() {
             }
           })
           .catch(error => {
-            console.error('[OAuth Callback] Backend linking error:', error);
             window.location.href = '/profile?error=linking_failed';
           });
           return;
         } else {
-          console.warn('[OAuth Callback] State mismatch, clearing linking info');
           sessionStorage.removeItem('oauth_linking');
         }
       } catch (err) {
-        console.error('[OAuth Callback] Error parsing linking info:', err);
         sessionStorage.removeItem('oauth_linking');
       }
     }
 
     // Not a linking request, proceed with normal OAuth flow
-    console.log('[OAuth Callback] Not a linking request, sending to backend callback API');
     
     // Extract provider from state
     const provider = state.split('_')[0]; // state format: provider_action_randomString
@@ -114,7 +102,6 @@ function OAuthCallbackContent() {
     // Send to backend callback API and handle response
     const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
     
-    console.log('[OAuth Callback] Extracted provider:', provider, 'from state:', state);
     
     fetch(callbackUrl, {
       method: 'POST',
@@ -130,7 +117,6 @@ function OAuthCallbackContent() {
     })
     .then(response => response.json())
     .then(data => {
-      console.log('[OAuth Callback] Backend response:', data);
       
       if (data.success && (data.token || data.refreshToken)) {
         // Store tokens
@@ -147,12 +133,10 @@ function OAuthCallbackContent() {
         // Redirect to dashboard
         window.location.href = '/dashboard';
       } else {
-        console.error('[OAuth Callback] Authentication failed:', data);
         window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
       }
     })
     .catch(error => {
-      console.error('[OAuth Callback] Backend error:', error);
       window.location.href = '/login?error=oauth_auth_failed';
     });
   }, [searchParams, router]);

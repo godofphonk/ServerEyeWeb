@@ -81,11 +81,9 @@ export function TelegramServerDiscoveryModal({
         // If Telegram is now linked and we have discoverServers function, trigger discovery
         const isLinked = response.externalLogins?.some(login => login.provider === OAuthProvider.Telegram);
         if (isLinked && onDiscoverServers && !discovered && !isLoading) {
-          console.log('[TelegramDiscoveryModal] Telegram is linked, triggering discovery');
           onDiscoverServers();
         }
       } catch (error) {
-        console.error('Failed to load external logins:', error);
       }
     };
 
@@ -111,7 +109,6 @@ export function TelegramServerDiscoveryModal({
       // Redirect to Telegram OAuth
       window.location.href = challenge.challengeUrl.toString();
     } catch (error) {
-      console.error('Failed to link Telegram:', error);
       setIsLinkingTelegram(false);
     }
   };

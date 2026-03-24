@@ -93,17 +93,11 @@ export function MyTickets() {
     setError(null);
 
     try {
-      console.log('[MyTickets] Loading tickets for user:', user.id, user.email);
-      console.log('[MyTickets] API call: getTicketsByUserId', user.id, page, pagination.pageSize);
 
       const result = await ticketApi.getTicketsByUserId(user.id, page, pagination.pageSize);
-      console.log('[MyTickets] API response type:', typeof result);
-      console.log('[MyTickets] API response:', result);
-      console.log('[MyTickets] Is array?:', Array.isArray(result));
 
       // Backend returns array directly, not paginated object
       if (Array.isArray(result)) {
-        console.log('[MyTickets] Setting tickets from array:', result.length);
         setTickets(result);
         setPagination({
           page: 1,
@@ -113,7 +107,6 @@ export function MyTickets() {
           hasNextPage: false,
           hasPreviousPage: false,
         });
-        console.log('[MyTickets] Tickets loaded:', result.length, 'total:', result.length);
       } else if (result && result.tickets) {
         // Paginated response format
         setTickets(result.tickets);
@@ -125,34 +118,17 @@ export function MyTickets() {
           hasNextPage: result.hasNextPage,
           hasPreviousPage: result.hasPreviousPage,
         });
-        console.log(
-          '[MyTickets] Tickets loaded:',
-          result.tickets.length,
-          'total:',
-          result.totalCount,
-        );
       } else {
-        console.log('[MyTickets] Unexpected response format:', result);
-        console.log('[MyTickets] Trying fallback to email-based loading...');
 
         // Fallback to email-based loading
         try {
           const emailResult = await ticketApi.getTicketsByEmail(user.email);
-          console.log('[MyTickets] Email fallback result:', emailResult);
           setTickets(Array.isArray(emailResult) ? emailResult : []);
         } catch (emailErr) {
-          console.error('[MyTickets] Email fallback also failed:', emailErr);
           setTickets([]);
         }
       }
     } catch (err: any) {
-      console.error('[MyTickets] Failed to load tickets:', err);
-      console.error('[MyTickets] Error details:', {
-        message: err.message,
-        status: err.status,
-        statusText: err.statusText,
-        response: err.response,
-      });
       setError('Failed to load tickets');
       setTickets([]);
     } finally {
@@ -171,19 +147,16 @@ export function MyTickets() {
     if (!user) return;
 
     try {
-      console.log('[MyTickets] Creating test ticket...');
       const testTicket = await ticketApi.createTicket({
         name: user.username,
         email: user.email,
         subject: `Test Ticket ${Date.now()}`,
         message: 'This is a test ticket created for debugging purposes.',
       });
-      console.log('[MyTickets] Test ticket created:', testTicket);
 
       // Reload tickets after creating
       loadTickets();
     } catch (err: any) {
-      console.error('[MyTickets] Failed to create test ticket:', err);
     }
   };
 

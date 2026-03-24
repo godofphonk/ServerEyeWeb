@@ -55,22 +55,18 @@ export default function CpuTab({
         if (usageResult.status === 'fulfilled') {
           setCpuUsageMetrics(usageResult.value);
         } else {
-          console.error('[CpuTab] Failed to load CPU Usage data:', usageResult.reason);
         }
 
         if (loadResult.status === 'fulfilled') {
           setCpuLoadMetrics(loadResult.value);
         } else {
-          console.error('[CpuTab] Failed to load CPU Load data:', loadResult.reason);
         }
 
         if (tempResult.status === 'fulfilled') {
           setCpuTemperatureMetrics(tempResult.value);
         } else {
-          console.error('[CpuTab] Failed to load CPU Temperature data:', tempResult.reason);
         }
       } catch (error) {
-        console.error('[CpuTab] Unexpected error loading metrics:', error);
       }
     };
 

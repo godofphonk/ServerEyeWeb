@@ -49,7 +49,7 @@ export default function ShareServerModal({
       // const users = await apiClient.get<SharedUser[]>(`/monitoredservers/${serverId}/users`);
       // setSharedUsers(users);
     } catch (err) {
-      console.error('Failed to load shared users:', err);
+      setError('Failed to load shared users');
     } finally {
       setLoadingUsers(false);
     }
@@ -94,7 +94,7 @@ export default function ShareServerModal({
       await apiClient.delete(`/monitoredservers/${serverId}/users/${userId}`);
       await loadSharedUsers();
     } catch (err) {
-      console.error('Failed to remove user:', err);
+      setError('Failed to remove user');
       alert('Failed to remove user access. Please try again.');
     }
   };

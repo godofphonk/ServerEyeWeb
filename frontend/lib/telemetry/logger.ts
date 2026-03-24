@@ -60,9 +60,7 @@ class StructuredLogger {
     // Always log to console in development for debugging
     if (process.env.NODE_ENV === 'development') {
       const style = this.getConsoleStyle(entry.level);
-      console.log(`%c[${entry.level.toUpperCase()}]`, style, entry.message, entry.context);
       if (entry.error) {
-        console.error(entry.error);
       }
     }
 
