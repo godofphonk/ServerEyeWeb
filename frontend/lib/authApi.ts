@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiClient } from './api';
+import { apiClient } from '@/lib/api';
 import {
   VerifyEmailRequest,
   ResendVerificationRequest,

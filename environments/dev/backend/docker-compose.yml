@@ -8,14 +8,14 @@ services:
       dockerfile: /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/environments/dockerfiles/backend-dev.Dockerfile
     container_name: ServerEyeWeb-backend-dev
     ports:
-      - "5246:80"
+      - "5246:8080"
       - "5247:443"
     env_file:
       - ../../secrets/dev/backend.env
       - ../../secrets/dev/shared.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8080
     volumes:
       # Mount appsettings for hot reload
       - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend/ServerEye.API/appsettings.Docker.json:/app/appsettings.Docker.json:ro

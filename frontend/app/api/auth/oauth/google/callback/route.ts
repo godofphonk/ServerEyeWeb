@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Forward the callback to the backend as POST (backend expects POST, not GET)
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://backend:80'}/api/auth/oauth/callback`;
     
     console.log('[OAuth Google Callback] Forwarding to backend:', backendUrl);
     

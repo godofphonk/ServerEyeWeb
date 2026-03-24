@@ -1,4 +1,4 @@
-import { apiClient } from './api';
+import { apiClient } from '@/lib/api';
 import { Notification, NotificationResponse, UnreadCountResponse } from '@/types';
 
 class NotificationApi {
