@@ -27,9 +27,12 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
     {
+        this.logger.LogDebug("Getting subscription for user: {UserId}", userId);
+        
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null)
         {
+            this.logger.LogDebug("No subscription found for user: {UserId}", userId);
             return null;
         }
 
@@ -56,13 +59,19 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        return await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
+        this.logger.LogInformation("Creating subscription checkout for user: {UserId}, plan: {PlanType}, yearly: {IsYearly}", userId, request.PlanType, request.IsYearly);
+        
+        var result = await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
+        
+        this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId}", userId, result.SessionId);
+        return result;
     }
 
     public async Task<SubscriptionDto> UpdateSubscriptionPlanAsync(
         Guid userId,
         UpdateSubscriptionRequest request)
     {
+        this.logger.LogInformation("Attempting to update subscription for user: {UserId}, new plan: {NewPlan}", userId, request.NewPlanType);
         throw new NotImplementedException("Subscription updates not implemented yet");
     }
 
@@ -70,6 +79,7 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CancelSubscriptionRequest request)
     {
+        this.logger.LogWarning("Subscription cancellation requested for user: {UserId}, reason: {Reason}", userId, request.CancellationReason ?? "Not specified");
         throw new NotImplementedException("Subscription cancellation not implemented yet");
     }
 
@@ -100,6 +110,7 @@ public class SubscriptionService : ISubscriptionService
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null || subscription.Status != SubscriptionStatus.Active)
         {
+            this.logger.LogWarning("Feature access denied for user: {UserId}, feature: {Feature} - no active subscription", userId, featureName);
             return false;
         }
 

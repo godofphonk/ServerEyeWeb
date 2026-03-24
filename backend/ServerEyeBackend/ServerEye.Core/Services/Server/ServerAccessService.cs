@@ -65,7 +65,11 @@ public class ServerAccessService(
 
     public async Task<ServerResponse> AddServerAsync(Guid userId, string serverKey)
     {
+        logger.LogInformation("User {UserId} attempting to add server with key", userId);
+        
         var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey) ?? throw new InvalidOperationException("Invalid server key");
+        
+        logger.LogInformation("Server key validated successfully: {ServerId}", serverInfo.ServerId);
 
         // Get telegram_id if user has Telegram OAuth linked
         var telegramId = await this.GetUserTelegramIdAsync(userId);
@@ -77,6 +81,7 @@ public class ServerAccessService(
             var hasAccess = await accessRepository.HasAccessAsync(userId, serverInfo.ServerId);
             if (hasAccess)
             {
+                logger.LogWarning("User {UserId} attempted to add server {ServerId} that's already in their account", userId, serverInfo.ServerId);
                 throw new InvalidOperationException("Server already added to your account");
             }
 
@@ -218,9 +223,12 @@ public class ServerAccessService(
 
     public async Task RemoveServerAsync(Guid userId, string serverId)
     {
+        logger.LogInformation("User {UserId} attempting to remove server {ServerId}", userId, serverId);
+        
         var hasAccess = await accessRepository.HasAccessAsync(userId, serverId);
         if (!hasAccess)
         {
+            logger.LogWarning("User {UserId} attempted to remove server {ServerId} without access", userId, serverId);
             throw new UnauthorizedAccessException("You don't have access to this server");
         }
 
@@ -290,9 +298,12 @@ public class ServerAccessService(
 
     public async Task ShareServerAsync(Guid ownerId, string serverId, string targetUserEmail, AccessLevel level)
     {
+        logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId, targetUserEmail, level);
+        
         var ownerAccessLevel = await accessRepository.GetAccessLevelAsync(ownerId, serverId);
         if (ownerAccessLevel != AccessLevel.Owner)
         {
+            logger.LogWarning("User {OwnerId} attempted to share server {ServerId} without owner rights. Current level: {AccessLevel}", ownerId, serverId, ownerAccessLevel);
             throw new UnauthorizedAccessException("Only owner can share server");
         }
 

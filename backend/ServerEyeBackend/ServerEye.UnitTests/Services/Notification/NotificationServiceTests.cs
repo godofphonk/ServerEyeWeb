@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ServerEye.Core.DTOs.Notification;
 using ServerEye.Core.Entities;
@@ -28,7 +29,8 @@ public class NotificationServiceTests
         
         this.notificationService = new NotificationServiceImpl(
             this.mockNotificationRepository.Object,
-            this.mockUserRepository.Object);
+            this.mockUserRepository.Object,
+            Mock.Of<ILogger<NotificationServiceImpl>>());
     }
 
     #region GetUserNotificationsAsync Tests

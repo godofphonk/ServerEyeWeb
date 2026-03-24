@@ -20,9 +20,21 @@ export function useSubscription() {
       }
 
       try {
+        logger.debug('Loading subscription data');
         const sub = await billingApi.getCurrentSubscription();
         setSubscription(sub);
-        setHasPremium(sub ? sub.planType > 0 : false);
+        const isPremium = sub ? sub.planType > 0 : false;
+        setHasPremium(isPremium);
+        
+        if (sub) {
+          logger.info('Subscription loaded', { 
+            planType: sub.planType, 
+            status: sub.status,
+            hasPremium: isPremium 
+          });
+        } else {
+          logger.debug('No active subscription found');
+        }
       } catch (error) {
         logger.error('Failed to load subscription', error as Error);
         setSubscription(null);

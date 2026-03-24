@@ -263,6 +263,31 @@ export default function DashboardPage() {
     }
   }, [telegramDiscovery, loadServers, toast]);
 
+  const handleAddServer = async (serverKey: string) => {
+    try {
+      logger.info('Adding server', { serverKey: serverKey.substring(0, 8) + '...' });
+      const response = await apiClient.post('/api/servers/add', { serverKey });
+      const newServer = response.data;
+      setServers(prev => [...prev, newServer]);
+      setShowAddServerModal(false);
+      setAddServerKey('');
+      logger.info('Server added successfully', { serverId: newServer.id, hostname: newServer.hostname });
+      toast.success('Server added successfully!');
+    } catch (error: any) {
+      logger.error('Failed to add server', error instanceof Error ? error : new Error(String(error)), { serverKey: serverKey.substring(0, 8) + '...' });
+      toast.error(error.response?.data?.message || 'Failed to add server');
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      logger.info('Dashboard loaded', { userId: user.id, email: user.email });
+      loadServers();
+      loadDashboardMetrics();
+      checkSubscriptionStatus();
+    }
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     // Check for subscription status from URL parameters
     if (typeof window !== 'undefined' && isAuthenticated && user) {
