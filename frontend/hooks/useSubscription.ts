@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { billingApi } from '@/lib/api/billingApi';
-import { Subscription } from '@/types/billing';
+import { billingApi, Subscription } from '@/lib/billingApi';
 import { useAuth } from '@/context/AuthContext';
 import { logger } from '@/lib/telemetry/logger';
 

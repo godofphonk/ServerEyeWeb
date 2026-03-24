@@ -1,4 +1,4 @@
-import { apiClient } from './api';
+import { apiClient } from '@/lib/api';
 
 export interface LoginCredentials {
   email: string;

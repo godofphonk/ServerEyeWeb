@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { useEffect, useState } from 'react';
-import { billingApi } from '@/lib/api/billingApi';
+import { billingApi, SubscriptionPlan } from './billingApi';
 import { logger } from '@/lib/telemetry/logger';
 import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -107,7 +107,7 @@ export default function PricingPage() {
         alert('YooKassa coming soon!');
       }
     } catch (error) {
-      logger.error('Failed to create checkout session', error as Error, { planId: plan.id });
+      logger.error('Failed to create checkout session', error as Error, { planId: selectedPlan.id });
       alert('Failed to start checkout. Please try again.');
     } finally {
       setShowPaymentModal(false);

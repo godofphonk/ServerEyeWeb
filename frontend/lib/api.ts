@@ -1,12 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { GoApiError, GoApiErrorResponse, DeleteSourceResponse, DeleteSourceIdentifiersResponse, DeleteSourceIdentifiersRequest } from '@/types';
+import { GoApiError, GoApiErrorResponse, DeleteSourceResponse, DeleteSourceIdentifiersResponse, DeleteSourceIdentifiersRequest } from '../types/index';
 
 class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    // Use 127.0.0.1 for browser access to Docker container
+    const baseURL = 'http://127.0.0.1:5246/api';
+    console.log('[ApiClient] Using 127.0.0.1 baseURL:', baseURL);
+    
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api',
+      baseURL,
       timeout: 30000, // Increased to 30s
       headers: {
         'Content-Type': 'application/json',
@@ -107,6 +111,8 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const fullUrl = `${this.client.defaults.baseURL}${url}`;
+    console.log('[ApiClient] GET request to:', fullUrl);
     const response = await this.client.get<T>(url, config);
     return response.data;
   }

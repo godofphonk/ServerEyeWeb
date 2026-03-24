@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to backend with Authorization header
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/link`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://backend:80'}/api/auth/oauth/link`;
     
     console.log('[OAuth Link Direct] Forwarding to backend:', backendUrl);
     

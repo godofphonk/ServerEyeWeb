@@ -1,4 +1,4 @@
-import { apiClient } from './api';
+import { apiClient } from '@/lib/api';
 import { fetchWithRetry } from './retryUtils';
 import { ServerStaticInfo, MonitoredServer, MetricsResponse } from '@/types';
 

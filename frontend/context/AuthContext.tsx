@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
 
-    const loginUrl = '/api/auth/login?t=' + Date.now();
+    const loginUrl = '/api/users/login?t=' + Date.now();
 
     const res = await fetch(loginUrl, {
       method: 'POST',

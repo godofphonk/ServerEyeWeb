@@ -9,12 +9,6 @@ using ServerEye.Core.DTOs.GoApi;
 /// </summary>
 public static class GoApiJsonSerializer
 {
-    private static ILogger? _logger;
-    public static void SetLogger(ILogger logger)
-    {
-        _logger = logger;
-    }
-
     private static readonly JsonSerializerOptions DefaultOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -22,6 +16,13 @@ public static class GoApiJsonSerializer
     };
 
     private static readonly JsonSerializerOptions DebugOptions = new() { WriteIndented = true };
+
+    private static ILogger? _logger;
+
+    public static void SetLogger(ILogger logger)
+    {
+        _logger = logger;
+    }
 
     /// <summary>
     /// Deserializes JSON content to specified type.

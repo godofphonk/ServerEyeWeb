@@ -80,7 +80,6 @@ public sealed class TelegramOAuthProvider(
 
         // Telegram OAuth returns user data as JSON in the "hash" parameter
         // The accessToken here is actually the user data JSON from Telegram
-        
         try
         {
             var userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
@@ -90,13 +89,44 @@ public sealed class TelegramOAuthProvider(
 
             // Extract user information from Telegram data
             // Telegram data comes directly, not nested in "user" field
-            var userDict = userData; // userData is already a Dictionary<string, object>
+            var userDict = userData; // userData is already a Dictionary<string, JsonElement>
 
-            var userId = userDict.GetValueOrDefault("id")?.GetString() ?? "unknown";
-            var name = $"{userDict.GetValueOrDefault("first_name")?.GetString() ?? string.Empty} {userDict.GetValueOrDefault("last_name")?.GetString() ?? string.Empty}".Trim();
-            var username = userDict.GetValueOrDefault("username")?.GetString() ?? string.Empty;
-            var name = $"{userDict.GetValueOrDefault("FirstName")?.ToString() ?? string.Empty} {userDict.GetValueOrDefault("LastName")?.ToString() ?? string.Empty}".Trim();
-            var username = userDict.GetValueOrDefault("Username")?.ToString() ?? string.Empty;
+            var userId = userDict.GetValueOrDefault("id").ValueKind == JsonValueKind.String 
+                ? userDict.GetValueOrDefault("id").GetString() ?? "unknown" 
+                : "unknown";
+            var firstName = userDict.GetValueOrDefault("first_name").ValueKind == JsonValueKind.String 
+                ? userDict.GetValueOrDefault("first_name").GetString() ?? string.Empty 
+                : string.Empty;
+            var lastName = userDict.GetValueOrDefault("last_name").ValueKind == JsonValueKind.String 
+                ? userDict.GetValueOrDefault("last_name").GetString() ?? string.Empty 
+                : string.Empty;
+            var username = userDict.GetValueOrDefault("username").ValueKind == JsonValueKind.String 
+                ? userDict.GetValueOrDefault("username").GetString() ?? string.Empty 
+                : string.Empty;
+            
+            // Fallback to capitalized field names if lowercase ones don't exist
+            if (string.IsNullOrEmpty(firstName))
+            {
+                firstName = userDict.GetValueOrDefault("FirstName").ValueKind == JsonValueKind.String 
+                    ? userDict.GetValueOrDefault("FirstName").GetString() ?? string.Empty 
+                    : string.Empty;
+            }
+            
+            if (string.IsNullOrEmpty(lastName))
+            {
+                lastName = userDict.GetValueOrDefault("LastName").ValueKind == JsonValueKind.String 
+                    ? userDict.GetValueOrDefault("LastName").GetString() ?? string.Empty 
+                    : string.Empty;
+            }
+            
+            if (string.IsNullOrEmpty(username))
+            {
+                username = userDict.GetValueOrDefault("Username").ValueKind == JsonValueKind.String 
+                    ? userDict.GetValueOrDefault("Username").GetString() ?? string.Empty 
+                    : string.Empty;
+            }
+                
+            var name = $"{firstName} {lastName}".Trim();
 
             return new OAuthUserInfoDto
             {
@@ -106,7 +136,11 @@ public sealed class TelegramOAuthProvider(
                 Username = username,
                 AvatarUrl = null, // Avatar photos require separate API calls
                 EmailVerified = false, // Telegram doesn't provide email verification
-                RawData = userData // Keep as Dictionary for storage
+                RawData = userData.ToDictionary(
+    kvp => kvp.Key, 
+    kvp => kvp.Value.ValueKind == JsonValueKind.String 
+        ? kvp.Value.GetString() ?? string.Empty
+        : (object)kvp.Value.GetRawText()) // Keep as Dictionary for storage
             };
         }
         catch (Exception)
