@@ -45,6 +45,8 @@ public class WebhookController : ControllerBase
                 return BadRequest(new { message = "Missing signature" });
             }
 
+            this.logger.LogInformation("Processing Stripe webhook, payload size: {Size} bytes", payload.Length);
+            
             var provider = providerFactory.GetProvider(PaymentProvider.Stripe);
             var isValid = await provider.VerifyWebhookSignatureAsync(
                 payload,
@@ -57,6 +59,8 @@ public class WebhookController : ControllerBase
                 return Unauthorized(new { message = "Invalid signature" });
             }
 
+            this.logger.LogInformation("Stripe webhook signature verified successfully");
+            
             var success = await webhookService.ProcessWebhookAsync(
                 PaymentProvider.Stripe,
                 payload,
@@ -64,9 +68,11 @@ public class WebhookController : ControllerBase
 
             if (success)
             {
+                this.logger.LogInformation("Stripe webhook processed successfully");
                 return Ok();
             }
 
+            this.logger.LogError("Failed to process Stripe webhook");
             return StatusCode(500, new { message = "Failed to process webhook" });
         }
         catch (Exception ex)

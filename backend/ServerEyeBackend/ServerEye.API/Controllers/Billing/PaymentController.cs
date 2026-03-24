@@ -29,7 +29,11 @@ public class PaymentController : ControllerBase
         try
         {
             var userId = GetUserId();
+            this.logger.LogInformation("Creating payment intent for user: {UserId}, amount: {Amount}, currency: {Currency}", userId, request.Amount, request.Currency);
+            
             var response = await paymentService.CreatePaymentIntentAsync(userId, request);
+            
+            this.logger.LogInformation("Payment intent created successfully: {ClientSecret}", response.ClientSecret?[..20] + "...");
             return Ok(response);
         }
         catch (InvalidOperationException ex)
@@ -51,7 +55,11 @@ public class PaymentController : ControllerBase
         try
         {
             var userId = GetUserId();
+            this.logger.LogDebug("Getting payment history for user: {UserId}, limit: {Limit}", userId, limit);
+            
             var payments = await paymentService.GetUserPaymentsAsync(userId, limit);
+            
+            this.logger.LogDebug("Retrieved {Count} payments for user: {UserId}", payments.Count, userId);
             return Ok(payments);
         }
         catch (Exception ex)
@@ -103,15 +111,20 @@ public class PaymentController : ControllerBase
             var userId = GetUserId();
             if (payment.UserId != userId)
             {
+                this.logger.LogWarning("Unauthorized refund attempt: user {UserId} tried to refund payment {PaymentId} belonging to {OwnerId}", userId, paymentId, payment.UserId);
                 return Forbid();
             }
 
+            this.logger.LogWarning("Refund requested for payment: {PaymentId}, amount: {Amount}, user: {UserId}", paymentId, request?.Amount ?? payment.Amount, userId);
+            
             var success = await paymentService.RefundPaymentAsync(paymentId, request?.Amount);
             if (success)
             {
+                this.logger.LogInformation("Payment refunded successfully: {PaymentId}, amount: {Amount}", paymentId, request?.Amount ?? payment.Amount);
                 return Ok(new { message = "Payment refunded successfully" });
             }
 
+            this.logger.LogError("Failed to refund payment: {PaymentId}", paymentId);
             return BadRequest(new { message = "Failed to refund payment" });
         }
         catch (InvalidOperationException ex)

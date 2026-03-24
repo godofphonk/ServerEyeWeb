@@ -1,15 +1,17 @@
 namespace ServerEye.Core.Services;
 
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.Notification;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
-public sealed class NotificationService(INotificationRepository notificationRepository, IUserRepository userRepository) : INotificationService
+public sealed class NotificationService(INotificationRepository notificationRepository, IUserRepository userRepository, ILogger<NotificationService> logger) : INotificationService
 {
     private readonly INotificationRepository notificationRepository = notificationRepository;
     private readonly IUserRepository userRepository = userRepository;
+    private readonly ILogger<NotificationService> logger = logger;
 
     public async Task<List<NotificationDto>> GetUserNotificationsAsync(Guid userId, int page = 1, int pageSize = 50)
     {
@@ -29,12 +31,22 @@ public sealed class NotificationService(INotificationRepository notificationRepo
 
     public async Task<int> GetUnreadCountAsync(Guid userId) => await this.notificationRepository.GetUnreadCountAsync(userId);
 
-    public async Task MarkAsReadAsync(Guid notificationId) => await this.notificationRepository.MarkAsReadAsync(notificationId);
+    public async Task MarkAsReadAsync(Guid notificationId)
+    {
+        this.logger.LogInformation("Marking notification as read: {NotificationId}", notificationId);
+        await this.notificationRepository.MarkAsReadAsync(notificationId);
+    }
 
-    public async Task MarkAllAsReadAsync(Guid userId) => await this.notificationRepository.MarkAllAsReadAsync(userId);
+    public async Task MarkAllAsReadAsync(Guid userId)
+    {
+        this.logger.LogInformation("Marking all notifications as read for user: {UserId}", userId);
+        await this.notificationRepository.MarkAllAsReadAsync(userId);
+    }
 
     public async Task CreateNotificationAsync(Guid userId, NotificationType type, string title, string message, Guid? ticketId = null)
     {
+        this.logger.LogInformation("Creating notification for user: {UserId}, type: {Type}, title: {Title}", userId, type, title);
+        
         var notification = new Notification
         {
             Id = Guid.NewGuid(),
@@ -48,6 +60,8 @@ public sealed class NotificationService(INotificationRepository notificationRepo
         };
 
         await this.notificationRepository.AddAsync(notification);
+        
+        this.logger.LogInformation("Notification created successfully: {NotificationId}", notification.Id);
     }
 
     public async Task NotifyAdminsAboutNewTicketAsync(Guid ticketId, string ticketNumber, string subject)

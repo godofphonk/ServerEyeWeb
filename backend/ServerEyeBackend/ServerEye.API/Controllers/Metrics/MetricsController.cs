@@ -2,6 +2,7 @@ namespace ServerEye.API.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs;
 
 [ApiController]
@@ -9,9 +10,15 @@ using ServerEye.Core.DTOs;
 [EnableCors("AllowFrontend")]
 public class MetricsController : ControllerBase
 {
+    private readonly ILogger<MetricsController> logger;
+
+    public MetricsController(ILogger<MetricsController> logger) => this.logger = logger;
+
     [HttpGet("{serverId}/latest")]
     public ActionResult<List<MetricDto>> GetLatestMetrics(string serverId)
     {
+        this.logger.LogDebug("Getting latest metrics for server: {ServerId}", serverId);
+
         // Возвращаем тестовые метрики для указанного сервера
         var metrics = new List<MetricDto>
         {
@@ -41,6 +48,7 @@ public class MetricsController : ControllerBase
             }
         };
 
+        this.logger.LogDebug("Returning {Count} metrics for server: {ServerId}", metrics.Count, serverId);
         return this.Ok(metrics);
     }
 }
