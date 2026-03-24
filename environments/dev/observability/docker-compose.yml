@@ -27,11 +27,6 @@ services:
       - tempo
     networks:
       - servereye-network
-    healthcheck:
-      test: ["CMD", "alloy", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   # Loki - Log Aggregation
   loki:
@@ -40,17 +35,12 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     restart: unless-stopped
     networks:
       - servereye-network
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   # Prometheus - Metrics Storage
   prometheus:
@@ -154,15 +144,10 @@ services:
     ports:
       - "9121:9121"
     environment:
-      - REDIS_ADDR=redis:6379
+      - REDIS_ADDR=ServerEyeWeb-redis-dev:6379
     restart: unless-stopped
     networks:
       - servereye-network
-    healthcheck:
-      test: ["CMD-SHELL", "test -n \"$(redis-cli -h redis ping)\""]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
 networks:
   servereye-network:
