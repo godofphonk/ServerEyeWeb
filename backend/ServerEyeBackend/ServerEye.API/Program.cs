@@ -66,7 +66,7 @@ app.MapHealthChecks("/health/ready", healthCheckOptions);
 app.MapPrometheusScrapingEndpoint();
 
 // Apply database migrations
-// await app.ApplyDatabaseMigrations();
+await ServerEye.API.Configuration.DatabaseInitializer.InitializeAsync(app.Services);
 await app.RunAsync();
 
 #pragma warning restore CA1303 // Localize strings

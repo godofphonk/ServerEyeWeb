@@ -2,7 +2,6 @@ namespace ServerEye.Infrastructure;
 
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.Entities;
-using ServerEye.Core.Entities.Billing;
 
 public sealed class ServerEyeDbContext : DbContext
 {
@@ -19,10 +18,6 @@ public sealed class ServerEyeDbContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetTokens => this.Set<PasswordResetToken>();
     public DbSet<AccountDeletion> AccountDeletions => this.Set<AccountDeletion>();
     public DbSet<UserExternalLogin> UserExternalLogins => this.Set<UserExternalLogin>();
-    public DbSet<SubscriptionPlanEntity> SubscriptionPlans => this.Set<SubscriptionPlanEntity>();
-    public DbSet<Subscription> Subscriptions => this.Set<Subscription>();
-    public DbSet<Payment> Payments => this.Set<Payment>();
-    public DbSet<WebhookEvent> WebhookEvents => this.Set<WebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,35 +118,6 @@ public sealed class ServerEyeDbContext : DbContext
                 .WithMany(u => u.ExternalLogins)
                 .HasForeignKey(el => el.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // Billing configuration - SubscriptionPlanEntity маппинг в BillingDbContext
-        modelBuilder?.Entity<Subscription>(entity =>
-        {
-            entity.HasIndex(s => s.UserId);
-            entity.HasIndex(s => new { s.Status, s.CurrentPeriodEnd });
-            entity.Property(s => s.Status).HasConversion<int>();
-        });
-
-        modelBuilder?.Entity<Payment>(entity =>
-        {
-            entity.HasIndex(p => p.UserId);
-            entity.HasIndex(p => p.SubscriptionId);
-            entity.HasIndex(p => p.ProviderPaymentId);
-            entity.HasIndex(p => new { p.Status, p.CreatedAt });
-            entity.Property(p => p.Status).HasConversion<int>();
-            entity.Property(p => p.Provider).HasConversion<int>();
-            entity.Property(p => p.Metadata)
-                .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
-        });
-
-        modelBuilder?.Entity<WebhookEvent>(entity =>
-        {
-            entity.HasIndex(w => w.EventId).IsUnique();
-            entity.HasIndex(w => new { w.IsProcessed, w.ProcessingAttempts });
-            entity.Property(w => w.Provider).HasConversion<int>();
         });
     }
 

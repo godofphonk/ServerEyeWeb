@@ -2,19 +2,17 @@ namespace ServerEye.Infrastructure;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
 
 public class TicketDbContextFactory : IDesignTimeDbContextFactory<TicketDbContext>
 {
     public TicketDbContext CreateDbContext(string[] args)
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json")
-            .Build();
-
         var optionsBuilder = new DbContextOptionsBuilder<TicketDbContext>();
-        optionsBuilder.UseNpgsql(configuration.GetConnectionString(nameof(TicketDbContext)));
+        
+        // Use default connection string for migrations
+        var connectionString = "Host=localhost;Port=5434;Database=ServerEyeWeb_Dev_Ticket;Username=postgres;Password=postgres";
+        
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new TicketDbContext(optionsBuilder.Options);
     }
