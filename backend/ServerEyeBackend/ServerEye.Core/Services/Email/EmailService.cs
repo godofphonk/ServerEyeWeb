@@ -247,25 +247,7 @@ public sealed class EmailService : IEmailService, IDisposable
             }
             else
             {
-                using var smtpClient = new SmtpClient(this.settings.SmtpHost, this.settings.SmtpPort)
-                {
-                    EnableSsl = this.settings.EnableSsl,
-                    Credentials = new NetworkCredential(this.settings.SmtpUsername, this.settings.SmtpPassword)
-                };
-
-                using var mailMessage = new MailMessage
-                {
-                    From = new MailAddress(this.settings.FromEmail, this.settings.FromName),
-                    Subject = subject,
-                    Body = body,
-                    IsBodyHtml = true
-                };
-
-                mailMessage.To.Add(toEmail);
-
-                await smtpClient.SendMailAsync(mailMessage);
-
-                this.logger.LogInformation("Email sent successfully via SMTP to {Email} with subject: {Subject}", toEmail, subject);
+                throw new InvalidOperationException("AWS SES is not configured. Please set UseAwsSes=true and provide AWS credentials.");
             }
         }
         catch (Exception ex)

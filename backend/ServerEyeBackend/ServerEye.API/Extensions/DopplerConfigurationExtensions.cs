@@ -141,7 +141,8 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             ["CORS_"] = "Cors:",
             ["RATE_LIMITING_"] = "RateLimiting:",
             ["SECURITY_"] = "Security:",
-            ["CACHE_"] = "CacheSettings:"
+            ["CACHE_"] = "CacheSettings:",
+            ["STRIPE_"] = "Stripe:"
         };
 
         var key = envVar;
