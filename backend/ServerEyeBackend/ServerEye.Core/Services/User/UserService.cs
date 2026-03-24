@@ -79,10 +79,13 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
         
+        this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", userRegisterDto.Email, userRegisterDto.UserName);
+        
         // Check if user with this email already exists
         var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email);
         if (existingUser != null)
         {
+            this.logger.LogWarning("Registration failed - user already exists: {Email}", userRegisterDto.Email);
             throw new InvalidOperationException($"User with email {userRegisterDto.Email} already exists.");
         }
         
@@ -97,9 +100,13 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         
         await this.userRepository.AddAsync(user);
         
+        this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, user.Email);
+        
         // Generate tokens
         var accessToken = this.jwtService.GenerateAccessToken(user);
         var refreshToken = this.jwtService.GenerateRefreshToken(user);
+        
+        this.logger.LogDebug("Generated tokens for user: {UserId}", user.Id);
         
         // Save refresh token
         var refreshTokenEntity = new RefreshToken
@@ -117,6 +124,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         try
         {
             await this.authService.SendVerificationCodeAsync(user.Id);
+            this.logger.LogInformation("Verification code sent to user: {Email}", user.Email);
         }
         catch (Exception ex)
         {
@@ -141,6 +149,9 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task<UserData> UpdateUserAsync(Guid id, UserUpdateDto updateDto)
     {
         ArgumentNullException.ThrowIfNull(updateDto);
+        
+        this.logger.LogInformation("Updating user: {UserId}", id);
+        
         var existingUser = await this.userRepository
                                .GetByIdAsync(id)
                            ?? throw new KeyNotFoundException($"User with ID {id} not found");
@@ -151,12 +162,15 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         // Only update password if provided
         if (!string.IsNullOrEmpty(updateDto.Password))
         {
+            this.logger.LogInformation("Password changed for user: {UserId}", id);
             existingUser.Password = this.passwordHasher.HashPassword(updateDto.Password);
         }
         
         existingUser.ServerId = updateDto.ServerId;
 
         await this.userRepository.UpdateUserAsync(existingUser);
+        
+        this.logger.LogInformation("User updated successfully: {UserId}", id);
 
         return new UserData
         {
@@ -169,7 +183,12 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         };
     }
 
-    public async Task DeleteUserAsync(Guid id) => await this.userRepository.DeleteAsync(id);
+    public async Task DeleteUserAsync(Guid id)
+    {
+        this.logger.LogWarning("Deleting user: {UserId}", id);
+        await this.userRepository.DeleteAsync(id);
+        this.logger.LogInformation("User deleted successfully: {UserId}", id);
+    }
 
     public async Task<bool> CanUserAccessProtectedResourcesAsync(Guid userId)
     {
@@ -204,16 +223,20 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
+        
+        this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email);
 
         var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email);
         if (user == null || !this.passwordHasher.VerifyPassword(userLoginDto.Password, user.Password))
         {
+            this.logger.LogWarning("Failed login attempt for email: {Email} - invalid credentials", userLoginDto.Email);
             throw new KeyNotFoundException($"Invalid email or password");
         }
 
         // Check if user can access protected resources
         if (!await this.CanUserAccessProtectedResourcesAsync(user.Id))
         {
+            this.logger.LogWarning("Login blocked for unverified email: {Email}, UserId: {UserId}", user.Email, user.Id);
             throw new UnauthorizedAccessException("Email verification required. Please check your email for verification code.");
         }
         
@@ -233,6 +256,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         };
         
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
+        
+        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", user.Email, user.Id);
         
         return new AuthResponseDto
         {

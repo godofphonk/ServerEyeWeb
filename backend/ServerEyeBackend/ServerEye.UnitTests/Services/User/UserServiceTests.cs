@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
@@ -55,7 +56,8 @@ public class UserServiceTests
             this.mockJwtService.Object,
             this.mockRefreshTokenRepository.Object,
             this.mockAuthService.Object,
-            this.configuration);
+            this.configuration,
+            Mock.Of<ILogger<UserService>>());
     }
 
     #region GetUserByIdAsync Tests
@@ -611,7 +613,8 @@ public class UserServiceTests
             this.mockJwtService.Object,
             this.mockRefreshTokenRepository.Object,
             this.mockAuthService.Object,
-            disabledConfig);
+            disabledConfig,
+            Mock.Of<ILogger<UserService>>());
 
         // Act
         var result = await userServiceWithDisabledVerification.CanUserAccessProtectedResourcesAsync(userId);
