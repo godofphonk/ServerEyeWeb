@@ -6,7 +6,9 @@ using ServerEye.Core.Entities;
 public sealed class TicketDbContext : DbContext
 {
     public TicketDbContext(DbContextOptions<TicketDbContext> options)
-        : base(options) => this.Database.EnsureCreated();
+        : base(options)
+    {
+    }
 
     public DbSet<Ticket> Tickets => this.Set<Ticket>();
     public DbSet<TicketMessage> TicketMessages => this.Set<TicketMessage>();

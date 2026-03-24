@@ -1,0 +1,3 @@
+[*.cs]
+# Disable all analyzers for migration files
+dotnet_analyzer_diagnostic.severity = none

@@ -1,6 +1,7 @@
 namespace ServerEye.API.Configuration.Extensions;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
 
@@ -30,7 +31,7 @@ public static class DatabaseSetup
         services.AddDbContext<BillingDbContext>(options =>
             options.UseNpgsql(billingConnectionString));
 
-        // Add Health Checks
+        // Add Health Checks for all databases
         services.AddHealthChecks()
             .AddNpgSql(
                 connectionString: serverEyeConnectionString,
