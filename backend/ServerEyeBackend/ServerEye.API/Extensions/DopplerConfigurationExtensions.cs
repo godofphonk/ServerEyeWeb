@@ -142,7 +142,8 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             ["RATE_LIMITING_"] = "RateLimiting:",
             ["SECURITY_"] = "Security:",
             ["CACHE_"] = "CacheSettings:",
-            ["STRIPE_"] = "Stripe:"
+            ["STRIPE_"] = "Stripe:",
+            ["OAUTH_"] = "OAuth:"
         };
 
         var key = envVar;
@@ -156,6 +157,13 @@ public class DopplerConfigurationProvider : ConfigurationProvider
         }
 
         // Convert snake_case to PascalCase for configuration sections
+        // But keep OAuth:TelegramBotId as is (don't convert BotId to Botid)
+        if (key.StartsWith("OAuth:Telegram"))
+        {
+            // Special handling for OAuth:Telegram* - keep BotId, BotToken as is
+            return key;
+        }
+        
         key = string.Join("", key.Split('_', ':').Select(part => 
             char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
 
