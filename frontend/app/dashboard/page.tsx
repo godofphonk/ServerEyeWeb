@@ -40,6 +40,8 @@ import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/componen
 import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
 import { TelegramServerDiscoveryModal } from '@/components/TelegramServerDiscoveryModal';
 import { useTelegramServerDiscovery } from '@/hooks/useTelegramServerDiscovery';
+import { useSubscription } from '@/hooks/useSubscription';
+import { SubscriptionBadge } from '@/components/billing/SubscriptionBadge';
 import { logger } from '@/lib/telemetry/logger';
 
 export default function DashboardPage() {
@@ -51,6 +53,9 @@ export default function DashboardPage() {
     isEmailVerified,
     refreshUserData,
   } = useAuth();
+
+  // Use subscription for status display
+  const { hasPremium, isPro } = useSubscription();
   const router = useRouter();
   const toast = useToast();
   
@@ -283,8 +288,6 @@ export default function DashboardPage() {
     if (isAuthenticated && user) {
       logger.info('Dashboard loaded', { userId: user.id, email: user.email });
       loadServers();
-      loadDashboardMetrics();
-      checkSubscriptionStatus();
     }
   }, [isAuthenticated, user]);
 
