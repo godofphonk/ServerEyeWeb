@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
@@ -45,7 +46,8 @@ public class AuthServiceTests
             this.mockAccountDeletionRepository.Object,
             this.mockExternalLoginRepository.Object,
             this.mockEmailService.Object,
-            this.mockPasswordHasher.Object);
+            this.mockPasswordHasher.Object,
+            Mock.Of<ILogger<AuthService>>());
     }
 
     #region SendVerificationCodeAsync Tests

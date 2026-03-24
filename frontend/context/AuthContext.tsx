@@ -18,6 +18,7 @@ import {
   ExternalLogin
 } from '@/types';
 import { apiClient } from '@/lib/api';
+import { logger } from '@/lib/telemetry/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      
+      logger.debug('Checking authentication status');
       setLoading(true);
       
       // First check if we have tokens in localStorage (from OAuth callback)
@@ -153,11 +154,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       clearAuthData();
     } catch (error) {
-      clearAuthData();
+      logger.warn('Authentication check failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+      setUserWithLogging(null);
     } finally {
       setLoading(false);
     }
-  }, []); // Убираем зависимость user чтобы избежать бесконечного цикла
+  }, [setUserWithLogging]); // Убираем зависимость user чтобы избежать бесконечного цикла
 
   useEffect(() => {
     checkAuth();
@@ -249,20 +251,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Fallback: try to get user data from API
       try {
-        const res = await fetch('/api/auth/session', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            const mappedUser = mapBackendUser(data.user);
-            setUserWithLogging(mappedUser);
-            return;
-          }
+        const response = await apiClient.get<{ user: BackendUser | null }>('/auth/session');
+      
+      if (response.data.user) {
+        const mappedUser = mapBackendUser(response.data.user);
+        logger.info('User authenticated', { userId: mappedUser.id, email: mappedUser.email });
+        setUserWithLogging(mappedUser);
+      } else {
+        logger.debug('No active session found');
+        setUserWithLogging(null);
+      }    }
         } else {
         }
       } catch (fallbackError) {
         
       }
-    }
     
     // If we get here, both JWT decode and API fallback failed
     ('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
