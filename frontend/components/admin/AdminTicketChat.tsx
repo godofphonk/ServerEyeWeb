@@ -98,16 +98,10 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      console.log('[AdminTicketChat] Loading messages for ticket:', ticket.id);
       const updatedTicket = await ticketApi.getTicketById(ticket.id);
-      console.log(
-        '[AdminTicketChat] Loaded ticket with messages:',
-        updatedTicket.messages?.length || 0,
-      );
       setCurrentTicket(updatedTicket);
       setMessages(updatedTicket.messages || []);
     } catch (error) {
-      console.error('Failed to load messages:', error);
       setMessages(ticket.messages || []);
     } finally {
       setIsLoading(false);
@@ -144,9 +138,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       scrollToBottom();
 
       // Send to backend
-      console.log('[AdminTicketChat] Sending admin message:', messageData);
       await ticketApi.addTicketMessage(ticket.id, messageData);
-      console.log('[AdminTicketChat] Message sent successfully');
 
       // Reload messages from backend
       await loadMessages();
@@ -154,7 +146,6 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
     } catch (error) {
-      console.error('Failed to send message:', error);
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     } finally {
@@ -174,7 +165,6 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       // Notify parent
       onTicketUpdate?.();
     } catch (error) {
-      console.error('Failed to update status:', error);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -199,7 +189,6 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       onTicketUpdate?.();
       onClose();
     } catch (error: any) {
-      console.error('Failed to delete ticket:', error);
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

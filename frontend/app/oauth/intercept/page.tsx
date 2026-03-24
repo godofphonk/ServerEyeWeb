@@ -12,16 +12,13 @@ function OAuthInterceptContent() {
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
-    console.log('[OAuth Intercept] Intercepted OAuth callback:', { code: !!code, state: !!state, error });
 
     if (error) {
-      console.error('[OAuth Intercept] OAuth error:', error);
       router.push(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (!code || !state) {
-      console.error('[OAuth Intercept] Missing code or state');
       router.push('/login?error=missing_parameters');
       return;
     }
@@ -33,11 +30,9 @@ function OAuthInterceptContent() {
       try {
         const { action, provider, userId, state: expectedState } = JSON.parse(linkingInfo);
         
-        console.log('[OAuth Intercept] Found linking info:', { action, provider, userId, expectedState });
 
         // Verify state matches (state might have github_ prefix)
         if (state.includes(expectedState) || state === `github_${expectedState}`) {
-          console.log('[OAuth Intercept] State matches, redirecting to backend callback with linking parameters');
           
           // Clear linking info
           sessionStorage.removeItem('oauth_linking');
@@ -45,7 +40,6 @@ function OAuthInterceptContent() {
           // Send to backend callback API with linking parameters
           const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
           
-          console.log('[OAuth Intercept] Sending to backend callback with linking:', callbackUrl);
           
           fetch(callbackUrl, {
             method: 'POST',
@@ -63,7 +57,6 @@ function OAuthInterceptContent() {
           })
           .then(response => response.json())
           .then(data => {
-            console.log('[OAuth Intercept] Backend linking response:', data);
             
             if (data.success && (data.token || data.refreshToken)) {
               // Store tokens
@@ -80,7 +73,6 @@ function OAuthInterceptContent() {
               // Redirect to profile for linking success
               window.location.href = '/profile?linking=success';
             } else {
-              console.error('[OAuth Intercept] Linking failed:', data);
               
               // Check for linking errors
               if (data.message && data.message.toLowerCase().includes('already linked')) {
@@ -91,22 +83,18 @@ function OAuthInterceptContent() {
             }
           })
           .catch(error => {
-            console.error('[OAuth Intercept] Backend linking error:', error);
             window.location.href = '/profile?error=linking_failed';
           });
           return;
         } else {
-          console.warn('[OAuth Intercept] State mismatch, clearing linking info');
           sessionStorage.removeItem('oauth_linking');
         }
       } catch (err) {
-        console.error('[OAuth Intercept] Error parsing linking info:', err);
         sessionStorage.removeItem('oauth_linking');
       }
     }
 
     // Not a linking request, proceed with normal OAuth flow
-    console.log('[OAuth Intercept] Not a linking request, forwarding to backend callback');
     
     // Extract provider from state
     const provider = state.split('_')[0]; // state format: provider_action_randomString
@@ -114,7 +102,6 @@ function OAuthInterceptContent() {
     // Send to backend callback API and handle response
     const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:5246'}/api/auth/oauth/callback`;
     
-    console.log('[OAuth Intercept] Extracted provider:', provider, 'from state:', state);
     
     fetch(callbackUrl, {
       method: 'POST',
@@ -130,7 +117,6 @@ function OAuthInterceptContent() {
     })
     .then(response => response.json())
     .then(data => {
-      console.log('[OAuth Intercept] Backend response:', data);
       
       if (data.success && (data.token || data.refreshToken)) {
         // Store tokens
@@ -147,12 +133,10 @@ function OAuthInterceptContent() {
         // Redirect to dashboard
         window.location.href = '/dashboard';
       } else {
-        console.error('[OAuth Intercept] Authentication failed:', data);
         window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
       }
     })
     .catch(error => {
-      console.error('[OAuth Intercept] Backend error:', error);
       window.location.href = '/login?error=oauth_auth_failed';
     });
   }, [searchParams, router]);

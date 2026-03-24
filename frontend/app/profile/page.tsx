@@ -36,7 +36,6 @@ export default function ProfilePage() {
     
     // Check for linking=success (backend processed OAuth linking)
     if (linking === 'success') {
-      console.log('[Profile] Detected linking=success from backend');
       
       toast.success('Success', 'Account linked successfully!');
       
@@ -53,7 +52,6 @@ export default function ProfilePage() {
     
     // Check for error=already_linked
     if (error === 'already_linked') {
-      console.log('[Profile] Detected already_linked error from backend');
       
       toast.error('Error', 'This account is already linked to another user');
       
@@ -65,7 +63,6 @@ export default function ProfilePage() {
     
     // Check for error=linking_failed
     if (error === 'linking_failed') {
-      console.log('[Profile] Detected linking_failed error from backend');
       
       const errorMessage = urlParams.get('message') || 'Failed to link Telegram account';
       
@@ -89,7 +86,6 @@ export default function ProfilePage() {
     
     // Check for linking=error
     if (linking === 'error') {
-      console.log('[Profile] Detected linking=error from backend');
       
       const errorMessage = urlParams.get('message') || 'Failed to link account';
       toast.error('Error', errorMessage);

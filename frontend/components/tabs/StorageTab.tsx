@@ -32,7 +32,7 @@ export default function StorageTab({
     if (loadHistoricalMetrics) {
       loadHistoricalMetrics(storageTimeRange)
         .then(data => setStorageMetrics(data))
-        .catch(error => console.error('[StorageTab] Failed to load Storage data:', error));
+        .catch(() => {});
     }
   }, [storageTimeRange, loadHistoricalMetrics]);
   return (

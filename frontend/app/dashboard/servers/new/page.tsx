@@ -52,7 +52,7 @@ export default function AddServerPage() {
 
       router.push('/dashboard');
     } catch (error: any) {
-      console.error('Failed to add server:', error);
+      
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||

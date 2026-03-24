@@ -121,9 +121,6 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
         window.location.href = '/login';
       }, 2000);
     } catch (error: any) {
-      console.log('[DeleteAccountModal] Deletion error:', error);
-      console.log('[DeleteAccountModal] Error status:', error?.response?.status);
-      console.log('[DeleteAccountModal] Error data:', error?.response?.data);
 
       // Check if this is expected error after successful deletion
       // 401/403 = Account deleted, token is now invalid
@@ -135,20 +132,16 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
 
       // For 500 errors or auth errors, always verify if account was actually deleted
       if (isAuthError || isServerError) {
-        console.log('[DeleteAccountModal] Checking if account was actually deleted...');
 
         // Verify account is actually deleted by checking session
         setTimeout(async () => {
           try {
             const response = await fetch('/api/auth/session', { credentials: 'include' });
-            console.log('[DeleteAccountModal] Session check response:', response.status);
 
             if (response.ok) {
               const data = await response.json();
-              console.log('[DeleteAccountModal] Session data:', data);
 
               if (data.user) {
-                console.log('[DeleteAccountModal] Account still exists - deletion failed');
                 setStep('code');
                 setIsLoading(false);
                 toast.error('Deletion Failed', 'Account deletion failed. Please try again.');
@@ -157,12 +150,7 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
             }
 
             // If we get here, account is deleted (no user in session or 401)
-            console.log('[DeleteAccountModal] Account successfully deleted');
           } catch (sessionError) {
-            console.log(
-              '[DeleteAccountModal] Session check failed (expected after deletion):',
-              sessionError,
-            );
           }
 
           // Clear all authentication data using AuthContext
@@ -185,7 +173,6 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
         return; // Exit early to avoid the else block
       } else {
         // Real error - show to user
-        console.log('[DeleteAccountModal] Real deletion error:', errorMessage);
 
         toast.error('Deletion Failed', errorMessage);
         setStep('code');

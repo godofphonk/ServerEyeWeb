@@ -23,9 +23,6 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
 
   // Check if this is an OAuth user without email
   const isOAuthUser = !email || email.trim() === '';
-  console.log('[EmailVerificationBanner] Render - Email:', email);
-  console.log('[EmailVerificationBanner] Render - isOAuthUser:', isOAuthUser);
-  console.log('[EmailVerificationBanner] Render - isDismissed:', isDismissed);
 
   const handleResend = async () => {
     if (isOAuthUser) {
@@ -50,13 +47,11 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
   };
 
   const handleVerificationSuccess = () => {
-    console.log('[EmailVerificationBanner] Verification success - dismissing banner');
     onVerified();
     setIsDismissed(true);
   };
 
   const handleEmailChangeSuccess = (newEmail: string) => {
-    console.log('[EmailVerificationBanner] Email change success - dismissing banner');
     onVerified();
     setIsDismissed(true);
   };

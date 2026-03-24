@@ -16,7 +16,6 @@ function AuthCallbackContent() {
     const handleCallback = async () => {
       // Prevent multiple calls
       if (isProcessing) {
-        console.log('[AuthCallback] Already processing, skipping...');
         return;
       }
       
@@ -32,9 +31,6 @@ function AuthCallbackContent() {
           throw new Error('Missing required parameters');
         }
 
-        console.log(`[AuthCallback] Processing ${provider} OAuth callback`);
-        console.log('[AuthCallback] Token length:', token.length);
-        console.log('[AuthCallback] Refresh token length:', refreshToken.length);
 
         // Check if this is a linking request
         const linkingInfo = typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
@@ -42,10 +38,8 @@ function AuthCallbackContent() {
         if (linkingInfo) {
           const { action, provider: linkProvider, code: oauthCode, state: oauthState } = JSON.parse(linkingInfo);
           
-          console.log('[AuthCallback] Linking check:', { action, linkProvider, hasCode: !!oauthCode, hasState: !!oauthState });
 
           if (action === 'link' && linkProvider === provider && oauthCode && oauthState) {
-            console.log('[AuthCallback] This is a linking request, calling backend /api/auth/oauth/link');
             
             // Get current JWT token
             const jwtToken = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
@@ -74,7 +68,6 @@ function AuthCallbackContent() {
             }
 
             const linkData = await response.json();
-            console.log('[AuthCallback] Successfully linked account:', linkData);
             
             // Update tokens from linking response
             if (linkData.token && linkData.refreshToken) {
@@ -97,18 +90,14 @@ function AuthCallbackContent() {
         // Use the new method to set tokens and refresh user data
         await setTokensFromCallback(token, refreshToken);
 
-        console.log(`[AuthCallback] Successfully authenticated with ${provider}`);
-        console.log('[AuthCallback] Redirecting to dashboard...');
         setStatus('success');
 
         // Wait a bit for state to update, then redirect
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        console.log('[AuthCallback] Redirecting to dashboard now...');
         router.push('/dashboard');
 
       } catch (err) {
-        console.error('[AuthCallback] Error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setStatus('error');
 

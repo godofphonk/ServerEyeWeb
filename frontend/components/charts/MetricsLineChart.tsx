@@ -54,7 +54,6 @@ export default function MetricsLineChart({
       }
 
       if (!metricData || typeof metricData.avg === 'undefined') {
-        console.warn(`[MetricsLineChart] Missing data for metric ${metricType}:`, point);
         return {
           time: formatTimeByRange(point.timestamp, timeRange),
           avg: 0,

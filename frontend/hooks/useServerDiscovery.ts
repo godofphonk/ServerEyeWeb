@@ -32,7 +32,7 @@ export function useServerDiscovery() {
       const result = await serverDiscoveryApi.importServers(serverIds);
 
       if (result.failed_count > 0) {
-        console.warn('[ServerDiscovery] Some servers failed to import:', result.errors);
+        
       }
 
       return result;

@@ -260,12 +260,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
         }
       } catch (fallbackError) {
-        console.error('AuthContext setTokensFromCallback - fallback failed:', fallbackError);
+        
       }
     }
     
     // If we get here, both JWT decode and API fallback failed
-    console.error('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
+    ('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
     throw new Error('Failed to authenticate user');
   };
 

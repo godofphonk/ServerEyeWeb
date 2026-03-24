@@ -93,7 +93,7 @@ export default function ServerDetailPage() {
           // Set historical metrics for all charts from single response
           setHistoricalMetrics(historicalMetrics);
         } catch (error) {
-          console.error('Failed to load data:', error);
+          
         } finally {
           // Only hide loading for initial load
           if (isFirstLoad) {

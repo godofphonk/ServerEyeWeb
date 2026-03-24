@@ -37,7 +37,6 @@ function OAuthCallbackContent() {
             // Only for Telegram provider
             if (provider === 'telegram') {
               sessionStorage.setItem('telegram_oauth_completed', 'true');
-              console.log('[OAuth Callback] Set telegram_oauth_completed flag for Telegram provider');
             }
           }
           
@@ -52,21 +51,16 @@ function OAuthCallbackContent() {
             });
             
             if (!response.ok) {
-              console.log('Failed to set tokens via API, but localStorage is set');
             }
           } catch (apiError) {
-            console.log('API error, but localStorage is set:', apiError);
           }
           
           // Force auth check
-          console.log('[OAuth Callback] Before checkAuth - isAuthenticated:', isAuthenticated);
           await checkAuth();
-          console.log('[OAuth Callback] After checkAuth - isAuthenticated:', isAuthenticated);
           
           // Give time for auth to complete
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-          console.log('[OAuth Callback] Final isAuthenticated:', isAuthenticated);
           
           if (isAuthenticated) {
             setStatus('processing');
@@ -75,7 +69,6 @@ function OAuthCallbackContent() {
             // Clean URL and redirect to dashboard
             window.history.replaceState({}, '', '/oauth/callback');
             setTimeout(() => {
-              console.log('[OAuth Callback] Redirecting to dashboard...');
               router.push('/dashboard');
             }, 1000);
           } else {
@@ -103,7 +96,6 @@ function OAuthCallbackContent() {
           }, 5000);
         }
       } catch (error) {
-        console.error('[OAuth Callback] Error:', error);
         setStatus('error');
         setMessage('An error occurred during authentication');
         setTimeout(() => {

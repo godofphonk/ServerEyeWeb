@@ -7,7 +7,7 @@ class ApiClient {
   constructor() {
     // Use 127.0.0.1 for browser access to Docker container
     const baseURL = 'http://127.0.0.1:5246/api';
-    console.log('[ApiClient] Using 127.0.0.1 baseURL:', baseURL);
+    
     
     this.client = axios.create({
       baseURL,
@@ -112,7 +112,7 @@ class ApiClient {
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
-    console.log('[ApiClient] GET request to:', fullUrl);
+    
     const response = await this.client.get<T>(url, config);
     return response.data;
   }

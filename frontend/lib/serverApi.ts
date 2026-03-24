@@ -44,7 +44,6 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
     );
     return response;
   } catch (error: any) {
-    console.error(`[ServerAPI] Failed to get static info for ${serverKey}:`, error);
     
     // For 401 errors, let auth interceptor handle it
     if (error.response?.status === 401) {
@@ -103,7 +102,6 @@ export async function getServersWithStaticInfo(): Promise<
             staticInfo,
           };
         } catch (error: any) {
-          console.error(`Failed to load static info for server ${server.serverId}:`, error);
           
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
           if (error.response?.status >= 500) {

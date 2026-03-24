@@ -72,11 +72,9 @@ export default function LogViewer() {
       }
 
       const result = await response.json();
-      console.log('[LogViewer] Logs loaded:', result);
 
       setLogs(result.data?.logs || []);
     } catch (error) {
-      console.error('[LogViewer] Failed to load logs:', error);
     } finally {
       setLoading(false);
     }

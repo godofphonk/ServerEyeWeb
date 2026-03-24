@@ -62,7 +62,6 @@ export default function SourceManagementModal({
 
       setSourceDetails(prev => ({ ...prev, [sourceType]: mockDetails }));
     } catch (error) {
-      console.error('Failed to load source details:', error);
       toast.error('Failed to load source details');
     } finally {
       setIsLoading(false);
@@ -86,7 +85,6 @@ export default function SourceManagementModal({
         toast.error(response.message || 'Failed to remove source');
       }
     } catch (error) {
-      console.error('Failed to delete source:', error);
       toast.error('Failed to remove source');
     } finally {
       setIsLoading(false);
@@ -114,7 +112,6 @@ export default function SourceManagementModal({
         toast.error(response.message || 'Failed to remove identifiers');
       }
     } catch (error) {
-      console.error('Failed to delete identifiers:', error);
       toast.error('Failed to remove identifiers');
     } finally {
       setIsLoading(false);

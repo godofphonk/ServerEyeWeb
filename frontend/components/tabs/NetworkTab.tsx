@@ -51,16 +51,13 @@ export default function NetworkTab({
         if (rxResult.status === 'fulfilled') {
           setNetworkRxMetrics(rxResult.value);
         } else {
-          console.error('[NetworkTab] Failed to load Network RX data:', rxResult.reason);
         }
 
         if (txResult.status === 'fulfilled') {
           setNetworkTxMetrics(txResult.value);
         } else {
-          console.error('[NetworkTab] Failed to load Network TX data:', txResult.reason);
         }
       } catch (error) {
-        console.error('[NetworkTab] Unexpected error loading network metrics:', error);
       }
     };
 

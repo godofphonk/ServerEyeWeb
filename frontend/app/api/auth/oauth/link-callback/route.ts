@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth errors
   if (error) {
-    console.error('[OAuth Link Callback] Error:', error);
     return NextResponse.redirect(
       new URL(`${returnUrl}?error=${encodeURIComponent(error)}`, request.url)
     );
@@ -25,7 +24,6 @@ export async function GET(request: NextRequest) {
 
   // Validate required parameters
   if (!code || !state) {
-    console.error('[OAuth Link Callback] Missing required parameters:', { code, state });
     return NextResponse.redirect(
       new URL(`${returnUrl}?error=missing_parameters`, request.url)
     );
@@ -36,13 +34,10 @@ export async function GET(request: NextRequest) {
     const jwtToken = request.cookies.get('jwt_token')?.value || 
                      request.cookies.get('access_token')?.value;
     
-    console.log('[OAuth Link Callback] JWT token found:', !!jwtToken);
-    console.log('[OAuth Link Callback] Action:', action);
     
     // Forward the callback to the backend as POST (backend expects POST, not GET)
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://backend:80'}/api/auth/oauth/callback`;
     
-    console.log('[OAuth Link Callback] Forwarding to backend:', backendUrl);
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -52,7 +47,6 @@ export async function GET(request: NextRequest) {
     // Add Authorization header if JWT token is available (for linking)
     if (jwtToken && action === 'link') {
       headers['Authorization'] = `Bearer ${jwtToken}`;
-      console.log('[OAuth Link Callback] Adding Authorization header for linking');
     }
     
     const backendResponse = await fetch(backendUrl, {
@@ -64,11 +58,9 @@ export async function GET(request: NextRequest) {
       }),
     });
 
-    console.log('[OAuth Link Callback] Backend response status:', backendResponse.status);
 
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      console.error('[OAuth Link Callback] Backend error:', backendResponse.status, errorText);
       return NextResponse.redirect(
         new URL(`${returnUrl}?error=backend_error`, request.url)
       );
@@ -76,7 +68,6 @@ export async function GET(request: NextRequest) {
 
     // Get response data to check if account was linked
     const responseData = await backendResponse.json();
-    console.log('[OAuth Link Callback] Backend response data:', responseData);
 
     // Backend should set httpOnly cookies and return user data
     // Redirect to return URL on success
@@ -85,7 +76,6 @@ export async function GET(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('[OAuth Link Callback] Exception:', error);
     return NextResponse.redirect(
       new URL(`${returnUrl}?error=callback_exception`, request.url)
     );

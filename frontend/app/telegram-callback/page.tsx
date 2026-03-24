@@ -89,7 +89,6 @@ function TelegramCallbackContent() {
               
               // Set flag for Telegram OAuth completion
               sessionStorage.setItem('telegram_oauth_completed', 'true');
-              console.log('[Telegram Callback] Set telegram_oauth_completed flag');
               
               // If this was a linking attempt, redirect to profile
               if (linkingInfo) {
@@ -99,7 +98,6 @@ function TelegramCallbackContent() {
                 window.location.href = '/dashboard';
               }
             } else {
-              console.error('[Telegram Callback] Authentication failed:', data);
               
               // Check if this is a linking error
               if (linkingInfo) {
@@ -118,25 +116,15 @@ function TelegramCallbackContent() {
             }
           })
           .catch(error => {
-            console.error('[Telegram Callback] Backend error:', error);
             window.location.href = '/login?error=telegram_auth_failed';
           });
         } catch (error) {
-          console.error('[Telegram Callback] Failed to parse tgAuthResult:', error);
           window.location.href = '/login?error=invalid_telegram_data';
         }
       } else {
-        console.error('[Telegram Callback] Missing tgAuthResult');
-        console.log('[Telegram Callback] Full URL:', window.location.href);
-        console.log('[Telegram Callback] Hash:', urlHash);
-        console.log('[Telegram Callback] Search params:', window.location.search);
         window.location.href = '/login?error=missing_telegram_data';
       }
     } else {
-      console.error('[Telegram Callback] No valid Telegram data found');
-      console.log('[Telegram Callback] Full URL:', window.location.href);
-      console.log('[Telegram Callback] Hash:', urlHash);
-      console.log('[Telegram Callback] Search params:', window.location.search);
       window.location.href = '/login?error=invalid_callback';
     }
   }, [searchParams, router]);
