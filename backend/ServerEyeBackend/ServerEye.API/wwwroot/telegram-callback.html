@@ -31,22 +31,22 @@
                     .then(data => {
                         if (data.success) {
                             // Redirect to success page
-                            window.location.href = 'http://127.0.0.1:3001/dashboard?auth=success';
+                            window.location.href = 'http://127.0.0.1:3000/dashboard?auth=success';
                         } else {
                             // Redirect to error page
-                            window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=' + encodeURIComponent(data.message || 'Authentication failed');
+                            window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=' + encodeURIComponent(data.message || 'Authentication failed');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Server error';
+                        window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Server error';
                     });
                 } catch (error) {
                     console.error('Error parsing tgAuthResult:', error);
-                    window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Invalid data';
+                    window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Invalid data';
                 }
             } else {
-                window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Missing authentication data';
+                window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Missing authentication data';
             }
         }
         

@@ -72,7 +72,7 @@
                 .then(data => {
                     if (data.success && data.token) {
                         // Redirect to frontend with tokens in URL
-                        const redirectUrl = 'http://127.0.0.1:3001/auth/callback?' +
+                        const redirectUrl = 'http://127.0.0.1:3000/auth/callback?' +
                             'token=' + encodeURIComponent(data.token) +
                             '&refreshToken=' + encodeURIComponent(data.refreshToken || '') +
                             '&provider=telegram';
@@ -80,17 +80,17 @@
                         window.location.href = redirectUrl;
                     } else {
                         // Redirect to login with error
-                        window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=' + 
+                        window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=' + 
                             encodeURIComponent(data.message || 'Authentication failed');
                     }
                 })
                 .catch(error => {
                     // Redirect to login with server error
-                    window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Server error';
+                    window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Server error';
                 });
             } catch (error) {
                 // Redirect to login with invalid data error
-                window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Invalid data';
+                window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Invalid data';
             }
         }
         
@@ -98,7 +98,7 @@
             const hash = window.location.hash.substring(1);
             
             if (!hash) {
-                window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Missing authentication data';
+                window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Missing authentication data';
                 return;
             }
             
@@ -108,7 +108,7 @@
             if (tgAuthResult) {
                 processTgAuthResult(tgAuthResult);
             } else {
-                window.location.href = 'http://127.0.0.1:3001/login?auth=error&message=Missing authentication data';
+                window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=Missing authentication data';
             }
         }
         
