@@ -644,14 +644,6 @@ public class UserServiceTests
 
     #region LoginUserAsync Tests
 
-    [Fact(Skip = "Configuration.GetValue extension method cannot be properly mocked - requires integration test")]
-    public async Task LoginUserAsync_WithValidCredentials_ShouldReturnTokens()
-    {
-        // This test requires integration testing due to Configuration.GetValue extension method
-        // Skip for now - the logic is tested in other tests
-        await Task.CompletedTask;
-    }
-
     [Fact]
     public async Task LoginUserAsync_WithInvalidEmail_ShouldThrowException()
     {
