@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure;
+using Infrastructure.Data;
 using Testcontainers.PostgreSql;
 using System.Globalization;
 
@@ -105,11 +106,15 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JWT_PRIVATE_KEY_BASE64"] = TestPrivateKey,
                 ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
                 ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:TicketDbConnection"] = this.postgresContainer.GetConnectionString(),
+                ["ConnectionStrings:ServerEyeDbContext"] = this.postgresContainer.GetConnectionString(),
+                ["ConnectionStrings:TicketDbContext"] = this.postgresContainer.GetConnectionString(),
+                ["ConnectionStrings:BillingDbContext"] = this.postgresContainer.GetConnectionString(),
                 ["ConnectionStrings:Redis"] = "127.0.0.1:6379",
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
-                ["EmailSettings:EnableEmailVerification"] = "false"
+                ["EmailSettings:EnableEmailVerification"] = "false",
+                // Disable OpenTelemetry Redis instrumentation (no Redis in test environment)
+                ["OpenTelemetry:DisableRedisInstrumentation"] = "true"
             });
         });
 
@@ -141,8 +146,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 .Where(d => 
                     d.ServiceType == typeof(DbContextOptions<ServerEyeDbContext>) ||
                     d.ServiceType == typeof(DbContextOptions<TicketDbContext>) ||
+                    d.ServiceType == typeof(DbContextOptions<BillingDbContext>) ||
                     d.ServiceType == typeof(ServerEyeDbContext) ||
-                    d.ServiceType == typeof(TicketDbContext))
+                    d.ServiceType == typeof(TicketDbContext) ||
+                    d.ServiceType == typeof(BillingDbContext))
                 .ToList();
 
             foreach (var descriptor in dbContextDescriptors)
@@ -161,11 +168,18 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 options.UseNpgsql(this.postgresContainer.GetConnectionString());
             });
 
-            // Remove Redis and other external dependencies
+            services.AddDbContext<BillingDbContext>(options =>
+            {
+                options.UseNpgsql(this.postgresContainer.GetConnectionString());
+            });
+
+            // Remove Redis cache and distributed cache, but keep IConnectionMultiplexer
+            // (OpenTelemetry Redis instrumentation requires IConnectionMultiplexer in DI)
             var redisDescriptors = services
-                .Where(d => d.ServiceType.FullName?.Contains("Redis", StringComparison.OrdinalIgnoreCase) == true ||
-                           d.ServiceType.FullName?.Contains("IDistributedCache", StringComparison.Ordinal) == true ||
-                           d.ServiceType.FullName?.Contains("IConnectionMultiplexer", StringComparison.Ordinal) == true)
+                .Where(d => d.ServiceType.FullName?.Contains("IDistributedCache", StringComparison.Ordinal) == true ||
+                           (d.ServiceType.FullName?.Contains("Redis", StringComparison.OrdinalIgnoreCase) == true &&
+                            !d.ServiceType.FullName.Contains("IConnectionMultiplexer", StringComparison.Ordinal) &&
+                            !d.ServiceType.FullName.Contains("StackExchangeRedis", StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
             foreach (var descriptor in redisDescriptors)
