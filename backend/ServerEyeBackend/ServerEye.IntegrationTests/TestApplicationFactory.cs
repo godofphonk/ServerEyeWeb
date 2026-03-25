@@ -10,6 +10,14 @@ using Infrastructure;
 using Infrastructure.Data;
 using Testcontainers.PostgreSql;
 using System.Globalization;
+using StackExchange.Redis;
+using Moq;
+using System.Net;
+using System.Diagnostics;
+using System.Collections.Concurrent;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Metrics;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -24,6 +32,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
     private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
     private static readonly string TestPublicKey = Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo());
+
+    // In-memory collection for OpenTelemetry spans
+    private readonly List<Activity> _exportedActivities = new();
+    public IEnumerable<Activity> ExportedActivities => _exportedActivities;
 
     public async Task InitializeAsync()
     {
@@ -90,7 +102,12 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         }
     }
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override IHostBuilder? CreateHostBuilder()
+    {
+        return base.CreateHostBuilder();
+    }
+
+protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
@@ -113,7 +130,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false",
-                // Disable OpenTelemetry Redis instrumentation (no Redis in test environment)
+                // Disable Redis instrumentation for tests
                 ["OpenTelemetry:DisableRedisInstrumentation"] = "true"
             });
         });
@@ -122,10 +139,44 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         Environment.SetEnvironmentVariable("JWT_PRIVATE_KEY_BASE64", TestPrivateKey);
         Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", TestPublicKey);
 
-        // JWT Authentication is configured in Program.cs using environment variables
-        // Override JWT options using PostConfigure to avoid re-registering the scheme
+        builder.UseEnvironment("Testing");
+        
+        // Override logging configuration to remove OpenTelemetry logging
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
+        
         builder.ConfigureServices(services =>
         {
+            // Remove existing OpenTelemetry configuration completely
+            var openTelemetryDescriptors = services
+                .Where(d => d.ServiceType.FullName?.Contains("OpenTelemetry", StringComparison.Ordinal) == true ||
+                           d.ServiceType.FullName?.Contains("TracerProvider", StringComparison.Ordinal) == true ||
+                           d.ServiceType.FullName?.Contains("LoggerProvider", StringComparison.Ordinal) == true)
+                .ToList();
+
+            foreach (var descriptor in openTelemetryDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Add In-Memory Exporter for OpenTelemetry traces (without Redis instrumentation)
+            services.AddOpenTelemetry()
+                .WithTracing(tracing =>
+                {
+                    tracing
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddInMemoryExporter(_exportedActivities);
+                })
+                .WithMetrics(metrics =>
+                {
+                    metrics
+                        .AddPrometheusExporter();
+                });
+
             // PostConfigure JWT options to use test keys
             var publicKeyBytes = Convert.FromBase64String(TestPublicKey);
             services.PostConfigure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
@@ -173,19 +224,28 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 options.UseNpgsql(this.postgresContainer.GetConnectionString());
             });
 
-            // Remove Redis cache and distributed cache, but keep IConnectionMultiplexer
-            // (OpenTelemetry Redis instrumentation requires IConnectionMultiplexer in DI)
+            // Remove all Redis-related services including IConnectionMultiplexer
             var redisDescriptors = services
-                .Where(d => d.ServiceType.FullName?.Contains("IDistributedCache", StringComparison.Ordinal) == true ||
-                           (d.ServiceType.FullName?.Contains("Redis", StringComparison.OrdinalIgnoreCase) == true &&
-                            !d.ServiceType.FullName.Contains("IConnectionMultiplexer", StringComparison.Ordinal) &&
-                            !d.ServiceType.FullName.Contains("StackExchangeRedis", StringComparison.OrdinalIgnoreCase)))
+                .Where(d => d.ServiceType.FullName?.Contains("Redis", StringComparison.OrdinalIgnoreCase) == true ||
+                           d.ServiceType.FullName?.Contains("IDistributedCache", StringComparison.Ordinal) == true ||
+                           d.ServiceType == typeof(IConnectionMultiplexer))
                 .ToList();
 
             foreach (var descriptor in redisDescriptors)
             {
                 services.Remove(descriptor);
             }
+
+            // Add mock IConnectionMultiplexer to satisfy Redis dependencies
+            var mockConnection = new Mock<IConnectionMultiplexer>();
+            var mockDatabase = new Mock<IDatabase>();
+            mockConnection.Setup(c => c.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(mockDatabase.Object);
+            mockConnection.Setup(c => c.GetEndPoints(It.IsAny<bool>())).Returns(Array.Empty<EndPoint>());
+            mockConnection.Setup(c => c.GetServer(It.IsAny<EndPoint>(), It.IsAny<object>())).Returns(Mock.Of<IServer>());
+            mockConnection.Setup(c => c.Configuration).Returns("localhost:6379");
+            mockConnection.Setup(c => c.IsConnected).Returns(true);
+            
+            services.AddSingleton<IConnectionMultiplexer>(mockConnection.Object);
 
             // Add in-memory distributed cache instead of Redis
             services.AddDistributedMemoryCache();

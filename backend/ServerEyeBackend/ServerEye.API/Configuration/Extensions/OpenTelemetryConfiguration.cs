@@ -13,6 +13,14 @@ public static class OpenTelemetryConfiguration
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var disableAllInstrumentation = configuration.GetValue<bool>("OpenTelemetry:DisableAllInstrumentation", false);
+        var isTesting = configuration.GetValue<bool>("Testing", false);
+        
+        if (disableAllInstrumentation || isTesting)
+        {
+            return services;
+        }
+
         var serviceName = configuration["OpenTelemetry:ServiceName"] ?? "servereye-backend";
         var serviceVersion = configuration["OpenTelemetry:ServiceVersion"] ?? "1.0.0";
         var otlpEndpoint = configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
