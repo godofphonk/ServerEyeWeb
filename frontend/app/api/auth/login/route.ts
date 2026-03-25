@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('access_token', data.token, {
       httpOnly: true,
-      secure: false, // Отключаем для dev
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       path: '/',
       maxAge: data.expiresIn || 1800, // 30 минут
       domain: undefined, // Позволяем браузеру установить домен автоматически
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
-      secure: false, // Отключаем для dev
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       path: '/',
       maxAge: 7 * 24 * 60 * 60, // 7 days
       domain: undefined, // Позволяем браузеру установить домен автоматически

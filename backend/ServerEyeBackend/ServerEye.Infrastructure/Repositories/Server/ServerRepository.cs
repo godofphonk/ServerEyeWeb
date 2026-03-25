@@ -51,8 +51,8 @@ public sealed class ServerRepository(ServerEyeDbContext context) : IServerReposi
     public async Task DeleteAsync(Guid id)
     {
         await this.context
-            .Users
-            .Where(u => u.Id == id)
+            .Servers
+            .Where(s => s.Id == id)
             .ExecuteDeleteAsync();
 
         // ExecuteDeleteAsync already saves changes to database, no need for SaveChangesAsync()

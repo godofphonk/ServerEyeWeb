@@ -24,6 +24,7 @@ public sealed class ServerEyeDbContext : DbContext
         modelBuilder?.Entity<User>(entity =>
         {
             entity.Property(u => u.Role).HasConversion<int>();
+            entity.HasIndex(u => u.Email).IsUnique();
         });
 
         modelBuilder?.Entity<EmailVerification>(entity =>
