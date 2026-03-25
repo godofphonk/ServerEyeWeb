@@ -1,5 +1,6 @@
 namespace ServerEye.API.Controllers;
 
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Ticket;
@@ -54,7 +55,7 @@ public class TicketsController : ControllerBase
 
     [HttpGet]
     [Authorize]
-    public async Task<ActionResult<List<TicketListItemDto>>> GetAllTickets([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<List<TicketListItemDto>>> GetAllTickets([FromQuery][Range(1, int.MaxValue)] int page = 1, [FromQuery][Range(1, 100)] int pageSize = 50)
     {
         try
         {
@@ -82,7 +83,7 @@ public class TicketsController : ControllerBase
 
     [HttpGet("status/{status}")]
     [Authorize]
-    public async Task<ActionResult<List<TicketListItemDto>>> GetTicketsByStatus(TicketStatus status, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<List<TicketListItemDto>>> GetTicketsByStatus(TicketStatus status, [FromQuery][Range(1, int.MaxValue)] int page = 1, [FromQuery][Range(1, 100)] int pageSize = 50)
     {
         try
         {
@@ -153,7 +154,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("user/{userId:guid}")]
-    public async Task<ActionResult<List<TicketListItemDto>>> GetTicketsByUserId(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<List<TicketListItemDto>>> GetTicketsByUserId(Guid userId, [FromQuery][Range(1, int.MaxValue)] int page = 1, [FromQuery][Range(1, 100)] int pageSize = 50)
     {
         try
         {
