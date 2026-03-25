@@ -1,6 +1,7 @@
 namespace ServerEye.API.Configuration.Extensions;
 
 using ServerEye.Core.Configuration;
+using StackExchange.Redis;
 
 /// <summary>
 /// Caching configuration setup.
@@ -20,11 +21,23 @@ public static class CachingSetup
         var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>() 
             ?? new CacheSettings();
 
-        // Configure Redis
+        var connectionString = configuration["REDIS_CONNECTION_STRING"]
+            ?? redisSettings.ConnectionString;
+
+        // Register IConnectionMultiplexer as a singleton so that OpenTelemetry Redis
+        // instrumentation (and other consumers) can resolve it from DI.
+        // AbortOnConnectFail = false allows the app to start even when Redis is unavailable.
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var options = ConfigurationOptions.Parse(connectionString);
+            options.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(options);
+        });
+
+        // Configure Redis distributed cache
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = configuration["REDIS_CONNECTION_STRING"] 
-                ?? redisSettings.ConnectionString;
+            options.Configuration = connectionString;
             options.InstanceName = redisSettings.InstanceName;
         });
 
@@ -34,8 +47,7 @@ public static class CachingSetup
         // Add Redis health check
         services.AddHealthChecks()
             .AddRedis(
-                redisConnectionString: configuration["REDIS_CONNECTION_STRING"] 
-                    ?? redisSettings.ConnectionString,
+                redisConnectionString: connectionString,
                 name: "redis",
                 tags: ["cache", "redis", "ready"]);
 
