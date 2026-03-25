@@ -24,8 +24,13 @@ builder.Services
     .AddAuthenticationConfiguration(builder.Configuration)
     .AddCachingConfiguration(builder.Configuration)
     .AddMiddlewareConfiguration(builder.Configuration)
-    .AddApplicationServices(builder.Configuration)
-    .AddOpenTelemetryConfiguration(builder.Configuration);
+    .AddApplicationServices(builder.Configuration);
+
+// Add OpenTelemetry only if not disabled
+if (!builder.Configuration.GetValue<bool>("OpenTelemetry:DisableAllInstrumentation", false))
+{
+    builder.Services.AddOpenTelemetryConfiguration(builder.Configuration);
+}
 
 var app = builder.Build();
 
