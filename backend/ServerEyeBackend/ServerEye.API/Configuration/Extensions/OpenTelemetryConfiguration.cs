@@ -13,9 +13,18 @@ public static class OpenTelemetryConfiguration
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var disableAllInstrumentation = configuration.GetValue<bool>("OpenTelemetry:DisableAllInstrumentation", false);
+        var isTesting = configuration.GetValue<bool>("Testing", false);
+        
+        if (disableAllInstrumentation || isTesting)
+        {
+            return services;
+        }
+
         var serviceName = configuration["OpenTelemetry:ServiceName"] ?? "servereye-backend";
         var serviceVersion = configuration["OpenTelemetry:ServiceVersion"] ?? "1.0.0";
         var otlpEndpoint = configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
+        var enableRedisInstrumentation = !configuration.GetValue<bool>("OpenTelemetry:DisableRedisInstrumentation", false);
 
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -27,59 +36,66 @@ public static class OpenTelemetryConfiguration
                     ["environment"] = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Development",
                     ["host.name"] = Environment.MachineName
                 }))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation(options =>
-                {
-                    options.RecordException = true;
-                    options.Filter = httpContext =>
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddAspNetCoreInstrumentation(options =>
                     {
-                        var path = httpContext.Request.Path;
-                        
-                        // Exclude health and OAuth endpoints from tracing
-                        return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) &&
-                               !path.StartsWithSegments("/api/auth/oauth", StringComparison.OrdinalIgnoreCase);
-                    };
-                    options.EnrichWithHttpRequest = (activity, httpRequest) =>
+                        options.RecordException = true;
+                        options.Filter = httpContext =>
+                        {
+                            var path = httpContext.Request.Path;
+                            
+                            // Exclude health and OAuth endpoints from tracing
+                            return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) &&
+                                   !path.StartsWithSegments("/api/auth/oauth", StringComparison.OrdinalIgnoreCase);
+                        };
+                        options.EnrichWithHttpRequest = (activity, httpRequest) =>
+                        {
+                            activity.SetTag("http.request.path", httpRequest.Path);
+                            activity.SetTag("http.request.query", httpRequest.QueryString.ToString());
+                        };
+                        options.EnrichWithHttpResponse = (activity, httpResponse) =>
+                        {
+                            activity.SetTag("http.response.status_code", httpResponse.StatusCode);
+                        };
+                    })
+                    .AddHttpClientInstrumentation(options =>
                     {
-                        activity.SetTag("http.request.path", httpRequest.Path);
-                        activity.SetTag("http.request.query", httpRequest.QueryString.ToString());
-                    };
-                    options.EnrichWithHttpResponse = (activity, httpResponse) =>
+                        options.RecordException = true;
+                        options.EnrichWithHttpRequestMessage = (activity, httpRequestMessage) =>
+                        {
+                            activity.SetTag("http.request.method", httpRequestMessage.Method.ToString());
+                            activity.SetTag("http.request.url", httpRequestMessage.RequestUri?.ToString());
+                        };
+                    })
+                    .AddEntityFrameworkCoreInstrumentation(options =>
                     {
-                        activity.SetTag("http.response.status_code", httpResponse.StatusCode);
-                    };
-                })
-                .AddHttpClientInstrumentation(options =>
-                {
-                    options.RecordException = true;
-                    options.EnrichWithHttpRequestMessage = (activity, httpRequestMessage) =>
+                        options.SetDbStatementForText = true;
+                        options.SetDbStatementForStoredProcedure = true;
+                        options.EnrichWithIDbCommand = (activity, command) =>
+                        {
+                            activity.SetTag("db.command.text", command.CommandText);
+                            activity.SetTag("db.command.type", command.CommandType.ToString());
+                        };
+                    })
+                    .AddSource(serviceName)
+                    .SetSampler(new AlwaysOnSampler())
+                    .AddOtlpExporter(options =>
                     {
-                        activity.SetTag("http.request.method", httpRequestMessage.Method.ToString());
-                        activity.SetTag("http.request.url", httpRequestMessage.RequestUri?.ToString());
-                    };
-                })
-                .AddEntityFrameworkCoreInstrumentation(options =>
+                        options.Endpoint = new Uri(otlpEndpoint);
+                        options.Protocol = OtlpExportProtocol.Grpc;
+                    });
+
+                if (enableRedisInstrumentation)
                 {
-                    options.SetDbStatementForText = true;
-                    options.SetDbStatementForStoredProcedure = true;
-                    options.EnrichWithIDbCommand = (activity, command) =>
+                    tracing.AddRedisInstrumentation(connection =>
                     {
-                        activity.SetTag("db.command.text", command.CommandText);
-                        activity.SetTag("db.command.type", command.CommandType.ToString());
-                    };
-                })
-                .AddRedisInstrumentation(connection =>
-                {
-                    connection.SetVerboseDatabaseStatements = true;
-                    connection.EnrichActivityWithTimingEvents = true;
-                })
-                .AddSource(serviceName)
-                .SetSampler(new AlwaysOnSampler())
-                .AddOtlpExporter(options =>
-                {
-                    options.Endpoint = new Uri(otlpEndpoint);
-                    options.Protocol = OtlpExportProtocol.Grpc;
-                }))
+                        connection.SetVerboseDatabaseStatements = true;
+                        connection.EnrichActivityWithTimingEvents = true;
+                    });
+                }
+            })
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
