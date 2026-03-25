@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     // Set cookies
     response.cookies.set('access_token', token, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       path: '/',
       maxAge: 3600, // 1 hour
     });
@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     if (refreshToken) {
       response.cookies.set('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
         path: '/',
         maxAge: 7 * 24 * 60 * 60, // 7 days
       });
@@ -91,16 +91,16 @@ export async function GET(request: NextRequest) {
 
           response.cookies.set('access_token', refreshData.token, {
             httpOnly: true,
-            secure: false,
-            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
             path: '/',
             maxAge: refreshData.expiresIn || 1800,
           });
 
           response.cookies.set('refresh_token', refreshData.refreshToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
             path: '/',
             maxAge: 7 * 24 * 60 * 60,
           });
