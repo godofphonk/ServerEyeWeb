@@ -70,6 +70,9 @@ public static class DependencyInjectionSetup
         
         services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
             configuration.GetSection("Stripe"));
+
+        services.Configure<Infrastructure.ExternalServices.YooKassa.YooKassaConfiguration>(
+            configuration.GetSection("YooKassa"));
     }
 
     private static void RegisterRepositories(IServiceCollection services)

@@ -115,7 +115,7 @@ public class UserRegisterDtoValidatorTests
         var result = this.sut.Validate(dto);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Password" && e.ErrorMessage.Contains("at least 6"));
+        result.Errors.Should().Contain(e => e.PropertyName == "Password" && e.ErrorMessage.Contains("at least 8"));
     }
 
     [Fact]

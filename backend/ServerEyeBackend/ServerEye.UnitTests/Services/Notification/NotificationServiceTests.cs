@@ -283,8 +283,8 @@ public class NotificationServiceTests
         };
 
         this.mockUserRepository
-            .Setup(x => x.GetAllAsync())
-            .ReturnsAsync(users);
+            .Setup(x => x.GetByRolesAsync(It.IsAny<IEnumerable<UserRole>>()))
+            .ReturnsAsync(users.Where(u => u.Role is UserRole.Admin or UserRole.Support).ToList());
 
         this.mockNotificationRepository
             .Setup(x => x.AddAsync(It.IsAny<Core.Entities.Notification>()))
@@ -315,8 +315,8 @@ public class NotificationServiceTests
         };
 
         this.mockUserRepository
-            .Setup(x => x.GetAllAsync())
-            .ReturnsAsync(users);
+            .Setup(x => x.GetByRolesAsync(It.IsAny<IEnumerable<UserRole>>()))
+            .ReturnsAsync(new List<User>());
 
         // Act
         await this.notificationService.NotifyAdminsAboutNewTicketAsync(ticketId, ticketNumber, subject);
@@ -437,7 +437,7 @@ public class NotificationServiceTests
         };
 
         this.mockUserRepository
-            .Setup(x => x.GetAllAsync())
+            .Setup(x => x.GetByRolesAsync(It.IsAny<IEnumerable<UserRole>>()))
             .ReturnsAsync(users);
 
         this.mockNotificationRepository

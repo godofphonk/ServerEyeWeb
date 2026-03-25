@@ -3,6 +3,7 @@ namespace ServerEye.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ServerEye.Core.Entities;
+using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 
 public sealed class UserRepository(ServerEyeDbContext context) : IUserRepository
@@ -72,6 +73,13 @@ public sealed class UserRepository(ServerEyeDbContext context) : IUserRepository
         .AsNoTracking()
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
+        .ToListAsync()
+        .ConfigureAwait(false);
+
+    public async Task<List<User>> GetByRolesAsync(IEnumerable<UserRole> roles) => await this.context
+        .Users
+        .Where(u => roles.Contains(u.Role))
+        .AsNoTracking()
         .ToListAsync()
         .ConfigureAwait(false);
 }

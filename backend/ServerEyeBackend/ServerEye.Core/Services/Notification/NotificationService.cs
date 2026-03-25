@@ -66,8 +66,7 @@ public sealed class NotificationService(INotificationRepository notificationRepo
 
     public async Task NotifyAdminsAboutNewTicketAsync(Guid ticketId, string ticketNumber, string subject)
     {
-        var allUsers = await this.userRepository.GetAllAsync();
-        var admins = allUsers.Where(u => u.Role is UserRole.Admin or UserRole.Support).ToList();
+        var admins = await this.userRepository.GetByRolesAsync([UserRole.Admin, UserRole.Support]);
 
         foreach (var admin in admins)
         {
