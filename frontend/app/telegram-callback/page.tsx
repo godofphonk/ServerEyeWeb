@@ -57,6 +57,7 @@ function TelegramCallbackContent() {
               Hash: telegramData.hash || telegramData.Hash || ''
             },
             State: `telegram_temp_${Date.now()}`,
+            Action: action,
             LinkingAction: !!linkingInfo,
             UserId: linkingInfo?.userId || null
           };
