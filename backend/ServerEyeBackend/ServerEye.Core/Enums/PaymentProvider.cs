@@ -3,6 +3,5 @@ namespace ServerEye.Core.Enums;
 public enum PaymentProvider
 {
     Stripe = 0,
-    YooKassa = 1,
-    PayPal = 2
+    YooKassa = 1
 }
