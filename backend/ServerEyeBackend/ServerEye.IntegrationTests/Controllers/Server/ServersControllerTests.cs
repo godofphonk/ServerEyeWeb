@@ -322,6 +322,95 @@ public class ServersControllerTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task GetServerStatus_WithValidServer_ShouldReturnStatus()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Create a server first
+        var createDto = new CreateServerDto
+        {
+            Name = "Status Server",
+            Hostname = "status.example.com",
+            IpAddress = "192.168.1.190",
+            Port = 22
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/servers", createDto);
+        var createdServer = await createResponse.Content.ReadFromJsonAsync<ServerDto>();
+
+        // Act
+        var response = await this.client.GetAsync($"/api/servers/{createdServer!.Id}/status");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var status = await response.Content.ReadFromJsonAsync<ServerStatusDto>();
+        status.Should().NotBeNull();
+        status!.ServerId.Should().Be(createdServer.Id);
+    }
+
+    [Fact]
+    public async Task GetServerAlerts_WithValidServer_ShouldReturnAlerts()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Create a server first
+        var createDto = new CreateServerDto
+        {
+            Name = "Alerts Server",
+            Hostname = "alerts.example.com",
+            IpAddress = "192.168.1.191",
+            Port = 22
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/servers", createDto);
+        var createdServer = await createResponse.Content.ReadFromJsonAsync<ServerDto>();
+
+        // Act
+        var response = await this.client.GetAsync($"/api/servers/{createdServer!.Id}/alerts");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var alerts = await response.Content.ReadFromJsonAsync<ServerAlertDto[]>();
+        alerts.Should().NotBeNull();
+        alerts!.Should().BeEmpty(); // New server should have no alerts
+    }
+
+    [Fact]
+    public async Task AddServer_WithDuplicateHostname_ShouldReturnConflict()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var serverDto = new CreateServerDto
+        {
+            Name = "First Server",
+            Hostname = "duplicate.example.com",
+            IpAddress = "192.168.1.201",
+            Port = 22
+        };
+
+        // Create first server
+        await this.client.PostAsJsonAsync("/api/servers", serverDto);
+
+        var duplicateDto = new CreateServerDto
+        {
+            Name = "Duplicate Server",
+            Hostname = "duplicate.example.com", // Same hostname
+            IpAddress = "192.168.1.202",
+            Port = 22
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync("/api/servers", duplicateDto);
+
+        // Assert
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Conflict, HttpStatusCode.BadRequest);
+    }
+
     private static readonly Guid TestUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     private async Task<string> CreateTestUser()

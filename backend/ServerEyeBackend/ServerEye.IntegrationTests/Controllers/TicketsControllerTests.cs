@@ -141,6 +141,74 @@ public class TicketsControllerTests : IAsyncLifetime
         resolvedTicket.ResolvedAt.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task AddTicketComment_WithValidData_ShouldCreateComment()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Create a ticket first
+        var createDto = new CreateTicketDto
+        {
+            Title = "Ticket for Comment",
+            Description = "This ticket will receive a comment",
+            Priority = TicketPriority.Medium
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketDto>();
+
+        var commentDto = new CreateTicketCommentDto
+        {
+            Content = "This is a test comment"
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync($"/api/tickets/{createdTicket!.Id}/comments", commentDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var comment = await response.Content.ReadFromJsonAsync<TicketCommentDto>();
+        comment.Should().NotBeNull();
+        comment!.Content.Should().Be(commentDto.Content);
+        comment.TicketId.Should().Be(createdTicket.Id);
+    }
+
+    [Fact]
+    public async Task GetTickets_ByPriority_ShouldFilterCorrectly()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Create tickets with different priorities
+        var highPriorityDto = new CreateTicketDto
+        {
+            Title = "High Priority Ticket",
+            Description = "This is high priority",
+            Priority = TicketPriority.High
+        };
+        await this.client.PostAsJsonAsync("/api/tickets", highPriorityDto);
+
+        var lowPriorityDto = new CreateTicketDto
+        {
+            Title = "Low Priority Ticket", 
+            Description = "This is low priority",
+            Priority = TicketPriority.Low
+        };
+        await this.client.PostAsJsonAsync("/api/tickets", lowPriorityDto);
+
+        // Act
+        var response = await this.client.GetAsync("/api/tickets?priority=High");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tickets = await response.Content.ReadFromJsonAsync<TicketDto[]>();
+        tickets.Should().NotBeNull();
+        tickets!.Should().HaveCount(1);
+        tickets[0].Priority.Should().Be(TicketPriority.High);
+    }
+
     private static readonly Guid TestUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     private async Task<string> CreateTestUser(string prefix = "ticket")
