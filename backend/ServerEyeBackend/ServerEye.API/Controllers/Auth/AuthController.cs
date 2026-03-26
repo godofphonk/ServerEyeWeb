@@ -7,6 +7,7 @@ using ServerEye.Core.Configuration;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Services.OAuth;
 using System.Text.Json;
 
 [ApiController]
@@ -20,8 +21,9 @@ public class AuthController : BaseApiController
     private readonly IUserRepository userRepository;
     private readonly ILogger<AuthController> logger;
     private readonly FrontendSettings frontendSettings;
+    private readonly OAuthMetrics metrics;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -30,6 +32,7 @@ public class AuthController : BaseApiController
         this.userRepository = userRepository;
         this.logger = logger;
         this.frontendSettings = frontendSettings;
+        this.metrics = metrics;
     }
 
     [HttpPost("refresh")]
@@ -412,6 +415,8 @@ public class AuthController : BaseApiController
     [HttpGet("oauth/{provider}/challenge")]
     public async Task<ActionResult<OAuthChallengeResponseDto>> CreateOAuthChallenge(string provider, [FromQuery] Uri? returnUrl = null, [FromQuery] string? action = null)
     {
+        var startTime = DateTime.UtcNow;
+        
         try
         {
             this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
@@ -422,6 +427,7 @@ public class AuthController : BaseApiController
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
                 this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
+                this.metrics.RecordError(provider, "controller_challenge", "provider_disabled");
                 return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
             }
 
@@ -434,10 +440,16 @@ public class AuthController : BaseApiController
                 action ?? "auto",
                 challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
             
+            // Record controller-level metrics
+            var duration = (DateTime.UtcNow - startTime).TotalSeconds;
+            this.metrics.RecordChallengeCreated(provider, action);
+            
             return this.Ok(challenge);
         }
         catch (Exception ex)
         {
+            var duration = (DateTime.UtcNow - startTime).TotalSeconds;
+            this.metrics.RecordError(provider, "controller_challenge", ex.GetType().Name, ex.Message);
             this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", provider);
             return this.StatusCode(500, new { message = "Internal server error" });
         }
@@ -490,6 +502,8 @@ public class AuthController : BaseApiController
     [HttpPost("oauth/callback")]
     public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
     {
+        var startTime = DateTime.UtcNow;
+        
         try
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -497,10 +511,20 @@ public class AuthController : BaseApiController
 
             // Code verifier is now stored in Redis by OAuthService, no need for manual storage
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
+            
+            // Record success metrics
+            var duration = (DateTime.UtcNow - startTime).TotalSeconds;
+            this.metrics.RecordTokenExchange(request.Provider, true);
+            this.metrics.RecordTokenExchangeDuration(request.Provider, duration, true);
+            
             return this.Ok(response);
         }
         catch (Exception ex)
         {
+            var duration = (DateTime.UtcNow - startTime).TotalSeconds;
+            this.metrics.RecordError(request.Provider, "controller_callback", ex.GetType().Name, ex.Message);
+            this.metrics.RecordTokenExchange(request.Provider, false);
+            this.metrics.RecordTokenExchangeDuration(request.Provider, duration, false);
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", request.Provider);
             return this.StatusCode(500, new { message = "Internal server error" });
         }

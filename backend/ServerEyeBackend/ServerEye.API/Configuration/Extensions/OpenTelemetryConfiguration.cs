@@ -4,6 +4,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using ServerEye.Core.Services.OAuth;
 
 namespace ServerEye.API.Configuration.Extensions;
 
@@ -80,6 +81,7 @@ public static class OpenTelemetryConfiguration
                         };
                     })
                     .AddSource(serviceName)
+                    .AddSource("ServerEye.OAuth") // Add OAuth activity source
                     .SetSampler(new AlwaysOnSampler())
                     .AddOtlpExporter(options =>
                     {
@@ -100,12 +102,16 @@ public static class OpenTelemetryConfiguration
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddMeter(serviceName)
+                .AddMeter("ServerEye.OAuth") // Add OAuth metrics
                 .AddPrometheusExporter()
                 .AddOtlpExporter(options =>
                 {
                     options.Endpoint = new Uri(otlpEndpoint);
                     options.Protocol = OtlpExportProtocol.Grpc;
                 }));
+
+        // Register OAuthMetrics as singleton
+        services.AddSingleton<OAuthMetrics>();
 
         // Configure logging with OpenTelemetry
         services.AddLogging(logging =>
