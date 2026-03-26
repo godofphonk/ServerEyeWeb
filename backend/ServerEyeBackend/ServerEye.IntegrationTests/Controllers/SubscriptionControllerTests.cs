@@ -106,4 +106,89 @@ public class SubscriptionControllerTests : IAsyncLifetime
         enterprisePlan.HasApiAccess.Should().BeTrue();
         enterprisePlan.HasPrioritySupport.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task CreateSubscriptionCheckout_WithAuth_ShouldReturnSessionUrl()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var request = new CreateSubscriptionRequest
+        {
+            PlanType = SubscriptionPlan.Pro,
+            IsYearly = false,
+            SuccessUrl = "https://localhost:3000/success",
+            CancelUrl = "https://localhost:3000/cancel"
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync("/api/subscription/checkout", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CreateSubscriptionResponse>();
+        result.Should().NotBeNull();
+        result!.SessionId.Should().NotBeEmpty();
+        result.SessionUrl.Should().NotBeEmpty();
+        result.SessionUrl.Should().StartWith("https://checkout.stripe.com");
+    }
+
+    [Fact]
+    public async Task CreateSubscriptionCheckout_WithoutAuth_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var request = new CreateSubscriptionRequest
+        {
+            PlanType = SubscriptionPlan.Pro,
+            IsYearly = false
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync("/api/subscription/checkout", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetCurrentSubscription_WithNewUser_ShouldReturnNull()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Act
+        var response = await this.client.GetAsync("/api/subscription/current");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var subscription = await response.Content.ReadFromJsonAsync<SubscriptionDto>();
+        subscription.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetCurrentSubscription_WithoutAuth_ShouldReturnUnauthorized()
+    {
+        // Act
+        var response = await this.client.GetAsync("/api/subscription/current");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    private async Task<string> CreateTestUser()
+    {
+        var registerDto = new ServerEye.Core.DTOs.UserDto.UserRegisterDto
+        {
+            UserName = $"subtest_{Guid.NewGuid():N}",
+            Email = $"sub_{Guid.NewGuid():N}@example.com",
+            Password = "Test123!"
+        };
+
+        var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
+        var content = await response.Content.ReadAsStringAsync();
+        var result = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+        return result.GetProperty("token").GetString()!;
+    }
 }
