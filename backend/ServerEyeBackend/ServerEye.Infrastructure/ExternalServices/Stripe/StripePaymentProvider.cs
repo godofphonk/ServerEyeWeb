@@ -63,6 +63,13 @@ public class StripePaymentProvider : IPaymentProvider
             var customer = await service.CreateAsync(options);
 
             logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
+            
+            // Business metric: Customer acquisition
+            logger.LogInformation(
+                "Customer acquisition: New Stripe customer {CustomerId} created for user {UserId}",
+                customer.Id,
+                userId);
+            
             return customer.Id;
         }
         catch (StripeException ex)
@@ -113,6 +120,13 @@ public class StripePaymentProvider : IPaymentProvider
                 "Created Stripe checkout session {SessionId} for customer {CustomerId}",
                 session.Id,
                 customerId);
+
+            // Business metric: Checkout session creation
+            logger.LogInformation(
+                "Checkout funnel: Stripe session {SessionId} created for {PlanType} ({BillingCycle})",
+                session.Id,
+                planType,
+                isYearly ? "yearly" : "monthly");
 
             return new CreateSubscriptionResponse
             {

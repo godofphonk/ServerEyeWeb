@@ -1,3 +1,4 @@
+using System.Diagnostics;
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
@@ -88,12 +89,55 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
+        
+        activity?.SetTag("user.id", userId.ToString());
+        activity?.SetTag("subscription.plan_type", request.PlanType.ToString());
+
         this.logger.LogInformation("Creating subscription checkout for user: {UserId}, plan: {PlanType}, yearly: {IsYearly}", userId, request.PlanType, request.IsYearly);
         
-        var result = await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
+        var stopwatch = Stopwatch.StartNew();
         
-        this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId}", userId, result.SessionId);
-        return result;
+        try
+        {
+            var result = await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
+            
+            stopwatch.Stop();
+            activity?.SetTag("checkout.session_id", result.SessionId);
+            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
+
+            this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId} in {ElapsedMs}ms", userId, result.SessionId, stopwatch.ElapsedMilliseconds);
+
+            // Business metric: MRR impact tracking
+            var plan = GetHardcodedPlan(request.PlanType);
+            var monthlyRevenue = request.IsYearly ? plan.YearlyPrice / 12 : plan.MonthlyPrice;
+            
+            this.logger.LogInformation(
+                "MRR impact: Potential +{MonthlyRevenue:F2} USD from user {UserId}, plan {PlanType} ({BillingCycle})",
+                monthlyRevenue,
+                userId,
+                request.PlanType,
+                request.IsYearly ? "yearly" : "monthly");
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            activity?.SetTag("error", true);
+            activity?.SetTag("error.type", ex.GetType().Name);
+
+            this.logger.LogError(ex, "Failed to create subscription checkout for user: {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
+            
+            // Business metric: Lost revenue opportunity
+            var plan = GetHardcodedPlan(request.PlanType);
+            this.logger.LogWarning(
+                "Revenue opportunity lost: {PlanType} for user {UserId}, reason {ErrorType}",
+                request.PlanType,
+                userId,
+                ex.GetType().Name);
+
+            throw;
+        }
     }
 
     public async Task<SubscriptionDto> UpdateSubscriptionPlanAsync(
@@ -169,35 +213,64 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task CreateFreeSubscriptionAsync(Guid userId)
     {
+        
+        activity?.SetTag("user.id", userId.ToString());
+
         this.logger.LogInformation("Creating free subscription for user {UserId}", userId);
 
-        // Check if user already has a subscription
-        var existingSubscription = await this.subscriptionRepository.GetByUserIdAsync(userId);
-        if (existingSubscription != null)
+        var stopwatch = Stopwatch.StartNew();
+
+        try
         {
-            this.logger.LogInformation("User {UserId} already has subscription {SubscriptionId}", userId, existingSubscription.Id);
-            return;
+            // Check if user already has a subscription
+            var existingSubscription = await this.subscriptionRepository.GetByUserIdAsync(userId);
+            if (existingSubscription != null)
+            {
+                this.logger.LogInformation("User {UserId} already has subscription {SubscriptionId}", userId, existingSubscription.Id);
+                return;
+            }
+
+            var freeSubscription = new Subscription
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PlanId = Guid.Parse("00000000-0000-0000-0000-000000000001"), // Free plan ID
+                Status = SubscriptionStatus.Active,
+                CurrentPeriodStart = DateTime.UtcNow,
+                CurrentPeriodEnd = null, // No end date for free plan
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await this.subscriptionRepository.AddAsync(freeSubscription);
+
+            stopwatch.Stop();
+            activity?.SetTag("subscription.id", freeSubscription.Id.ToString());
+            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
+
+            this.logger.LogInformation("Created free subscription {SubscriptionId} for user {UserId} in {ElapsedMs}ms", freeSubscription.Id, userId, stopwatch.ElapsedMilliseconds);
+
+            // Business metric: User onboarding
+            this.logger.LogInformation(
+                "User onboarding: {UserId} started with free plan {SubscriptionId}",
+                userId,
+                freeSubscription.Id);
         }
-
-        // Get free plan ID (hardcoded for now - should be configurable)
-        var freePlanId = new Guid("841bb3db-424c-46e5-a752-04641391c993");
-
-        // Create free subscription
-        var freeSubscription = new Subscription
+        catch (Exception ex)
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PlanId = freePlanId,
-            Status = SubscriptionStatus.Active,
-            CurrentPeriodStart = DateTime.UtcNow,
-            CurrentPeriodEnd = DateTime.UtcNow.AddYears(100), // Never expires for free plan
-            CancelAtPeriodEnd = false,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            stopwatch.Stop();
+            activity?.SetTag("error", true);
+            activity?.SetTag("error.type", ex.GetType().Name);
 
-        await this.subscriptionRepository.AddAsync(freeSubscription);
-        this.logger.LogInformation("Created free subscription {SubscriptionId} for user {UserId}", freeSubscription.Id, userId);
+            this.logger.LogError(ex, "Failed to create free subscription for user {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
+            
+            // Business metric: Onboarding failure
+            this.logger.LogWarning(
+                "User onboarding failed: {UserId}, reason {ErrorType}",
+                userId,
+                ex.GetType().Name);
+
+            throw;
+        }
     }
 
     private static SubscriptionPlanDto GetHardcodedPlan(SubscriptionPlan planType)
