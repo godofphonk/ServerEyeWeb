@@ -144,6 +144,8 @@ public class PaymentController : ControllerBase
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
+            // Security metric: Invalid token attempts
+            logger.LogWarning("Security: Invalid user ID in token for IP {RemoteIp}", HttpContext.Connection.RemoteIpAddress);
             throw new UnauthorizedAccessException("User ID not found in token");
         }
         return userId;

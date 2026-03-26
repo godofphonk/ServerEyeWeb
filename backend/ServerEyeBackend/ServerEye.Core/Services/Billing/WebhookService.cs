@@ -1,3 +1,4 @@
+using System.Diagnostics;
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,13 @@ public class WebhookService : IWebhookService
         string payload,
         string signature)
     {
-        logger.LogInformation("Processing webhook from {Provider}", provider);
+        
+        activity?.SetTag("webhook.provider", provider.ToString());
+        activity?.SetTag("webhook.payload_size", payload.Length.ToString());
+
+        logger.LogInformation("Processing webhook from {Provider}, payload size: {Size} bytes", provider, payload.Length);
+
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -35,10 +42,13 @@ public class WebhookService : IWebhookService
 
             var (eventType, data) = await paymentProvider.ParseWebhookEventAsync(payload);
 
+            activity?.SetTag("webhook.event_type", eventType);
+
             var existingEvent = await webhookEventRepository.GetByEventIdAsync(eventType);
             if (existingEvent != null)
             {
-                logger.LogWarning("Webhook event {EventId} already processed", eventType);
+                stopwatch.Stop();
+                logger.LogWarning("Webhook event {EventId} already processed in {ElapsedMs}ms", eventType, stopwatch.ElapsedMilliseconds);
                 return true;
             }
 
@@ -49,7 +59,9 @@ public class WebhookService : IWebhookService
                 EventId = eventType,
                 EventType = eventType,
                 Payload = payload,
-                IsProcessed = false,
+                Signature = signature,
+                ProcessedAt = null,
+                ProcessingError = null,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -57,16 +69,38 @@ public class WebhookService : IWebhookService
 
             await ProcessWebhookEventAsync(webhookEvent, data);
 
-            webhookEvent.IsProcessed = true;
             webhookEvent.ProcessedAt = DateTime.UtcNow;
             await webhookEventRepository.UpdateAsync(webhookEvent);
 
-            logger.LogInformation("Successfully processed webhook event {EventId}", eventType);
+            stopwatch.Stop();
+            activity?.SetTag("webhook.webhook_id", webhookEvent.Id.ToString());
+            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
+
+            logger.LogInformation("Successfully processed webhook event {EventId} in {ElapsedMs}ms", eventType, stopwatch.ElapsedMilliseconds);
+
+            // Business metric: Webhook conversion tracking
+            logger.LogInformation(
+                "Webhook conversion: {Provider} {EventType} processed successfully",
+                provider,
+                eventType);
+
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to process webhook from {Provider}", provider);
+            stopwatch.Stop();
+            activity?.SetTag("error", true);
+            activity?.SetTag("error.type", ex.GetType().Name);
+
+            logger.LogError(ex, "Failed to process webhook from {Provider} in {ElapsedMs}ms: {ErrorType}", provider, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
+            
+            // Business metric: Webhook failure tracking
+            logger.LogWarning(
+                "Webhook failure: {Provider} {EventType}, reason {ErrorType}",
+                provider,
+                "unknown",
+                ex.GetType().Name);
+
             return false;
         }
     }
@@ -152,57 +186,113 @@ public class WebhookService : IWebhookService
 
     private Task HandleCheckoutSessionCompletedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling checkout session completed");
+
+        // Business metric: Conversion tracking
+        logger.LogInformation(
+            "Conversion funnel: Checkout completed successfully");
+
         return Task.CompletedTask;
     }
 
     private Task HandleSubscriptionCreatedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling subscription created");
+
+        // Business metric: New subscription
+        logger.LogInformation(
+            "Subscription lifecycle: New subscription created");
+
         return Task.CompletedTask;
     }
 
     private Task HandleSubscriptionUpdatedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling subscription updated");
+
+        // Business metric: Subscription change
+        logger.LogInformation(
+            "Subscription lifecycle: Subscription updated");
+
         return Task.CompletedTask;
     }
 
     private Task HandleSubscriptionDeletedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling subscription deleted");
+
+        // Business metric: Churn tracking
+        logger.LogInformation(
+            "Churn tracking: Subscription deleted/cancelled");
+
         return Task.CompletedTask;
     }
 
     private Task HandleInvoicePaymentSucceededAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling invoice payment succeeded");
+
+        // Business metric: Revenue recognition
+        logger.LogInformation(
+            "Revenue recognition: Invoice payment succeeded");
+
         return Task.CompletedTask;
     }
 
     private Task HandleInvoicePaymentFailedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling invoice payment failed");
+
+        // Business metric: Payment failure
+        logger.LogWarning(
+            "Payment failure: Invoice payment failed - potential churn risk");
+
         return Task.CompletedTask;
     }
 
     private Task HandlePaymentIntentSucceededAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling payment intent succeeded");
+
+        // Business metric: Payment success
+        logger.LogInformation(
+            "Payment success: Payment intent completed");
+
         return Task.CompletedTask;
     }
 
     private Task HandlePaymentIntentFailedAsync(object data)
     {
+        
         _ = data;
+        
         logger.LogInformation("Handling payment intent failed");
+
+        // Business metric: Payment failure
+        logger.LogWarning(
+            "Payment failure: Payment intent failed - conversion lost");
+
         return Task.CompletedTask;
     }
 }
