@@ -35,17 +35,6 @@ public class PaymentService : IPaymentService
         Guid userId,
         CreatePaymentIntentRequest request)
     {
-        
-        activity?.SetTag("user.id", userId.ToString());
-        activity?.SetTag("payment.amount", request.Amount.ToString());
-        activity?.SetTag("payment.currency", request.Currency);
-
-        // logger.LogInformation(
-        //     "Creating payment intent for user {UserId}, amount {Amount} {Currency}",
-        //     userId,
-        //     request.Amount,
-        //     request.Currency);
-
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -84,9 +73,7 @@ public class PaymentService : IPaymentService
 
             await paymentRepository.AddAsync(payment);
 
-            // stopwatch.Stop();
-            // activity?.SetTag("payment.intent_id", response.PaymentIntentId);
-            // activity?.SetTag("db.operation_ms", stopwatch.ElapsedMilliseconds);
+            stopwatch.Stop();
 
             logger.LogInformation(
                 "Created payment intent {PaymentIntentId} for user {UserId} in {ElapsedMs}ms",
@@ -107,13 +94,11 @@ public class PaymentService : IPaymentService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            // activity?.SetTag("error", true);
-            // activity?.SetTag("error.type", ex.GetType().Name);
-            // activity?.SetTag("elapsed_ms", stopwatch.ElapsedMilliseconds);
 
-            logger.LogError(ex, 
+            logger.LogError(
+                ex,
                 "Failed to create payment intent for user {UserId} in {ElapsedMs}ms: {ErrorType}",
-                userId, 
+                userId,
                 stopwatch.ElapsedMilliseconds,
                 ex.GetType().Name);
 
@@ -133,18 +118,13 @@ public class PaymentService : IPaymentService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        
-        activity?.SetTag("user.id", userId.ToString());
-        activity?.SetTag("subscription.plan_type", request.PlanType.ToString());
-        activity?.SetTag("subscription.yearly", request.IsYearly.ToString());
+        var stopwatch = Stopwatch.StartNew();
 
         logger.LogInformation(
             "Creating subscription checkout for user {UserId}, plan {PlanType}, yearly {IsYearly}",
             userId,
             request.PlanType,
             request.IsYearly);
-
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -167,8 +147,6 @@ public class PaymentService : IPaymentService
                 cancelUrl);
 
             stopwatch.Stop();
-            activity?.SetTag("checkout.session_id", response.SessionId);
-            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
 
             logger.LogInformation(
                 "Created subscription checkout {SessionId} for user {UserId} in {ElapsedMs}ms",
@@ -189,10 +167,9 @@ public class PaymentService : IPaymentService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            activity?.SetTag("error", true);
-            activity?.SetTag("error.type", ex.GetType().Name);
 
-            logger.LogError(ex, 
+            logger.LogError(
+                ex,
                 "Failed to create subscription checkout for user {UserId} in {ElapsedMs}ms: {ErrorType}",
                 userId,
                 stopwatch.ElapsedMilliseconds,
@@ -249,10 +226,6 @@ public class PaymentService : IPaymentService
 
     public async Task<bool> RefundPaymentAsync(Guid paymentId, decimal? amount = null)
     {
-        
-        activity?.SetTag("payment.id", paymentId.ToString());
-        activity?.SetTag("refund.amount", amount?.ToString() ?? "full");
-
         logger.LogInformation("Refunding payment {PaymentId}, amount {Amount}", paymentId, amount);
 
         var stopwatch = Stopwatch.StartNew();
@@ -286,8 +259,6 @@ public class PaymentService : IPaymentService
                 await paymentRepository.UpdateAsync(payment);
 
                 stopwatch.Stop();
-                activity?.SetTag("payment.status", payment.Status.ToString());
-                activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
 
                 logger.LogInformation(
                     "Refunded payment {PaymentId} ({OldStatus} -> {NewStatus}), amount {Amount} in {ElapsedMs}ms",
@@ -316,8 +287,6 @@ public class PaymentService : IPaymentService
             else
             {
                 stopwatch.Stop();
-                activity?.SetTag("error", true);
-                activity?.SetTag("error.type", "provider_refund_failed");
 
                 logger.LogWarning(
                     "Refund failed for payment {PaymentId} in {ElapsedMs}ms",
@@ -330,10 +299,9 @@ public class PaymentService : IPaymentService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            activity?.SetTag("error", true);
-            activity?.SetTag("error.type", ex.GetType().Name);
 
-            logger.LogError(ex, 
+            logger.LogError(
+                ex,
                 "Failed to refund payment {PaymentId} in {ElapsedMs}ms: {ErrorType}",
                 paymentId,
                 stopwatch.ElapsedMilliseconds,

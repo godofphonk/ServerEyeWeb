@@ -28,10 +28,6 @@ public class WebhookService : IWebhookService
         string payload,
         string signature)
     {
-        
-        activity?.SetTag("webhook.provider", provider.ToString());
-        activity?.SetTag("webhook.payload_size", payload.Length.ToString());
-
         logger.LogInformation("Processing webhook from {Provider}, payload size: {Size} bytes", provider, payload.Length);
 
         var stopwatch = Stopwatch.StartNew();
@@ -41,8 +37,6 @@ public class WebhookService : IWebhookService
             var paymentProvider = providerFactory.GetProvider(provider);
 
             var (eventType, data) = await paymentProvider.ParseWebhookEventAsync(payload);
-
-            activity?.SetTag("webhook.event_type", eventType);
 
             var existingEvent = await webhookEventRepository.GetByEventIdAsync(eventType);
             if (existingEvent != null)
@@ -59,9 +53,10 @@ public class WebhookService : IWebhookService
                 EventId = eventType,
                 EventType = eventType,
                 Payload = payload,
-                Signature = signature,
-                ProcessedAt = null,
+                IsProcessed = false,
                 ProcessingError = null,
+                ProcessingAttempts = 0,
+                ProcessedAt = null,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -73,10 +68,12 @@ public class WebhookService : IWebhookService
             await webhookEventRepository.UpdateAsync(webhookEvent);
 
             stopwatch.Stop();
-            activity?.SetTag("webhook.webhook_id", webhookEvent.Id.ToString());
-            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
 
-            logger.LogInformation("Successfully processed webhook event {EventId} in {ElapsedMs}ms", eventType, stopwatch.ElapsedMilliseconds);
+            logger.LogInformation(
+                "Webhook processed: {Provider} {EventType} in {ElapsedMs}ms",
+                provider,
+                eventType,
+                stopwatch.ElapsedMilliseconds);
 
             // Business metric: Webhook conversion tracking
             logger.LogInformation(
@@ -89,8 +86,6 @@ public class WebhookService : IWebhookService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            activity?.SetTag("error", true);
-            activity?.SetTag("error.type", ex.GetType().Name);
 
             logger.LogError(ex, "Failed to process webhook from {Provider} in {ElapsedMs}ms: {ErrorType}", provider, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
             
@@ -186,9 +181,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleCheckoutSessionCompletedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling checkout session completed");
 
         // Business metric: Conversion tracking
@@ -200,9 +194,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleSubscriptionCreatedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling subscription created");
 
         // Business metric: New subscription
@@ -214,9 +207,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleSubscriptionUpdatedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling subscription updated");
 
         // Business metric: Subscription change
@@ -228,9 +220,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleSubscriptionDeletedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling subscription deleted");
 
         // Business metric: Churn tracking
@@ -242,9 +233,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleInvoicePaymentSucceededAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling invoice payment succeeded");
 
         // Business metric: Revenue recognition
@@ -256,9 +246,8 @@ public class WebhookService : IWebhookService
 
     private Task HandleInvoicePaymentFailedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling invoice payment failed");
 
         // Business metric: Payment failure
@@ -270,9 +259,8 @@ public class WebhookService : IWebhookService
 
     private Task HandlePaymentIntentSucceededAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling payment intent succeeded");
 
         // Business metric: Payment success
@@ -284,9 +272,8 @@ public class WebhookService : IWebhookService
 
     private Task HandlePaymentIntentFailedAsync(object data)
     {
-        
         _ = data;
-        
+
         logger.LogInformation("Handling payment intent failed");
 
         // Business metric: Payment failure

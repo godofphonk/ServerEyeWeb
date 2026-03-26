@@ -89,10 +89,6 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CreateSubscriptionRequest request)
     {
-        
-        activity?.SetTag("user.id", userId.ToString());
-        activity?.SetTag("subscription.plan_type", request.PlanType.ToString());
-
         this.logger.LogInformation("Creating subscription checkout for user: {UserId}, plan: {PlanType}, yearly: {IsYearly}", userId, request.PlanType, request.IsYearly);
         
         var stopwatch = Stopwatch.StartNew();
@@ -102,8 +98,6 @@ public class SubscriptionService : ISubscriptionService
             var result = await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
             
             stopwatch.Stop();
-            activity?.SetTag("checkout.session_id", result.SessionId);
-            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
 
             this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId} in {ElapsedMs}ms", userId, result.SessionId, stopwatch.ElapsedMilliseconds);
 
@@ -123,8 +117,6 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            activity?.SetTag("error", true);
-            activity?.SetTag("error.type", ex.GetType().Name);
 
             this.logger.LogError(ex, "Failed to create subscription checkout for user: {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
             
@@ -213,9 +205,6 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task CreateFreeSubscriptionAsync(Guid userId)
     {
-        
-        activity?.SetTag("user.id", userId.ToString());
-
         this.logger.LogInformation("Creating free subscription for user {UserId}", userId);
 
         var stopwatch = Stopwatch.StartNew();
@@ -244,8 +233,6 @@ public class SubscriptionService : ISubscriptionService
             await this.subscriptionRepository.AddAsync(freeSubscription);
 
             stopwatch.Stop();
-            activity?.SetTag("subscription.id", freeSubscription.Id.ToString());
-            activity?.SetTag("operation_ms", stopwatch.ElapsedMilliseconds);
 
             this.logger.LogInformation("Created free subscription {SubscriptionId} for user {UserId} in {ElapsedMs}ms", freeSubscription.Id, userId, stopwatch.ElapsedMilliseconds);
 
@@ -258,8 +245,6 @@ public class SubscriptionService : ISubscriptionService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            activity?.SetTag("error", true);
-            activity?.SetTag("error.type", ex.GetType().Name);
 
             this.logger.LogError(ex, "Failed to create free subscription for user {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
             

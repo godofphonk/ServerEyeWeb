@@ -798,12 +798,14 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("oauth/telegram/callback")]
-    public async Task<IActionResult> TelegramCallbackPost([FromBody] TelegramCallbackRequestDto request, [FromQuery] string? action = null)
+    public async Task<IActionResult> TelegramCallbackPost([FromBody] TelegramCallbackRequestDto request)
     {
         try
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
+
+            var action = request.Action; // Get action from request body
 
             this.logger.LogInformation(
                 "Telegram OAuth callback received - User ID: {UserId}, State: {State}, Action: {Action}",
@@ -830,7 +832,7 @@ public class AuthController : BaseApiController
                 Provider = "telegram",
                 Code = telegramCode,
                 State = state,
-                Action = action, // Pass action from query parameter
+                Action = action, // Pass action from request body
                 LinkingAction = request.LinkingAction, // Pass linking flag from frontend
                 UserId = request.UserId // Pass userId from frontend for linking validation
             };
