@@ -1,7 +1,9 @@
 namespace ServerEye.Infrastructure;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using ServerEye.Core.Entities;
+using ServerEye.Core.Services.Database;
 
 public sealed class ServerEyeDbContext : DbContext
 {
@@ -127,5 +129,8 @@ public sealed class ServerEyeDbContext : DbContext
         // Remove dangerous SQL logging to console
         // SQL queries should be logged through proper logging infrastructure only in development
         // optionsBuilder?.LogTo(Console.WriteLine); // REMOVED FOR SECURITY
+        
+        // Note: PostgreSQL metrics interceptor is now handled through OpenTelemetry EF Core instrumentation
+        // No manual interceptor needed as we rely on automatic instrumentation
     }
 }

@@ -5,6 +5,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using ServerEye.Core.Services.OAuth;
+using ServerEye.Core.Services.Database;
 
 namespace ServerEye.API.Configuration.Extensions;
 
@@ -103,6 +104,7 @@ public static class OpenTelemetryConfiguration
                 .AddHttpClientInstrumentation()
                 .AddMeter(serviceName)
                 .AddMeter("ServerEye.OAuth") // Add OAuth metrics
+                .AddMeter("ServerEye.PostgreSQL") // Add PostgreSQL metrics
                 .AddPrometheusExporter()
                 .AddOtlpExporter(options =>
                 {
@@ -112,6 +114,10 @@ public static class OpenTelemetryConfiguration
 
         // Register OAuthMetrics as singleton
         services.AddSingleton<OAuthMetrics>();
+        
+        // Register PostgreSQL metrics
+        services.AddSingleton<PostgreSQLMetrics>();
+        services.Configure<PostgreSQLMonitoringOptions>(configuration.GetSection("PostgreSQLMonitoring"));
 
         // Configure logging with OpenTelemetry
         services.AddLogging(logging =>
