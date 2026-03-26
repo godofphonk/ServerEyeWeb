@@ -1,11 +1,14 @@
 namespace ServerEye.API.Configuration.Extensions;
 
 using FluentValidation;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Validators;
+using ServerEye.API.HealthChecks;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services;
+using ServerEye.Core.Services.Database;
 using ServerEye.Infrastructure.Caching;
 using ServerEye.Infrastructure.ExternalServices;
 using ServerEye.Infrastructure.ExternalServices.GoApi;
@@ -43,6 +46,9 @@ public static class DependencyInjectionSetup
 
         // Register validators
         services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
+
+        // Register health checks
+        AddHealthChecks(services, configuration);
 
         return services;
     }
@@ -247,5 +253,29 @@ public static class DependencyInjectionSetup
         services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IWebhookService, ServerEye.Core.Services.Billing.WebhookService>();
         services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
         services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
+    }
+
+    /// <summary>
+    /// Registers health checks for the application.
+    /// </summary>
+    private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)
+    {
+        var healthChecksBuilder = services.AddHealthChecks();
+
+        // Add PostgreSQL health check
+        healthChecksBuilder.AddCheck<PostgreSQLHealthCheck>("postgresql");
+
+        // Add existing database health checks
+        healthChecksBuilder.AddCheck<DatabaseHealthCheck<Infrastructure.ServerEyeDbContext>>("main_database");
+        
+        // Add Redis health check if configured
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString))
+        {
+            healthChecksBuilder.AddRedis(redisConnectionString, name: "redis");
+        }
+
+        // Add self health check
+        healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
     }
 }
