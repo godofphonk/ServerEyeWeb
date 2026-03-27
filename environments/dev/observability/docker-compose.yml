@@ -11,7 +11,7 @@ services:
       - "4317:4317"    # OTLP gRPC
       - "4318:4318"    # OTLP HTTP
     volumes:
-      - ./alloy-config.yaml:/etc/alloy/config.yaml:ro
+      - ./alloy/alloy-config.yaml:/etc/alloy/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
       - run
@@ -49,8 +49,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - ./prometheus/prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -77,7 +77,7 @@ services:
       - "3200:3200"   # Tempo HTTP
       - "4319:4317"   # OTLP gRPC (alternative port)
     volumes:
-      - ./tempo-config.yaml:/etc/tempo/tempo.yaml:ro
+      - ./tempo/tempo-config.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     command: -config.file=/etc/tempo/tempo.yaml
     restart: unless-stopped
@@ -96,8 +96,8 @@ services:
     ports:
       - "3010:3000"
     volumes:
-      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
-      - ./grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./grafana/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./grafana/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
       - ./dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     environment:
