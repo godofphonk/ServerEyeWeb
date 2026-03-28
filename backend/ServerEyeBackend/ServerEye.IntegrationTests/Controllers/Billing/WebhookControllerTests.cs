@@ -268,13 +268,13 @@ public class WebhookControllerTests : IAsyncLifetime
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var payloadToSign = $"{timestamp}.{payload}";
         var signature = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(payloadToSign)));
-        return $"t={timestamp},v1={signature.ToLower()}";
+        return $"t={timestamp},v1={signature.ToUpperInvariant()}";
     }
 
     private static string GenerateYooKassaSignature(string payload)
     {
         // In real implementation, this would use HMAC-SHA256 with YooKassa secret
         // For testing, we'll generate a mock signature
-        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToLower();
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToUpperInvariant();
     }
 }
