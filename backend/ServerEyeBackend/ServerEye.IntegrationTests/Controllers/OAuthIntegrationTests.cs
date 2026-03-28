@@ -74,19 +74,12 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         
         // Setup mock responses
         this.mockJwtService
-            .Setup(x => x.GenerateToken(It.IsAny<User>()))
+            .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
             .Returns("test-jwt-token");
 
         this.mockSubscriptionService
-            .Setup(x => x.GetOrCreateDefaultSubscriptionAsync(It.IsAny<Guid>()))
-            .ReturnsAsync((Guid userId) => new Core.Entities.Billing.Subscription
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                PlanId = Guid.NewGuid(),
-                Status = Core.Entities.Billing.SubscriptionStatus.Active,
-                CreatedAt = DateTime.UtcNow
-            });
+            .Setup(x => x.CreateFreeSubscriptionAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
 
         using var client = this.factory.CreateClient();
 
@@ -139,19 +132,12 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         var state = "github-test-" + Guid.NewGuid().ToString("N")[..8];
         
         this.mockJwtService
-            .Setup(x => x.GenerateToken(It.IsAny<User>()))
+            .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
             .Returns("github-jwt-token");
 
         this.mockSubscriptionService
-            .Setup(x => x.GetOrCreateDefaultSubscriptionAsync(It.IsAny<Guid>()))
-            .ReturnsAsync((Guid userId) => new Core.Entities.Billing.Subscription
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                PlanId = Guid.NewGuid(),
-                Status = Core.Entities.Billing.SubscriptionStatus.Active,
-                CreatedAt = DateTime.UtcNow
-            });
+            .Setup(x => x.CreateFreeSubscriptionAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
 
         using var client = this.factory.CreateClient();
 
@@ -178,19 +164,12 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         var state = "telegram-test-" + Guid.NewGuid().ToString("N")[..8];
         
         this.mockJwtService
-            .Setup(x => x.GenerateToken(It.IsAny<User>()))
+            .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
             .Returns("telegram-jwt-token");
 
         this.mockSubscriptionService
-            .Setup(x => x.GetOrCreateDefaultSubscriptionAsync(It.IsAny<Guid>()))
-            .ReturnsAsync((Guid userId) => new Core.Entities.Billing.Subscription
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                PlanId = Guid.NewGuid(),
-                Status = Core.Entities.Billing.SubscriptionStatus.Active,
-                CreatedAt = DateTime.UtcNow
-            });
+            .Setup(x => x.CreateFreeSubscriptionAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
 
         using var client = this.factory.CreateClient();
 
@@ -350,7 +329,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         if (response.StatusCode == HttpStatusCode.OK)
         {
             this.mockExternalLoginRepository.Verify(
-                x => x.DeleteAsync(It.IsAny<Guid>()), 
+                x => x.DeleteAsync(It.IsAny<UserExternalLogin>(), It.IsAny<CancellationToken>()),
                 Times.Once);
         }
     }
