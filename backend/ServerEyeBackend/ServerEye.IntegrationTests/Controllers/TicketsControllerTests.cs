@@ -6,9 +6,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using ServerEye.Core.DTOs.Ticket;
-using ServerEye.Core.Interfaces.Repository;
+using ServerEye.Core.Enums;
 using Xunit;
 
 [Collection("Integration Tests")]
@@ -34,7 +33,7 @@ public class TicketsControllerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetTickets_WithAuth_ShouldReturnUserTickets()
+    public async Task GetAllTickets_WithAuth_ShouldReturnPaginatedTickets()
     {
         // Arrange
         var userToken = await this.CreateTestUser();
@@ -45,9 +44,19 @@ public class TicketsControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var tickets = await response.Content.ReadFromJsonAsync<TicketDto[]>();
-        tickets.Should().NotBeNull();
-        tickets!.Should().BeEmpty(); // New user should have no tickets
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("tickets");
+        content.Should().Contain("pagination");
+    }
+
+    [Fact]
+    public async Task GetAllTickets_WithoutAuth_ShouldReturnUnauthorized()
+    {
+        // Act
+        var response = await this.client.GetAsync("/api/tickets");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -59,23 +68,65 @@ public class TicketsControllerTests : IAsyncLifetime
 
         var createDto = new CreateTicketDto
         {
-            Title = "Test Ticket",
-            Description = "This is a test ticket for integration testing",
-            Priority = TicketPriority.Medium,
-            Category = "General"
+            Name = "Test User",
+            Email = $"ticket_{Guid.NewGuid():N}@example.com",
+            Subject = "Integration Test Ticket",
+            Message = "This is a test ticket created during integration testing"
         };
 
         // Act
         var response = await this.client.PostAsJsonAsync("/api/tickets", createDto);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TicketDto>();
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TicketResponseDto>();
         result.Should().NotBeNull();
-        result!.Title.Should().Be(createDto.Title);
-        result.Description.Should().Be(createDto.Description);
-        result.Priority.Should().Be(createDto.Priority);
-        result.Status.Should().Be(TicketStatus.Open);
+        result!.Subject.Should().Be(createDto.Subject);
+        result.Message.Should().Be(createDto.Message);
+        result.Name.Should().Be(createDto.Name);
+        result.Email.Should().Be(createDto.Email);
+        result.Status.Should().Be(TicketStatus.New);
+    }
+
+    [Fact]
+    public async Task CreateTicket_WithoutAuth_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var createDto = new CreateTicketDto
+        {
+            Name = "Test User",
+            Email = "noauth@example.com",
+            Subject = "Unauthorized Ticket",
+            Message = "This ticket should not be created"
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateTicket_WithMissingFields_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var invalidDto = new CreateTicketDto
+        {
+            Name = "",
+            Email = "",
+            Subject = "",
+            Message = ""
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync("/api/tickets", invalidDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -85,30 +136,205 @@ public class TicketsControllerTests : IAsyncLifetime
         var userToken = await this.CreateTestUser();
         this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
 
-        // Create a ticket first
         var createDto = new CreateTicketDto
         {
-            Title = "Ticket to Get",
-            Description = "This ticket will be retrieved",
-            Priority = TicketPriority.High,
-            Category = "Technical"
+            Name = "Test User",
+            Email = $"getbyid_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket to Retrieve",
+            Message = "This ticket will be retrieved by ID"
         };
         var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
-        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketDto>();
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketResponseDto>();
 
         // Act
         var response = await this.client.GetAsync($"/api/tickets/{createdTicket!.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var ticket = await response.Content.ReadFromJsonAsync<TicketDto>();
+        var ticket = await response.Content.ReadFromJsonAsync<TicketResponseDto>();
         ticket.Should().NotBeNull();
         ticket!.Id.Should().Be(createdTicket.Id);
-        ticket.Title.Should().Be(createDto.Title);
+        ticket.Subject.Should().Be(createDto.Subject);
     }
 
     [Fact]
-    public async Task ResolveTicket_WithValidTicket_ShouldResolveTicket()
+    public async Task GetTicketById_WithNonExistentId_ShouldReturnNotFound()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Act
+        var response = await this.client.GetAsync($"/api/tickets/{Guid.NewGuid()}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetTicketByNumber_ShouldReturnTicket()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var createDto = new CreateTicketDto
+        {
+            Name = "Test User",
+            Email = $"bynumber_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket by Number",
+            Message = "This ticket will be retrieved by ticket number"
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketResponseDto>();
+
+        // Act
+        var response = await this.client.GetAsync($"/api/tickets/number/{createdTicket!.TicketNumber}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var ticket = await response.Content.ReadFromJsonAsync<TicketResponseDto>();
+        ticket.Should().NotBeNull();
+        ticket!.TicketNumber.Should().Be(createdTicket.TicketNumber);
+    }
+
+    [Fact]
+    public async Task UpdateTicketStatus_WithValidStatus_ShouldUpdateTicket()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var createDto = new CreateTicketDto
+        {
+            Name = "Test User",
+            Email = $"status_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket to Update Status",
+            Message = "This ticket's status will be updated"
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketResponseDto>();
+
+        var updateDto = new UpdateTicketStatusDto
+        {
+            Status = TicketStatus.InProgress
+        };
+
+        // Act
+        var response = await this.client.PutAsJsonAsync($"/api/tickets/{createdTicket!.Id}/status", updateDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updatedTicket = await response.Content.ReadFromJsonAsync<TicketResponseDto>();
+        updatedTicket.Should().NotBeNull();
+        updatedTicket!.Status.Should().Be(TicketStatus.InProgress);
+    }
+
+    [Fact]
+    public async Task UpdateTicketStatus_WithInvalidTicketId_ShouldReturnNotFound()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var updateDto = new UpdateTicketStatusDto
+        {
+            Status = TicketStatus.Resolved
+        };
+
+        // Act
+        var response = await this.client.PutAsJsonAsync($"/api/tickets/{Guid.NewGuid()}/status", updateDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task AddMessage_WithValidData_ShouldCreateMessage()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var createDto = new CreateTicketDto
+        {
+            Name = "Test User",
+            Email = $"msg_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket for Message",
+            Message = "This ticket will receive a reply message"
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketResponseDto>();
+
+        var messageDto = new AddTicketMessageDto
+        {
+            Message = "This is a reply to the ticket",
+            SenderName = "Support Staff",
+            SenderEmail = "support@example.com",
+            IsStaffReply = true
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync($"/api/tickets/{createdTicket!.Id}/messages", messageDto);
+
+        // Assert
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Created, HttpStatusCode.OK);
+        var message = await response.Content.ReadFromJsonAsync<TicketMessageDto>();
+        message.Should().NotBeNull();
+        message!.Message.Should().Be(messageDto.Message);
+        message.SenderName.Should().Be(messageDto.SenderName);
+        message.IsStaffReply.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddMessage_WithEmptyMessage_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        var createDto = new CreateTicketDto
+        {
+            Name = "Test User",
+            Email = $"emptymsg_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket for Empty Message",
+            Message = "This ticket will test empty message validation"
+        };
+        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
+        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketResponseDto>();
+
+        var emptyMessageDto = new AddTicketMessageDto
+        {
+            Message = "",
+            SenderName = "Support Staff",
+            SenderEmail = "support@example.com"
+        };
+
+        // Act
+        var response = await this.client.PostAsJsonAsync($"/api/tickets/{createdTicket!.Id}/messages", emptyMessageDto);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetTicketStats_WithAuth_ShouldReturnStats()
+    {
+        // Arrange
+        var userToken = await this.CreateTestUser();
+        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
+
+        // Act
+        var response = await this.client.GetAsync("/api/tickets/stats");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("totalCount");
+    }
+
+    [Fact]
+    public async Task GetTicketsByStatus_WithValidStatus_ShouldReturnTickets()
     {
         // Arrange
         var userToken = await this.CreateTestUser();
@@ -117,99 +343,22 @@ public class TicketsControllerTests : IAsyncLifetime
         // Create a ticket first
         var createDto = new CreateTicketDto
         {
-            Title = "Ticket to Resolve",
-            Description = "This ticket will be resolved",
-            Priority = TicketPriority.Medium
+            Name = "Test User",
+            Email = $"statusfilter_{Guid.NewGuid():N}@example.com",
+            Subject = "Ticket for Status Filter",
+            Message = "This ticket will be filtered by status"
         };
-        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
-        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketDto>();
-
-        var resolveDto = new ResolveTicketDto
-        {
-            Resolution = "Issue has been resolved successfully"
-        };
+        await this.client.PostAsJsonAsync("/api/tickets", createDto);
 
         // Act
-        var response = await this.client.PostAsJsonAsync($"/api/tickets/{createdTicket!.Id}/resolve", resolveDto);
+        var response = await this.client.GetAsync("/api/tickets/status/New");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resolvedTicket = await response.Content.ReadFromJsonAsync<TicketDto>();
-        resolvedTicket.Should().NotBeNull();
-        resolvedTicket!.Status.Should().Be(TicketStatus.Resolved);
-        resolvedTicket.Resolution.Should().Be(resolveDto.Resolution);
-        resolvedTicket.ResolvedAt.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task AddTicketComment_WithValidData_ShouldCreateComment()
-    {
-        // Arrange
-        var userToken = await this.CreateTestUser();
-        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
-
-        // Create a ticket first
-        var createDto = new CreateTicketDto
-        {
-            Title = "Ticket for Comment",
-            Description = "This ticket will receive a comment",
-            Priority = TicketPriority.Medium
-        };
-        var createResponse = await this.client.PostAsJsonAsync("/api/tickets", createDto);
-        var createdTicket = await createResponse.Content.ReadFromJsonAsync<TicketDto>();
-
-        var commentDto = new CreateTicketCommentDto
-        {
-            Content = "This is a test comment"
-        };
-
-        // Act
-        var response = await this.client.PostAsJsonAsync($"/api/tickets/{createdTicket!.Id}/comments", commentDto);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var comment = await response.Content.ReadFromJsonAsync<TicketCommentDto>();
-        comment.Should().NotBeNull();
-        comment!.Content.Should().Be(commentDto.Content);
-        comment.TicketId.Should().Be(createdTicket.Id);
-    }
-
-    [Fact]
-    public async Task GetTickets_ByPriority_ShouldFilterCorrectly()
-    {
-        // Arrange
-        var userToken = await this.CreateTestUser();
-        this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
-
-        // Create tickets with different priorities
-        var highPriorityDto = new CreateTicketDto
-        {
-            Title = "High Priority Ticket",
-            Description = "This is high priority",
-            Priority = TicketPriority.High
-        };
-        await this.client.PostAsJsonAsync("/api/tickets", highPriorityDto);
-
-        var lowPriorityDto = new CreateTicketDto
-        {
-            Title = "Low Priority Ticket", 
-            Description = "This is low priority",
-            Priority = TicketPriority.Low
-        };
-        await this.client.PostAsJsonAsync("/api/tickets", lowPriorityDto);
-
-        // Act
-        var response = await this.client.GetAsync("/api/tickets?priority=High");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var tickets = await response.Content.ReadFromJsonAsync<TicketDto[]>();
+        var tickets = await response.Content.ReadFromJsonAsync<TicketListItemDto[]>();
         tickets.Should().NotBeNull();
-        tickets!.Should().HaveCount(1);
-        tickets[0].Priority.Should().Be(TicketPriority.High);
+        tickets!.Should().AllSatisfy(t => t.Status.Should().Be(TicketStatus.New));
     }
-
-    private static readonly Guid TestUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     private async Task<string> CreateTestUser(string prefix = "ticket")
     {

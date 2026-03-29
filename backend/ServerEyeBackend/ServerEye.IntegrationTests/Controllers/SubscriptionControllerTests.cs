@@ -6,6 +6,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
 using ServerEye.Core.DTOs.Billing;
@@ -188,7 +189,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
 
         var response = await this.client.PostAsJsonAsync("/api/users/register", registerDto);
         var content = await response.Content.ReadAsStringAsync();
-        var result = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+        var result = JsonSerializer.Deserialize<JsonElement>(content);
         return result.GetProperty("token").GetString()!;
     }
 }
