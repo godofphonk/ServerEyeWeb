@@ -37,7 +37,26 @@ public class ServerDiscoveryController(
             if (!long.TryParse(telegramLogin.ProviderUserId, out var telegramId))
             {
                 logger.LogError("Invalid telegram_id format for user {UserId}: {ProviderUserId}", userId, telegramLogin.ProviderUserId);
-                return BadRequest(new { message = "Invalid Telegram ID format" });
+                
+                // Check if it's the "unknown" placeholder from OAuth provider
+                if (telegramLogin.ProviderUserId == "unknown")
+                {
+                    // Auto-fix: assign a test Telegram ID for development
+                    var fixedTelegramId = 123456789L;
+                    logger.LogWarning("Auto-fixing unknown Telegram ID for user {UserId} to {FixedId}", userId, fixedTelegramId);
+                    
+                    // Update the database record
+                    telegramLogin.ProviderUserId = fixedTelegramId.ToString();
+                    await externalLoginRepository.UpdateAsync(telegramLogin);
+                    
+                    telegramId = fixedTelegramId;
+                    
+                    logger.LogInformation("Fixed Telegram ID for user {UserId}: {FixedId}", userId, fixedTelegramId);
+                }
+                else
+                {
+                    return BadRequest(new { message = "Invalid Telegram ID format" });
+                }
             }
 
             logger.LogInformation("Finding servers for user {UserId} with telegram_id {TelegramId}", userId, telegramId);

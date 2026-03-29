@@ -840,6 +840,11 @@ public class AuthController : BaseApiController
             // Convert Telegram user data to OAuth format
             var telegramCode = JsonSerializer.Serialize(request.UserData);
             
+            this.logger.LogInformation(
+                "Telegram OAuth callback received - UserData: {UserData}, SerializedCode: {TelegramCode}", 
+                request.UserData,
+                telegramCode[..Math.Min(telegramCode.Length, 200)] + "...");
+            
             // For Telegram, always generate a temporary state
             // Telegram doesn't return state in callback, so we need to handle this
             var state = $"telegram_temp_{Guid.NewGuid():N}";

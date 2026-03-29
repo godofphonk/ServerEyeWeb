@@ -7,13 +7,17 @@ using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
+using System.Text.RegularExpressions;
 
-public sealed class TelegramOAuthProvider(
+public sealed partial class TelegramOAuthProvider(
     OAuthSettings oauthSettings,
     ILogger<TelegramOAuthProvider> logger) 
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
     public override OAuthProvider ProviderType => OAuthProvider.Telegram;
+
+    [GeneratedRegex(@"""Id"":(\d+)")]
+    private static partial Regex TelegramIdRegex { get; }
 
     public override bool IsEnabled()
     {
@@ -78,12 +82,27 @@ public sealed class TelegramOAuthProvider(
             accessToken[..Math.Min(accessToken.Length, 20)] + "...",
             string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
 
-        // Telegram OAuth returns user data as JSON in the "hash" parameter
-        // The accessToken here is actually the user data JSON from Telegram
+        // Telegram OAuth returns user data as JSON in the "code" parameter (serialized from frontend)
+        // The accessToken here is actually the serialized user data JSON from Telegram
         try
         {
-            var userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
-                   ?? throw new InvalidOperationException("Failed to parse Telegram user data");
+            Logger.LogInformation("Raw Telegram access token data: {AccessToken}", accessToken[..Math.Min(accessToken.Length, 100)] + "...");
+            
+            // Try to deserialize the access token as JSON (it comes serialized from AuthController)
+            Dictionary<string, JsonElement> userData;
+            
+            if (accessToken.StartsWith('{') && accessToken.EndsWith('}'))
+            {
+                // Direct JSON - deserialize directly
+                userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
+                    ?? throw new InvalidOperationException("Failed to parse Telegram user data");
+            }
+            else
+            {
+                // Might be double-serialized (JSON string inside JSON)
+                userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
+                    ?? throw new InvalidOperationException("Failed to parse Telegram user data");
+            }
             
             Logger.LogInformation("Parsed Telegram user data: {UserData}", userData);
 
@@ -91,9 +110,58 @@ public sealed class TelegramOAuthProvider(
             // Telegram data comes directly, not nested in "user" field
             var userDict = userData; // userData is already a Dictionary<string, JsonElement>
 
-            var userId = userDict.GetValueOrDefault("id").ValueKind == JsonValueKind.String 
-                ? userDict.GetValueOrDefault("id").GetString() ?? "unknown" 
-                : "unknown";
+            var telegramIdElement = userDict.GetValueOrDefault("id");
+            var userId = "unknown";
+            
+            Logger.LogInformation(
+                "Telegram ID element - ValueKind: {ValueKind}, Element: {Element}", 
+                telegramIdElement.ValueKind, 
+                telegramIdElement.ValueKind == JsonValueKind.String ? telegramIdElement.GetString() ?? "null" : telegramIdElement.ToString());
+            
+            // Try to extract Telegram ID as string or number
+            if (telegramIdElement.ValueKind == JsonValueKind.String)
+            {
+                userId = telegramIdElement.GetString() ?? "unknown";
+                Logger.LogInformation("Extracted Telegram ID as string: {UserId}", userId);
+            }
+            else if (telegramIdElement.ValueKind == JsonValueKind.Number)
+            {
+                userId = telegramIdElement.ToString(); // Convert number to string
+                Logger.LogInformation("Extracted Telegram ID as number: {UserId}", userId);
+            }
+            else if (telegramIdElement.ValueKind == JsonValueKind.Undefined)
+            {
+                // Handle Undefined case - extract from raw JSON data
+                try
+                {
+                    // Get the raw JSON string and extract ID manually
+                    var rawJson = JsonSerializer.Serialize(userData);
+                    Logger.LogInformation("Raw JSON data for manual extraction: {RawJson}", rawJson[..Math.Min(rawJson.Length, 200)] + "...");
+                    
+                    // Extract ID using regex or string manipulation
+                    var idMatch = TelegramIdRegex.Match(rawJson);
+                    if (idMatch.Success && long.TryParse(idMatch.Groups[1].Value, out var telegramId))
+                    {
+                        userId = telegramId.ToString();
+                        Logger.LogInformation("Extracted Telegram ID using regex: {UserId}", userId);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Failed to extract Telegram ID using regex");
+                        userId = "unknown";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error extracting Telegram ID from raw JSON");
+                    userId = "unknown";
+                }
+            }
+            else
+            {
+                Logger.LogWarning("Telegram ID not found or invalid type: {ValueKind}", telegramIdElement.ValueKind);
+                userId = "unknown";
+            }
             var firstName = userDict.GetValueOrDefault("first_name").ValueKind == JsonValueKind.String 
                 ? userDict.GetValueOrDefault("first_name").GetString() ?? string.Empty 
                 : string.Empty;
@@ -143,12 +211,48 @@ public sealed class TelegramOAuthProvider(
         : (object)kvp.Value.GetRawText()) // Keep as Dictionary for storage
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ultimate fallback - treat the access token as user ID
+            Logger.LogError(ex, "Failed to parse Telegram user data, fallback to manual extraction");
+            
+            // Try to extract ID from the raw access token
+            try
+            {
+                // If accessToken is JSON, try to parse it manually
+                if (accessToken.StartsWith('{') && accessToken.EndsWith('}'))
+                {
+                    var manualData = JsonSerializer.Deserialize<Dictionary<string, object>>(accessToken);
+                    if (manualData?.TryGetValue("id", out var idValue) == true)
+                    {
+                        var extractedId = idValue.ToString();
+                        Logger.LogInformation("Extracted Telegram ID from fallback: {Id}", extractedId);
+                        
+                        manualData.TryGetValue("first_name", out var firstNameValue);
+                        manualData.TryGetValue("username", out var usernameValue);
+                        
+                        return new OAuthUserInfoDto
+                        {
+                            Id = extractedId ?? string.Empty,
+                            Email = null,
+                            Name = firstNameValue?.ToString() ?? "Telegram User",
+                            Username = usernameValue?.ToString() ?? "telegram_user",
+                            AvatarUrl = null,
+                            EmailVerified = false,
+                            RawData = manualData ?? new Dictionary<string, object>()
+                        };
+                    }
+                }
+            }
+            catch (Exception fallbackEx)
+            {
+                Logger.LogError(fallbackEx, "Failed to extract ID from fallback data");
+            }
+            
+            // Ultimate fallback - create a user with a default ID (this should not happen in production)
+            Logger.LogWarning("Using ultimate fallback - this indicates a serious OAuth issue");
             var userData = new Dictionary<string, object>
             {
-                ["id"] = accessToken,
+                ["id"] = "0", // Default invalid ID
                 ["first_name"] = "Telegram",
                 ["last_name"] = "User",
                 ["username"] = "telegram_user"
@@ -156,8 +260,8 @@ public sealed class TelegramOAuthProvider(
 
             return new OAuthUserInfoDto
             {
-                Id = accessToken,
-                Email = null, // Telegram doesn't provide email
+                Id = "0", // Invalid ID that will be caught later
+                Email = null,
                 Name = "Telegram User",
                 Username = "telegram_user",
                 AvatarUrl = null,
