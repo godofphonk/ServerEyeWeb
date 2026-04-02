@@ -253,19 +253,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await apiClient.get<{ user: BackendUser | null }>('/auth/session');
       
-      if (response.data.user) {
-        const mappedUser = mapBackendUser(response.data.user);
+      if ((response as any).data.user) {
+        const mappedUser = mapBackendUser((response as any).data.user);
         logger.info('User authenticated', { userId: mappedUser.id, email: mappedUser.email });
         setUserWithLogging(mappedUser);
       } else {
         logger.debug('No active session found');
         setUserWithLogging(null);
-      }    }
-        } else {
-        }
+      }
       } catch (fallbackError) {
         
       }
+    }
     
     // If we get here, both JWT decode and API fallback failed
     ('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');

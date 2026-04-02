@@ -136,7 +136,7 @@ public class SubscriptionServiceTests
         var expectedResponse = new CreateSubscriptionResponse
         {
             SessionId = "cs_123456",
-            CheckoutUrl = "https://checkout.stripe.com/pay/cs_123456"
+            SessionUrl = "https://checkout.stripe.com/pay/cs_123456"
         };
 
         this.mockPaymentService
@@ -149,7 +149,7 @@ public class SubscriptionServiceTests
         // Assert
         result.Should().NotBeNull();
         result.SessionId.Should().Be(expectedResponse.SessionId);
-        result.CheckoutUrl.Should().Be(expectedResponse.CheckoutUrl);
+        result.SessionUrl.Should().Be(expectedResponse.SessionUrl);
     }
 
     #endregion

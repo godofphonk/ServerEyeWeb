@@ -59,7 +59,7 @@ export default function MetricsAreaChart({
 
   // Memoize CustomTooltip to prevent recreation on every render
   const CustomTooltip = useMemo(() => {
-    return ({ active, payload }: any) => {
+    const CustomTooltipComponent = ({ active, payload }: any) => {
       if (active && payload && payload.length) {
         return (
           <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
@@ -73,6 +73,9 @@ export default function MetricsAreaChart({
       }
       return null;
     };
+    
+    CustomTooltipComponent.displayName = 'CustomTooltip';
+    return CustomTooltipComponent;
   }, [unit]);
 
   return (
