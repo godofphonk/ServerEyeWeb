@@ -31,15 +31,6 @@ export default function MetricsLineChart({
   unit = '%',
   timeRange = '1h',
 }: MetricsLineChartProps) {
-  // Early return if no data
-  if (!data || data.length === 0) {
-    return (
-      <div className='w-full h-full flex items-center justify-center'>
-        <p className='text-gray-400'>No data available</p>
-      </div>
-    );
-  }
-
   // Memoize chart data to prevent unnecessary recalculations
   const chartData = useMemo(() => {
     return data.map(point => {
@@ -73,7 +64,7 @@ export default function MetricsLineChart({
 
   // Memoize CustomTooltip to prevent recreation on every render
   const CustomTooltip = useMemo(() => {
-    return ({ active, payload }: any) => {
+    const CustomTooltipComponent = ({ active, payload }: any) => {
       if (active && payload && payload.length) {
         return (
           <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
@@ -89,14 +80,14 @@ export default function MetricsLineChart({
               <p className='text-sm'>
                 <span className='text-green-400'>Max:</span>{' '}
                 <span className='font-semibold'>
-                  {payload[1]?.value?.toFixed(1) || '0'}
+                  {payload[0]?.payload?.max?.toFixed(1) || '0'}
                   {unit}
                 </span>
               </p>
               <p className='text-sm'>
-                <span className='text-yellow-400'>Min:</span>{' '}
+                <span className='text-red-400'>Min:</span>{' '}
                 <span className='font-semibold'>
-                  {payload[2]?.value?.toFixed(1) || '0'}
+                  {payload[0]?.payload?.min?.toFixed(1) || '0'}
                   {unit}
                 </span>
               </p>
@@ -106,7 +97,19 @@ export default function MetricsLineChart({
       }
       return null;
     };
+    
+    CustomTooltipComponent.displayName = 'CustomTooltip';
+    return CustomTooltipComponent;
   }, [unit]);
+
+  // Early return if no data
+  if (!data || data.length === 0) {
+    return (
+      <div className='w-full h-full flex items-center justify-center'>
+        <p className='text-gray-400'>No data available</p>
+      </div>
+    );
+  }
 
   return (
     <div className='w-full h-full min-h-[200px]'>

@@ -272,10 +272,10 @@ export default function DashboardPage() {
     try {
       logger.info('Adding server', { serverKey: serverKey.substring(0, 8) + '...' });
       const response = await apiClient.post('/api/servers/add', { serverKey });
-      const newServer = response.data;
+      const newServer = (response as any).data;
       setServers(prev => [...prev, newServer]);
-      setShowAddServerModal(false);
-      setAddServerKey('');
+      // setShowAddServerModal(false);
+      // setAddServerKey('');
       logger.info('Server added successfully', { serverId: newServer.id, hostname: newServer.hostname });
       toast.success('Server added successfully!');
     } catch (error: any) {

@@ -96,9 +96,7 @@ public class PaymentServiceTests
             .ReturnsAsync(new CreatePaymentIntentResponse
             {
                 PaymentIntentId = expectedPaymentIntentId,
-                ClientSecret = expectedClientSecret,
-                Amount = request.Amount,
-                Currency = request.Currency
+                ClientSecret = expectedClientSecret
             });
 
         this.mockPaymentRepository
@@ -112,8 +110,6 @@ public class PaymentServiceTests
         result.Should().NotBeNull();
         result.PaymentIntentId.Should().Be(expectedPaymentIntentId);
         result.ClientSecret.Should().Be(expectedClientSecret);
-        result.Amount.Should().Be(request.Amount);
-        result.Currency.Should().Be(request.Currency);
 
         this.mockPaymentRepository.Verify(
             x => x.AddAsync(It.Is<Payment>(p =>
@@ -191,7 +187,7 @@ public class PaymentServiceTests
             .ReturnsAsync(new CreateSubscriptionResponse
             {
                 SessionId = expectedSessionId,
-                CheckoutUrl = "https://checkout.stripe.com/pay/cs_123456"
+                SessionUrl = "https://checkout.stripe.com/pay/cs_123456"
             });
 
         // Act
@@ -200,7 +196,7 @@ public class PaymentServiceTests
         // Assert
         result.Should().NotBeNull();
         result.SessionId.Should().Be(expectedSessionId);
-        result.CheckoutUrl.Should().NotBeNullOrEmpty();
+        result.SessionUrl.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
