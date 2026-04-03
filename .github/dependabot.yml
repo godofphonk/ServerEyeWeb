@@ -64,35 +64,35 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
 
-  # Docker
-  - package-ecosystem: "docker"
-    directory: "/backend/ServerEyeBackend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "godofphonk"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+  # Docker - disabled until Dockerfiles are created
+  # - package-ecosystem: "docker"
+  #   directory: "/backend/ServerEyeBackend"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 5
+  #   reviewers:
+  #     - "godofphonk"
+  #   labels:
+  #     - "dependencies"
+  #     - "docker"
+  #   commit-message:
+  #     prefix: "chore(deps)"
+  #     include: "scope"
 
-  - package-ecosystem: "docker"
-    directory: "/frontend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "godofphonk"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+  # - package-ecosystem: "docker"
+  #   directory: "/frontend"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #     time: "09:00"
+  #   open-pull-requests-limit: 5
+  #   reviewers:
+  #     - "godofphonk"
+  #   labels:
+  #     - "dependencies"
+  #     - "docker"
+  #   commit-message:
+  #     prefix: "chore(deps)"
+  #     include: "scope"
