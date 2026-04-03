@@ -21,8 +21,7 @@ using OpenTelemetry.Metrics;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer postgresContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+    private readonly PostgreSqlContainer postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("testdb")
         .WithUsername("testuser")
         .WithPassword("testpass")
