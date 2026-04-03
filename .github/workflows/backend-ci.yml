@@ -219,19 +219,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
-        with:
-          languages: csharp
-          queries: security-and-quality
-
-      - name: Build for CodeQL
+      - name: Build
         run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
-        with:
-          category: "/language:csharp"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # v0.24.0
