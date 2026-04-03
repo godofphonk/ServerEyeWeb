@@ -117,7 +117,7 @@ public class PaymentControllerTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payments = await response.Content.ReadFromJsonAsync<PaymentDto[]>();
         payments.Should().NotBeNull();
-        payments!.Should().HaveCountGreaterOrEqualTo(1);
+        payments!.Should().HaveCountGreaterThanOrEqualTo(1);
     }
 
     [Fact]
