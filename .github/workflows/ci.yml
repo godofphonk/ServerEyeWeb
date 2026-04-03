@@ -1,0 +1,136 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: write
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      docs: ${{ steps.filter.outputs.docs }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Check for changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/backend-ci.yml'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/frontend-ci.yml'
+              - '.github/workflows/ci.yml'
+            docs:
+              - 'docs/**'
+              - '*.md'
+
+  backend-ci:
+    name: Backend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    uses: ./.github/workflows/backend-ci.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      security-events: write
+
+  frontend-ci:
+    name: Frontend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/frontend-ci.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      security-events: write
+
+  docs-check:
+    name: Documentation Check
+    needs: detect-changes
+    if: needs.detect-changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Check markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368 # v1.0.15
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+
+      - name: Lint markdown files
+        uses: nosborn/github-action-markdown-cli@9b5e871c11cc0649c5ac2526af22e23525fa344d # v3.3.0
+        with:
+          files: .
+          config_file: '.markdownlint.json'
+
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [detect-changes, backend-ci, frontend-ci, docs-check]
+    
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.detect-changes.outputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.detect-changes.outputs.frontend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docs: ${{ needs.detect-changes.outputs.docs }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend CI | ${{ needs.backend-ci.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend CI | ${{ needs.frontend-ci.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docs Check | ${{ needs.docs-check.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any required job failed
+        if: |
+          (needs.detect-changes.outputs.backend == 'true' && needs.backend-ci.result == 'failure') ||
+          (needs.detect-changes.outputs.frontend == 'true' && needs.frontend-ci.result == 'failure') ||
+          (needs.detect-changes.outputs.docs == 'true' && needs.docs-check.result == 'failure')
+        run: |
+          echo "❌ One or more CI checks failed"
+          exit 1
+
+      - name: Success message
+        if: |
+          (needs.detect-changes.outputs.backend != 'true' || needs.backend-ci.result == 'success') &&
+          (needs.detect-changes.outputs.frontend != 'true' || needs.frontend-ci.result == 'success') &&
+          (needs.detect-changes.outputs.docs != 'true' || needs.docs-check.result == 'success')
+        run: |
+          echo "✅ All CI checks passed successfully!"
