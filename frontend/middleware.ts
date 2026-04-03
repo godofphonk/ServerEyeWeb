@@ -16,13 +16,22 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  response.headers.set(
-    'Content-Security-Policy',
-    // 'unsafe-inline' is required by Next.js for server-side rendering styles.
-    // 'unsafe-eval' is required by Next.js HMR in development.
-    // TODO: Tighten by using nonces for inline scripts once CSP nonce support is added to Next.js config.
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';",
-  );
+  
+  // Set CSP based on environment
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (isDevelopment) {
+    // Allow localhost connections in development
+    response.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-ancestors 'none';",
+    );
+  } else {
+    // Stricter CSP for production
+    response.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';",
+    );
+  }
   response.headers.set('Server', '');
 
   // Skip middleware for static files and API routes
