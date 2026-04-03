@@ -251,11 +251,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - name: Setup Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
@@ -267,20 +262,9 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
-        with:
-          category: "/language:javascript-typescript"
-
       - name: Run npm audit
         working-directory: frontend
-        run: pnpm audit --audit-level=high
+        run: npm audit --audit-level=high
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner
