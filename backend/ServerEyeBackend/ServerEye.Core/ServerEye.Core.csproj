@@ -14,6 +14,7 @@
   
   <!-- Disable CA1055 rule for Base64Url methods -->
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
     <CompilerVisibleProperty Include="NoWarn" />
     <NoWarn Include="CA1055" />
   </ItemGroup>
