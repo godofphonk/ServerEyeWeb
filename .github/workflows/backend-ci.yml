@@ -1,0 +1,371 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: write
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
+
+      - name: Check code formatting
+        run: dotnet format backend/ServerEyeBackend/ServerEyeBackend.sln --verify-no-changes --verbosity diagnostic
+
+      - name: Run StyleCop analyzers
+        run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release /p:TreatWarningsAsErrors=true /p:EnforceCodeStyleInBuild=true
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
+
+      - name: Build
+        run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
+
+      - name: Run unit tests
+        run: |
+          dotnet test backend/ServerEyeBackend/ServerEye.UnitTests/ServerEye.UnitTests.csproj \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: unit-test-results
+          path: coverage/*.trx
+          retention-days: 30
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: ./coverage/*/coverage.opencover.xml
+          flags: unittests
+          name: backend-unit-tests
+          fail_ci_if_error: false
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: code-quality
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ServerEyeWeb_Test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
+
+      - name: Build
+        run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
+
+      - name: Run integration tests
+        env:
+          ConnectionStrings__Database: "Host=localhost;Port=5432;Database=ServerEyeWeb_Test;Username=postgres;Password=postgres"
+          Redis__Host: "localhost:6379"
+        run: |
+          dotnet test backend/ServerEyeBackend/ServerEye.IntegrationTests/ServerEye.IntegrationTests.csproj \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=integration-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: integration-test-results
+          path: coverage/*.trx
+          retention-days: 30
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          files: ./coverage/*/coverage.opencover.xml
+          flags: integrationtests
+          name: backend-integration-tests
+          fail_ci_if_error: false
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
+        with:
+          languages: csharp
+          queries: security-and-quality
+
+      - name: Build for CodeQL
+        run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
+        with:
+          category: "/language:csharp"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # v0.24.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'backend/'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@5a2ce3f5b92ee19cbb1541a4984c76d921601d7c # v4.3.4
+        with:
+          fail-on-severity: high
+
+  build:
+    name: Build & Publish Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests, security-scan]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
+
+      - name: Build
+        run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
+
+      - name: Publish
+        run: dotnet publish backend/ServerEyeBackend/ServerEye.API/ServerEye.API.csproj -c Release -o ./publish --no-build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: backend-build
+          path: ./publish
+          retention-days: 7
+
+  docker-build:
+    name: Docker Build & Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@2b51285047da1547ffb1b2203d8be4c0af6b1f20 # v3.2.0
+
+      - name: Build Docker image
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
+        with:
+          context: ./backend/ServerEyeBackend
+          file: ./backend/ServerEyeBackend/Dockerfile.Production
+          push: false
+          load: true
+          tags: servereye-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner on image
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # v0.24.0
+        with:
+          image-ref: servereye-backend:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy image results
+        uses: github/codeql-action/upload-sarif@1b1aada464948af03b950897e5eb522f92603cc2 # v3.24.9
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [code-quality, unit-tests, integration-tests, security-scan, build, docker-build]
+    
+    steps:
+      - name: Check job results
+        run: |
+          echo "## Backend CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any job failed
+        if: |
+          needs.code-quality.result == 'failure' ||
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.security-scan.result == 'failure' ||
+          needs.build.result == 'failure' ||
+          needs.docker-build.result == 'failure'
+        run: exit 1

@@ -1,0 +1,61 @@
+backend:
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**/*'
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: 'frontend/**/*'
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - 'docs/**/*'
+      - '**/*.md'
+
+ci/cd:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
+
+docker:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/Dockerfile*'
+      - '**/docker-compose*.yml'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - '**/*.csproj'
+      - '**/packages.lock.json'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
+      - '**/Tests/**/*'
+      - '**/*Tests.cs'
+
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/security/**/*'
+      - '**/*Security*.cs'
+      - '**/auth/**/*'
+
+performance:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/performance/**/*'
+      - '**/*.perf.ts'
+
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/migrations/**/*'
+      - '**/seeds/**/*'
+      - '**/*DbContext.cs'
