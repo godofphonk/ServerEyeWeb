@@ -7,7 +7,7 @@ WORKDIR /app
 # Install dependencies
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
-COPY ./frontend/package*.json ./
+COPY package*.json ./
 RUN npm install
 
 # Development stage
@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Copy node_modules from deps
 COPY --from=deps /app/node_modules ./node_modules
-COPY ./frontend/. .
+COPY . .
 
 # Install curl for health checks
 RUN apk add --no-cache curl
