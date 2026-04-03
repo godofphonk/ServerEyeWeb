@@ -53,7 +53,7 @@ public static class DatabaseInitializer
             {
                 logger.LogInformation("{DatabaseName}: Found {Count} pending migrations", databaseName, pendingCount);
                 
-                // Apply migrations without model validation (for development)
+                // Apply migrations
                 await context.Database.MigrateAsync();
                 
                 logger.LogInformation("{DatabaseName}: Migrations applied successfully", databaseName);
@@ -61,9 +61,6 @@ public static class DatabaseInitializer
             else
             {
                 logger.LogInformation("{DatabaseName}: No pending migrations", databaseName);
-                
-                // Ensure database exists
-                await context.Database.EnsureCreatedAsync();
             }
 
             // Verify connection
