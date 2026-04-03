@@ -72,3 +72,29 @@ public class DatabaseHealthCheck<TContext> : IHealthCheck
         }
     }
 }
+
+/// <summary>
+/// Factory for creating DatabaseHealthCheck instances with database name.
+/// </summary>
+public class DatabaseHealthCheckFactory<TContext> : IHealthCheck
+    where TContext : DbContext
+{
+    private readonly IServiceProvider serviceProvider;
+    private readonly string databaseName;
+
+    public DatabaseHealthCheckFactory(IServiceProvider serviceProvider, string databaseName)
+    {
+        this.serviceProvider = serviceProvider;
+        this.databaseName = databaseName;
+    }
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+        var healthCheck = new DatabaseHealthCheck<TContext>(dbContext, databaseName);
+        return await healthCheck.CheckHealthAsync(context, cancellationToken);
+    }
+}

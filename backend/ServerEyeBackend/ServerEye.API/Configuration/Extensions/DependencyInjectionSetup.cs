@@ -19,6 +19,8 @@ using ServerEye.Infrastructure.Repositories;
 /// </summary>
 public static class DependencyInjectionSetup
 {
+    private static readonly string[] DatabaseTags = ["database"];
+
     /// <summary>
     /// Registers all application services and repositories.
     /// </summary>
@@ -262,11 +264,16 @@ public static class DependencyInjectionSetup
     {
         var healthChecksBuilder = services.AddHealthChecks();
 
-        // Add PostgreSQL health check
-        healthChecksBuilder.AddCheck<PostgreSQLHealthCheck>("postgresql");
+        // Add existing database health checks using factory
+        healthChecksBuilder
+            .AddCheck<DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>>("main_database", tags: DatabaseTags)
+            .AddCheck<DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>>("ticket_database", tags: DatabaseTags);
 
-        // Add existing database health checks
-        healthChecksBuilder.AddCheck<DatabaseHealthCheck<Infrastructure.ServerEyeDbContext>>("main_database");
+        // Register factory instances with database names
+        services.AddSingleton<DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>>(provider => 
+            new DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>(provider, "Main Database"));
+        services.AddSingleton<DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>>(provider => 
+            new DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>(provider, "Ticket Database"));
         
         // Add Redis health check if configured
         var redisConnectionString = configuration.GetConnectionString("Redis");
