@@ -14,6 +14,12 @@ paths-ignore:
   - '**/.next'
   - '**/coverage'
   - '**/test-results'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/Tests/**'
+  - '**/*Tests.cs'
 
 paths:
   - backend/ServerEyeBackend/ServerEye.API
