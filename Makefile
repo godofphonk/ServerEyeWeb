@@ -68,15 +68,15 @@ dev-down: dev-frontend-down dev-backend-down dev-infra-down
 
 dev-logs:
 	@echo "� Showing all development logs..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f & \
-	docker-compose -f ./environments/dev/backend/docker-compose.yml logs -f & \
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml logs -f
+	docker compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f & \
+	docker compose -f ./environments/dev/backend/docker-compose.yml logs -f & \
+	docker compose -f ./environments/dev/frontend/docker-compose.yml logs -f
 
 dev-clean: dev-down
 	@echo "🧹 Cleaning development environment..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml down -v --remove-orphans
-	docker-compose -f ./environments/dev/backend/docker-compose.yml down -v --remove-orphans
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/dev/infrastructure/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/dev/backend/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/dev/frontend/docker-compose.yml down -v --remove-orphans
 	docker system prune -f
 	@echo "✅ Development environment cleaned!"
 
@@ -85,12 +85,14 @@ dev-restart: dev-down dev-up
 # Component-wise Development Commands
 dev-infra-up:
 	@echo "🏗️  Starting development infrastructure..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml up -d
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/dev && docker compose -f ./infrastructure/docker-compose.yml --env-file .env up -d
 	@echo "✅ Infrastructure started!"
 
 dev-observability-up:
 	@echo "📊 Starting observability stack..."
-	docker-compose -f ./environments/dev/observability/docker-compose.yml up -d
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	docker compose -f ./environments/dev/observability/docker-compose.yml up -d
 	@echo "✅ Observability stack started!"
 	@echo "📊 Grafana: http://localhost:3010 (admin/admin)"
 	@echo "📈 Prometheus: http://localhost:9090"
@@ -100,45 +102,47 @@ dev-observability-up:
 
 dev-backend-up:
 	@echo "🔧 Starting development backend..."
-	docker-compose -f ./environments/dev/backend/docker-compose.yml up -d --build
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/dev && docker compose -f ./backend/docker-compose.yml --env-file .env up -d --build
 	@echo "✅ Backend started!"
 
 dev-frontend-up:
 	@echo "🌐 Starting development frontend..."
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml up -d --build
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/dev && docker compose -f ./frontend/docker-compose.yml --env-file .env up -d --build
 	@echo "✅ Frontend started!"
 
 dev-infra-down:
 	@echo "🛑 Stopping infrastructure..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml down
+	docker compose -f ./environments/dev/infrastructure/docker-compose.yml down
 
 dev-observability-down:
 	@echo "🛑 Stopping observability stack..."
-	docker-compose -f ./environments/dev/observability/docker-compose.yml down
+	docker compose -f ./environments/dev/observability/docker-compose.yml down
 
 dev-backend-down:
 	@echo "🛑 Stopping backend..."
-	docker-compose -f ./environments/dev/backend/docker-compose.yml down
+	docker compose -f ./environments/dev/backend/docker-compose.yml down
 
 dev-frontend-down:
 	@echo "🛑 Stopping frontend..."
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml down
+	docker compose -f ./environments/dev/frontend/docker-compose.yml down
 
 dev-infra-logs:
 	@echo "📋 Infrastructure logs..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f
+	docker compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f
 
 dev-observability-logs:
 	@echo "📋 Observability stack logs..."
-	docker-compose -f ./environments/dev/observability/docker-compose.yml logs -f
+	docker compose -f ./environments/dev/observability/docker-compose.yml logs -f
 
 dev-backend-logs:
 	@echo "📋 Backend logs..."
-	docker-compose -f ./environments/dev/backend/docker-compose.yml logs -f
+	docker compose -f ./environments/dev/backend/docker-compose.yml logs -f
 
 dev-frontend-logs:
 	@echo "📋 Frontend logs..."
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml logs -f
+	docker compose -f ./environments/dev/frontend/docker-compose.yml logs -f
 
 dev-shell:
 	@echo "🐚 Accessing development backend shell..."
@@ -169,65 +173,68 @@ prod-down: prod-frontend-down prod-backend-down prod-infra-down
 
 prod-logs:
 	@echo "📋 Showing all production logs..."
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f & \
-	docker-compose -f ./environments/prod/backend/docker-compose.yml logs -f & \
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml logs -f
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/backend/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/frontend/docker-compose.yml logs -f
 
 prod-clean: prod-down
 	@echo "🧹 Cleaning production environment..."
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml down -v --remove-orphans
-	docker-compose -f ./environments/prod/backend/docker-compose.yml down -v --remove-orphans
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/backend/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/frontend/docker-compose.yml down -v --remove-orphans
 	@echo "✅ Production environment cleaned!"
 
 prod-status:
 	@echo "📊 Checking production status..."
 	@echo "\n🏗️  Infrastructure:"
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml ps
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml ps
 	@echo "\n🔧 Backend:"
-	docker-compose -f ./environments/prod/backend/docker-compose.yml ps
+	docker compose -f ./environments/prod/backend/docker-compose.yml ps
 	@echo "\n🌐 Frontend:"
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml ps
+	docker compose -f ./environments/prod/frontend/docker-compose.yml ps
 
 # Component-wise Production Commands
 prod-infra-up:
 	@echo "🏗️  Starting production infrastructure..."
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml up -d
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml up -d
 	@echo "✅ Infrastructure started!"
 
 prod-backend-up:
 	@echo "🔧 Starting production backend..."
-	docker-compose -f ./environments/prod/backend/docker-compose.yml up -d --build
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	docker compose -f ./environments/prod/backend/docker-compose.yml up -d --build
 	@echo "✅ Backend started!"
 
 prod-frontend-up:
 	@echo "🌐 Starting production frontend..."
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml up -d --build
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	docker compose -f ./environments/prod/frontend/docker-compose.yml up -d --build
 	@echo "✅ Frontend started!"
 
 prod-infra-down:
 	@echo "🛑 Stopping production infrastructure..."
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml down
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml down
 
 prod-backend-down:
 	@echo "🛑 Stopping production backend..."
-	docker-compose -f ./environments/prod/backend/docker-compose.yml down
+	docker compose -f ./environments/prod/backend/docker-compose.yml down
 
 prod-frontend-down:
 	@echo "🛑 Stopping production frontend..."
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml down
+	docker compose -f ./environments/prod/frontend/docker-compose.yml down
 
 prod-infra-logs:
 	@echo "📋 Production infrastructure logs..."
-	docker-compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f
 
 prod-backend-logs:
 	@echo "📋 Production backend logs..."
-	docker-compose -f ./environments/prod/backend/docker-compose.yml logs -f
+	docker compose -f ./environments/prod/backend/docker-compose.yml logs -f
 
 prod-frontend-logs:
 	@echo "📋 Production frontend logs..."
-	docker-compose -f ./environments/prod/frontend/docker-compose.yml logs -f
+	docker compose -f ./environments/prod/frontend/docker-compose.yml logs -f
 
 # ==============================================================================
 # BUILD COMMANDS
@@ -241,9 +248,9 @@ build:
 
 build-dev:
 	@echo "🔨 Building development services..."
-	docker-compose -f ./environments/dev/infrastructure/docker-compose.yml build --no-cache
-	docker-compose -f ./environments/dev/backend/docker-compose.yml build --no-cache
-	docker-compose -f ./environments/dev/frontend/docker-compose.yml build --no-cache
+	docker compose -f ./environments/dev/infrastructure/docker-compose.yml build --no-cache
+	docker compose -f ./environments/dev/backend/docker-compose.yml build --no-cache
+	docker compose -f ./environments/dev/frontend/docker-compose.yml build --no-cache
 	@echo "✅ Development services built!"
 
 build-prod:
@@ -307,11 +314,11 @@ status:
 	@echo "📊 Status of all environments..."
 	@echo ""
 	@echo "🔧 Development:"
-	@docker-compose -f ./environments/dev/docker-compose.yml ps 2>/dev/null || echo "Development environment not running"
+	@docker compose -f ./environments/dev/docker-compose.yml ps 2>/dev/null || echo "Development environment not running"
 	@echo ""
 	@echo "🚀 Production:"
 	@if command -v doppler &> /dev/null; then \
-		doppler run --config=production -- docker-compose -f ./environments/prod/docker-compose.yml ps 2>/dev/null || echo "Production environment not running"; \
+		doppler run --config=production -- docker compose -f ./environments/prod/docker-compose.yml ps 2>/dev/null || echo "Production environment not running"; \
 	else \
 		echo "Doppler CLI not installed - run 'make prod-setup'"; \
 	fi

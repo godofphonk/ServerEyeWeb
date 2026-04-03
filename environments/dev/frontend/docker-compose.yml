@@ -3,7 +3,9 @@
 
 services:
   frontend:
-    image: test-frontend
+    build:
+      context: ${PATH_FRONTEND}
+      dockerfile: ${PATH_PROJECT}/environments/dev/dockerfiles/frontend-dev.Dockerfile
     container_name: ServerEyeWeb-frontend-dev
     ports:
       - "3000:3000"
@@ -15,15 +17,15 @@ services:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       # Mount source code for hot reload
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/package.json:/app/package.json
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/package-lock.json:/app/package-lock.json
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/app:/app/app
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/components:/app/components
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/lib:/app/lib
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/public:/app/public
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/styles:/app/styles
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/next.config.js:/app/next.config.js
-      - /home/gospodin/Рабочий стол/homeProjects/ServerEyeProjects/ServerEyeWeb/frontend/tailwind.config.ts:/app/tailwind.config.js
+      - ${PATH_FRONTEND}/package.json:/app/package.json
+      - ${PATH_FRONTEND}/package-lock.json:/app/package-lock.json
+      - ${PATH_FRONTEND}/app:/app/app
+      - ${PATH_FRONTEND}/components:/app/components
+      - ${PATH_FRONTEND}/lib:/app/lib
+      - ${PATH_FRONTEND}/public:/app/public
+      - ${PATH_FRONTEND}/styles:/app/styles
+      - ${PATH_FRONTEND}/next.config.js:/app/next.config.js
+      - ${PATH_FRONTEND}/tailwind.config.ts:/app/tailwind.config.js
       - /app/node_modules
       - /app/.next
     restart: unless-stopped
