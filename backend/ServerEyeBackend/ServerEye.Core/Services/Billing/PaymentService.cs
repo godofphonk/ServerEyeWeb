@@ -85,7 +85,7 @@ public class PaymentService : IPaymentService
             logger.LogInformation(
                 "Payment attempt: {Amount} {Currency} for user {UserId}, intent {PaymentIntentId}",
                 request.Amount,
-                request.Currency,
+                (request.Currency ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userId,
                 response.PaymentIntentId);
 
@@ -106,7 +106,7 @@ public class PaymentService : IPaymentService
             logger.LogWarning(
                 "Payment creation failed: {Amount} {Currency} for user {UserId}, reason {ErrorType}",
                 request.Amount,
-                request.Currency,
+                (request.Currency ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userId,
                 ex.GetType().Name);
 
