@@ -102,7 +102,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: unit-test-results
+          name: unit-test-results-${{ github.run_id }}
           path: coverage/*.trx
           retention-days: 30
 
@@ -120,31 +120,6 @@ jobs:
     timeout-minutes: 20
     needs: code-quality
     
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: ServerEyeWeb_Test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
     steps:
       - name: Checkout code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -172,9 +147,6 @@ jobs:
         run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
 
       - name: Run integration tests
-        env:
-          ConnectionStrings__Database: "Host=localhost;Port=5432;Database=ServerEyeWeb_Test;Username=postgres;Password=postgres"
-          Redis__Host: "localhost:6379"
         run: |
           dotnet test backend/ServerEyeBackend/ServerEye.IntegrationTests/ServerEye.IntegrationTests.csproj \
             --no-build \
@@ -188,7 +160,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: integration-test-results
+          name: integration-test-results-${{ github.run_id }}
           path: coverage/*.trx
           retention-days: 30
 
