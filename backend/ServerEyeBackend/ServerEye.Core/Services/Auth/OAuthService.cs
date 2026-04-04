@@ -180,20 +180,20 @@ public sealed class OAuthService(
 
                 if (codeVerifier == null)
                 {
-                    this.logger.LogError("Code verifier not found for state: {State}", SanitizeForLog(request.State));
+                    this.logger.LogError("Code verifier not found for state: {State}", request.State?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                     this.metrics.RecordError(provider.ToString(), "process_callback", "code_verifier_not_found");
                     activity?.SetError("code_verifier_not_found", "Invalid or expired OAuth state");
                     throw new InvalidOperationException("Invalid or expired OAuth state");
                 }
 
-                this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", SanitizeForLog(request.State));
+                this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
                 // Remove code verifier from Redis
                 await cache.RemoveAsync($"oauth:code_verifier:{request.State}", cancellationToken);
             }
             else
             {
-                this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", SanitizeForLog(originalState));
+                this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", originalState?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             }
 
             // Get provider instance and exchange code for token
@@ -222,10 +222,10 @@ public sealed class OAuthService(
             this.logger.LogInformation(
                 "OAuth callback - Provider: {Provider}, ProviderUserId: {ProviderUserId}, ExternalLoginFound: {ExternalLoginFound}, LinkingAction: {LinkingAction}, RequestUserId: {RequestUserId}",
                 provider,
-                SanitizeForLog(userInfo.Id),
+                userInfo.Id?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 existingExternalLogin != null,
-                request.LinkingAction,
-                SanitizeForLog(request.UserId ?? "null"));
+                request.LinkingAction ? "true" : "false",
+                (request.UserId ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             activity?.SetTag(OAuthActivitySource.ExternalIdAttribute, userInfo.Id);
             activity?.SetTag(OAuthActivitySource.EmailAttribute, userInfo.Email);
@@ -265,7 +265,7 @@ public sealed class OAuthService(
             }
 
             // Apply action-based logic
-            this.logger.LogInformation("Applying action-based logic - Action: {Action}, UserExists: {UserExists}", action, user != null);
+            this.logger.LogInformation("Applying action-based logic - Action: {Action}, UserExists: {UserExists}", action, user != null ? "true" : "false");
 
             if (!string.IsNullOrEmpty(action))
             {
@@ -605,10 +605,10 @@ public sealed class OAuthService(
 
     private async Task<User> FindOrCreateUserAsync(OAuthProvider provider, OAuthUserInfoDto userInfo, CancellationToken cancellationToken)
     {
-        this.logger.LogInformation("FindOrCreateUserAsync - Provider: {Provider}, UserId: {UserId}", provider, SanitizeForLog(userInfo.Id));
+        this.logger.LogInformation("FindOrCreateUserAsync - Provider: {Provider}, UserId: {UserId}", provider, userInfo.Id?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         // Check if external login already exists
-        var externalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
+        var externalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id ?? string.Empty, cancellationToken);
         if (externalLogin != null)
         {
             this.logger.LogInformation("Found existing external login - UserId: {UserId}", externalLogin.UserId);

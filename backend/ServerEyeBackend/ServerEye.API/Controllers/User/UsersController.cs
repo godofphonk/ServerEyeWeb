@@ -117,7 +117,7 @@ public class UsersController(IUserService userService, IAuthService authService,
                 throw new InvalidOperationException("Invalid or expired verification code");
             }
 
-            this.logger.LogInformation("Email verified for user: {Email}", request.Email);
+            this.logger.LogInformation("Email verified for user: {Email}", request.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return new { message = "Email verified successfully" };
         });
     }

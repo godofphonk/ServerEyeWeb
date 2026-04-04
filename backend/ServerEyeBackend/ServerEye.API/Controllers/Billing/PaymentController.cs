@@ -29,7 +29,7 @@ public class PaymentController : ControllerBase
         try
         {
             var userId = GetUserId();
-            this.logger.LogInformation("Creating payment intent for user: {UserId}, amount: {Amount}, currency: {Currency}", userId, request.Amount, request.Currency);
+            this.logger.LogInformation("Creating payment intent for user: {UserId}, amount: {Amount}, currency: {Currency}", userId, request.Amount, request.Currency?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var response = await paymentService.CreatePaymentIntentAsync(userId, request);
 
