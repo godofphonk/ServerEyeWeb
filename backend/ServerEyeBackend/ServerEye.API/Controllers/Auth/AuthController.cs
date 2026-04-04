@@ -691,7 +691,7 @@ public class AuthController : BaseApiController
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Set to true in production with HTTPS
+                Secure = true, // Always use secure cookies for JWT tokens
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
 
@@ -702,7 +702,7 @@ public class AuthController : BaseApiController
             var refreshTokenOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Set to true in production with HTTPS
+                Secure = true, // Always use secure cookies for JWT tokens
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
 
@@ -718,8 +718,16 @@ public class AuthController : BaseApiController
             cookieOptions.Expires,
             refreshTokenOptions.Expires);
 
-            // Redirect to frontend OAuth callback page with token in query
-            var callbackUrl = $"{this.frontendSettings.BaseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+            // Validate and construct secure callback URL
+            var baseUrl = this.frontendSettings.BaseUrl;
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) ||
+                (baseUri.Scheme != "https" && !this.HttpContext.Request.IsLocal))
+            {
+                this.logger.LogWarning("Invalid or insecure frontend BaseUrl: {BaseUrl}", baseUrl);
+                return this.BadRequest("Invalid callback configuration");
+            }
+            
+            var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
@@ -731,20 +739,20 @@ public class AuthController : BaseApiController
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
             this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
 
-            // Handle specific OAuth errors
+            // Handle specific OAuth errors with secure redirects
             if (ex.Message == "user_not_found")
             {
                 this.logger.LogWarning("OAuth login failed - user not found, redirecting to login page");
-                return this.Redirect($"{this.frontendSettings.BaseUrl}login?error=user_not_found");
+                return this.SafeRedirect("login?error=user_not_found");
             }
             else if (ex.Message == "user_already_exists")
             {
                 this.logger.LogWarning("OAuth registration failed - user already exists, redirecting to register page");
-                return this.Redirect($"{this.frontendSettings.BaseUrl}register?error=user_already_exists");
+                return this.SafeRedirect("register?error=user_already_exists");
             }
 
             this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
-            return this.Redirect($"{this.frontendSettings.BaseUrl}auth/callback?error=oauth_failed");
+            return this.SafeRedirect("auth/callback?error=oauth_failed");
         }
     }
 
@@ -1013,6 +1021,36 @@ public class AuthController : BaseApiController
         }
 
         return state; // Return as-is for regular state and linking state
+    }
+
+    /// <summary>
+    /// Performs secure redirect with URL validation
+    /// </summary>
+    private ActionResult SafeRedirect(string path)
+    {
+        var baseUrl = this.frontendSettings.BaseUrl;
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) ||
+            (baseUri.Scheme != "https" && !this.HttpContext.Request.IsLocal))
+        {
+            this.logger.LogWarning("Invalid or insecure frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
+            return this.BadRequest("Invalid redirect configuration");
+        }
+
+        var fullPath = $"{baseUrl}{path}";
+        if (!Uri.TryCreate(fullPath, UriKind.Absolute, out var fullUri))
+        {
+            this.logger.LogWarning("Invalid redirect URL constructed: {Url}", fullPath);
+            return this.BadRequest("Invalid redirect URL");
+        }
+
+        // Ensure the redirect is to the same base domain
+        if (fullUri.Host != baseUri.Host || fullUri.Scheme != baseUri.Scheme)
+        {
+            this.logger.LogWarning("Redirect URL points to different domain: {Url}", fullPath);
+            return this.BadRequest("Cross-domain redirects not allowed");
+        }
+
+        return this.Redirect(fullPath);
     }
 
     #endregion
