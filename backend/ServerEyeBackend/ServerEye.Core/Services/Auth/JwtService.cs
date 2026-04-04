@@ -61,7 +61,7 @@ public sealed class JwtService : IJwtService
         // This ensures JWT tokens remain valid between development sessions
         // and removes hardcoded secrets from source code
         var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
-        
+
         if (string.IsNullOrEmpty(devPrivateKey))
         {
             // Fallback: generate dynamic key if environment variable not set
