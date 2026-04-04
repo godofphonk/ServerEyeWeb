@@ -44,6 +44,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
+
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
 
@@ -75,6 +78,9 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
 
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
@@ -156,6 +162,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
+
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
 
@@ -216,6 +225,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
+
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
 
@@ -265,6 +277,9 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
 
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
