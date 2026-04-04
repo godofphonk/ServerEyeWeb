@@ -8,6 +8,7 @@ using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
 
@@ -557,18 +558,18 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation(
                 "OAuth callback received - Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
-                (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...",
-                (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...",
-                (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
-                (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                LogSanitizer.MaskToken(code, 10),
+                LogSanitizer.MaskToken(hash, 10),
+                LogSanitizer.Sanitize(state) ?? "null",
+                LogSanitizer.Sanitize(action) ?? "auto",
                 isLinking,
-                (linkingProvider ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
-                linkingUserId);
+                LogSanitizer.Sanitize(linkingProvider) ?? "null",
+                LogSanitizer.MaskToken(linkingUserId, 8));
 
             // Validate required parameters
             if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
             {
-                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...", (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...", (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", LogSanitizer.MaskToken(code, 10), LogSanitizer.MaskToken(hash, 10), LogSanitizer.Sanitize(state) ?? "null");
                 return this.BadRequest(new { message = "Missing authentication parameters" });
             }
 

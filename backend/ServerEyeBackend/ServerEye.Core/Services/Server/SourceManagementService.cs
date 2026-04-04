@@ -3,6 +3,7 @@ namespace ServerEye.Core.Services;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Server;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -14,7 +15,7 @@ public class SourceManagementService(
 {
     public async Task<DeleteSourceResponseDto> DeleteServerSourceAsync(Guid userId, string serverKey, string source)
     {
-        logger.LogInformation("Deleting source {Source} from server {ServerKey} for user {UserId}", source, serverKey, userId);
+        logger.LogInformation("Deleting source {Source} from server {ServerKey} for user {UserId}", LogSanitizer.Sanitize(source), LogSanitizer.MaskServerKey(serverKey), userId);
 
         try
         {
@@ -22,7 +23,7 @@ public class SourceManagementService(
             var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey);
             if (serverInfo == null)
             {
-                logger.LogWarning("Invalid server key {ServerKey}", serverKey);
+                logger.LogWarning("Invalid server key {ServerKey}", LogSanitizer.MaskServerKey(serverKey));
                 return new DeleteSourceResponseDto
                 {
                     Message = "Invalid server key",
@@ -98,7 +99,7 @@ public class SourceManagementService(
 
     public async Task<DeleteSourceIdentifiersResponseDto> DeleteServerSourceIdentifiersAsync(Guid userId, string serverKey, DeleteSourceIdentifiersRequestDto request)
     {
-        logger.LogInformation("Deleting identifiers from server {ServerKey} for user {UserId}", serverKey, userId);
+        logger.LogInformation("Deleting identifiers from server {ServerKey} for user {UserId}", LogSanitizer.MaskServerKey(serverKey), userId);
 
         try
         {
@@ -106,7 +107,7 @@ public class SourceManagementService(
             var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey);
             if (serverInfo == null)
             {
-                logger.LogWarning("Invalid server key {ServerKey}", serverKey);
+                logger.LogWarning("Invalid server key {ServerKey}", LogSanitizer.MaskServerKey(serverKey));
                 return new DeleteSourceIdentifiersResponseDto
                 {
                     Message = "Invalid server key",
@@ -152,7 +153,7 @@ public class SourceManagementService(
             var response = await goApiClient.DeleteServerSourceIdentifiersByKeyAsync(serverKey, goApiRequest);
             if (response == null)
             {
-                logger.LogWarning("Failed to delete identifiers from Go API for server {ServerKey}", serverKey);
+                logger.LogWarning("Failed to delete identifiers from Go API for server {ServerKey}", LogSanitizer.MaskServerKey(serverKey));
                 return new DeleteSourceIdentifiersResponseDto
                 {
                     Message = "Failed to delete identifiers from monitoring service",
@@ -162,7 +163,7 @@ public class SourceManagementService(
                 };
             }
 
-            logger.LogInformation("Successfully deleted identifiers from server {ServerKey} for user {UserId}", serverKey, userId);
+            logger.LogInformation("Successfully deleted identifiers from server {ServerKey} for user {UserId}", LogSanitizer.MaskServerKey(serverKey), userId);
             return new DeleteSourceIdentifiersResponseDto
             {
                 Message = response.Message,
@@ -187,7 +188,7 @@ public class SourceManagementService(
 
     public async Task<DeleteSourceIdentifiersResponseDto> DeleteServerSourceIdentifiersByTypeAsync(Guid userId, string serverKey, string sourceType, DeleteSourceIdentifiersRequestDto request)
     {
-        logger.LogInformation("Deleting identifiers of type {SourceType} from server {ServerKey} for user {UserId}", sourceType, serverKey, userId);
+        logger.LogInformation("Deleting identifiers of type {SourceType} from server {ServerKey} for user {UserId}", LogSanitizer.Sanitize(sourceType), LogSanitizer.MaskServerKey(serverKey), userId);
 
         try
         {
@@ -195,7 +196,7 @@ public class SourceManagementService(
             var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey);
             if (serverInfo == null)
             {
-                logger.LogWarning("Invalid server key {ServerKey}", serverKey);
+                logger.LogWarning("Invalid server key {ServerKey}", LogSanitizer.MaskServerKey(serverKey));
                 return new DeleteSourceIdentifiersResponseDto
                 {
                     Message = "Invalid server key",
@@ -263,7 +264,7 @@ public class SourceManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting identifiers of type {SourceType} from server {ServerKey} for user {UserId}", sourceType, serverKey, userId);
+            logger.LogError(ex, "Error deleting identifiers of type {SourceType} from server {ServerKey} for user {UserId}", LogSanitizer.Sanitize(sourceType), LogSanitizer.MaskServerKey(serverKey), userId);
             return new DeleteSourceIdentifiersResponseDto
             {
                 Message = "Internal server error",
