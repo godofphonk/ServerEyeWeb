@@ -84,7 +84,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         using var client = this.factory.CreateClient();
 
         // Act 1: Create OAuth challenge
-        var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=Google&state={state}&returnUrl={returnUrl}");
+        var challengeResponse = await client.GetAsync($"/api/auth/oauth/google/challenge?state={state}&returnUrl={returnUrl}");
 
         // Assert 1
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -115,7 +115,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         using var client = this.factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/auth/oauth/challenge?provider=InvalidProvider&state=test");
+        var response = await client.GetAsync("/api/auth/oauth/InvalidProvider/challenge?state=test");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -142,7 +142,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         using var client = this.factory.CreateClient();
 
         // Act
-        var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=GitHub&state={state}");
+        var challengeResponse = await client.GetAsync($"/api/auth/oauth/github/challenge?state={state}");
 
         // Assert
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -174,7 +174,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         using var client = this.factory.CreateClient();
 
         // Act
-        var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=Telegram&state={state}");
+        var challengeResponse = await client.GetAsync($"/api/auth/oauth/telegram/challenge?state={state}");
 
         // Assert
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -198,7 +198,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         using var client = this.factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/api/auth/oauth/challenge?provider=Google&state=test");
+        var response = await client.GetAsync("/api/auth/oauth/google/challenge?state=test");
 
         // Assert - Should either succeed (if Google is enabled) or fail gracefully
         response.StatusCode.Should().BeOneOf(
