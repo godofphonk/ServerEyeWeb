@@ -17,7 +17,7 @@ public static class UriHelper
     public static bool TryCreateAbsoluteUri(string? uriString, out Uri? result)
     {
         result = null;
-        
+
         if (string.IsNullOrEmpty(uriString))
         {
             return false;
