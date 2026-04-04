@@ -83,9 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.debug('Checking authentication status');
       setLoading(true);
 
-      // First check if we have tokens in localStorage (from OAuth callback)
+      // First check if we have tokens in sessionStorage (from OAuth callback)
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
+        const token = sessionStorage.getItem('jwt_token') || sessionStorage.getItem('access_token');
 
         if (token && !user) {
           try {
@@ -109,14 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email.includes('@oauth.');
             const hasPassword = payload.hasPassword ?? payload.HasPassword ?? !isOAuthUser;
 
-            // Clear OAuth tokens from localStorage if user is not actually OAuth user
+            // Clear OAuth tokens from sessionStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
               clearAuthData();
               throw new Error('OAuth token detected, clearing and using session API');
             }
 
             if (userId) {
-              const localStorageUser: User = {
+              const sessionStorageUser: User = {
                 id: userId,
                 email: email,
                 username: username || email.split('@')[0] || 'user',
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 hasPassword: hasPassword,
               };
 
-              setUserWithLogging(localStorageUser);
+              setUserWithLogging(sessionStorageUser);
               setLoading(false);
               return;
             }
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const mappedUser = mapBackendUser(data.user);
           setUserWithLogging(mappedUser);
 
-          // Also save token to localStorage for apiClient
+          // Also save token to sessionStorage for apiClient
           if (typeof window !== 'undefined') {
             // Get token from session API response
             try {
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (tokenResponse.ok) {
                 const tokenData = await tokenResponse.json();
                 if (tokenData.token) {
-                  localStorage.setItem('jwt_token', tokenData.token);
+                  sessionStorage.setItem('jwt_token', tokenData.token);
                 }
               }
             } catch (error) {}
@@ -210,23 +210,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserWithLogging(mapBackendUser(data.user));
     checkAuthCalled.current = false; // Сбрасываем флаг после успешного входa
 
-    // Also save token to localStorage for apiClient
+    // Also save token to sessionStorage for apiClient
     if (typeof window !== 'undefined') {
       const cookies = document.cookie.split(';');
       const accessTokenCookie = cookies.find(c => c.trim().startsWith('access_token='));
       if (accessTokenCookie) {
         const token = accessTokenCookie.split('=')[1];
-        localStorage.setItem('jwt_token', token);
+        sessionStorage.setItem('jwt_token', token);
       }
     }
   };
 
   const setTokensFromCallback = async (token: string, refreshToken: string) => {
-    // Store tokens in localStorage for apiClient
+    // Store tokens in sessionStorage for apiClient
     if (typeof window !== 'undefined') {
-      localStorage.setItem('jwt_token', token);
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('refresh_token', refreshToken);
+      sessionStorage.setItem('jwt_token', token);
+      sessionStorage.setItem('access_token', token);
+      sessionStorage.setItem('refresh_token', refreshToken);
 
       // Also try to set cookies for backend compatibility
       document.cookie = `access_token=${token}; path=/; max-age=3600; SameSite=Lax`;
@@ -303,8 +303,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAuthData = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('jwt_token');
-      localStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('jwt_token');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
       // Clear all cookies with comprehensive path and domain coverage
       document.cookie.split(';').forEach(c => {
         const cookie = c.trim();
