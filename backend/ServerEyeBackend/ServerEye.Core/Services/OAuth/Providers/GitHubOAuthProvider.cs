@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
 
@@ -68,8 +69,8 @@ public sealed class GitHubOAuthProvider(
     {
         Logger.LogInformation(
             "GetGitHubUserInfoAsync called - AccessToken: {AccessToken}, IdToken: {IdToken}",
-            (accessToken ?? string.Empty)[..Math.Min(accessToken?.Length ?? 0, 20)] + "...",
-            string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
+            LogSanitizer.MaskToken(accessToken, 20),
+            LogSanitizer.MaskToken(idToken, 20));
 
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("User-Agent", "ServerEye");
@@ -113,7 +114,7 @@ public sealed class GitHubOAuthProvider(
         var tokenEndpoint = "https://github.com/login/oauth/access_token";
 
         // GitHub doesn't support PKCE, but we log the verifier for consistency
-        Logger.LogDebug("GitHub OAuth called with code verifier (not supported by GitHub): {CodeVerifier}", codeVerifier[..Math.Min(codeVerifier.Length, 20)]);
+        Logger.LogDebug("GitHub OAuth called with code verifier (not supported by GitHub): {CodeVerifier}", LogSanitizer.MaskToken(codeVerifier, 20));
 
         var parameters = new Dictionary<string, string>
         {
@@ -153,7 +154,7 @@ public sealed class GitHubOAuthProvider(
 
         Logger.LogInformation(
             "GitHub TokenResponse fields - AccessToken: {AccessToken}, TokenType: {TokenType}, Scope: {Scope}",
-            tokenResponse.AccessToken[..Math.Min(tokenResponse.AccessToken.Length, 20)] + "...",
+            LogSanitizer.MaskToken(tokenResponse.AccessToken, 20),
             tokenResponse.TokenType,
             tokenResponse.Scope);
 
