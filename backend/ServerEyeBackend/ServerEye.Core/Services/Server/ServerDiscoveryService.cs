@@ -184,12 +184,12 @@ public class ServerDiscoveryService(
                     IsActive = existingServer.IsActive
                 });
 
-                logger.LogInformation("Successfully imported server {ServerId} for user {UserId}", serverId, userId);
+                logger.LogInformation("Successfully imported server {ServerId} for user {UserId}", serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userId);
             }
             catch (Exception ex)
             {
                 errors.Add($"Server {serverId}: {ex.Message}");
-                logger.LogError(ex, "Error importing server {ServerId} for user {UserId}", serverId, userId);
+                logger.LogError(ex, "Error importing server {ServerId} for user {UserId}", serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userId);
             }
         }
 
