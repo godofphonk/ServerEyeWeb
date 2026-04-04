@@ -9,7 +9,6 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { apiClient } = require('@/lib/api');
 
 const makePlan = (overrides: Partial<SubscriptionPlan> = {}): SubscriptionPlan => ({
