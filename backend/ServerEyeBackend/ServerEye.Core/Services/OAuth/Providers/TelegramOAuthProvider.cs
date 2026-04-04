@@ -14,19 +14,6 @@ public sealed partial class TelegramOAuthProvider(
     ILogger<TelegramOAuthProvider> logger)
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
-    private static string? SanitizeForLog(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        var sanitized = value
-            .Replace("\r", string.Empty)
-            .Replace("\n", string.Empty);
-
-        return sanitized;
-    }
     public override OAuthProvider ProviderType => OAuthProvider.Telegram;
 
     [GeneratedRegex(@"""Id"":(\d+)")]
@@ -310,5 +297,17 @@ public sealed partial class TelegramOAuthProvider(
             RefreshToken = string.Empty, // Telegram doesn't use refresh tokens
             Scope = "telegram_user"
         };
+    }
+
+    private static string? SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        return value
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal);
     }
 }

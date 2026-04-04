@@ -35,20 +35,6 @@ public sealed class OAuthService(
     private readonly ILogger<OAuthService> logger = logger;
     private readonly OAuthMetrics metrics = metrics;
 
-    private static string? SanitizeForLog(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        var sanitized = value
-            .Replace("\r", string.Empty)
-            .Replace("\n", string.Empty);
-
-        return sanitized;
-    }
-
     // Public interface implementation
     public async Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, string? action = null, CancellationToken cancellationToken = default)
     {
@@ -238,7 +224,7 @@ public sealed class OAuthService(
                 provider,
                 SanitizeForLog(userInfo.Id),
                 existingExternalLogin != null,
-                SanitizeForLog(request.LinkingAction),
+                request.LinkingAction,
                 SanitizeForLog(request.UserId ?? "null"));
 
             activity?.SetTag(OAuthActivitySource.ExternalIdAttribute, userInfo.Id);
@@ -605,17 +591,16 @@ public sealed class OAuthService(
             .Replace("=", string.Empty, StringComparison.Ordinal);
     }
 
-    private static string SanitizeForLog(string? value)
+    private static string? SanitizeForLog(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
-            return string.Empty;
+            return value;
         }
 
-        // Remove line breaks to prevent log forging via crafted values
         return value
-            .Replace("\r", " ", StringComparison.Ordinal)
-            .Replace("\n", " ", StringComparison.Ordinal);
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal);
     }
 
     private async Task<User> FindOrCreateUserAsync(OAuthProvider provider, OAuthUserInfoDto userInfo, CancellationToken cancellationToken)
