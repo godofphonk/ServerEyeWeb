@@ -26,19 +26,19 @@ public class StaticInfoService : IStaticInfoService
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
             "[PERF] GetStaticInfoAsync started for server key {ServerKey}",
-            serverKey);
+            serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         try
         {
             // Validate access by server key
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-            await this.ValidateAccessByServerKeyAsync(userId, serverKey);
+            await this.ValidateAccessByServerKeyAsync(userId, serverKey ?? string.Empty);
             accessCheckTime.Stop();
             this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
             // Get static info from Go API
             var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-            var staticInfo = await this.goApiClient.GetStaticInfoAsync(serverKey);
+            var staticInfo = await this.goApiClient.GetStaticInfoAsync(serverKey ?? string.Empty);
             goApiTime.Stop();
 
             if (staticInfo == null)
@@ -51,7 +51,7 @@ public class StaticInfoService : IStaticInfoService
             GoApiServerStatus? serverStatus = null;
             try
             {
-                serverStatus = await this.goApiClient.GetServerStatusAsync(serverKey);
+                serverStatus = await this.goApiClient.GetServerStatusAsync(serverKey ?? string.Empty);
                 if (serverStatus?.AgentVersion != null)
                 {
                     this.logger.LogInformation("[PERF] Got agent version {Version} from status endpoint", serverStatus.AgentVersion);

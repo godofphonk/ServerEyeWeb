@@ -79,13 +79,13 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
-        this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", userRegisterDto.Email, userRegisterDto.UserName);
+        this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", userRegisterDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userRegisterDto.UserName?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         // Check if user with this email already exists
-        var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email);
+        var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email ?? string.Empty);
         if (existingUser != null)
         {
-            this.logger.LogWarning("Registration failed - user already exists: {Email}", userRegisterDto.Email);
+            this.logger.LogWarning("Registration failed - user already exists: {Email}", userRegisterDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             throw new InvalidOperationException($"User with email {userRegisterDto.Email} already exists.");
         }
 
@@ -93,14 +93,14 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         var user = new User()
         {
-            Email = userRegisterDto.Email,
-            UserName = userRegisterDto.UserName,
+            Email = userRegisterDto.Email ?? string.Empty,
+            UserName = userRegisterDto.UserName ?? string.Empty,
             Password = hashedPassword,
         };
 
         await this.userRepository.AddAsync(user);
 
-        this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, user.Email);
+        this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         // Generate tokens
         var accessToken = this.jwtService.GenerateAccessToken(user);
@@ -124,11 +124,11 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         try
         {
             await this.authService.SendVerificationCodeAsync(user.Id);
-            this.logger.LogInformation("Verification code sent to user: {Email}", user.Email);
+            this.logger.LogInformation("Verification code sent to user: {Email}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Failed to send verification code to user {Email}", user.Email);
+            this.logger.LogWarning(ex, "Failed to send verification code to user {Email}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
         }
 
         return new AuthResponseDto
@@ -137,7 +137,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             {
                 Id = user.Id,
                 Email = user.Email ?? string.Empty,
-                UserName = user.UserName,
+                UserName = user.UserName ?? string.Empty,
                 ServerId = user.ServerId,
             },
             Token = accessToken,
@@ -224,19 +224,19 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
 
-        this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email);
+        this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
-        var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email);
+        var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email ?? string.Empty);
         if (user == null || !this.passwordHasher.VerifyPassword(userLoginDto.Password, user.Password))
         {
-            this.logger.LogWarning("Failed login attempt for email: {Email} - invalid credentials", userLoginDto.Email);
+            this.logger.LogWarning("Failed login attempt for email: {Email} - invalid credentials", userLoginDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             throw new KeyNotFoundException($"Invalid email or password");
         }
 
         // Check if user can access protected resources
         if (!await this.CanUserAccessProtectedResourcesAsync(user.Id))
         {
-            this.logger.LogWarning("Login blocked for unverified email: {Email}, UserId: {UserId}", user.Email, user.Id);
+            this.logger.LogWarning("Login blocked for unverified email: {Email}, UserId: {UserId}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", user.Id);
             throw new UnauthorizedAccessException("Email verification required. Please check your email for verification code.");
         }
 
@@ -257,7 +257,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
-        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", user.Email, user.Id);
+        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", user.Id);
 
         return new AuthResponseDto
         {
