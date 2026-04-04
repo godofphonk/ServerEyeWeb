@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Server;
 
-internal class AddServerRequestValidatorTests
+public class AddServerRequestValidatorTests
 {
     private readonly AddServerRequestValidator sut;
 

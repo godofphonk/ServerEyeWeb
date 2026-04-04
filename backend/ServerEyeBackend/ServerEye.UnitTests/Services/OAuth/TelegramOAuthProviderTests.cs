@@ -18,7 +18,7 @@ using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.OAuth.Providers;
 using Xunit;
 
-internal class TelegramOAuthProviderTests
+public class TelegramOAuthProviderTests
 {
     private readonly Mock<ILogger<TelegramOAuthProvider>> mockLogger;
     private readonly OAuthSettings oauthSettings;
@@ -108,7 +108,7 @@ internal class TelegramOAuthProviderTests
 
         var url = result.ChallengeUrl.ToString();
         url.Should().Contain("oauth.telegram.org/auth");
-        url.Should().Contain("bot_id=123456789");
+        url.Should().Contain("bot_id=test-bot-id");
         url.Should().Contain("state=telegram_test-state-123");
         url.Should().Contain("request_access=write");
         url.Should().Contain("origin=" + Uri.EscapeDataString("https://localhost:5000"));
@@ -315,7 +315,7 @@ internal class TelegramOAuthProviderTests
         // Assert
         result.Should().NotBeNull();
         result.Id.Should().Be("12345");
-        result.Name.Should().Be(" Smith"); // Space before last name
+        result.Name.Should().Be("Smith"); // Only last name, no leading space after Trim()
         result.Username.Should().BeEmpty();
     }
 

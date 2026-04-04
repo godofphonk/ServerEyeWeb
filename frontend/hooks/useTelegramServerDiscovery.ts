@@ -39,7 +39,7 @@ export function useTelegramServerDiscovery({
   // Enterprise-level state management with localStorage persistence
   const getDiscoveryState = useCallback(() => {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const stored = localStorage.getItem(DISCOVERY_STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
@@ -50,7 +50,7 @@ export function useTelegramServerDiscovery({
 
   const setDiscoveryState = useCallback((state: any) => {
     if (typeof window === 'undefined') return;
-    
+
     try {
       localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
@@ -60,7 +60,7 @@ export function useTelegramServerDiscovery({
 
   const getLastDiscoveryTime = useCallback(() => {
     if (typeof window === 'undefined') return 0;
-    
+
     try {
       const stored = localStorage.getItem(LAST_DISCOVERY_KEY);
       return stored ? parseInt(stored, 10) : 0;
@@ -71,7 +71,7 @@ export function useTelegramServerDiscovery({
 
   const setLastDiscoveryTime = useCallback(() => {
     if (typeof window === 'undefined') return;
-    
+
     try {
       localStorage.setItem(LAST_DISCOVERY_KEY, Date.now().toString());
     } catch (error) {
@@ -83,9 +83,9 @@ export function useTelegramServerDiscovery({
     // TODO: FIX - Remove this temporary bypass for testing
     // Proper behavior: Check if user has dismissed the modal to prevent spam
     return false; // Always return false during testing to allow repeated discovery
-    
+
     if (typeof window === 'undefined') return true;
-    
+
     try {
       const dismissed = localStorage.getItem(DISMISSAL_KEY);
       return dismissed === 'true';
@@ -104,10 +104,10 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const discoverServersForced = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
-  setShouldShowModal(true);
-  setError(null);
-  setIsLoading(false);
-  return null;
+    setShouldShowModal(true);
+    setError(null);
+    setIsLoading(false);
+    return null;
   }, []);
 
   const discoverServers = useCallback(async (): Promise<DiscoveredServersResponse | null> => {
@@ -123,10 +123,10 @@ export function useTelegramServerDiscovery({
 
     try {
       const result = await serverDiscoveryApi.findTelegramServers();
-      
+
       setDiscovered(result);
       setLastDiscoveryTime();
-      
+
       if (result && result.total_count > 0 && !isModalDismissed()) {
         setShouldShowModal(true);
       } else {
@@ -141,10 +141,11 @@ export function useTelegramServerDiscovery({
 
       return result;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to discover Telegram servers';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Failed to discover Telegram servers';
       setError(errorMessage);
       logger.error('Telegram server discovery failed', err, { errorMessage });
-      
+
       // Graceful fallback - don't show modal on error
       setShouldShowModal(false);
       return null;
@@ -153,65 +154,74 @@ export function useTelegramServerDiscovery({
     }
   }, [isModalDismissed, forceShowModal, setDiscoveryState, setLastDiscoveryTime]);
 
-  const importServers = useCallback(async (serverIds: string[]): Promise<ImportServersResponse> => {
-    if (!discovered) {
-      throw new Error('No discovered servers available for import');
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await serverDiscoveryApi.importServers(serverIds);
-
-      if (result.failed_count > 0) {
-        logger.warn('Some servers failed to import', { failedCount: result.failed_count, errors: result.errors });
+  const importServers = useCallback(
+    async (serverIds: string[]): Promise<ImportServersResponse> => {
+      if (!discovered) {
+        throw new Error('No discovered servers available for import');
       }
-      
-      // TODO: FIX - For production, consider if we need to refresh discovery data
-      // For now, update locally to reflect imported servers
-      if (discovered) {
-        const updatedDiscovered = {
-          ...discovered,
-          servers: discovered.servers.map(server => ({
-            ...server,
-            canImport: !serverIds.includes(server.server_id),
-          })),
-        };
-        setDiscovered(updatedDiscovered);
-        setDiscoveryState(updatedDiscovered);
-      }
-      
-      // Refresh discovery data from server to get accurate state
-      // This ensures we have the latest canImport status after import
-      setTimeout(() => {
-        discoverServers();
-      }, 1000); // Wait 1 second for backend to process
 
-      return result;
-    } catch (err: any) {
-      let errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
-      
-      // TODO: FIX - Improve error handling for production
-      // Handle specific case where servers are already imported
-      if (err.response?.status === 400 && err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        if (errors.every((error: string) => error.includes('already added'))) {
-          errorMessage = 'Selected servers are already added to your account';
-          // Refresh discovery data to show correct state
-          setTimeout(() => {
-            discoverServers();
-          }, 1000);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await serverDiscoveryApi.importServers(serverIds);
+
+        if (result.failed_count > 0) {
+          logger.warn('Some servers failed to import', {
+            failedCount: result.failed_count,
+            errors: result.errors,
+          });
         }
+
+        // TODO: FIX - For production, consider if we need to refresh discovery data
+        // For now, update locally to reflect imported servers
+        if (discovered) {
+          const updatedDiscovered = {
+            ...discovered,
+            servers: discovered.servers.map(server => ({
+              ...server,
+              canImport: !serverIds.includes(server.server_id),
+            })),
+          };
+          setDiscovered(updatedDiscovered);
+          setDiscoveryState(updatedDiscovered);
+        }
+
+        // Refresh discovery data from server to get accurate state
+        // This ensures we have the latest canImport status after import
+        setTimeout(() => {
+          discoverServers();
+        }, 1000); // Wait 1 second for backend to process
+
+        return result;
+      } catch (err: any) {
+        let errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
+
+        // TODO: FIX - Improve error handling for production
+        // Handle specific case where servers are already imported
+        if (err.response?.status === 400 && err.response?.data?.errors) {
+          const errors = err.response.data.errors;
+          if (errors.every((error: string) => error.includes('already added'))) {
+            errorMessage = 'Selected servers are already added to your account';
+            // Refresh discovery data to show correct state
+            setTimeout(() => {
+              discoverServers();
+            }, 1000);
+          }
+        }
+
+        setError(errorMessage);
+        logger.error('Telegram server import failed', err, {
+          errorMessage,
+          serverCount: serverIds.length,
+        });
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-      
-      setError(errorMessage);
-      logger.error('Telegram server import failed', err, { errorMessage, serverCount: serverIds.length });
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [discovered, setDiscoveryState]);
+    },
+    [discovered, setDiscoveryState],
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -222,7 +232,7 @@ export function useTelegramServerDiscovery({
     setError(null);
     setShouldShowModal(false);
     setIsLoading(false);
-    
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem(DISCOVERY_STORAGE_KEY);
       localStorage.removeItem(DISMISSAL_KEY);
@@ -233,24 +243,23 @@ export function useTelegramServerDiscovery({
     if (!autoTrigger) return;
 
     const triggerDiscovery = async () => {
-      const telegramOAuthCompleted = typeof window !== 'undefined' 
-        ? sessionStorage.getItem('telegram_oauth_completed') 
-        : null;
-      
+      const telegramOAuthCompleted =
+        typeof window !== 'undefined' ? sessionStorage.getItem('telegram_oauth_completed') : null;
+
       if (!telegramOAuthCompleted) {
         return;
       }
-      
+
       // Don't trigger if already loading
       if (isLoading) return;
-      
+
       // Don't trigger if modal already showing
       if (shouldShowModal) return;
-      
+
       // Rate limiting: don't trigger more than once per hour (temporarily disabled for testing)
       const lastDiscovery = getLastDiscoveryTime();
-      const oneHourAgo = Date.now() - (60 * 60 * 1000);
-      
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
       if (false && lastDiscovery > oneHourAgo) {
         return;
       }
@@ -271,14 +280,22 @@ export function useTelegramServerDiscovery({
     };
 
     triggerDiscovery();
-  }, [autoTrigger, triggerDelay, isLoading, shouldShowModal, discoverServers, getLastDiscoveryTime, isModalDismissed]);
+  }, [
+    autoTrigger,
+    triggerDelay,
+    isLoading,
+    shouldShowModal,
+    discoverServers,
+    getLastDiscoveryTime,
+    isModalDismissed,
+  ]);
 
   // Restore state from localStorage on mount
   useEffect(() => {
     const storedState = getDiscoveryState();
     if (storedState) {
       setDiscovered(storedState.discovered);
-      
+
       // Only show modal if it was showing before and hasn't been dismissed
       if (storedState.showModal && !isModalDismissed()) {
         setShouldShowModal(true);

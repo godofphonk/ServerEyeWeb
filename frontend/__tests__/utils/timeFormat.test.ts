@@ -1,8 +1,4 @@
-import {
-  formatTimeByRange,
-  getChartDateFormat,
-  getTickCountByRange,
-} from '@/utils/timeFormat';
+import { formatTimeByRange, getChartDateFormat, getTickCountByRange } from '@/utils/timeFormat';
 
 describe('getChartDateFormat', () => {
   it('returns HH:mm for 1h range', () => {

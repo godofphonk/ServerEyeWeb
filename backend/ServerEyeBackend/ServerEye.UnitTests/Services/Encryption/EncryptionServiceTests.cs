@@ -8,7 +8,7 @@ using ServerEye.Core.Configuration;
 using ServerEye.Core.Services;
 using Xunit;
 
-internal class EncryptionServiceTests
+public class EncryptionServiceTests
 {
     private readonly EncryptionService encryptionService;
     private const string ValidKey = "ThisIsASecureEncryptionKeyWith32Chars!";

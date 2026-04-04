@@ -16,25 +16,25 @@ describe('Button', () => {
   });
 
   it('should apply secondary variant', () => {
-    render(<Button variant="secondary">Secondary Button</Button>);
+    render(<Button variant='secondary'>Secondary Button</Button>);
     const button = screen.getByText('Secondary Button');
     expect(button).toHaveClass('bg-white/10', 'backdrop-blur-sm');
   });
 
   it('should apply outline variant', () => {
-    render(<Button variant="outline">Outline Button</Button>);
+    render(<Button variant='outline'>Outline Button</Button>);
     const button = screen.getByText('Outline Button');
     expect(button).toHaveClass('border-2', 'border-current');
   });
 
   it('should apply ghost variant', () => {
-    render(<Button variant="ghost">Ghost Button</Button>);
+    render(<Button variant='ghost'>Ghost Button</Button>);
     const button = screen.getByText('Ghost Button');
     expect(button).toHaveClass('hover:bg-white/10');
   });
 
   it('should apply danger variant', () => {
-    render(<Button variant="danger">Danger Button</Button>);
+    render(<Button variant='danger'>Danger Button</Button>);
     const button = screen.getByText('Danger Button');
     expect(button).toHaveClass('bg-red-600', 'text-white');
   });
@@ -46,13 +46,13 @@ describe('Button', () => {
   });
 
   it('should apply small size', () => {
-    render(<Button size="sm">Small Button</Button>);
+    render(<Button size='sm'>Small Button</Button>);
     const button = screen.getByText('Small Button');
     expect(button).toHaveClass('px-4', 'py-2', 'text-sm');
   });
 
   it('should apply large size', () => {
-    render(<Button size="lg">Large Button</Button>);
+    render(<Button size='lg'>Large Button</Button>);
     const button = screen.getByText('Large Button');
     expect(button).toHaveClass('px-8', 'py-4', 'text-lg');
   });
@@ -91,7 +91,11 @@ describe('Button', () => {
 
   it('should not trigger click when disabled', () => {
     const handleClick = jest.fn();
-    render(<Button onClick={handleClick} disabled>Disabled Button</Button>);
+    render(
+      <Button onClick={handleClick} disabled>
+        Disabled Button
+      </Button>,
+    );
     const button = screen.getByText('Disabled Button');
     fireEvent.click(button);
     expect(handleClick).not.toHaveBeenCalled();
@@ -99,20 +103,28 @@ describe('Button', () => {
 
   it('should not trigger click when loading', () => {
     const handleClick = jest.fn();
-    render(<Button onClick={handleClick} isLoading>Loading Button</Button>);
+    render(
+      <Button onClick={handleClick} isLoading>
+        Loading Button
+      </Button>,
+    );
     const button = screen.getByRole('button');
     fireEvent.click(button);
     expect(handleClick).not.toHaveBeenCalled();
   });
 
   it('should merge custom className', () => {
-    render(<Button className="custom-class">Custom Button</Button>);
+    render(<Button className='custom-class'>Custom Button</Button>);
     const button = screen.getByText('Custom Button');
     expect(button).toHaveClass('custom-class');
   });
 
   it('should pass through HTML button attributes', () => {
-    render(<Button type="submit" name="submit-button">Submit</Button>);
+    render(
+      <Button type='submit' name='submit-button'>
+        Submit
+      </Button>,
+    );
     const button = screen.getByText('Submit');
     expect(button).toHaveAttribute('type', 'submit');
     expect(button).toHaveAttribute('name', 'submit-button');

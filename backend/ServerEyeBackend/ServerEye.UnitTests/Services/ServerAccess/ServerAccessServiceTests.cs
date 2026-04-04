@@ -11,7 +11,7 @@ using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerAccessServiceImpl = ServerEye.Core.Services.ServerAccessService;
 
-internal class ServerAccessServiceTests
+public class ServerAccessServiceTests
 {
     private readonly Mock<IMonitoredServerRepository> mockServerRepository;
     private readonly Mock<IUserServerAccessRepository> mockAccessRepository;

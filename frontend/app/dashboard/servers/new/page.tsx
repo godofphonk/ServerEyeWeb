@@ -52,7 +52,6 @@ export default function AddServerPage() {
 
       router.push('/dashboard');
     } catch (error: any) {
-      
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||

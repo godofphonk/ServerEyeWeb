@@ -15,7 +15,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi;
 #pragma warning disable CA2000 // Dispose objects before losing scope - HttpResponseMessage is managed by Moq
 #pragma warning disable CA2007 // Do not directly await a Task - ConfigureAwait not needed in tests
 
-internal class GoApiClientTests : IDisposable
+public class GoApiClientTests : IDisposable
 {
     private readonly Mock<HttpMessageHandler> mockHandler;
     private readonly HttpClient httpClient;

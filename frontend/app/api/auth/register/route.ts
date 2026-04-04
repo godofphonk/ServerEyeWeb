@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 export async function POST(request: NextRequest) {
   try {
-
     const backendUrl = `${API_BASE_URL}/users/register`;
 
     const body = await request.json();
@@ -15,7 +13,6 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));

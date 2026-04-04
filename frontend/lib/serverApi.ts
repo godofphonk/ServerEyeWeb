@@ -24,7 +24,7 @@ export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
     if (error.response?.status === 401) {
       throw error; // Re-throw to let caller handle it
     }
-    
+
     // For other errors, clear cache and return empty array
     cachedServers = null;
     cacheTimestamp = 0;
@@ -40,21 +40,20 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
       {
         maxRetries: 2,
         initialDelay: 1000,
-      }
+      },
     );
     return response;
   } catch (error: any) {
-    
     // For 401 errors, let auth interceptor handle it
     if (error.response?.status === 401) {
       throw error;
     }
-    
+
     // For server errors (500, 502, 503, 504), rethrow the original error to preserve response status
     if (error.response?.status >= 500) {
       throw error;
     }
-    
+
     throw new Error(`Failed to load server static info: ${error.message}`);
   }
 }
@@ -79,9 +78,9 @@ export async function getServersWithStaticInfo(): Promise<
   // 5 concurrent requests at a time for optimal performance
   const CHUNK_SIZE = 5;
   const chunks = chunkArray(monitoredServers, CHUNK_SIZE);
-  
+
   const allResults: Array<MonitoredServer & { staticInfo?: ServerStaticInfo }> = [];
-  
+
   // Process each chunk sequentially, but requests within chunk are parallel
   for (const chunk of chunks) {
     const chunkResults = await Promise.allSettled(
@@ -102,12 +101,11 @@ export async function getServersWithStaticInfo(): Promise<
             staticInfo,
           };
         } catch (error: any) {
-          
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
           if (error.response?.status >= 500) {
             throw error;
           }
-          
+
           // For wrapped errors, check if they contain server error info
           if (error.message?.includes('Request failed with status code 5')) {
             // Extract the original error if it's wrapped
@@ -120,7 +118,7 @@ export async function getServersWithStaticInfo(): Promise<
               throw mockError;
             }
           }
-          
+
           // For other errors, return server without static info
           return {
             ...server,
@@ -131,11 +129,10 @@ export async function getServersWithStaticInfo(): Promise<
     );
 
     // Check if any server errors occurred in this chunk
-    const serverError = chunkResults.find(result => 
-      result.status === 'rejected' && 
-      result.reason?.response?.status >= 500
+    const serverError = chunkResults.find(
+      result => result.status === 'rejected' && result.reason?.response?.status >= 500,
     );
-    
+
     if (serverError && serverError.status === 'rejected') {
       throw serverError.reason;
     }
@@ -144,7 +141,7 @@ export async function getServersWithStaticInfo(): Promise<
     const successfulResults = chunkResults
       .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
       .map(result => result.value);
-    
+
     allResults.push(...successfulResults);
   }
 
@@ -250,7 +247,7 @@ export async function getCachedTieredMetrics(
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  
+
   const cacheKey = `tiered-${serverKey}-${start}-${end}${granularity ? `-${granularity}` : ''}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
@@ -261,16 +258,16 @@ export async function getCachedTieredMetrics(
   }
 
   // Fetch fresh tiered data with optional granularity
-  const url = granularity 
+  const url = granularity
     ? `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}&granularity=${granularity}`
     : `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}`;
-  
+
   const response = await apiClient.get<any>(url);
 
   // Fix status - if we have data points, status should be success
   const fixedResponse = {
     ...response,
-    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
+    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status,
   };
 
   // Update cache
@@ -303,7 +300,7 @@ export async function getCachedMetrics(
   // Fix status - if we have data points, status should be success
   const fixedResponse = {
     ...response,
-    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status
+    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status,
   };
 
   // Update cache
@@ -345,7 +342,8 @@ export async function getServerCompleteData(
     granularity?: string;
   },
 ) {
-  const startTime = options?.start?.toISOString() || new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const startTime =
+    options?.start?.toISOString() || new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const endTime = options?.end?.toISOString() || new Date().toISOString();
   const granularity = options?.granularity || 'minute';
 
@@ -373,7 +371,7 @@ export async function getServerUnifiedData(
   },
 ) {
   const params = new URLSearchParams();
-  
+
   // Add time range parameters if provided
   if (options?.start) {
     params.append('start', options.start.toISOString());
@@ -384,7 +382,7 @@ export async function getServerUnifiedData(
   if (options?.granularity) {
     params.append('granularity', options.granularity);
   }
-  
+
   // Add include flags (default to true)
   params.append('include_metrics', (options?.includeMetrics !== false).toString());
   params.append('include_status', (options?.includeStatus !== false).toString());
@@ -393,6 +391,6 @@ export async function getServerUnifiedData(
   const response = await apiClient.get<any>(
     `/servers/by-key/${serverKey}/unified?${params.toString()}`,
   );
-  
+
   return response;
 }

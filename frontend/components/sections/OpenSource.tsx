@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Github, Star, GitFork, Users } from 'lucide-react';
+import { GitBranch, Star, GitFork, Users } from 'lucide-react';
 
 export default function OpenSource() {
   return (
@@ -16,7 +16,7 @@ export default function OpenSource() {
           viewport={{ once: true }}
           className='max-w-4xl mx-auto text-center'
         >
-          <Github className='w-20 h-20 mx-auto mb-8 text-white' />
+          <GitBranch className='w-20 h-20 mx-auto mb-8 text-white' />
 
           <h2 className='text-5xl md:text-6xl font-bold mb-6'>
             <span className='bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400'>
@@ -65,7 +65,7 @@ export default function OpenSource() {
               rel='noopener noreferrer'
               className='inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-all duration-300 hover:scale-105'
             >
-              <Github className='w-5 h-5' />
+              <GitBranch className='w-5 h-5' />
               View on GitHub
             </a>
             <button className='px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full font-semibold transition-all duration-300'>

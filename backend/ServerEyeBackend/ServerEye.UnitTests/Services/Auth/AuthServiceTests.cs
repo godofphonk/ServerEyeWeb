@@ -18,7 +18,7 @@ using ServerEye.Core.Services;
 using Xunit;
 using AuthServiceImpl = ServerEye.Core.Services.AuthService;
 
-internal class AuthServiceTests
+public class AuthServiceTests
 {
     private readonly Mock<IUserRepository> mockUserRepository;
     private readonly Mock<IEmailVerificationRepository> mockEmailVerificationRepository;

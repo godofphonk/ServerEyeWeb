@@ -73,7 +73,7 @@ export default function MetricsAreaChart({
       }
       return null;
     };
-    
+
     CustomTooltipComponent.displayName = 'CustomTooltip';
     return CustomTooltipComponent;
   }, [unit]);

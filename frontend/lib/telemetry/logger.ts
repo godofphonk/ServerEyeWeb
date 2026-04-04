@@ -28,7 +28,7 @@ class StructuredLogger {
     level: LogLevel,
     message: string,
     context?: Record<string, unknown>,
-    error?: Error
+    error?: Error,
   ): LogEntry {
     const span = trace.getActiveSpan();
     const spanContext = span?.spanContext();
@@ -44,11 +44,13 @@ class StructuredLogger {
         environment: process.env.NODE_ENV,
         ...context,
       },
-      error: error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      } as unknown as Error : undefined,
+      error: error
+        ? ({
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } as unknown as Error)
+        : undefined,
     };
   }
 
@@ -67,40 +69,60 @@ class StructuredLogger {
     // Send to Loki via Alloy (OTLP HTTP endpoint)
     if (process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT) {
       const otlpLog = {
-        resourceLogs: [{
-          resource: {
-            attributes: [
-              { key: 'service.name', value: { stringValue: this.serviceName } },
-              { key: 'service.version', value: { stringValue: '1.0.0' } },
-              { key: 'deployment.environment', value: { stringValue: process.env.NODE_ENV || 'development' } },
+        resourceLogs: [
+          {
+            resource: {
+              attributes: [
+                { key: 'service.name', value: { stringValue: this.serviceName } },
+                { key: 'service.version', value: { stringValue: '1.0.0' } },
+                {
+                  key: 'deployment.environment',
+                  value: { stringValue: process.env.NODE_ENV || 'development' },
+                },
+              ],
+            },
+            scopeLogs: [
+              {
+                scope: {
+                  name: this.serviceName,
+                  version: '1.0.0',
+                },
+                logRecords: [
+                  {
+                    timeUnixNano: String(Date.now() * 1000000),
+                    severityNumber: this.getSeverityNumber(entry.level),
+                    severityText: entry.level.toUpperCase(),
+                    body: { stringValue: entry.message },
+                    attributes: [
+                      ...(entry.traceId
+                        ? [{ key: 'trace_id', value: { stringValue: entry.traceId } }]
+                        : []),
+                      ...(entry.spanId
+                        ? [{ key: 'span_id', value: { stringValue: entry.spanId } }]
+                        : []),
+                      ...(entry.context
+                        ? Object.entries(entry.context).map(([key, value]) => ({
+                            key,
+                            value: {
+                              stringValue:
+                                typeof value === 'object' ? JSON.stringify(value) : String(value),
+                            },
+                          }))
+                        : []),
+                      ...(entry.error
+                        ? [
+                            { key: 'error.type', value: { stringValue: entry.error.name } },
+                            { key: 'error.message', value: { stringValue: entry.error.message } },
+                            { key: 'error.stack', value: { stringValue: entry.error.stack || '' } },
+                          ]
+                        : []),
+                    ],
+                  },
+                ],
+              },
             ],
           },
-          scopeLogs: [{
-            scope: {
-              name: this.serviceName,
-              version: '1.0.0',
-            },
-            logRecords: [{
-              timeUnixNano: String(Date.now() * 1000000),
-              severityNumber: this.getSeverityNumber(entry.level),
-              severityText: entry.level.toUpperCase(),
-              body: { stringValue: entry.message },
-              attributes: [
-                ...(entry.traceId ? [{ key: 'trace_id', value: { stringValue: entry.traceId } }] : []),
-                ...(entry.spanId ? [{ key: 'span_id', value: { stringValue: entry.spanId } }] : []),
-                ...(entry.context ? Object.entries(entry.context).map(([key, value]) => ({
-                  key,
-                  value: { stringValue: typeof value === 'object' ? JSON.stringify(value) : String(value) },
-                })) : []),
-                ...(entry.error ? [
-                  { key: 'error.type', value: { stringValue: entry.error.name } },
-                  { key: 'error.message', value: { stringValue: entry.error.message } },
-                  { key: 'error.stack', value: { stringValue: entry.error.stack || '' } },
-                ] : []),
-              ],
-            }],
-          }],
-        }],
+        ],
       };
 
       fetch(`${process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT}/v1/logs`, {

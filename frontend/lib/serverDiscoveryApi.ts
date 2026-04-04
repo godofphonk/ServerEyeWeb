@@ -1,19 +1,14 @@
 import { apiClient } from '@/lib/api';
-import {
-  DiscoveredServersResponse,
-  ImportServersRequest,
-  ImportServersResponse,
-} from '@/types';
+import { DiscoveredServersResponse, ImportServersRequest, ImportServersResponse } from '@/types';
 
 export class ServerDiscoveryAPI {
   async findTelegramServers(): Promise<DiscoveredServersResponse> {
     try {
       const response = await apiClient.get<DiscoveredServersResponse>(
-        '/servers/discovery/telegram'
+        '/servers/discovery/telegram',
       );
       return response;
     } catch (error: any) {
-      
       throw error;
     }
   }
@@ -23,15 +18,14 @@ export class ServerDiscoveryAPI {
       const request: ImportServersRequest = {
         server_ids: serverIds,
       };
-      
+
       const response = await apiClient.post<ImportServersResponse>(
         '/servers/discovery/import',
-        request
+        request,
       );
-      
+
       return response;
     } catch (error: any) {
-      
       throw error;
     }
   }

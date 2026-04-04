@@ -13,7 +13,7 @@ using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Repositories;
 using Xunit;
 
-internal class RefreshTokenRepositoryTests : IDisposable
+public class RefreshTokenRepositoryTests : IDisposable
 {
     private readonly ServerEyeDbContext context;
     private readonly RefreshTokenRepository repository;

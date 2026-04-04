@@ -18,7 +18,7 @@ using ServerEye.Core.Interfaces.Services;
 using Xunit;
 using ServersServiceImpl = ServerEye.Core.Services.ServersService;
 
-internal class ServersServiceTests
+public class ServersServiceTests
 {
     private readonly Mock<IServerAccessService> mockServerAccessService;
     private readonly Mock<IMockDataProvider> mockDataProvider;
