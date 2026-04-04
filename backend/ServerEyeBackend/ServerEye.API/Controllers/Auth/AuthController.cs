@@ -422,7 +422,7 @@ public class AuthController : BaseApiController
             this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (returnUrl?.ToString() ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var oauthProvider = this.oauthService.ParseProvider(provider);
-            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider.ToString());
+            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
@@ -431,7 +431,7 @@ public class AuthController : BaseApiController
                 return this.BadRequest(new { message = $"OAuth provider {(provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null"} is not enabled" });
             }
 
-            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString(), (action ?? "auto"));
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
 
             this.logger.LogInformation(
@@ -450,7 +450,7 @@ public class AuthController : BaseApiController
         {
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             this.metrics.RecordError(provider, "controller_challenge", ex.GetType().Name, ex.Message);
-            this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", provider);
+            this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
