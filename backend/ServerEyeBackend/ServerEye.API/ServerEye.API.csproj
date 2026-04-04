@@ -31,7 +31,6 @@
     <ItemGroup>
       <Folder Include="Extensions\" />
       <Folder Include="Middleware\" />
-      <Folder Include="Validators\" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\ServerEye.Infrastructure\ServerEye.Infrastructure.csproj" />
