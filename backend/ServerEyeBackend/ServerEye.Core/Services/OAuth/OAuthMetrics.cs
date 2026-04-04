@@ -78,7 +78,7 @@ public sealed class OAuthMetrics : IDisposable
         };
 
         this.oauthChallengesCreated.Add(1, tags);
-        this.logger.LogDebug("OAuth challenge created metric recorded - Provider: {Provider}, Action: {Action}", provider, action ?? "login");
+        this.logger.LogDebug("OAuth challenge created metric recorded - Provider: {Provider}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "login").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
     }
 
     /// <summary>
@@ -115,9 +115,9 @@ public sealed class OAuthMetrics : IDisposable
         this.oauthTokenExchanges.Add(1, tags);
         this.logger.LogDebug(
             "OAuth token exchange metric recorded - Provider: {Provider}, Success: {Success}, ErrorType: {ErrorType}",
-            provider,
+            (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
             success,
-            errorType);
+            (errorType ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ public sealed class OAuthMetrics : IDisposable
         this.tokenExchangeDuration.Record(duration, tags);
         this.logger.LogDebug(
             "OAuth token exchange duration recorded - Provider: {Provider}, Duration: {Duration}s, Success: {Success}",
-            provider,
+            (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
             duration,
             success);
     }
