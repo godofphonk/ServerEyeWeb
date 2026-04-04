@@ -86,7 +86,7 @@ public class SourceManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting source {Source} from server {ServerKey} for user {UserId}", source, serverKey, userId);
+            logger.LogError(ex, "Error deleting source {Source} from server {ServerKey} for user {UserId}", LogSanitizer.Sanitize(source), LogSanitizer.MaskServerKey(serverKey), userId);
             return new DeleteSourceResponseDto
             {
                 Message = "Internal server error",
@@ -175,7 +175,7 @@ public class SourceManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting identifiers from server {ServerKey} for user {UserId}", serverKey, userId);
+            logger.LogError(ex, "Error deleting identifiers from server {ServerKey} for user {UserId}", LogSanitizer.MaskServerKey(serverKey), userId);
             return new DeleteSourceIdentifiersResponseDto
             {
                 Message = "Internal server error",

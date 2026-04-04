@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 
 [ApiController]
@@ -94,11 +95,11 @@ public class UsersController(IUserService userService, IAuthService authService,
             return BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
         }
 
-        this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email);
+        this.logger.LogInformation("Login attempt for email: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
 
         var result = await ExecuteWithErrorHandling(() => userService.LoginUserAsync(userLoginDto));
 
-        this.logger.LogInformation("Login successful for user: {Email}", userLoginDto.Email);
+        this.logger.LogInformation("Login successful for user: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
         return result;
     }
 

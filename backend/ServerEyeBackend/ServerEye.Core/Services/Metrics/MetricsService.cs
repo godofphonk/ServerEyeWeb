@@ -3,6 +3,7 @@ namespace ServerEye.Core.Services;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Metrics;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -153,7 +154,7 @@ public class MetricsService : IMetricsService
                 stopwatch.ElapsedMilliseconds,
                 accessCheckTime.ElapsedMilliseconds,
                 cacheTime.ElapsedMilliseconds,
-                serverKey,
+                LogSanitizer.MaskServerKey(serverKey),
                 response.DataPoints?.Count ?? 0);
 
             return response;
@@ -264,7 +265,7 @@ public class MetricsService : IMetricsService
                 stopwatch.ElapsedMilliseconds,
                 accessCheckTime.ElapsedMilliseconds,
                 cacheTime.ElapsedMilliseconds,
-                serverKey,
+                LogSanitizer.MaskServerKey(serverKey),
                 granularity ?? "auto",
                 response.DataPoints?.Count ?? 0);
 
