@@ -1,24 +1,24 @@
 namespace ServerEye.IntegrationTests;
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Globalization;
+using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Moq;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+using ServerEye.API;
 using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
-using ServerEye.API;
-using Testcontainers.PostgreSql;
-using System.Globalization;
 using StackExchange.Redis;
-using Moq;
-using System.Net;
-using System.Diagnostics;
-using System.Collections.Concurrent;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
-using OpenTelemetry.Metrics;
+using Testcontainers.PostgreSql;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {

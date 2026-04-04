@@ -1,8 +1,8 @@
 namespace ServerEye.IntegrationTests.Controllers;
 
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 [Collection("HealthChecks Tests")]
 public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime

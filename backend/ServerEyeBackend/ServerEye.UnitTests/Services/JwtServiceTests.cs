@@ -2,10 +2,10 @@ using ServerEye.Core.Enums;
 
 namespace ServerEye.UnitTests.Services;
 
-using ServerEye.Core.Services;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using ServerEye.Core.Services;
 
 internal class JwtServiceTests
 {

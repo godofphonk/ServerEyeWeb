@@ -1,5 +1,9 @@
 namespace ServerEye.UnitTests.Services;
 
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
@@ -7,10 +11,6 @@ using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.Exceptions;
 using ServerEye.Infrastructure.ExternalServices;
 using ServerEye.Infrastructure.ExternalServices.GoApi;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
 
 #pragma warning disable CA2000 // Dispose objects before losing scope - HttpResponseMessage is managed by Moq
 #pragma warning disable CA2007 // Do not directly await a Task - ConfigureAwait not needed in tests

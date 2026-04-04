@@ -1,9 +1,9 @@
 namespace ServerEye.UnitTests.Middleware;
 
+using System.IO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using ServerEye.API.Middleware;
-using System.IO;
 
 internal class GlobalExceptionHandlerTests
 {

@@ -1,5 +1,3 @@
-root = true
-
 [*.cs]
 # Disable all StyleCop rules for test projects
 dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
@@ -30,3 +28,9 @@ dotnet_diagnostic.CA2201.severity = none
 
 # Allow missing XML comments in tests
 dotnet_diagnostic.CS1591.severity = none
+
+# Allow non-public test classes (CA1852, CA1812 and xUnit1000)
+dotnet_diagnostic.CA1852.severity = none
+dotnet_diagnostic.CA1812.severity = none
+dotnet_diagnostic.xUnit1000.severity = none
+dotnet_diagnostic.xUnit1030.severity = none
