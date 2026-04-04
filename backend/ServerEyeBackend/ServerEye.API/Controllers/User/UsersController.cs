@@ -74,11 +74,11 @@ public class UsersController(IUserService userService, IAuthService authService,
             return BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
         }
 
-        this.logger.LogInformation("Registration attempt for email: {Email}, username: {UserName}", userRegisterDto.Email, userRegisterDto.UserName);
+        this.logger.LogInformation("Registration attempt for email: {Email}, username: {UserName}", LogSanitizer.MaskEmail(userRegisterDto.Email), LogSanitizer.Sanitize(userRegisterDto.UserName));
 
         var result = await ExecuteWithErrorHandling(() => userService.CreateUserAsync(userRegisterDto));
 
-        this.logger.LogInformation("Registration successful for user: {Email}", userRegisterDto.Email);
+        this.logger.LogInformation("Registration successful for user: {Email}", LogSanitizer.MaskEmail(userRegisterDto.Email));
         return result;
     }
 
@@ -118,7 +118,7 @@ public class UsersController(IUserService userService, IAuthService authService,
                 throw new InvalidOperationException("Invalid or expired verification code");
             }
 
-            this.logger.LogInformation("Email verified for user: {Email}", request.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            this.logger.LogInformation("Email verified for user: {Email}", LogSanitizer.MaskEmail(request.Email));
             return new { message = "Email verified successfully" };
         });
     }
@@ -153,7 +153,7 @@ public class UsersController(IUserService userService, IAuthService authService,
 
             // Обновляем роль на Admin в базе данных
             // Это временный solution - в production лучше сделать через миграцию
-            this.logger.LogInformation("Admin user created successfully with email: {Email}", "admin@servereye.dev");
+            this.logger.LogInformation("Admin user created successfully with email: {Email}", LogSanitizer.MaskEmail("admin@servereye.dev"));
 
             return new { message = "Admin user created successfully", email = "admin@servereye.dev", password = "admin123" };
         });

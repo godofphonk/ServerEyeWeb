@@ -8,6 +8,7 @@ using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -79,7 +80,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
-        this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", userRegisterDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userRegisterDto.UserName?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+        this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", LogSanitizer.MaskEmail(userRegisterDto.Email), LogSanitizer.Sanitize(userRegisterDto.UserName));
 
         // Check if user with this email already exists
         var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email ?? string.Empty);
@@ -100,7 +101,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         await this.userRepository.AddAsync(user);
 
-        this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+        this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
 
         // Generate tokens
         var accessToken = this.jwtService.GenerateAccessToken(user);
@@ -124,7 +125,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         try
         {
             await this.authService.SendVerificationCodeAsync(user.Id);
-            this.logger.LogInformation("Verification code sent to user: {Email}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            this.logger.LogInformation("Verification code sent to user: {Email}", LogSanitizer.MaskEmail(user.Email));
         }
         catch (Exception ex)
         {
@@ -224,7 +225,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
 
-        this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+        this.logger.LogInformation("Login attempt for email: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
 
         var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email ?? string.Empty);
         if (user == null || !this.passwordHasher.VerifyPassword(userLoginDto.Password, user.Password))
@@ -257,7 +258,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
-        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", user.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", user.Id);
+        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", LogSanitizer.MaskEmail(user.Email), user.Id);
 
         return new AuthResponseDto
         {
