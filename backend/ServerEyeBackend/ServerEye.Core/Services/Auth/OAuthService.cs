@@ -41,7 +41,7 @@ public sealed class OAuthService(
         using var activity = OAuthActivitySource.StartCreateChallengeActivity(provider.ToString(), action, returnUrl);
         var startTime = DateTime.UtcNow;
 
-        this.logger.LogInformation("CreateChallengeAsync called - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
+        this.logger.LogInformation("CreateChallengeAsync called - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, (returnUrl?.ToString() ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
         try
         {
@@ -58,11 +58,11 @@ public sealed class OAuthService(
             var state = GenerateSecureRandomString(32);
 
             // Embed action in state if provided: "action_randomstate"
-            var stateWithAction = state;
+            var stateWithAction = state ?? string.Empty;
             if (!string.IsNullOrEmpty(action))
             {
                 stateWithAction = $"{action}_{state}";
-                this.logger.LogInformation("Embedded action in state - Action: {Action}, OriginalState: {State}, StateWithAction: {StateWithAction}", action, state, stateWithAction);
+                this.logger.LogInformation("Embedded action in state - Action: {Action}, OriginalState: {State}, StateWithAction: {StateWithAction}", (action ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (state ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (stateWithAction ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
             }
 
             var codeVerifier = GenerateSecureRandomString(128);
@@ -70,15 +70,15 @@ public sealed class OAuthService(
 
             this.logger.LogInformation(
                 "Generated OAuth parameters - State: {State}, CodeVerifier: {CodeVerifier}, CodeChallenge: {CodeChallenge}",
-                state,
-                codeVerifier[..Math.Min(codeVerifier.Length, 20)] + "...",
-                codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...");
+                (state ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                (codeVerifier ?? string.Empty)[..Math.Min(codeVerifier?.Length ?? 0, 20)] + "...",
+                (codeChallenge ?? string.Empty)[..Math.Min(codeChallenge?.Length ?? 0, 20)] + "...");
 
             // Store code verifier with the state that will actually be returned by provider
             // For GitHub, this includes the provider prefix; for Google, it doesn't
             await cache.SetStringAsync(
                 $"oauth:code_verifier:{stateWithAction}",
-                codeVerifier,
+                codeVerifier ?? string.Empty,
                 new DistributedCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) // 10 minutes expiry
@@ -87,9 +87,9 @@ public sealed class OAuthService(
 
             this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
 
-            var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction, codeChallenge, returnUrl);
+            var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction ?? string.Empty, codeChallenge ?? string.Empty, returnUrl);
 
-            this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, challengeResponse.ChallengeUrl.ToString()[..Math.Min(challengeResponse.ChallengeUrl.ToString().Length, 100)] + "...");
+            this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, (challengeResponse.ChallengeUrl?.ToString() ?? string.Empty)[..Math.Min(challengeResponse.ChallengeUrl?.ToString()?.Length ?? 0, 100)] + "...");
 
             // Record metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
@@ -97,14 +97,14 @@ public sealed class OAuthService(
             this.metrics.RecordChallengeCreationDuration(provider.ToString(), duration, action);
 
             activity?.SetTag(OAuthActivitySource.StateAttribute, stateWithAction);
-            activity?.SetTag(OAuthActivitySource.CodeVerifierAttribute, codeVerifier[..Math.Min(codeVerifier.Length, 10)] + "...");
+            activity?.SetTag(OAuthActivitySource.CodeVerifierAttribute, (codeVerifier ?? string.Empty)[..Math.Min(codeVerifier?.Length ?? 0, 10)] + "...");
             activity?.SetSuccess();
 
             return new OAuthChallengeResponseDto
             {
-                ChallengeUrl = challengeResponse.ChallengeUrl,
-                State = stateWithAction, // Return state with action prefix
-                CodeVerifier = codeVerifier,
+                ChallengeUrl = challengeResponse.ChallengeUrl ?? new Uri(string.Empty),
+                State = stateWithAction ?? string.Empty, // Return state with action prefix
+                CodeVerifier = codeVerifier ?? string.Empty,
                 Action = action
             };
         }
@@ -166,7 +166,7 @@ public sealed class OAuthService(
             }
         }
 
-        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}, OriginalState: {OriginalState}", provider, action ?? "auto", request.State, originalState);
+        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}, OriginalState: {OriginalState}", provider, (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), request.State.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), originalState.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
         try
         {
@@ -265,7 +265,7 @@ public sealed class OAuthService(
             }
 
             // Apply action-based logic
-            this.logger.LogInformation("Applying action-based logic - Action: {Action}, UserExists: {UserExists}", action, user != null);
+            this.logger.LogInformation("Applying action-based logic - Action: {Action}, UserExists: {UserExists}", (action ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), user != null);
 
             if (!string.IsNullOrEmpty(action))
             {

@@ -144,7 +144,7 @@ public class SubscriptionService : ISubscriptionService
         Guid userId,
         CancelSubscriptionRequest request)
     {
-        this.logger.LogWarning("Subscription cancellation requested for user: {UserId}, reason: {Reason}", userId, request.CancellationReason ?? "Not specified");
+        this.logger.LogWarning("Subscription cancellation requested for user: {UserId}, reason: {Reason}", userId, (request.CancellationReason ?? "Not specified").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
         throw new NotImplementedException("Subscription cancellation not implemented yet");
     }
 
