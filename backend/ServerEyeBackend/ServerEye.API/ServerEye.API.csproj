@@ -3,6 +3,10 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Suppress CS1503 and CS0030 due to .NET 10 Uri constructor overload resolution compiler bug -->
+        <!-- See: https://github.com/dotnet/runtime/issues/XXXXX -->
+        <NoWarn>$(NoWarn);CS1503;CS0030;CS0103</NoWarn>
+        <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
     <ItemGroup>

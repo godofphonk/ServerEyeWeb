@@ -58,11 +58,11 @@ public sealed class OAuthService(
             var state = GenerateSecureRandomString(32);
 
             // Embed action in state if provided: "action_randomstate"
-            var stateWithAction = state ?? string.Empty;
+            var stateWithAction = state;
             if (!string.IsNullOrEmpty(action))
             {
                 stateWithAction = $"{action}_{state}";
-                this.logger.LogInformation("Embedded action in state - Action: {Action}, OriginalState: {State}, StateWithAction: {StateWithAction}", (action ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (state ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (stateWithAction ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
+                this.logger.LogInformation("Embedded action in state - Action: {Action}, OriginalState: {State}, StateWithAction: {StateWithAction}", action.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), state.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), stateWithAction.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
             }
 
             var codeVerifier = GenerateSecureRandomString(128);
@@ -87,7 +87,7 @@ public sealed class OAuthService(
 
             this.logger.LogInformation("Stored code verifier for OAuth challenge - State: {State}", state);
 
-            var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction ?? string.Empty, codeChallenge ?? string.Empty, returnUrl);
+            var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction, codeChallenge ?? string.Empty, returnUrl);
 
             this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, (challengeResponse.ChallengeUrl?.ToString() ?? string.Empty)[..Math.Min(challengeResponse.ChallengeUrl?.ToString()?.Length ?? 0, 100)] + "...");
 
@@ -103,7 +103,7 @@ public sealed class OAuthService(
             return new OAuthChallengeResponseDto
             {
                 ChallengeUrl = challengeResponse.ChallengeUrl ?? new Uri(string.Empty),
-                State = stateWithAction ?? string.Empty, // Return state with action prefix
+                State = stateWithAction, // Return state with action prefix
                 CodeVerifier = codeVerifier ?? string.Empty,
                 Action = action
             };
