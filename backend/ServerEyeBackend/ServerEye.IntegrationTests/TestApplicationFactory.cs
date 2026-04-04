@@ -8,6 +8,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
+using ServerEye.API;
 using Testcontainers.PostgreSql;
 using System.Globalization;
 using StackExchange.Redis;

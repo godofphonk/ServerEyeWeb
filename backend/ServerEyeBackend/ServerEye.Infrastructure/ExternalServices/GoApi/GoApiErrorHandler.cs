@@ -37,13 +37,13 @@ public static class GoApiErrorHandler
             TaskCanceledException => new GoApiException(
                 "Go API request timed out",
                 GoApiErrorType.Timeout),
-            
-            System.Net.Http.HttpRequestException ex when ex.InnerException is System.Net.Sockets.SocketException => new GoApiException(
+
+            HttpRequestException ex when ex.InnerException is System.Net.Sockets.SocketException => new GoApiException(
                 "Go API service is unavailable",
                 GoApiErrorType.ServiceUnavailable),
-            
+
             GoApiException => (GoApiException)exception,
-            
+
             _ => new GoApiException(
                 "Unexpected error",
                 GoApiErrorType.Unknown)
@@ -58,7 +58,7 @@ public static class GoApiErrorHandler
         return exception switch
         {
             TaskCanceledException => true,
-            System.Net.Http.HttpRequestException httpRequestException when httpRequestException.InnerException is System.Net.Sockets.SocketException => true,
+            HttpRequestException httpRequestException when httpRequestException.InnerException is System.Net.Sockets.SocketException => true,
             GoApiException => true,
             _ => false
         };

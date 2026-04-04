@@ -20,7 +20,7 @@ public class PaymentProviderFactory : IPaymentProviderFactory
     public IPaymentProvider GetProvider(PaymentProvider providerType)
     {
         var provider = providers.FirstOrDefault(p => p.ProviderType == providerType);
-        
+
         if (provider == null)
         {
             logger.LogError("Payment provider {ProviderType} not found", providerType);

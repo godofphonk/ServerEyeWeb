@@ -15,7 +15,7 @@ public partial class User
     public bool IsEmailVerified { get; set; }
     public DateTime? EmailVerifiedAt { get; set; }
     public string? PendingEmail { get; set; }
-    
+
     // OAuth2 properties
     public bool HasPassword { get; set; } = true;
     public List<UserExternalLogin> ExternalLogins { get; set; } = new();

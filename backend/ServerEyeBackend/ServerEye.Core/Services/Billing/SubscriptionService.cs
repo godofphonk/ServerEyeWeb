@@ -29,7 +29,7 @@ public class SubscriptionService : ISubscriptionService
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
     {
         this.logger.LogInformation("Getting subscription for user: {UserId}", userId);
-        
+
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null)
         {
@@ -46,7 +46,7 @@ public class SubscriptionService : ISubscriptionService
         // Map plan based on PlanId
         SubscriptionPlan planType;
         string planName;
-        
+
         switch (subscription.PlanId.ToString())
         {
             case var id when id == "f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c": // Free plan ID
@@ -90,13 +90,13 @@ public class SubscriptionService : ISubscriptionService
         CreateSubscriptionRequest request)
     {
         this.logger.LogInformation("Creating subscription checkout for user: {UserId}, plan: {PlanType}, yearly: {IsYearly}", userId, request.PlanType, request.IsYearly);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             var result = await paymentService.CreateSubscriptionCheckoutAsync(userId, request);
-            
+
             stopwatch.Stop();
 
             this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId} in {ElapsedMs}ms", userId, result.SessionId, stopwatch.ElapsedMilliseconds);
@@ -104,7 +104,7 @@ public class SubscriptionService : ISubscriptionService
             // Business metric: MRR impact tracking
             var plan = GetHardcodedPlan(request.PlanType);
             var monthlyRevenue = request.IsYearly ? plan.YearlyPrice / 12 : plan.MonthlyPrice;
-            
+
             this.logger.LogInformation(
                 "MRR impact: Potential +{MonthlyRevenue:F2} USD from user {UserId}, plan {PlanType} ({BillingCycle})",
                 monthlyRevenue,
@@ -119,7 +119,7 @@ public class SubscriptionService : ISubscriptionService
             stopwatch.Stop();
 
             this.logger.LogError(ex, "Failed to create subscription checkout for user: {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
-            
+
             // Business metric: Lost revenue opportunity
             var plan = GetHardcodedPlan(request.PlanType);
             this.logger.LogWarning(
@@ -247,7 +247,7 @@ public class SubscriptionService : ISubscriptionService
             stopwatch.Stop();
 
             this.logger.LogError(ex, "Failed to create free subscription for user {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
-            
+
             // Business metric: Onboarding failure
             this.logger.LogWarning(
                 "User onboarding failed: {UserId}, reason {ErrorType}",

@@ -1,14 +1,14 @@
 namespace ServerEye.API.Controllers;
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Configuration;
+using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
-using System.Text.Json;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -416,14 +416,14 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<OAuthChallengeResponseDto>> CreateOAuthChallenge(string provider, [FromQuery] Uri? returnUrl = null, [FromQuery] string? action = null)
     {
         var startTime = DateTime.UtcNow;
-        
+
         try
         {
             this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
 
             var oauthProvider = this.oauthService.ParseProvider(provider);
             this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider);
-            
+
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
                 this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
@@ -433,17 +433,17 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider, action ?? "auto");
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
-            
+
             this.logger.LogInformation(
                 "OAuth challenge created successfully - Provider: {OAuthProvider}, Action: {Action}, ChallengeUrl: {ChallengeUrl}",
                 oauthProvider,
                 action ?? "auto",
                 challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
-            
+
             // Record controller-level metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             this.metrics.RecordChallengeCreated(provider, action);
-            
+
             return this.Ok(challenge);
         }
         catch (Exception ex)
@@ -462,7 +462,7 @@ public class AuthController : BaseApiController
         {
             var userId = this.GetUserId();
             var user = await this.userRepository.GetByIdAsync(userId);
-            
+
             if (user == null)
             {
                 return Ok(new { user = (object?)null });
@@ -484,7 +484,7 @@ public class AuthController : BaseApiController
         {
             var userId = this.GetUserId();
             var user = await this.userRepository.GetByIdAsync(userId);
-            
+
             if (user == null)
             {
                 return Ok(new { user = (object?)null });
@@ -503,7 +503,7 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
     {
         var startTime = DateTime.UtcNow;
-        
+
         try
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -511,12 +511,12 @@ public class AuthController : BaseApiController
 
             // Code verifier is now stored in Redis by OAuthService, no need for manual storage
             var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
-            
+
             // Record success metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             this.metrics.RecordTokenExchange(request.Provider, true);
             this.metrics.RecordTokenExchangeDuration(request.Provider, duration, true);
-            
+
             return this.Ok(response);
         }
         catch (Exception ex)
@@ -553,7 +553,7 @@ public class AuthController : BaseApiController
 
             // Parse linking state first
             var (isLinking, linkingProvider, linkingUserId, actualState) = ParseLinkingState(state ?? string.Empty);
-            
+
             this.logger.LogInformation(
             "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
             provider,
@@ -582,7 +582,7 @@ public class AuthController : BaseApiController
             if (isLinking && !string.IsNullOrEmpty(linkingProvider) && !string.IsNullOrEmpty(linkingUserId))
             {
                 this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", linkingProvider, linkingUserId);
-                
+
                 if (Guid.TryParse(linkingUserId, out var userGuid))
                 {
                     try
@@ -593,11 +593,11 @@ public class AuthController : BaseApiController
                             Code = code ?? hash ?? string.Empty,
                             State = actualState
                         };
-                        
+
                         var linkResponse = await this.oauthService.LinkExternalLoginAsync(userGuid, linkRequest, ipAddress, userAgent);
-                        
+
                         this.logger.LogInformation("OAuth linking successful for user: {UserId}", userGuid);
-                        
+
                         // Redirect to profile page with success
                         return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
                     }
@@ -638,7 +638,7 @@ public class AuthController : BaseApiController
             if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parameterUserGuid))
             {
                 this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
-                
+
                 try
                 {
                     var linkRequest = new OAuthLinkRequestDto
@@ -647,11 +647,11 @@ public class AuthController : BaseApiController
                         Code = request.Code,
                         State = request.State
                     };
-                    
+
                     var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
-                    
+
                     this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
-                    
+
                     // Redirect to profile page with success
                     return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
                 }
@@ -686,7 +686,7 @@ public class AuthController : BaseApiController
                 Secure = false, // Set to true in production with HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
-                
+
                 // Domain removed - browser will set it for current host
                 Path = "/"
             };
@@ -697,7 +697,7 @@ public class AuthController : BaseApiController
                 Secure = false, // Set to true in production with HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
-                
+
                 // Domain removed - browser will set it for current host
                 Path = "/"
             };
@@ -722,7 +722,7 @@ public class AuthController : BaseApiController
         {
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
             this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
-            
+
             // Handle specific OAuth errors
             if (ex.Message == "user_not_found")
             {
@@ -734,7 +734,7 @@ public class AuthController : BaseApiController
                 this.logger.LogWarning("OAuth registration failed - user already exists, redirecting to register page");
                 return this.Redirect($"{this.frontendSettings.BaseUrl}register?error=user_already_exists");
             }
-            
+
             this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
             return this.Redirect($"{this.frontendSettings.BaseUrl}auth/callback?error=oauth_failed");
         }
@@ -839,23 +839,23 @@ public class AuthController : BaseApiController
 
             // Convert Telegram user data to OAuth format
             var telegramCode = JsonSerializer.Serialize(request.UserData);
-            
+
             this.logger.LogInformation(
-                "Telegram OAuth callback received - UserData: {UserData}, SerializedCode: {TelegramCode}", 
+                "Telegram OAuth callback received - UserData: {UserData}, SerializedCode: {TelegramCode}",
                 request.UserData,
                 telegramCode[..Math.Min(telegramCode.Length, 200)] + "...");
-            
+
             // For Telegram, always generate a temporary state
             // Telegram doesn't return state in callback, so we need to handle this
             var state = $"telegram_temp_{Guid.NewGuid():N}";
-            
+
             this.logger.LogInformation(
-                "Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}, LinkingAction: {LinkingAction}, UserId: {UserId}", 
-                state, 
+                "Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}, LinkingAction: {LinkingAction}, UserId: {UserId}",
+                state,
                 action ?? "null",
                 request.LinkingAction,
                 request.UserId ?? "null");
-            
+
             var oauthRequest = new OAuthCallbackRequestDto
             {
                 Provider = "telegram",
@@ -867,9 +867,9 @@ public class AuthController : BaseApiController
             };
 
             this.logger.LogInformation(
-                "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}", 
-                oauthRequest.Provider, 
-                oauthRequest.Action, 
+                "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}",
+                oauthRequest.Provider,
+                oauthRequest.Action,
                 oauthRequest.State,
                 oauthRequest.LinkingAction,
                 oauthRequest.UserId ?? "null");
@@ -920,7 +920,7 @@ public class AuthController : BaseApiController
         {
             this.logger.LogError(ex, "Error processing Telegram OAuth callback");
             this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
-            
+
             // Handle specific OAuth errors
             if (ex.Message == "user_not_found")
             {
@@ -932,7 +932,7 @@ public class AuthController : BaseApiController
                 this.logger.LogWarning("Telegram OAuth registration failed - user already exists");
                 return this.Ok(new { success = false, message = "user_already_exists" });
             }
-            
+
             return this.StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }

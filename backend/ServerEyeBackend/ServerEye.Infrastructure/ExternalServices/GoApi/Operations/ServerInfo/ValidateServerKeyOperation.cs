@@ -12,7 +12,7 @@ public class ValidateServerKeyOperation : GoApiOperation<GoApiServerInfo?>
     private readonly string serverKey;
 
     public ValidateServerKeyOperation(
-        GoApiHttpHandler httpHandler, 
+        GoApiHttpHandler httpHandler,
         GoApiLogger logger,
         string serverKey)
         : base(httpHandler, logger) =>
@@ -56,7 +56,7 @@ public class ValidateServerKeyOperation : GoApiOperation<GoApiServerInfo?>
     {
         var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
         Logger.LogError(GetOperationName(), BuildUrl(), requestTime, (int)response.StatusCode, errorContent);
-        
+
         // For 404 errors, return null (server not found)
         if (GoApiHttpHandler.IsNotFound(response))
         {

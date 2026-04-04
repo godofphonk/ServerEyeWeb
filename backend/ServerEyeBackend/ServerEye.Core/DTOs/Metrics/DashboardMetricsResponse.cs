@@ -26,13 +26,13 @@ public class CurrentMetrics
     public double Network { get; set; }
     public double Temperature { get; set; }
     public double Load { get; set; }
-    
+
     // Additional memory details
     public double MemoryCache { get; set; }
     public double MemoryBuffers { get; set; }
     public double MemoryAvailable { get; set; }
     public double MemorySwap { get; set; }
-    
+
     // Disk I/O metrics
     public double DiskReadSpeed { get; set; }
     public double DiskWriteSpeed { get; set; }

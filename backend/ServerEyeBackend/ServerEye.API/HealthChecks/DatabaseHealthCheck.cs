@@ -24,7 +24,7 @@ public class DatabaseHealthCheck<TContext> : IHealthCheck
         try
         {
             var canConnect = await this.context.Database.CanConnectAsync(cancellationToken);
-            
+
             if (!canConnect)
             {
                 return HealthCheckResult.Unhealthy(

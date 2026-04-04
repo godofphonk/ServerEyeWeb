@@ -24,10 +24,10 @@ public class CreateSubscriptionRequest
 {
     public SubscriptionPlan PlanType { get; set; }
     public bool IsYearly { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API requires string URLs")]
     public string? SuccessUrl { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API requires string URLs")]
     public string? CancelUrl { get; set; }
 }
@@ -35,7 +35,7 @@ public class CreateSubscriptionRequest
 public class CreateSubscriptionResponse
 {
     public string SessionId { get; set; } = string.Empty;
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API returns string URLs")]
     public string SessionUrl { get; set; } = string.Empty;
 }
@@ -75,13 +75,13 @@ public class PaymentDto
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "usd";
     public PaymentStatus Status { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API returns string URLs")]
     public string? ReceiptUrl { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API returns string URLs")]
     public string? InvoiceUrl { get; set; }
-    
+
     public DateTime CreatedAt { get; set; }
 }
 

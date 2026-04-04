@@ -11,14 +11,14 @@ public sealed class OAuthMetrics : IDisposable
 {
     private readonly ILogger<OAuthMetrics> logger;
     private readonly Meter meter;
-    
+
     // Counters
     private readonly Counter<long> oauthChallengesCreated;
     private readonly Counter<long> oauthTokenExchanges;
     private readonly Counter<long> oauthUserInfoRequests;
     private readonly Counter<long> oauthErrors;
     private readonly Counter<long> oauthLinkingAttempts;
-    
+
     // Histograms
     private readonly Histogram<double> challengeCreationDuration;
     private readonly Histogram<double> tokenExchangeDuration;
@@ -28,41 +28,41 @@ public sealed class OAuthMetrics : IDisposable
     {
         this.logger = logger;
         this.meter = meterFactory.Create("ServerEye.OAuth");
-        
+
         // Initialize counters
         this.oauthChallengesCreated = this.meter.CreateCounter<long>(
             "oauth_challenges_created_total",
             "Total number of OAuth challenges created");
-            
+
         this.oauthTokenExchanges = this.meter.CreateCounter<long>(
-            "oauth_token_exchanges_total", 
+            "oauth_token_exchanges_total",
             "Total number of OAuth token exchanges");
-            
+
         this.oauthUserInfoRequests = this.meter.CreateCounter<long>(
             "oauth_user_info_requests_total",
             "Total number of OAuth user info requests");
-            
+
         this.oauthErrors = this.meter.CreateCounter<long>(
             "oauth_errors_total",
             "Total number of OAuth errors");
-            
+
         this.oauthLinkingAttempts = this.meter.CreateCounter<long>(
             "oauth_linking_attempts_total",
             "Total number of OAuth account linking attempts");
-        
+
         // Initialize histograms
         this.challengeCreationDuration = this.meter.CreateHistogram<double>(
             "oauth_challenge_creation_duration_seconds",
             "Duration of OAuth challenge creation in seconds");
-            
+
         this.tokenExchangeDuration = this.meter.CreateHistogram<double>(
             "oauth_token_exchange_duration_seconds",
             "Duration of OAuth token exchange in seconds");
-            
+
         this.userInfoRetrievalDuration = this.meter.CreateHistogram<double>(
             "oauth_user_info_retrieval_duration_seconds",
             "Duration of OAuth user info retrieval in seconds");
-        
+
         this.logger.LogInformation("OAuth metrics initialized successfully");
     }
 

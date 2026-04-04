@@ -1,12 +1,12 @@
 namespace ServerEye.API.Controllers;
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
-using System.Security.Claims;
 
 [ApiController]
 [Route("api/servers/discovery")]
@@ -37,20 +37,20 @@ public class ServerDiscoveryController(
             if (!long.TryParse(telegramLogin.ProviderUserId, out var telegramId))
             {
                 logger.LogError("Invalid telegram_id format for user {UserId}: {ProviderUserId}", userId, telegramLogin.ProviderUserId);
-                
+
                 // Check if it's the "unknown" placeholder from OAuth provider
                 if (telegramLogin.ProviderUserId == "unknown")
                 {
                     // Auto-fix: assign a test Telegram ID for development
                     var fixedTelegramId = 123456789L;
                     logger.LogWarning("Auto-fixing unknown Telegram ID for user {UserId} to {FixedId}", userId, fixedTelegramId);
-                    
+
                     // Update the database record
                     telegramLogin.ProviderUserId = fixedTelegramId.ToString();
                     await externalLoginRepository.UpdateAsync(telegramLogin);
-                    
+
                     telegramId = fixedTelegramId;
-                    
+
                     logger.LogInformation("Fixed Telegram ID for user {UserId}: {FixedId}", userId, fixedTelegramId);
                 }
                 else

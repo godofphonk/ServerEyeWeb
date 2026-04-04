@@ -8,6 +8,6 @@ public partial class RefreshToken
     public DateTime ExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsRevoked { get; set; }
-    
+
     public User User { get; set; } = null!;
 }

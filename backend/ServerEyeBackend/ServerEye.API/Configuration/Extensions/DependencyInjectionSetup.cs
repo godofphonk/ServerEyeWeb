@@ -2,8 +2,8 @@ namespace ServerEye.API.Configuration.Extensions;
 
 using FluentValidation;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using ServerEye.API.Validators;
 using ServerEye.API.HealthChecks;
+using ServerEye.API.Validators;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
@@ -36,7 +36,7 @@ public static class DependencyInjectionSetup
 
         // Register domain services by logical grouping
         RegisterDomainServices(services);
-        
+
         // Register API-specific services
         RegisterApiServices(services);
 
@@ -57,17 +57,17 @@ public static class DependencyInjectionSetup
 
     private static void RegisterSettings(IServiceCollection services, IConfiguration configuration)
     {
-        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() 
+        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>()
             ?? new GoApiSettings();
-        var emailSettings = configuration.GetSection("EmailSettings").Get<EmailSettings>() 
+        var emailSettings = configuration.GetSection("EmailSettings").Get<EmailSettings>()
             ?? new EmailSettings();
-        var encryptionSettings = new EncryptionSettings 
-        { 
-            Key = configuration["ENCRYPTION_KEY"] ?? string.Empty 
+        var encryptionSettings = new EncryptionSettings
+        {
+            Key = configuration["ENCRYPTION_KEY"] ?? string.Empty
         };
-        var serversConfiguration = configuration.GetSection("ServersConfiguration").Get<ServersConfiguration>() 
+        var serversConfiguration = configuration.GetSection("ServersConfiguration").Get<ServersConfiguration>()
             ?? new ServersConfiguration();
-        var frontendSettings = configuration.GetSection("FrontendSettings").Get<FrontendSettings>() 
+        var frontendSettings = configuration.GetSection("FrontendSettings").Get<FrontendSettings>()
             ?? new FrontendSettings();
 
         services.AddSingleton(goApiSettings);
@@ -75,7 +75,7 @@ public static class DependencyInjectionSetup
         services.AddSingleton(encryptionSettings);
         services.AddSingleton(serversConfiguration);
         services.AddSingleton(frontendSettings);
-        
+
         services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
             configuration.GetSection("Stripe"));
 
@@ -88,20 +88,20 @@ public static class DependencyInjectionSetup
         services.AddScoped<IServerRepository, ServerRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IMonitoredServerRepository, Infrastructure.Repositories.MonitoredServerRepository>();
-        services.AddScoped<IUserServerAccessRepository, Infrastructure.Repositories.UserServerAccessRepository>();
-        services.AddScoped<ITicketRepository, Infrastructure.Repositories.TicketRepository>();
-        services.AddScoped<ITicketMessageRepository, Infrastructure.Repositories.TicketMessageRepository>();
-        services.AddScoped<INotificationRepository, Infrastructure.Repositories.NotificationRepository>();
-        services.AddScoped<IEmailVerificationRepository, Infrastructure.Repositories.EmailVerificationRepository>();
-        services.AddScoped<IPasswordResetTokenRepository, Infrastructure.Repositories.PasswordResetTokenRepository>();
-        services.AddScoped<IAccountDeletionRepository, Infrastructure.Repositories.AccountDeletionRepository>();
+        services.AddScoped<IMonitoredServerRepository, MonitoredServerRepository>();
+        services.AddScoped<IUserServerAccessRepository, UserServerAccessRepository>();
+        services.AddScoped<ITicketRepository, TicketRepository>();
+        services.AddScoped<ITicketMessageRepository, TicketMessageRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IAccountDeletionRepository, AccountDeletionRepository>();
         services.AddScoped<IUserExternalLoginRepository, UserExternalLoginRepository>();
-        
-        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.ISubscriptionRepository, Infrastructure.Repositories.Billing.SubscriptionRepository>();
-        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.IPaymentRepository, Infrastructure.Repositories.Billing.PaymentRepository>();
-        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.ISubscriptionPlanRepository, Infrastructure.Repositories.Billing.SubscriptionPlanRepository>();
-        services.AddScoped<ServerEye.Core.Interfaces.Repository.Billing.IWebhookEventRepository, Infrastructure.Repositories.Billing.WebhookEventRepository>();
+
+        services.AddScoped<Core.Interfaces.Repository.Billing.ISubscriptionRepository, Infrastructure.Repositories.Billing.SubscriptionRepository>();
+        services.AddScoped<Core.Interfaces.Repository.Billing.IPaymentRepository, Infrastructure.Repositories.Billing.PaymentRepository>();
+        services.AddScoped<Core.Interfaces.Repository.Billing.ISubscriptionPlanRepository, Infrastructure.Repositories.Billing.SubscriptionPlanRepository>();
+        services.AddScoped<Core.Interfaces.Repository.Billing.IWebhookEventRepository, Infrastructure.Repositories.Billing.WebhookEventRepository>();
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public static class DependencyInjectionSetup
     private static void RegisterMetricsServices(IServiceCollection services)
     {
         services.AddScoped<IMetricsService, MetricsService>();
-        services.AddScoped<IMetricsCacheService, Infrastructure.Caching.MetricsCacheService>();
+        services.AddScoped<IMetricsCacheService, MetricsCacheService>();
     }
 
     /// <summary>
@@ -206,7 +206,7 @@ public static class DependencyInjectionSetup
     /// </summary>
     private static void RegisterApiServices(IServiceCollection services)
     {
-        services.AddScoped<IEmailTemplateService, ServerEye.API.Services.EmailTemplateService>();
+        services.AddScoped<IEmailTemplateService, Services.EmailTemplateService>();
     }
 
     /// <summary>
@@ -224,7 +224,7 @@ public static class DependencyInjectionSetup
 
     private static void RegisterGoApiServices(IServiceCollection services, IConfiguration configuration)
     {
-        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>() 
+        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>()
             ?? new GoApiSettings();
 
         // Register Go API HttpClient
@@ -250,11 +250,11 @@ public static class DependencyInjectionSetup
 
     private static void RegisterBillingServices(IServiceCollection services)
     {
-        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.ISubscriptionService, ServerEye.Core.Services.Billing.SubscriptionService>();
-        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentService, ServerEye.Core.Services.Billing.PaymentService>();
-        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IWebhookService, ServerEye.Core.Services.Billing.WebhookService>();
-        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
-        services.AddScoped<ServerEye.Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
+        services.AddScoped<Core.Interfaces.Services.Billing.ISubscriptionService, Core.Services.Billing.SubscriptionService>();
+        services.AddScoped<Core.Interfaces.Services.Billing.IPaymentService, Core.Services.Billing.PaymentService>();
+        services.AddScoped<Core.Interfaces.Services.Billing.IWebhookService, Core.Services.Billing.WebhookService>();
+        services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
+        services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
     }
 
     /// <summary>
@@ -270,11 +270,11 @@ public static class DependencyInjectionSetup
             .AddCheck<DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>>("ticket_database", tags: DatabaseTags);
 
         // Register factory instances with database names
-        services.AddSingleton<DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>>(provider => 
+        services.AddSingleton(provider =>
             new DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>(provider, "Main Database"));
-        services.AddSingleton<DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>>(provider => 
+        services.AddSingleton(provider =>
             new DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>(provider, "Ticket Database"));
-        
+
         // Add Redis health check if configured
         var redisConnectionString = configuration.GetConnectionString("Redis");
         if (!string.IsNullOrEmpty(redisConnectionString))

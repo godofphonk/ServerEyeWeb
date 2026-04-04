@@ -7,7 +7,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get metrics by server key.
 /// </summary>
 public class GetMetricsByKeyOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey,
     DateTime startTime,

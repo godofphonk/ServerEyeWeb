@@ -33,7 +33,7 @@ public class StaticInfoController : ControllerBase
             }
 
             var staticInfo = await this.staticInfoService.GetStaticInfoAsync(userGuid, serverKey);
-            
+
             if (staticInfo is null)
             {
                 return NotFound("Static information not found");

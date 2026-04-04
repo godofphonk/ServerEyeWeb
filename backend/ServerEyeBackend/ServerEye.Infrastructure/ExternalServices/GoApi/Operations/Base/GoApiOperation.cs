@@ -26,7 +26,7 @@ public abstract class GoApiOperation<T>
     {
         using var perfTracker = GoApiPerformanceTracker.Start();
         var url = BuildUrl();
-        
+
         try
         {
             Logger.LogRequest(GetOperationName(), url);
@@ -46,7 +46,7 @@ public abstract class GoApiOperation<T>
             }
 
             var result = ProcessResponse(content);
-            
+
             perfTracker.Stop();
             var totalTime = perfTracker.ElapsedMilliseconds;
 
@@ -89,7 +89,7 @@ public abstract class GoApiOperation<T>
     {
         var errorContent = await GoApiHttpHandler.GetErrorContentAsync(response);
         Logger.LogError(GetOperationName(), BuildUrl(), requestTime, (int)response.StatusCode, errorContent);
-        
+
         // For 404 errors, return default value (null) instead of throwing
         if (GoApiHttpHandler.IsNotFound(response))
         {
@@ -107,7 +107,7 @@ public abstract class GoApiOperation<T>
     {
         var logData = CreateLogData(result);
         Logger.LogResponse(GetOperationName(), url, totalTime, logData);
-        
+
         // Log performance metrics if applicable
         if (ShouldLogPerformance(result))
         {

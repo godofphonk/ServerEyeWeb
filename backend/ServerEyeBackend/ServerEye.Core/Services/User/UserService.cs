@@ -78,9 +78,9 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task<AuthResponseDto> CreateUserAsync(UserRegisterDto userRegisterDto)
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
-        
+
         this.logger.LogInformation("Starting user registration for email: {Email}, username: {UserName}", userRegisterDto.Email, userRegisterDto.UserName);
-        
+
         // Check if user with this email already exists
         var existingUser = await this.userRepository.GetByEmailAsync(userRegisterDto.Email);
         if (existingUser != null)
@@ -88,26 +88,26 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             this.logger.LogWarning("Registration failed - user already exists: {Email}", userRegisterDto.Email);
             throw new InvalidOperationException($"User with email {userRegisterDto.Email} already exists.");
         }
-        
+
         var hashedPassword = this.passwordHasher.HashPassword(userRegisterDto.Password);
-        
+
         var user = new User()
         {
             Email = userRegisterDto.Email,
             UserName = userRegisterDto.UserName,
             Password = hashedPassword,
         };
-        
+
         await this.userRepository.AddAsync(user);
-        
+
         this.logger.LogInformation("User created successfully: {UserId}, Email: {Email}", user.Id, user.Email);
-        
+
         // Generate tokens
         var accessToken = this.jwtService.GenerateAccessToken(user);
         var refreshToken = this.jwtService.GenerateRefreshToken(user);
-        
+
         this.logger.LogDebug("Generated tokens for user: {UserId}", user.Id);
-        
+
         // Save refresh token
         var refreshTokenEntity = new RefreshToken
         {
@@ -118,9 +118,9 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             CreatedAt = DateTime.UtcNow,
             IsRevoked = false
         };
-        
+
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
-        
+
         try
         {
             await this.authService.SendVerificationCodeAsync(user.Id);
@@ -130,7 +130,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         {
             this.logger.LogWarning(ex, "Failed to send verification code to user {Email}", user.Email);
         }
-        
+
         return new AuthResponseDto
         {
             User = new AuthUserDto
@@ -149,27 +149,27 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task<UserData> UpdateUserAsync(Guid id, UserUpdateDto updateDto)
     {
         ArgumentNullException.ThrowIfNull(updateDto);
-        
+
         this.logger.LogInformation("Updating user: {UserId}", id);
-        
+
         var existingUser = await this.userRepository
                                .GetByIdAsync(id)
                            ?? throw new KeyNotFoundException($"User with ID {id} not found");
 
         existingUser.UserName = updateDto.UserName;
         existingUser.Email = updateDto.Email;
-        
+
         // Only update password if provided
         if (!string.IsNullOrEmpty(updateDto.Password))
         {
             this.logger.LogInformation("Password changed for user: {UserId}", id);
             existingUser.Password = this.passwordHasher.HashPassword(updateDto.Password);
         }
-        
+
         existingUser.ServerId = updateDto.ServerId;
 
         await this.userRepository.UpdateUserAsync(existingUser);
-        
+
         this.logger.LogInformation("User updated successfully: {UserId}", id);
 
         return new UserData
@@ -199,7 +199,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         }
 
         // Check if email verification is disabled (for testing)
-        var requireEmailVerification = this.configuration.GetValue<bool>("Authentication:RequireEmailVerification", true);
+        var requireEmailVerification = this.configuration.GetValue("Authentication:RequireEmailVerification", true);
         if (!requireEmailVerification)
         {
             return true;
@@ -223,7 +223,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
-        
+
         this.logger.LogInformation("Login attempt for email: {Email}", userLoginDto.Email);
 
         var user = await this.userRepository.GetByEmailAsync(userLoginDto.Email);
@@ -239,11 +239,11 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             this.logger.LogWarning("Login blocked for unverified email: {Email}, UserId: {UserId}", user.Email, user.Id);
             throw new UnauthorizedAccessException("Email verification required. Please check your email for verification code.");
         }
-        
+
         // Generate tokens
         var accessToken = this.jwtService.GenerateAccessToken(user);
         var refreshToken = this.jwtService.GenerateRefreshToken(user);
-        
+
         // Save refresh token
         var refreshTokenEntity = new RefreshToken
         {
@@ -254,11 +254,11 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             CreatedAt = DateTime.UtcNow,
             IsRevoked = false
         };
-        
+
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
-        
+
         this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", user.Email, user.Id);
-        
+
         return new AuthResponseDto
         {
             User = new AuthUserDto

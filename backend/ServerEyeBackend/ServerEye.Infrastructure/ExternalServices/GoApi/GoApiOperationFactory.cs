@@ -1,10 +1,10 @@
 namespace ServerEye.Infrastructure.ExternalServices.GoApi;
 
 using ServerEye.Core.DTOs.GoApi;
+using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Discovery;
 using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Metrics;
 using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.ServerInfo;
 using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Sources;
-using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Discovery;
 
 /// <summary>
 /// Factory for creating Go API operations.

@@ -4,8 +4,8 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.Database;
+using ServerEye.Core.Services.OAuth;
 
 namespace ServerEye.API.Configuration.Extensions;
 
@@ -15,9 +15,9 @@ public static class OpenTelemetryConfiguration
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var disableAllInstrumentation = configuration.GetValue<bool>("OpenTelemetry:DisableAllInstrumentation", false);
-        var isTesting = configuration.GetValue<bool>("Testing", false);
-        
+        var disableAllInstrumentation = configuration.GetValue("OpenTelemetry:DisableAllInstrumentation", false);
+        var isTesting = configuration.GetValue("Testing", false);
+
         if (disableAllInstrumentation || isTesting)
         {
             return services;
@@ -26,7 +26,7 @@ public static class OpenTelemetryConfiguration
         var serviceName = configuration["OpenTelemetry:ServiceName"] ?? "servereye-backend";
         var serviceVersion = configuration["OpenTelemetry:ServiceVersion"] ?? "1.0.0";
         var otlpEndpoint = configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
-        var enableRedisInstrumentation = !configuration.GetValue<bool>("OpenTelemetry:DisableRedisInstrumentation", false);
+        var enableRedisInstrumentation = !configuration.GetValue("OpenTelemetry:DisableRedisInstrumentation", false);
 
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -47,7 +47,7 @@ public static class OpenTelemetryConfiguration
                         options.Filter = httpContext =>
                         {
                             var path = httpContext.Request.Path;
-                            
+
                             // Exclude health and OAuth endpoints from tracing
                             return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) &&
                                    !path.StartsWithSegments("/api/auth/oauth", StringComparison.OrdinalIgnoreCase);
@@ -114,7 +114,7 @@ public static class OpenTelemetryConfiguration
 
         // Register OAuthMetrics as singleton
         services.AddSingleton<OAuthMetrics>();
-        
+
         // Register PostgreSQL metrics
         services.AddSingleton<PostgreSQLMetrics>();
         services.Configure<PostgreSQLMonitoringOptions>(configuration.GetSection("PostgreSQLMonitoring"));

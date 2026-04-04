@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to add a server source by server ID.
 /// </summary>
 public class AddServerSourceOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverId,
     string source) : GoApiOperation<GoApiSourceResponse?>(httpHandler, logger)

@@ -105,7 +105,7 @@ public class StaticInfoService : IStaticInfoService
     {
         // First validate the server key and get server info
         var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
-        #pragma warning disable IDE0270 // Simplify null check
+#pragma warning disable IDE0270 // Simplify null check
         if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
         {

@@ -15,13 +15,13 @@ public class Payment
     public string Currency { get; set; } = "usd";
     public PaymentStatus Status { get; set; }
     public string? FailureReason { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API returns string URLs")]
     public string? ReceiptUrl { get; set; }
-    
+
     [SuppressMessage("Design", "CA1056:URI properties should not be strings", Justification = "Stripe API returns string URLs")]
     public string? InvoiceUrl { get; set; }
-    
+
     public Dictionary<string, string> Metadata { get; set; } = new();
     public DateTime? RefundedAt { get; set; }
     public decimal? RefundedAmount { get; set; }

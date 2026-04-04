@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -11,7 +11,7 @@ namespace ServerEye.Infrastructure.Migrations.BillingDb
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             var now = new DateTime(2026, 3, 24, 14, 55, 0, DateTimeKind.Utc);
-            
+
             // Seed Free plan
             migrationBuilder.InsertData(
                 table: "subscriptionplans",

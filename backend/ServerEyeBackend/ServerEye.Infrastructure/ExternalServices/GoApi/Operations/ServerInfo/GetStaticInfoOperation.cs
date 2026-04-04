@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get static server information by server key.
 /// </summary>
 public class GetStaticInfoOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey) : GoApiOperation<GoApiStaticInfo?>(httpHandler, logger)
 {

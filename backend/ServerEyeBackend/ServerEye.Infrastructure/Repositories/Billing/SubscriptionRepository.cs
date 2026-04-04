@@ -41,8 +41,8 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return await context.Subscriptions
             .AsNoTracking()
-            .Where(s => s.Status == SubscriptionStatus.Active 
-                && s.CurrentPeriodEnd.HasValue 
+            .Where(s => s.Status == SubscriptionStatus.Active
+                && s.CurrentPeriodEnd.HasValue
                 && s.CurrentPeriodEnd.Value <= beforeDate)
             .ToListAsync();
     }

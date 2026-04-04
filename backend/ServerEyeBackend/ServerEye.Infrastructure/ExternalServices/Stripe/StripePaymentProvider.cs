@@ -19,16 +19,16 @@ public class StripePaymentProvider : IPaymentProvider
     {
         this.config = config.Value;
         this.logger = logger;
-        
+
         // Log the actual key being used (first 8 chars for security)
-        var keyPrefix = this.config.SecretKey?.Length >= 8 
-            ? this.config.SecretKey[..8] 
+        var keyPrefix = this.config.SecretKey?.Length >= 8
+            ? this.config.SecretKey[..8]
             : "INVALID";
         logger.LogInformation("Initializing Stripe with key prefix: {KeyPrefix}...", keyPrefix);
         logger.LogInformation("Full key length: {KeyLength}", this.config.SecretKey?.Length ?? 0);
-        
+
         global::Stripe.StripeConfiguration.ApiKey = this.config.SecretKey;
-        
+
         // Verify it was set correctly
         var setKeyPrefix = global::Stripe.StripeConfiguration.ApiKey?.Length >= 8
             ? global::Stripe.StripeConfiguration.ApiKey[..8]
@@ -53,23 +53,23 @@ public class StripePaymentProvider : IPaymentProvider
             };
 
             var service = new CustomerService();
-            
+
             // Log the API key being used for this specific call
             var currentKey = global::Stripe.StripeConfiguration.ApiKey?.Length >= 8
                 ? global::Stripe.StripeConfiguration.ApiKey[..8]
                 : "INVALID";
             logger.LogInformation("Making Stripe API call with key prefix: {KeyPrefix}", currentKey);
-            
+
             var customer = await service.CreateAsync(options);
 
             logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
-            
+
             // Business metric: Customer acquisition
             logger.LogInformation(
                 "Customer acquisition: New Stripe customer {CustomerId} created for user {UserId}",
                 customer.Id,
                 userId);
-            
+
             return customer.Id;
         }
         catch (StripeException ex)
@@ -378,7 +378,7 @@ public class StripePaymentProvider : IPaymentProvider
     private string GetPriceId(SubscriptionPlan planType, bool isYearly)
     {
         var key = $"{planType}_{(isYearly ? "Yearly" : "Monthly")}";
-        
+
         if (!config.PriceIds.TryGetValue(key, out var priceId))
         {
             throw new InvalidOperationException($"Price ID not configured for {key}");

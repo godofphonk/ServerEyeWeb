@@ -31,7 +31,7 @@ public class MockDataProvider(ILogger<MockDataProvider> logger) : IMockDataProvi
             },
             new ServerDto
             {
-                Id = "server-uuid-2", 
+                Id = "server-uuid-2",
                 Name = "Database Server",
                 Hostname = "db.local",
                 IpAddress = "192.168.1.101",

@@ -88,7 +88,7 @@ public class WebhookService : IWebhookService
             stopwatch.Stop();
 
             logger.LogError(ex, "Failed to process webhook from {Provider} in {ElapsedMs}ms: {ErrorType}", provider, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
-            
+
             // Business metric: Webhook failure tracking
             logger.LogWarning(
                 "Webhook failure: {Provider} {EventType}, reason {ErrorType}",

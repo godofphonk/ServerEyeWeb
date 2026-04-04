@@ -26,13 +26,13 @@ public class ServersService(
             }
 
             var userServers = await serverAccessService.GetUserServersAsync(userId);
-            
+
             if (userServers.Count >= configuration.MaxServersPerUser)
             {
                 logger.LogWarning("User {UserId} has reached maximum server limit", userId);
                 throw new InvalidOperationException("Maximum server limit reached");
             }
-            
+
             var serverDtos = userServers.Select(server => new ServerDto
             {
                 Id = server.Id.ToString(),

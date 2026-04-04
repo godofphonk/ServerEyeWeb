@@ -50,7 +50,7 @@ public class WebhookController : ControllerBase
             }
 
             this.logger.LogInformation("Processing Stripe webhook, payload size: {Size} bytes", payload.Length);
-            
+
             var provider = providerFactory.GetProvider(PaymentProvider.Stripe);
             var isValid = await provider.VerifyWebhookSignatureAsync(
                 payload,
@@ -64,7 +64,7 @@ public class WebhookController : ControllerBase
             }
 
             this.logger.LogInformation("Stripe webhook signature verified successfully");
-            
+
             var success = await webhookService.ProcessWebhookAsync(
                 PaymentProvider.Stripe,
                 payload,

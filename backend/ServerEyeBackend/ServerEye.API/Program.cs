@@ -1,11 +1,11 @@
 #pragma warning disable CA1303 // Localize strings
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +28,7 @@ builder.Services
     .AddApplicationServices(builder.Configuration);
 
 // Add OpenTelemetry only if not disabled
-if (!builder.Configuration.GetValue<bool>("OpenTelemetry:DisableAllInstrumentation", false))
+if (!builder.Configuration.GetValue("OpenTelemetry:DisableAllInstrumentation", false))
 {
     builder.Services.AddOpenTelemetryConfiguration(builder.Configuration);
 }

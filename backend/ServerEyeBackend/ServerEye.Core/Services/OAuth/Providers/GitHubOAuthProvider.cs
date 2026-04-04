@@ -10,7 +10,7 @@ using ServerEye.Core.Services.OAuth;
 
 public sealed class GitHubOAuthProvider(
     OAuthSettings oauthSettings,
-    ILogger<GitHubOAuthProvider> logger) 
+    ILogger<GitHubOAuthProvider> logger)
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
     public override OAuthProvider ProviderType => OAuthProvider.GitHub;

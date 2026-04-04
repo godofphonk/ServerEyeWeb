@@ -13,7 +13,7 @@ public class NotificationsController(INotificationService notificationService) :
     private readonly INotificationService notificationService = notificationService;
 
     [HttpGet]
-    public async Task<ActionResult<List<ServerEye.Core.DTOs.Notification.NotificationDto>>> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<List<Core.DTOs.Notification.NotificationDto>>> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         var userId = GetUserId();
         var notifications = await notificationService.GetUserNotificationsAsync(userId, page, pageSize);

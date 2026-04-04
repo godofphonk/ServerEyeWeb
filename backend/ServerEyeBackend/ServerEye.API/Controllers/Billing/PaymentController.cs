@@ -1,10 +1,10 @@
 namespace ServerEye.API.Controllers.Billing;
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Interfaces.Services.Billing;
-using System.Security.Claims;
 
 [Authorize]
 [ApiController]
@@ -30,9 +30,9 @@ public class PaymentController : ControllerBase
         {
             var userId = GetUserId();
             this.logger.LogInformation("Creating payment intent for user: {UserId}, amount: {Amount}, currency: {Currency}", userId, request.Amount, request.Currency);
-            
+
             var response = await paymentService.CreatePaymentIntentAsync(userId, request);
-            
+
             this.logger.LogInformation("Payment intent created successfully: {ClientSecret}", response.ClientSecret?[..20] + "...");
             return Ok(response);
         }
@@ -56,9 +56,9 @@ public class PaymentController : ControllerBase
         {
             var userId = GetUserId();
             this.logger.LogDebug("Getting payment history for user: {UserId}, limit: {Limit}", userId, limit);
-            
+
             var payments = await paymentService.GetUserPaymentsAsync(userId, limit);
-            
+
             this.logger.LogDebug("Retrieved {Count} payments for user: {UserId}", payments.Count, userId);
             return Ok(payments);
         }
@@ -116,7 +116,7 @@ public class PaymentController : ControllerBase
             }
 
             this.logger.LogWarning("Refund requested for payment: {PaymentId}, amount: {Amount}, user: {UserId}", paymentId, request?.Amount ?? payment.Amount, userId);
-            
+
             var success = await paymentService.RefundPaymentAsync(paymentId, request?.Amount);
             if (success)
             {

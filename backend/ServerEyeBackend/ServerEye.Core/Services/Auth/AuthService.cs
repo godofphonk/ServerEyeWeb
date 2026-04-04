@@ -31,7 +31,7 @@ public sealed class AuthService(
     public async Task SendVerificationCodeAsync(Guid userId)
     {
         this.logger.LogInformation("Sending verification code to user: {UserId}", userId);
-        
+
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
         if (user.IsEmailVerified)
@@ -63,14 +63,14 @@ public sealed class AuthService(
 
         await this.emailVerificationRepository.AddAsync(verification);
         await this.emailService.SendEmailVerificationCodeAsync(user.UserName, user.Email, code);
-        
+
         this.logger.LogInformation("Verification code sent successfully to: {Email}", user.Email);
     }
 
     public async Task<bool> VerifyEmailAsync(Guid userId, string code)
     {
         this.logger.LogInformation("Email verification attempt for user: {UserId}", userId);
-        
+
         var user = await this.userRepository.GetByIdAsync(userId);
         if (user == null)
         {
@@ -90,9 +90,9 @@ public sealed class AuthService(
         user.EmailVerifiedAt = DateTime.UtcNow;
 
         await this.userRepository.UpdateUserAsync(user);
-        
+
         this.logger.LogInformation("Email verified successfully for user: {UserId}, Email: {Email}", userId, user.Email);
-        
+
         if (!string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendRegistrationEmailAsync(user.UserName, user.Email);
@@ -104,7 +104,7 @@ public sealed class AuthService(
     public async Task RequestPasswordResetAsync(string email)
     {
         this.logger.LogInformation("Password reset requested for email: {Email}", email);
-        
+
         var user = await this.userRepository.GetByEmailAsync(email);
         if (user == null)
         {
@@ -126,7 +126,7 @@ public sealed class AuthService(
         };
 
         await this.passwordResetTokenRepository.AddAsync(resetToken);
-        
+
         if (!string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendPasswordResetEmailAsync(user.UserName, user.Email, token);
@@ -137,7 +137,7 @@ public sealed class AuthService(
     public async Task<bool> ResetPasswordAsync(string token, string newPassword)
     {
         this.logger.LogInformation("Password reset attempt with token");
-        
+
         var hashedToken = HashToken(token);
         var resetToken = await this.passwordResetTokenRepository.GetActiveByTokenAsync(hashedToken);
 
@@ -157,9 +157,9 @@ public sealed class AuthService(
         resetToken.IsUsed = true;
 
         await this.userRepository.UpdateUserAsync(user);
-        
+
         this.logger.LogInformation("Password reset successful for user: {UserId}", user.Id);
-        
+
         if (!string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendPasswordChangedNotificationAsync(user.UserName, user.Email);
@@ -171,7 +171,7 @@ public sealed class AuthService(
     public async Task RequestEmailChangeAsync(Guid userId, string newEmail)
     {
         this.logger.LogInformation("Email change requested for user: {UserId}, new email: {NewEmail}", userId, newEmail);
-        
+
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
         var existingUser = await this.userRepository.GetByEmailAsync(newEmail);
@@ -202,14 +202,14 @@ public sealed class AuthService(
 
         await this.emailVerificationRepository.AddAsync(verification);
         await this.emailService.SendEmailChangeConfirmationAsync(user.UserName, newEmail, code);
-        
+
         this.logger.LogInformation("Email change confirmation sent to: {NewEmail}", newEmail);
     }
 
     public async Task<bool> ConfirmEmailChangeAsync(Guid userId, string code)
     {
         this.logger.LogInformation("Email change confirmation attempt for user: {UserId}", userId);
-        
+
         var user = await this.userRepository.GetByIdAsync(userId);
         if (user == null || string.IsNullOrEmpty(user.PendingEmail))
         {
@@ -232,9 +232,9 @@ public sealed class AuthService(
         user.EmailVerifiedAt = DateTime.UtcNow;
 
         await this.userRepository.UpdateUserAsync(user);
-        
+
         this.logger.LogInformation("Email changed successfully for user: {UserId}, from {OldEmail} to {NewEmail}", userId, oldEmail, user.Email);
-        
+
         if (!string.IsNullOrEmpty(oldEmail) && !string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendEmailChangedNotificationAsync(user.UserName, oldEmail, user.Email);
@@ -246,7 +246,7 @@ public sealed class AuthService(
     public async Task<AccountDeletionResponseDto> RequestAccountDeletionAsync(Guid userId, string? password)
     {
         this.logger.LogWarning("Account deletion requested for user: {UserId}", userId);
-        
+
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
         // Check authentication based on user type
@@ -257,7 +257,7 @@ public sealed class AuthService(
             {
                 throw new InvalidOperationException("Password is required for users with password.");
             }
-            
+
             if (!this.passwordHasher.VerifyPassword(password, user.Password))
             {
                 throw new InvalidOperationException("Invalid password.");

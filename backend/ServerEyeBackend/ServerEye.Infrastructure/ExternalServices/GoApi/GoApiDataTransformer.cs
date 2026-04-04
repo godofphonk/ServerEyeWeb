@@ -1,8 +1,8 @@
 namespace ServerEye.Infrastructure.ExternalServices.GoApi;
 
+using System.Globalization;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Metrics;
-using System.Globalization;
 
 /// <summary>
 /// Data transformation and conversion for Go API responses.
@@ -112,23 +112,23 @@ public static class GoApiDataTransformer
     private static List<GoApiDataPoint> GenerateDataPointsFromSnapshot(GoApiSnapshotResponse snapshot)
     {
         var dataPoints = new List<GoApiDataPoint>();
-        
+
         // Create a single data point from current snapshot
         // This is NOT historical data - just current metrics formatted as a data point
-        var validTimestamp = snapshot.Timestamp > DateTime.MinValue && snapshot.Timestamp.Year > 1970 
-            ? snapshot.Timestamp 
+        var validTimestamp = snapshot.Timestamp > DateTime.MinValue && snapshot.Timestamp.Year > 1970
+            ? snapshot.Timestamp
             : DateTime.UtcNow;
-        
+
         // Log values for debugging
         var cpuTemp = snapshot.Metrics?.TemperatureDetails?.CpuTemperature ?? 0;
         var highestTemp = snapshot.Metrics?.TemperatureDetails?.HighestTemperature ?? 0;
         var load1Min = snapshot.Metrics?.CpuUsage?.LoadAverage?.Load1Min ?? 0;
-        
+
         // Use available values from Go API structure
         var finalTemp = cpuTemp;
         var finalHighestTemp = highestTemp;
         var finalLoad = load1Min;
-            
+
         dataPoints.Add(new GoApiDataPoint
         {
             Timestamp = validTimestamp,
@@ -147,13 +147,13 @@ public static class GoApiDataTransformer
             LoadAvg = finalLoad,
             LoadMax = finalLoad,
             SampleCount = 1,
-            
+
             // Memory details from snapshot
             MemoryCacheGb = snapshot.Metrics?.MemoryDetails?.CachedGb ?? 0,
             MemoryBuffersGb = snapshot.Metrics?.MemoryDetails?.BuffersGb ?? 0,
             MemoryAvailableGb = snapshot.Metrics?.MemoryDetails?.AvailableGb ?? 0,
             MemorySwapPercent = 0, // TODO: Add swap data when available from Go API
-            
+
             // Disk I/O metrics - not available in current Go API structure, set to 0
             DiskReadMb = 0,
             DiskWriteMb = 0,
@@ -213,15 +213,15 @@ public static class GoApiDataTransformer
         return new NetworkDetails
         {
             Interfaces = snapshot.Interfaces.Select(i => new NetworkInterface
-                {
-                    Name = i.Name,
-                    RxBytes = i.RxBytes,
-                    TxBytes = i.TxBytes,
-                    RxPackets = i.RxPackets,
-                    TxPackets = i.TxPackets,
-                    
-                    Status = i.Status
-                }).ToList(),
+            {
+                Name = i.Name,
+                RxBytes = i.RxBytes,
+                TxBytes = i.TxBytes,
+                RxPackets = i.RxPackets,
+                TxPackets = i.TxPackets,
+
+                Status = i.Status
+            }).ToList(),
             TotalRx = (long)(snapshot.TotalRxMbps * 1000000), // Convert Mbps to bps
             TotalTx = (long)(snapshot.TotalTxMbps * 1000000), // Convert Mbps to bps
             Timestamp = DateTime.UtcNow

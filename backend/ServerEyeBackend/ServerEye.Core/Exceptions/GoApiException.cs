@@ -29,10 +29,10 @@ public class GoApiException : Exception
     }
 
     public GoApiException(
-        string message, 
+        string message,
         GoApiErrorType errorType = GoApiErrorType.Unknown,
         string? userMessage = null,
-        Exception? innerException = null) 
+        Exception? innerException = null)
         : base(message, innerException)
     {
         ErrorType = errorType;
@@ -41,9 +41,9 @@ public class GoApiException : Exception
     }
 
     public GoApiErrorType ErrorType { get; }
-    
+
     public string? UserMessage { get; }
-    
+
     public string? SupportContact { get; }
 
     private static string GetDefaultUserMessage(GoApiErrorType errorType)

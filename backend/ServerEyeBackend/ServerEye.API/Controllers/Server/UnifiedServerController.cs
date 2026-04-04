@@ -37,7 +37,7 @@ public class UnifiedServerController : ControllerBase
     /// <returns>Combined server data.</returns>
     [HttpGet("unified")]
     public async Task<ActionResult<GoApiUnifiedResponse>> GetUnifiedData(
-        string serverKey, 
+        string serverKey,
         [FromQuery] UnifiedRequest request)
     {
         try
@@ -79,7 +79,7 @@ public class UnifiedServerController : ControllerBase
                     }
 
                     var metrics = await metricsService.GetMetricsByKeyAsync(userGuid, serverKey, start.Value, end.Value, granularity);
-                    
+
                     // Create new response with metrics
                     response = new GoApiUnifiedResponse
                     {
@@ -157,7 +157,7 @@ public class UnifiedServerController : ControllerBase
                 try
                 {
                     var staticInfo = await staticInfoService.GetStaticInfoAsync(userGuid, serverKey);
-                    
+
                     // Create new response with static info
                     response = new GoApiUnifiedResponse
                     {

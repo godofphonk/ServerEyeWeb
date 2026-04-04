@@ -1,17 +1,17 @@
 namespace ServerEye.Core.Services.OAuth.Providers;
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
-using System.Text.RegularExpressions;
 
 public sealed partial class TelegramOAuthProvider(
     OAuthSettings oauthSettings,
-    ILogger<TelegramOAuthProvider> logger) 
+    ILogger<TelegramOAuthProvider> logger)
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
     public override OAuthProvider ProviderType => OAuthProvider.Telegram;
@@ -35,7 +35,7 @@ public sealed partial class TelegramOAuthProvider(
             returnUrl?.ToString() ?? "null");
 
         var settings = Settings.Telegram;
-        
+
         // Add provider prefix to state so we can identify it in callback
         var stateWithProvider = $"telegram_{state}";
         var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
@@ -87,10 +87,10 @@ public sealed partial class TelegramOAuthProvider(
         try
         {
             Logger.LogInformation("Raw Telegram access token data: {AccessToken}", accessToken[..Math.Min(accessToken.Length, 100)] + "...");
-            
+
             // Try to deserialize the access token as JSON (it comes serialized from AuthController)
             Dictionary<string, JsonElement> userData;
-            
+
             if (accessToken.StartsWith('{') && accessToken.EndsWith('}'))
             {
                 // Direct JSON - deserialize directly
@@ -103,7 +103,7 @@ public sealed partial class TelegramOAuthProvider(
                 userData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessToken)
                     ?? throw new InvalidOperationException("Failed to parse Telegram user data");
             }
-            
+
             Logger.LogInformation("Parsed Telegram user data: {UserData}", userData);
 
             // Extract user information from Telegram data
@@ -112,12 +112,12 @@ public sealed partial class TelegramOAuthProvider(
 
             var telegramIdElement = userDict.GetValueOrDefault("id");
             var userId = "unknown";
-            
+
             Logger.LogInformation(
-                "Telegram ID element - ValueKind: {ValueKind}, Element: {Element}", 
-                telegramIdElement.ValueKind, 
+                "Telegram ID element - ValueKind: {ValueKind}, Element: {Element}",
+                telegramIdElement.ValueKind,
                 telegramIdElement.ValueKind == JsonValueKind.String ? telegramIdElement.GetString() ?? "null" : telegramIdElement.ToString());
-            
+
             // Try to extract Telegram ID as string or number
             if (telegramIdElement.ValueKind == JsonValueKind.String)
             {
@@ -137,7 +137,7 @@ public sealed partial class TelegramOAuthProvider(
                     // Get the raw JSON string and extract ID manually
                     var rawJson = JsonSerializer.Serialize(userData);
                     Logger.LogInformation("Raw JSON data for manual extraction: {RawJson}", rawJson[..Math.Min(rawJson.Length, 200)] + "...");
-                    
+
                     // Extract ID using regex or string manipulation
                     var idMatch = TelegramIdRegex.Match(rawJson);
                     if (idMatch.Success && long.TryParse(idMatch.Groups[1].Value, out var telegramId))
@@ -162,38 +162,38 @@ public sealed partial class TelegramOAuthProvider(
                 Logger.LogWarning("Telegram ID not found or invalid type: {ValueKind}", telegramIdElement.ValueKind);
                 userId = "unknown";
             }
-            var firstName = userDict.GetValueOrDefault("first_name").ValueKind == JsonValueKind.String 
-                ? userDict.GetValueOrDefault("first_name").GetString() ?? string.Empty 
+            var firstName = userDict.GetValueOrDefault("first_name").ValueKind == JsonValueKind.String
+                ? userDict.GetValueOrDefault("first_name").GetString() ?? string.Empty
                 : string.Empty;
-            var lastName = userDict.GetValueOrDefault("last_name").ValueKind == JsonValueKind.String 
-                ? userDict.GetValueOrDefault("last_name").GetString() ?? string.Empty 
+            var lastName = userDict.GetValueOrDefault("last_name").ValueKind == JsonValueKind.String
+                ? userDict.GetValueOrDefault("last_name").GetString() ?? string.Empty
                 : string.Empty;
-            var username = userDict.GetValueOrDefault("username").ValueKind == JsonValueKind.String 
-                ? userDict.GetValueOrDefault("username").GetString() ?? string.Empty 
+            var username = userDict.GetValueOrDefault("username").ValueKind == JsonValueKind.String
+                ? userDict.GetValueOrDefault("username").GetString() ?? string.Empty
                 : string.Empty;
-            
+
             // Fallback to capitalized field names if lowercase ones don't exist
             if (string.IsNullOrEmpty(firstName))
             {
-                firstName = userDict.GetValueOrDefault("FirstName").ValueKind == JsonValueKind.String 
-                    ? userDict.GetValueOrDefault("FirstName").GetString() ?? string.Empty 
+                firstName = userDict.GetValueOrDefault("FirstName").ValueKind == JsonValueKind.String
+                    ? userDict.GetValueOrDefault("FirstName").GetString() ?? string.Empty
                     : string.Empty;
             }
-            
+
             if (string.IsNullOrEmpty(lastName))
             {
-                lastName = userDict.GetValueOrDefault("LastName").ValueKind == JsonValueKind.String 
-                    ? userDict.GetValueOrDefault("LastName").GetString() ?? string.Empty 
+                lastName = userDict.GetValueOrDefault("LastName").ValueKind == JsonValueKind.String
+                    ? userDict.GetValueOrDefault("LastName").GetString() ?? string.Empty
                     : string.Empty;
             }
-            
+
             if (string.IsNullOrEmpty(username))
             {
-                username = userDict.GetValueOrDefault("Username").ValueKind == JsonValueKind.String 
-                    ? userDict.GetValueOrDefault("Username").GetString() ?? string.Empty 
+                username = userDict.GetValueOrDefault("Username").ValueKind == JsonValueKind.String
+                    ? userDict.GetValueOrDefault("Username").GetString() ?? string.Empty
                     : string.Empty;
             }
-                
+
             var name = $"{firstName} {lastName}".Trim();
 
             return new OAuthUserInfoDto
@@ -205,8 +205,8 @@ public sealed partial class TelegramOAuthProvider(
                 AvatarUrl = null, // Avatar photos require separate API calls
                 EmailVerified = false, // Telegram doesn't provide email verification
                 RawData = userData.ToDictionary(
-    kvp => kvp.Key, 
-    kvp => kvp.Value.ValueKind == JsonValueKind.String 
+    kvp => kvp.Key,
+    kvp => kvp.Value.ValueKind == JsonValueKind.String
         ? kvp.Value.GetString() ?? string.Empty
         : (object)kvp.Value.GetRawText()) // Keep as Dictionary for storage
             };
@@ -214,7 +214,7 @@ public sealed partial class TelegramOAuthProvider(
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to parse Telegram user data, fallback to manual extraction");
-            
+
             // Try to extract ID from the raw access token
             try
             {
@@ -226,10 +226,10 @@ public sealed partial class TelegramOAuthProvider(
                     {
                         var extractedId = idValue.ToString();
                         Logger.LogInformation("Extracted Telegram ID from fallback: {Id}", extractedId);
-                        
+
                         manualData.TryGetValue("first_name", out var firstNameValue);
                         manualData.TryGetValue("username", out var usernameValue);
-                        
+
                         return new OAuthUserInfoDto
                         {
                             Id = extractedId ?? string.Empty,
@@ -247,7 +247,7 @@ public sealed partial class TelegramOAuthProvider(
             {
                 Logger.LogError(fallbackEx, "Failed to extract ID from fallback data");
             }
-            
+
             // Ultimate fallback - create a user with a default ID (this should not happen in production)
             Logger.LogWarning("Using ultimate fallback - this indicates a serious OAuth issue");
             var userData = new Dictionary<string, object>

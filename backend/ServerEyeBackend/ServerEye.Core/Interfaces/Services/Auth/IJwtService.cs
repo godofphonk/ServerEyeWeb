@@ -1,7 +1,7 @@
 namespace ServerEye.Core.Interfaces.Services;
 
-using ServerEye.Core.Entities;
 using System.Security.Claims;
+using ServerEye.Core.Entities;
 
 public interface IJwtService
 {

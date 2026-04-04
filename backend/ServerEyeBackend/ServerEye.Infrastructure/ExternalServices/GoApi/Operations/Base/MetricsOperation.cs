@@ -9,7 +9,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi;
 /// </summary>
 public abstract class MetricsOperation : GoApiOperation<GoApiMetricsResponse?>
 {
-    protected MetricsOperation(GoApiHttpHandler httpHandler, GoApiLogger logger) 
+    protected MetricsOperation(GoApiHttpHandler httpHandler, GoApiLogger logger)
         : base(httpHandler, logger)
     {
     }

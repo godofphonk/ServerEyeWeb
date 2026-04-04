@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to delete server source identifiers by source type.
 /// </summary>
 public class DeleteSourceIdentifiersByTypeOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey,
     string sourceType,

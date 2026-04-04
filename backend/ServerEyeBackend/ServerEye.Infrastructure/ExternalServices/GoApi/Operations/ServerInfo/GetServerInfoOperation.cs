@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get server information by server ID.
 /// </summary>
 public class GetServerInfoOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverId) : GoApiOperation<GoApiServerInfo?>(httpHandler, logger)
 {
