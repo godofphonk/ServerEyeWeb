@@ -17,7 +17,7 @@ using ServerEye.Core.Interfaces.Services;
 using Xunit;
 using TicketServiceImpl = ServerEye.Core.Services.TicketService;
 
-internal class TicketServiceTests
+public class TicketServiceTests
 {
     private readonly Mock<ITicketRepository> mockTicketRepository;
     private readonly Mock<ITicketMessageRepository> mockMessageRepository;

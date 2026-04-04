@@ -23,7 +23,7 @@ export default function MemoryTab({
 }: MemoryTabProps) {
   // Independent time range state for memory chart
   const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  
+
   // State for independently loaded metrics
   const [memoryMetrics, setMemoryMetrics] = useState<MetricsResponse | null>(null);
 
@@ -59,7 +59,7 @@ export default function MemoryTab({
                 label='Total'
                 value={staticInfo?.memory_info?.total_gb || 32}
                 unit='GB'
-                trend="-"
+                trend='-'
                 color='blue'
               />
               <CurrentMetricsCard
@@ -67,7 +67,7 @@ export default function MemoryTab({
                 label='Cache'
                 value={12.9} // TODO: Get from Go API memory_details.cached_gb
                 unit='GB'
-                trend="-"
+                trend='-'
                 color='green'
               />
               <CurrentMetricsCard
@@ -75,7 +75,7 @@ export default function MemoryTab({
                 label='Available'
                 value={14.7} // TODO: Get from Go API memory_details.available_gb
                 unit='GB'
-                trend="-"
+                trend='-'
                 color='cyan'
               />
             </>
@@ -89,9 +89,9 @@ export default function MemoryTab({
           <Card className='p-6'>
             <div className='flex justify-between items-center mb-4'>
               <h4 className='text-sm font-medium text-gray-400'>Memory Usage</h4>
-              <TimeRangeSelector 
-                timeRange={memoryTimeRange} 
-                onTimeRangeChange={setMemoryTimeRange} 
+              <TimeRangeSelector
+                timeRange={memoryTimeRange}
+                onTimeRangeChange={setMemoryTimeRange}
               />
             </div>
             <div className='h-80'>

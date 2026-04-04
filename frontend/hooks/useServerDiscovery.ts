@@ -16,7 +16,8 @@ export function useServerDiscovery() {
       setDiscovered(result);
       return result;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to check for servers';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Failed to check for servers';
       setError(errorMessage);
       return null;
     } finally {
@@ -32,7 +33,6 @@ export function useServerDiscovery() {
       const result = await serverDiscoveryApi.importServers(serverIds);
 
       if (result.failed_count > 0) {
-        
       }
 
       return result;

@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { Check, Zap, Star, ChevronRight } from 'lucide-react';
-import StripeIcon from './stripe-icon.svg';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -16,7 +15,7 @@ import { cn } from '@/lib/utils';
 enum PlanType {
   Free = 0,
   Pro = 1,
-  Enterprise = 2
+  Enterprise = 2,
 }
 
 export default function PricingPage() {
@@ -67,7 +66,7 @@ export default function PricingPage() {
       }
       return 'Get Started';
     }
-    
+
     if (plan.planType === PlanType.Enterprise) {
       return 'Contact Sales';
     }
@@ -85,7 +84,7 @@ export default function PricingPage() {
     if (plan.planType === PlanType.Free) {
       return !subscription || subscription.planType === PlanType.Free;
     }
-    
+
     // For paid plans, check if user has this specific plan
     return subscription?.planType === plan.planType;
   };
@@ -99,7 +98,7 @@ export default function PricingPage() {
           planType: selectedPlan.planType,
           isYearly,
           successUrl: `${window.location.origin}/dashboard?subscription=success`,
-          cancelUrl: `${window.location.origin}/pricing?subscription=canceled`
+          cancelUrl: `${window.location.origin}/pricing?subscription=canceled`,
         });
         window.location.href = response.sessionUrl;
       } else if (method === 'yukassa') {
@@ -107,7 +106,9 @@ export default function PricingPage() {
         alert('YooKassa coming soon!');
       }
     } catch (error) {
-      logger.error('Failed to create checkout session', error as Error, { planId: selectedPlan.id });
+      logger.error('Failed to create checkout session', error as Error, {
+        planId: selectedPlan.id,
+      });
       alert('Failed to start checkout. Please try again.');
     } finally {
       setShowPaymentModal(false);
@@ -151,7 +152,9 @@ export default function PricingPage() {
             <p className='text-xl text-gray-400'>Start free, scale as you grow. No hidden fees.</p>
 
             <div className='flex items-center justify-center gap-4 mt-8'>
-              <span className={!isYearly ? 'text-white font-semibold' : 'text-gray-400'}>Monthly</span>
+              <span className={!isYearly ? 'text-white font-semibold' : 'text-gray-400'}>
+                Monthly
+              </span>
               <button
                 onClick={() => setIsYearly(!isYearly)}
                 className='relative w-14 h-7 bg-gray-700 rounded-full transition-colors hover:bg-gray-600'
@@ -184,10 +187,13 @@ export default function PricingPage() {
                     transition={{ delay: i * 0.1 }}
                     className='relative'
                   >
-                    <Card className={cn(
-                      isPopular ? 'border-blue-500/50 relative' : '',
-                      isCurrentPlan(plan) && 'border-green-500/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5'
-                    )}>
+                    <Card
+                      className={cn(
+                        isPopular ? 'border-blue-500/50 relative' : '',
+                        isCurrentPlan(plan) &&
+                          'border-green-500/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5',
+                      )}
+                    >
                       {isPopular && !isCurrentPlan(plan) && (
                         <div className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-semibold z-10'>
                           Most Popular
@@ -316,7 +322,7 @@ export default function PricingPage() {
               Select how you'd like to pay for the {selectedPlan.name} plan
               {isYearly && ' (yearly)'}
             </p>
-            
+
             <div className='space-y-3'>
               <button
                 onClick={() => handlePaymentMethod('stripe')}

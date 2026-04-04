@@ -1,5 +1,11 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { GoApiError, GoApiErrorResponse, DeleteSourceResponse, DeleteSourceIdentifiersResponse, DeleteSourceIdentifiersRequest } from '../types/index';
+import {
+  GoApiError,
+  GoApiErrorResponse,
+  DeleteSourceResponse,
+  DeleteSourceIdentifiersResponse,
+  DeleteSourceIdentifiersRequest,
+} from '../types/index';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -7,8 +13,7 @@ class ApiClient {
   constructor() {
     // Use 127.0.0.1 for browser access to Docker container
     const baseURL = 'http://127.0.0.1:5246/api';
-    
-    
+
     this.client = axios.create({
       baseURL,
       timeout: 30000, // Increased to 30s
@@ -52,16 +57,12 @@ class ApiClient {
       async error => {
         // Check if this is a Go API error
         if (this.isGoApiError(error)) {
-          const goApiError = new GoApiError(
-            error.response!.data,
-            error.response!.status
-          );
+          const goApiError = new GoApiError(error.response!.data, error.response!.status);
           return Promise.reject(goApiError);
         }
 
         // Handle 401 errors (authentication)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-          
           // Try to refresh token first
           try {
             const refreshResponse = await fetch('/api/auth/refresh', {
@@ -76,7 +77,7 @@ class ApiClient {
               const refreshData = await refreshResponse.json();
               if (refreshData.token) {
                 localStorage.setItem('jwt_token', refreshData.token);
-                
+
                 // Retry the original request with new token
                 if (error.config) {
                   error.config.headers.Authorization = `Bearer ${refreshData.token}`;
@@ -84,14 +85,13 @@ class ApiClient {
                 }
               }
             }
-          } catch (refreshError) {
-          }
+          } catch (refreshError) {}
 
           // If refresh failed, clear tokens and redirect to login
           localStorage.removeItem('jwt_token');
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          
+
           // Clear cookies
           document.cookie.split(';').forEach(c => {
             document.cookie = c
@@ -104,7 +104,7 @@ class ApiClient {
             window.location.href = '/login';
           }
         }
-        
+
         return Promise.reject(error);
       },
     );
@@ -112,7 +112,7 @@ class ApiClient {
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
-    
+
     const response = await this.client.get<T>(url, config);
     return response.data;
   }
@@ -139,19 +139,34 @@ class ApiClient {
 
   // Source Management methods
   async deleteServerSource(serverKey: string, source: string): Promise<DeleteSourceResponse> {
-    return this.delete<DeleteSourceResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(source)}`);
+    return this.delete<DeleteSourceResponse>(
+      `/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(source)}`,
+    );
   }
 
-  async deleteServerSourceIdentifiers(serverKey: string, request: DeleteSourceIdentifiersRequest): Promise<DeleteSourceIdentifiersResponse> {
-    return this.delete<DeleteSourceIdentifiersResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/identifiers`, {
-      data: request
-    });
+  async deleteServerSourceIdentifiers(
+    serverKey: string,
+    request: DeleteSourceIdentifiersRequest,
+  ): Promise<DeleteSourceIdentifiersResponse> {
+    return this.delete<DeleteSourceIdentifiersResponse>(
+      `/servers/by-key/${encodeURIComponent(serverKey)}/sources/identifiers`,
+      {
+        data: request,
+      },
+    );
   }
 
-  async deleteServerSourceIdentifiersByType(serverKey: string, sourceType: string, request: DeleteSourceIdentifiersRequest): Promise<DeleteSourceIdentifiersResponse> {
-    return this.delete<DeleteSourceIdentifiersResponse>(`/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(sourceType)}/identifiers`, {
-      data: request
-    });
+  async deleteServerSourceIdentifiersByType(
+    serverKey: string,
+    sourceType: string,
+    request: DeleteSourceIdentifiersRequest,
+  ): Promise<DeleteSourceIdentifiersResponse> {
+    return this.delete<DeleteSourceIdentifiersResponse>(
+      `/servers/by-key/${encodeURIComponent(serverKey)}/sources/${encodeURIComponent(sourceType)}/identifiers`,
+      {
+        data: request,
+      },
+    );
   }
 }
 

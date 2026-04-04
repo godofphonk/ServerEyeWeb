@@ -56,7 +56,6 @@ export const authApi = {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
-
       const response = await axios.post(`${baseURL}/auth/confirm-account-deletion`, data, {
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +67,6 @@ export const authApi = {
 
       return response.data;
     } catch (error: any) {
-
       // Don't automatically redirect - let the component handle it
       throw error;
     }
@@ -79,30 +77,31 @@ export const authApi = {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
-
       // Call backend directly since Next.js API routes are not working
       const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
-      
-      const response = await axios.post(`${backendUrl}/auth/delete-account-direct`, {}, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        withCredentials: true,
-        timeout: 30000,
-      });
 
-      
+      const response = await axios.post(
+        `${backendUrl}/auth/delete-account-direct`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+          timeout: 30000,
+        },
+      );
+
       // Clear local storage on successful deletion
       if (typeof window !== 'undefined') {
         localStorage.removeItem('jwt_token');
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
       }
-      
+
       return response.data;
     } catch (error: any) {
-
       // Handle specific error cases
       if (error.response?.status === 404) {
         throw new Error('Direct account deletion endpoint not available. Please contact support.');

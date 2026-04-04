@@ -1,6 +1,6 @@
 'use client';
 
-import { Github, Twitter, MessageCircle, Mail } from 'lucide-react';
+import { GitBranch, Globe, MessageCircle, Mail } from 'lucide-react';
 
 export default function Footer() {
   const links = {
@@ -25,8 +25,8 @@ export default function Footer() {
   };
 
   const socials = [
-    { icon: Github, href: 'https://github.com/godofphonk/ServerEye', label: 'GitHub' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
+    { icon: GitBranch, href: 'https://github.com/godofphonk/ServerEye', label: 'GitHub' },
+    { icon: Globe, href: '#', label: 'Twitter' },
     { icon: MessageCircle, href: '#', label: 'Discord' },
     { icon: Mail, href: '#', label: 'Email' },
   ];

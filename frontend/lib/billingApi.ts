@@ -83,14 +83,14 @@ export const billingApi = {
   async updatePlan(planType: number, isYearly: boolean): Promise<Subscription> {
     return await apiClient.put<Subscription>('/subscription/plan', {
       newPlanType: planType,
-      isYearly
+      isYearly,
     });
   },
 
   async cancelSubscription(cancelImmediately: boolean = false): Promise<void> {
     await apiClient.post('/subscription/cancel', {
       cancelImmediately,
-      cancellationReason: ''
+      cancellationReason: '',
     });
   },
 
@@ -104,5 +104,5 @@ export const billingApi = {
 
   async getPaymentHistory(limit: number = 50): Promise<Payment[]> {
     return await apiClient.get<Payment[]>(`/payment/history?limit=${limit}`);
-  }
+  },
 };

@@ -70,7 +70,6 @@ export default function AdminTicketsPage() {
   useEffect(() => {
     if (authLoading) return;
 
-    
     if (!isAuthenticated || !isAdmin(user)) {
       router.push('/dashboard');
       return;
@@ -91,7 +90,6 @@ export default function AdminTicketsPage() {
 
   const loadTickets = async () => {
     try {
-
       let data: Ticket[];
 
       if (filterStatus === 'all') {
@@ -136,7 +134,6 @@ export default function AdminTicketsPage() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-
       // If no tickets from getAllTickets, try fallback to admin's own tickets
       if (ticketsArray.length === 0 && user) {
         try {
@@ -163,8 +160,7 @@ export default function AdminTicketsPage() {
 
       // Log each status count individually
       if (statsData.statusCounts) {
-        Object.entries(statsData.statusCounts).forEach(([key, value]) => {
-        });
+        Object.entries(statsData.statusCounts).forEach(([key, value]) => {});
       }
 
       // Map backend response to frontend format
@@ -180,7 +176,6 @@ export default function AdminTicketsPage() {
 
       setStats(mappedStats);
     } catch (error: any) {
-
       // Fallback: calculate stats from tickets if API fails
       if (tickets.length > 0) {
         const fallbackStats = {

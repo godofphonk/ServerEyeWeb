@@ -22,9 +22,15 @@ export default function CpuTab({
   loadHistoricalMetrics,
 }: CpuTabProps) {
   // Independent time range states for each chart
-  const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [cpuTemperatureTimeRange, setCpuTemperatureTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
+  const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
+    '1h',
+  );
+  const [cpuLoadTimeRange, setCpuLoadTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
+    '1h',
+  );
+  const [cpuTemperatureTimeRange, setCpuTemperatureTimeRange] = useState<
+    '1h' | '6h' | '24h' | '7d' | '30d'
+  >('1h');
 
   // State for independently loaded metrics
   const [cpuUsageMetrics, setCpuUsageMetrics] = useState<MetricsResponse | null>(null);
@@ -32,11 +38,14 @@ export default function CpuTab({
   const [cpuTemperatureMetrics, setCpuTemperatureMetrics] = useState<MetricsResponse | null>(null);
 
   // Memoize time ranges to prevent unnecessary effect triggers
-  const timeRanges = useMemo(() => ({
-    cpuUsage: cpuUsageTimeRange,
-    cpuLoad: cpuLoadTimeRange,
-    temperature: cpuTemperatureTimeRange,
-  }), [cpuUsageTimeRange, cpuLoadTimeRange, cpuTemperatureTimeRange]);
+  const timeRanges = useMemo(
+    () => ({
+      cpuUsage: cpuUsageTimeRange,
+      cpuLoad: cpuLoadTimeRange,
+      temperature: cpuTemperatureTimeRange,
+    }),
+    [cpuUsageTimeRange, cpuLoadTimeRange, cpuTemperatureTimeRange],
+  );
 
   // Load all metrics in parallel when any time range changes
   useEffect(() => {
@@ -66,8 +75,7 @@ export default function CpuTab({
           setCpuTemperatureMetrics(tempResult.value);
         } else {
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     loadAllMetrics();

@@ -10,7 +10,13 @@ import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-type DeleteAccountStep = 'initial' | 'password' | 'code' | 'processing' | 'success' | 'direct-confirm';
+type DeleteAccountStep =
+  | 'initial'
+  | 'password'
+  | 'code'
+  | 'processing'
+  | 'success'
+  | 'direct-confirm';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -19,7 +25,12 @@ interface DeleteAccountModalProps {
   hasPassword: boolean; // Указывает есть ли у пользователя пароль (не OAuth-only)
 }
 
-export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: DeleteAccountModalProps) {
+export function DeleteAccountModal({
+  isOpen,
+  onClose,
+  email,
+  hasPassword,
+}: DeleteAccountModalProps) {
   const router = useRouter();
   const toast = useToast();
   const { clearAuthData } = useAuth();
@@ -121,7 +132,6 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
         window.location.href = '/login';
       }, 2000);
     } catch (error: any) {
-
       // Check if this is expected error after successful deletion
       // 401/403 = Account deleted, token is now invalid
       // 500 = Server error but account might be deleted
@@ -132,7 +142,6 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
 
       // For 500 errors or auth errors, always verify if account was actually deleted
       if (isAuthError || isServerError) {
-
         // Verify account is actually deleted by checking session
         setTimeout(async () => {
           try {
@@ -150,8 +159,7 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
             }
 
             // If we get here, account is deleted (no user in session or 401)
-          } catch (sessionError) {
-          }
+          } catch (sessionError) {}
 
           // Clear all authentication data using AuthContext
           clearAuthData();
@@ -323,7 +331,7 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => email ? setStep('password') : setStep('direct-confirm')}
+                    onClick={() => (email ? setStep('password') : setStep('direct-confirm'))}
                     className='flex-1 bg-red-600 hover:bg-red-700'
                   >
                     <Trash2 className='w-4 h-4 mr-2' />
@@ -343,7 +351,8 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
                         ⚠️ No Email Confirmation Available
                       </p>
                       <p className='text-sm text-gray-300'>
-                        Since you don't have an email associated with this account, deletion will be immediate and cannot be reversed.
+                        Since you don't have an email associated with this account, deletion will be
+                        immediate and cannot be reversed.
                       </p>
                       <p className='text-sm text-gray-400'>
                         Are you absolutely sure you want to delete your account?
@@ -417,7 +426,9 @@ export function DeleteAccountModal({ isOpen, onClose, email, hasPassword }: Dele
                   <p className='text-sm text-gray-300'>
                     A 6-digit confirmation code has been sent to:
                   </p>
-                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2'>{email || 'your email'}</p>
+                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2'>
+                    {email || 'your email'}
+                  </p>
                   <div className='flex items-center justify-center gap-2 text-xs text-yellow-400'>
                     <Clock className='w-3 h-3' />
                     <span>Expires in {formatTime(timeRemaining)}</span>
