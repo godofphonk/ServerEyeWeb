@@ -19,6 +19,7 @@ using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
+using DotNet.Testcontainers.Images;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -27,6 +28,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         .WithUsername("testuser")
         .WithPassword("testpass")
         .WithCleanUp(true)
+        .WithImagePullPolicy(PullPolicy.Always) // Используем локальные образы если доступны
         .Build();
 
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
