@@ -726,21 +726,21 @@ public class AuthController : BaseApiController
                 this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", "null");
                 return this.BadRequest("Invalid callback configuration");
             }
-            
+
             if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
             {
                 this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", baseUrl);
                 return this.BadRequest("Invalid callback configuration");
             }
-            
-            var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" || 
+
+            var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                          this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
             if (validatedBaseUri.Scheme != "https" && !isLocal)
             {
                 this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
                 return this.BadRequest("HTTPS required for non-local requests");
             }
-            
+
             var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
@@ -898,11 +898,11 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation(
                 "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}",
-                (oauthRequest.Provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                oauthRequest.Provider.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
                 (oauthRequest.Action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
-                (oauthRequest.State ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                oauthRequest.State.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
                 oauthRequest.LinkingAction,
-                (oauthRequest.UserId ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
+                oauthRequest.UserId.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
 
@@ -1048,14 +1048,14 @@ public class AuthController : BaseApiController
             this.logger.LogWarning("Invalid frontend BaseUrl for redirect: {BaseUrl}", "null");
             return this.BadRequest("Invalid redirect configuration");
         }
-        
+
         if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
         {
             this.logger.LogWarning("Invalid frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
             return this.BadRequest("Invalid redirect configuration");
         }
-        
-        var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" || 
+
+        var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                      this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
         if (validatedBaseUri.Scheme != "https" && !isLocal)
         {
