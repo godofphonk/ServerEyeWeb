@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
 
@@ -79,14 +80,14 @@ public sealed partial class TelegramOAuthProvider(
     {
         Logger.LogInformation(
             "GetTelegramUserInfoAsync called - AccessToken: {AccessToken}, IdToken: {IdToken}",
-            (accessToken ?? string.Empty)[..Math.Min(accessToken?.Length ?? 0, 20)] + "...",
-            string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
+            LogSanitizer.MaskToken(accessToken, 20),
+            LogSanitizer.MaskToken(idToken, 20));
 
         // Telegram OAuth returns user data as JSON in the "code" parameter (serialized from frontend)
         // The accessToken here is actually the serialized user data JSON from Telegram
         try
         {
-            Logger.LogInformation("Raw Telegram access token data: {AccessToken}", (accessToken ?? string.Empty)[..Math.Min(accessToken?.Length ?? 0, 100)] + "...");
+            Logger.LogInformation("Raw Telegram access token data: {AccessToken}", LogSanitizer.MaskToken(accessToken, 100));
 
             // Try to deserialize the access token as JSON (it comes serialized from AuthController)
             Dictionary<string, JsonElement> userData;
@@ -145,7 +146,7 @@ public sealed partial class TelegramOAuthProvider(
                     {
                         // Get the raw JSON string and extract ID manually
                         var rawJson = JsonSerializer.Serialize(userData);
-                        Logger.LogInformation("Raw JSON data for manual extraction: {RawJson}", rawJson[..Math.Min(rawJson.Length, 200)] + "...");
+                        Logger.LogInformation("Raw JSON data for manual extraction: {RawJson}", LogSanitizer.MaskToken(rawJson, 200));
 
                         // Extract ID using regex or string manipulation
                         var idMatch = TelegramIdRegex.Match(rawJson);

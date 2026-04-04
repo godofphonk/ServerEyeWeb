@@ -1,6 +1,7 @@
 namespace ServerEye.Infrastructure.ExternalServices.GoApi;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Helpers;
 
 /// <summary>
 /// Centralized logging for Go API operations.
@@ -55,7 +56,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
             elapsedMs,
             url,
             statusCode,
-            content?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            LogSanitizer.Sanitize(content));
     }
 
     /// <summary>

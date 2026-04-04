@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
 
@@ -89,8 +90,8 @@ public sealed class GoogleOAuthProvider(
 
         Logger.LogInformation(
             "GetGoogleUserInfoAsync called - AccessToken: {AccessToken}, IdToken: {IdToken}",
-            (accessToken ?? string.Empty)[..Math.Min(accessToken?.Length ?? 0, 20)] + "...",
-            string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
+            LogSanitizer.MaskToken(accessToken, 20),
+            LogSanitizer.MaskToken(idToken, 20));
 
         try
         {

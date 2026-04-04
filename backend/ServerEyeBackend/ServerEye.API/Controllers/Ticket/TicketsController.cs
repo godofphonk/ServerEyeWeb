@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Ticket;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Services;
 
 [ApiController]
@@ -148,7 +149,7 @@ public class TicketsController : ControllerBase
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error getting tickets for email {Email}", email?.Contains('@', StringComparison.Ordinal) == true ? $"{email[..Math.Min(email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
+            this.logger.LogError(ex, "Error getting tickets for email {Email}", LogSanitizer.MaskEmail(email));
             return this.StatusCode(500, new { message = "Failed to retrieve tickets" });
         }
     }
