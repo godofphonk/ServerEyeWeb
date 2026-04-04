@@ -47,14 +47,14 @@ public class SourceManagementController : ControllerBase
 
             logger.LogInformation(
                 "Get sources and identifiers request - ServerKey: {ServerKey}, UserId: {UserId}",
-                serverKey,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userId);
 
             // Validate server key and get server info
             var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey);
             if (serverInfo == null)
             {
-                logger.LogWarning("Server key validation failed for {ServerKey}", serverKey);
+                logger.LogWarning("Server key validation failed for {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return NotFound(new { message = "Server not found" });
             }
 
@@ -62,7 +62,7 @@ public class SourceManagementController : ControllerBase
             var hasAccess = await serverAccessService.HasAccessAsync(userId, serverInfo.ServerId);
             if (!hasAccess)
             {
-                logger.LogWarning("User {UserId} does not have access to server {ServerId}", userId, serverInfo.ServerId);
+                logger.LogWarning("User {UserId} does not have access to server {ServerId}", userId, serverInfo.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return Forbid();
             }
 
@@ -71,13 +71,13 @@ public class SourceManagementController : ControllerBase
 
             if (result == null)
             {
-                logger.LogWarning("Failed to get sources and identifiers from Go API for server {ServerKey}", serverKey);
+                logger.LogWarning("Failed to get sources and identifiers from Go API for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return StatusCode(503, new { message = "Go API service unavailable" });
             }
 
             logger.LogInformation(
                 "Successfully retrieved sources and identifiers for server {ServerKey}, Sources: {Sources}, IdentifierCount: {Count}",
-                serverKey,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 string.Join(", ", result.Sources ?? []),
                 result.Identifiers?.Sum(kvp => kvp.Value?.Count ?? 0) ?? 0);
 
@@ -85,7 +85,7 @@ public class SourceManagementController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting sources and identifiers for server {ServerKey}", serverKey);
+            logger.LogError(ex, "Error getting sources and identifiers for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
@@ -111,8 +111,8 @@ public class SourceManagementController : ControllerBase
 
             logger.LogInformation(
                 "Delete source request - ServerKey: {ServerKey}, Source: {Source}, UserId: {UserId}",
-                serverKey,
-                source,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                source?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userId);
 
             var result = await sourceManagementService.DeleteServerSourceAsync(userId, serverKey, source);
@@ -126,7 +126,7 @@ public class SourceManagementController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting source {Source} from server {ServerKey}", source, serverKey);
+            logger.LogError(ex, "Error deleting source {Source} from server {ServerKey}", source?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
@@ -152,7 +152,7 @@ public class SourceManagementController : ControllerBase
 
             logger.LogInformation(
                 "Delete identifiers request - ServerKey: {ServerKey}, IdentifierCount: {Count}, UserId: {UserId}",
-                serverKey,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 request.Identifiers.Count,
                 userId);
 
@@ -167,7 +167,7 @@ public class SourceManagementController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting identifiers from server {ServerKey}", serverKey);
+            logger.LogError(ex, "Error deleting identifiers from server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
@@ -195,8 +195,8 @@ public class SourceManagementController : ControllerBase
 
             logger.LogInformation(
                 "Delete identifiers by type request - ServerKey: {ServerKey}, SourceType: {SourceType}, IdentifierCount: {Count}, UserId: {UserId}",
-                serverKey,
-                sourceType,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                sourceType?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 request.Identifiers.Count,
                 userId);
 
@@ -211,7 +211,7 @@ public class SourceManagementController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting identifiers of type {SourceType} from server {ServerKey}", sourceType, serverKey);
+            logger.LogError(ex, "Error deleting identifiers of type {SourceType} from server {ServerKey}", sourceType?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }

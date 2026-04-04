@@ -43,17 +43,17 @@ public class StaticInfoController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            this.logger.LogWarning("Unauthorized access attempt for server key {ServerKey}: {Message}", serverKey, ex.Message);
+            this.logger.LogWarning("Unauthorized access attempt for server key {ServerKey}: {Message}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", ex.Message);
             return Unauthorized(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            this.logger.LogError("Error retrieving static info for server key {ServerKey}: {Message}", serverKey, ex.Message);
+            this.logger.LogError("Error retrieving static info for server key {ServerKey}: {Message}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", ex.Message);
             return StatusCode(500, ex.Message);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Unexpected error retrieving static info for server key {ServerKey}", serverKey);
+            this.logger.LogError(ex, "Unexpected error retrieving static info for server key {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, "Internal server error");
         }
     }

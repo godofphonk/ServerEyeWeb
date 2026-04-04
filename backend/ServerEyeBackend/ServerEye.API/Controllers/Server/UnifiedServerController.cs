@@ -50,7 +50,7 @@ public class UnifiedServerController : ControllerBase
 
             this.logger.LogInformation(
                 "GetUnifiedData called: ServerKey={ServerKey}, UserId={UserId}, IncludeMetrics={IncludeMetrics}, IncludeStatus={IncludeStatus}, IncludeStatic={IncludeStatic}",
-                serverKey,
+                serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userGuid,
                 request.IncludeMetrics,
                 request.IncludeStatus,
@@ -92,7 +92,7 @@ public class UnifiedServerController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Error retrieving metrics for server {ServerKey}", serverKey);
+                    this.logger.LogError(ex, "Error retrieving metrics for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
                     // Continue without metrics rather than failing the entire request
                 }
@@ -145,7 +145,7 @@ public class UnifiedServerController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Error retrieving status for server {ServerKey}", serverKey);
+                    this.logger.LogError(ex, "Error retrieving status for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
                     // Continue without status
                 }
@@ -170,23 +170,23 @@ public class UnifiedServerController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Error retrieving static info for server {ServerKey}", serverKey);
+                    this.logger.LogError(ex, "Error retrieving static info for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
                     // Continue without static info
                 }
             }
 
-            this.logger.LogInformation("GetUnifiedData completed successfully for server {ServerKey}", serverKey);
+            this.logger.LogInformation("GetUnifiedData completed successfully for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return Ok(response);
         }
         catch (UnauthorizedAccessException ex)
         {
-            this.logger.LogWarning("Unauthorized access attempt for server key {ServerKey}: {Message}", serverKey, ex.Message);
+            this.logger.LogWarning("Unauthorized access attempt for server key {ServerKey}: {Message}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", ex.Message);
             return Unauthorized(ex.Message);
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Unexpected error in GetUnifiedData for server key {ServerKey}", serverKey);
+            this.logger.LogError(ex, "Unexpected error in GetUnifiedData for server key {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return StatusCode(500, "Internal server error");
         }
     }
