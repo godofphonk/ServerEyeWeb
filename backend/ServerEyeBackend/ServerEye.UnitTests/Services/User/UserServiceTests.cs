@@ -23,7 +23,7 @@ using ServerEye.Core.Services;
 using Xunit;
 using UserServiceImpl = ServerEye.Core.Services.UserService;
 
-public class UserServiceTests
+internal class UserServiceTests
 {
     private readonly Mock<IUserRepository> mockUserRepository;
     private readonly Mock<IPasswordHasher> mockPasswordHasher;
@@ -289,9 +289,9 @@ public class UserServiceTests
         result.RefreshToken.Should().Be(refreshToken);
         result.ExpiresIn.Should().Be(1800);
 
-        this.mockUserRepository.Verify(x => x.AddAsync(It.Is<User>(u => 
-            u.Email == userRegisterDto.Email && 
-            u.UserName == userRegisterDto.UserName && 
+        this.mockUserRepository.Verify(x => x.AddAsync(It.Is<User>(u =>
+            u.Email == userRegisterDto.Email &&
+            u.UserName == userRegisterDto.UserName &&
             u.Password == hashedPassword)), Times.Once);
 
         this.mockAuthService.Verify(x => x.SendVerificationCodeAsync(It.IsAny<Guid>()), Times.Once);
@@ -386,10 +386,10 @@ public class UserServiceTests
         result.Email.Should().Be(updateDto.Email);
         result.ServerId.Should().Be(updateDto.ServerId);
 
-        this.mockUserRepository.Verify(x => x.UpdateUserAsync(It.Is<User>(u => 
-            u.UserName == updateDto.UserName && 
-            u.Email == updateDto.Email && 
-            u.Password == newHashedPassword && 
+        this.mockUserRepository.Verify(x => x.UpdateUserAsync(It.Is<User>(u =>
+            u.UserName == updateDto.UserName &&
+            u.Email == updateDto.Email &&
+            u.Password == newHashedPassword &&
             u.ServerId == updateDto.ServerId)), Times.Once);
     }
 
@@ -606,7 +606,7 @@ public class UserServiceTests
         var disabledConfig = new ConfigurationBuilder()
             .AddInMemoryCollection(configData)
             .Build();
-        
+
         var userServiceWithDisabledVerification = new UserServiceImpl(
             this.mockUserRepository.Object,
             this.mockPasswordHasher.Object,

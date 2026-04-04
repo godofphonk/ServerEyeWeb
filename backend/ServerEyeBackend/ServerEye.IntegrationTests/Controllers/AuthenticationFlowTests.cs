@@ -30,7 +30,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     public async Task CompleteAuthFlow_RegisterLoginAndAccessProtectedEndpoint_ShouldWork()
     {
         var uniqueEmail = $"authflow_{Guid.NewGuid():N}@example.com";
-        
+
         var registerDto = new UserRegisterDto
         {
             UserName = $"authuser_{Guid.NewGuid():N}",
@@ -56,7 +56,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
         var token = loginResult.GetProperty("token").GetString();
 
         token.Should().NotBeNullOrEmpty();
-        
+
         // Debug: decode and print token claims
         var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
@@ -66,10 +66,10 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         Console.WriteLine($"Authorization header: {client.DefaultRequestHeaders.Authorization}");
-        
+
         var protectedResponse = await client.GetAsync("/api/users");
         var protectedContent = await protectedResponse.Content.ReadAsStringAsync();
-        
+
         Console.WriteLine($"Protected endpoint status: {protectedResponse.StatusCode}");
         Console.WriteLine($"Protected endpoint response: {protectedContent}");
 
@@ -85,7 +85,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     public async Task Register_WithDuplicateEmail_ShouldReturnConflict()
     {
         var email = $"duplicate_{Guid.NewGuid():N}@example.com";
-        
+
         var registerDto1 = new UserRegisterDto
         {
             UserName = $"user1_{Guid.NewGuid():N}",
@@ -112,7 +112,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     public async Task Login_MultipleAttempts_ShouldAllSucceed()
     {
         var email = $"multilogin_{Guid.NewGuid():N}@example.com";
-        
+
         var registerDto = new UserRegisterDto
         {
             UserName = $"multiuser_{Guid.NewGuid():N}",
@@ -150,7 +150,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     {
         using var client = this.factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "invalid-token");
-        
+
         var response = await client.GetAsync("/api/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -171,7 +171,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
         var content = await response.Content.ReadAsStringAsync();
 
         content.Should().Contain("token");
-        
+
         var result = JsonSerializer.Deserialize<JsonElement>(content);
         var token = result.GetProperty("token").GetString();
         token.Should().NotBeNullOrEmpty();
@@ -182,7 +182,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
     {
         var email = $"userinfo_{Guid.NewGuid():N}@example.com";
         var userName = $"infouser_{Guid.NewGuid():N}";
-        
+
         var registerDto = new UserRegisterDto
         {
             UserName = userName,
@@ -209,7 +209,7 @@ public class AuthenticationFlowTests : IClassFixture<TestApplicationFactory>, IA
 
         Console.WriteLine($"Login response content: {content}");
         content.Should().Contain("user");
-        
+
         var result = JsonSerializer.Deserialize<JsonElement>(content);
         var user = result.GetProperty("user");
         user.GetProperty("email").GetString().Should().Be(email);

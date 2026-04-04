@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.UserDto;
 
-public class UserLoginDtoValidatorTests
+internal class UserLoginDtoValidatorTests
 {
     private readonly UserLoginDtoValidator sut;
 

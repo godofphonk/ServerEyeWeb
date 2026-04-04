@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 
-public class JwtServiceTests
+internal class JwtServiceTests
 {
     private readonly Mock<ILogger<JwtService>> loggerMock;
     private readonly JwtSettings jwtSettings;
@@ -17,7 +17,7 @@ public class JwtServiceTests
     {
         this.loggerMock = new Mock<ILogger<JwtService>>();
         var configurationMock1 = new Mock<IConfiguration>();
-        
+
         this.jwtSettings = new JwtSettings
         {
             SecretKey = "TestSecretKey123456789012345678901234567890",
@@ -113,9 +113,9 @@ public class JwtServiceTests
             IsEmailVerified = false
         };
         var beforeGeneration = DateTime.UtcNow;
-        
+
         var token = this.sut.GenerateAccessToken(user);
-        
+
         var afterGeneration = DateTime.UtcNow;
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);

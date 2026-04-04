@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Auth;
 
-public class ConfirmAccountDeletionDtoValidatorTests
+internal class ConfirmAccountDeletionDtoValidatorTests
 {
     private readonly ConfirmAccountDeletionDtoValidator sut;
 

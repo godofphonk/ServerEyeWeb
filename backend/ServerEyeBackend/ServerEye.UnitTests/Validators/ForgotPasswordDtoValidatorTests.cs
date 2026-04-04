@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Auth;
 
-public class ForgotPasswordDtoValidatorTests
+internal class ForgotPasswordDtoValidatorTests
 {
     private readonly ForgotPasswordDtoValidator sut;
 

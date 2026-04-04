@@ -28,7 +28,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         .WithPassword("testpass")
         .WithCleanUp(true)
         .Build();
-    
+
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
     private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
     private static readonly string TestPublicKey = Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo());
@@ -40,7 +40,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
     public async Task InitializeAsync()
     {
         await this.postgresContainer.StartAsync();
-        
+
         // Let migrations handle all database creation
         // Don't create any schema here to avoid conflicts
     }
@@ -61,9 +61,9 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         // Use direct DbContext connection to clean data
         var optionsBuilder = new DbContextOptionsBuilder<ServerEye.Infrastructure.ServerEyeDbContext>();
         optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
-        
+
         await using var serverEyeDb = new ServerEye.Infrastructure.ServerEyeDbContext(optionsBuilder.Options);
-        
+
         try
         {
             if (await serverEyeDb.Database.CanConnectAsync())
@@ -107,7 +107,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         return base.CreateHostBuilder();
     }
 
-protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
@@ -140,14 +140,14 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
         Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_BASE64", TestPublicKey);
 
         builder.UseEnvironment("Testing");
-        
+
         // Override logging configuration to remove OpenTelemetry logging
         builder.ConfigureLogging(logging =>
         {
             logging.ClearProviders();
             logging.AddConsole();
         });
-        
+
         builder.ConfigureServices(services =>
         {
             // Remove existing OpenTelemetry configuration completely
@@ -185,16 +185,16 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
                 {
                     var rsaForValidation = System.Security.Cryptography.RSA.Create();
                     rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-                    
+
                     options.TokenValidationParameters.IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation);
                     options.TokenValidationParameters.ValidIssuer = "TestIssuer";
                     options.TokenValidationParameters.ValidAudience = "TestAudience";
                 });
-            
+
 
             // Remove existing DbContext registrations
             var dbContextDescriptors = services
-                .Where(d => 
+                .Where(d =>
                     d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.ServerEyeDbContext>) ||
                     d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.TicketDbContext>) ||
                     d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.Data.BillingDbContext>) ||
@@ -244,7 +244,7 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
             mockConnection.Setup(c => c.GetServer(It.IsAny<EndPoint>(), It.IsAny<object>())).Returns(Mock.Of<IServer>());
             mockConnection.Setup(c => c.Configuration).Returns("localhost:6379");
             mockConnection.Setup(c => c.IsConnected).Returns(true);
-            
+
             services.AddSingleton<IConnectionMultiplexer>(mockConnection.Object);
 
             // Add in-memory distributed cache instead of Redis
@@ -254,7 +254,7 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
             var healthCheckServiceDescriptors = services
                 .Where(descriptor => descriptor.ServiceType.FullName?.Contains("HealthCheck", StringComparison.Ordinal) == true)
                 .ToList();
-            
+
             foreach (var descriptor in healthCheckServiceDescriptors)
             {
                 services.Remove(descriptor);
@@ -266,7 +266,7 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
                 .AddCheck("postgres-servereye", () => HealthCheckResult.Healthy("Test DB"))
                 .AddCheck("postgres-tickets", () => HealthCheckResult.Healthy("Test Tickets DB"))
                 .AddCheck("redis", () => HealthCheckResult.Healthy("Test Redis"));
-            
+
             // Override JwtService with test settings to ensure token generation uses same keys as validation
             var testJwtSettings = new Core.Services.JwtSettings
             {
@@ -278,20 +278,20 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
                 PrivateKeyBase64 = TestPrivateKey,
                 PublicKeyBase64 = TestPublicKey
             };
-            
+
             // Remove existing JwtSettings and JwtService
             var jwtSettingsDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(Core.Services.JwtSettings));
             if (jwtSettingsDescriptor != null)
             {
                 services.Remove(jwtSettingsDescriptor);
             }
-            
+
             var jwtServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(Core.Interfaces.Services.IJwtService));
             if (jwtServiceDescriptor != null)
             {
                 services.Remove(jwtServiceDescriptor);
             }
-            
+
             // Add test JwtSettings and JwtService
             services.AddSingleton(testJwtSettings);
             services.AddSingleton<Core.Interfaces.Services.IJwtService>(provider =>

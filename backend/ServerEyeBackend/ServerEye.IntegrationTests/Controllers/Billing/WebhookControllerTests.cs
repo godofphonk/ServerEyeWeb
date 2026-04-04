@@ -48,7 +48,7 @@ public class WebhookControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         // Verify webhook event was stored
         using var scope = this.factory.Services.CreateScope();
         var webhookRepo = scope.ServiceProvider.GetRequiredService<IWebhookEventRepository>();
@@ -127,7 +127,7 @@ public class WebhookControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         // Verify webhook event was stored
         using var scope = this.factory.Services.CreateScope();
         var webhookRepo = scope.ServiceProvider.GetRequiredService<IWebhookEventRepository>();
@@ -167,7 +167,7 @@ public class WebhookControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         // Verify specific event processing
         using var scope = this.factory.Services.CreateScope();
         var webhookRepo = scope.ServiceProvider.GetRequiredService<IWebhookEventRepository>();
@@ -190,7 +190,7 @@ public class WebhookControllerTests : IAsyncLifetime
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        
+
         // Verify subscription event processing
         using var scope = this.factory.Services.CreateScope();
         var webhookRepo = scope.ServiceProvider.GetRequiredService<IWebhookEventRepository>();

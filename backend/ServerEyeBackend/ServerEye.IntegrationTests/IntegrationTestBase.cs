@@ -12,7 +12,7 @@ public class IntegrationTestBase : IClassFixture<TestApplicationFactory>
     {
         this.Factory = factory;
         this.Client = factory.CreateClient();
-        
+
         // Clean database before each test using the factory method
         factory.ResetDatabaseAsync().GetAwaiter().GetResult();
     }

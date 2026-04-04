@@ -71,7 +71,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         // Arrange
         var state = "test-state-" + Guid.NewGuid().ToString("N")[..8];
         var returnUrl = "https://localhost:3000/dashboard";
-        
+
         // Setup mock responses
         this.mockJwtService
             .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
@@ -85,7 +85,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Act 1: Create OAuth challenge
         var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=Google&state={state}&returnUrl={returnUrl}");
-        
+
         // Assert 1
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var challengeData = await challengeResponse.Content.ReadFromJsonAsync<OAuthChallengeResponseDto>();
@@ -102,7 +102,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         };
 
         var callbackResponse = await client.PostAsJsonAsync("/api/auth/oauth/callback/google", callbackData);
-        
+
         // Assert 2 - This might fail in integration test without actual OAuth setup, but we can test the endpoint exists
         // In a real scenario, this would involve redirect to OAuth provider and back
         callbackResponse.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest, HttpStatusCode.NotFound);
@@ -130,7 +130,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
     {
         // Arrange
         var state = "github-test-" + Guid.NewGuid().ToString("N")[..8];
-        
+
         this.mockJwtService
             .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
             .Returns("github-jwt-token");
@@ -143,7 +143,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Act
         var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=GitHub&state={state}");
-        
+
         // Assert
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var challengeData = await challengeResponse.Content.ReadFromJsonAsync<OAuthChallengeResponseDto>();
@@ -162,7 +162,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
     {
         // Arrange
         var state = "telegram-test-" + Guid.NewGuid().ToString("N")[..8];
-        
+
         this.mockJwtService
             .Setup(x => x.GenerateAccessToken(It.IsAny<User>()))
             .Returns("telegram-jwt-token");
@@ -175,7 +175,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Act
         var challengeResponse = await client.GetAsync($"/api/auth/oauth/challenge?provider=Telegram&state={state}");
-        
+
         // Assert
         challengeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var challengeData = await challengeResponse.Content.ReadFromJsonAsync<OAuthChallengeResponseDto>();
@@ -194,7 +194,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
     {
         // This test would require configuration with disabled OAuth providers
         // For now, we'll test the endpoint behavior
-        
+
         using var client = this.factory.CreateClient();
 
         // Act
@@ -202,8 +202,8 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Assert - Should either succeed (if Google is enabled) or fail gracefully
         response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.OK, 
-            HttpStatusCode.BadRequest, 
+            HttpStatusCode.OK,
+            HttpStatusCode.BadRequest,
             HttpStatusCode.InternalServerError);
     }
 
@@ -251,7 +251,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         };
 
         var token = GenerateTestToken(existingUser);
-        
+
         this.mockUserRepository
             .Setup(x => x.GetByIdAsync(userId))
             .ReturnsAsync(existingUser);
@@ -275,11 +275,11 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest, HttpStatusCode.NotFound);
-        
+
         if (response.StatusCode == HttpStatusCode.OK)
         {
             this.mockExternalLoginRepository.Verify(
-                x => x.AddAsync(It.IsAny<UserExternalLogin>()), 
+                x => x.AddAsync(It.IsAny<UserExternalLogin>()),
                 Times.Once);
         }
     }
@@ -308,7 +308,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
         };
 
         var token = GenerateTestToken(existingUser);
-        
+
         this.mockUserRepository
             .Setup(x => x.GetByIdAsync(userId))
             .ReturnsAsync(existingUser);
@@ -325,7 +325,7 @@ public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsy
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest, HttpStatusCode.NotFound);
-        
+
         if (response.StatusCode == HttpStatusCode.OK)
         {
             this.mockExternalLoginRepository.Verify(

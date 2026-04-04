@@ -18,7 +18,7 @@ using ServerEye.Core.Interfaces.Services.Billing;
 using ServerEye.Core.Services.Billing;
 using Xunit;
 
-public class PaymentServiceTests
+internal class PaymentServiceTests
 {
     private readonly Mock<IPaymentRepository> mockPaymentRepository;
     private readonly Mock<ISubscriptionRepository> mockSubscriptionRepository;

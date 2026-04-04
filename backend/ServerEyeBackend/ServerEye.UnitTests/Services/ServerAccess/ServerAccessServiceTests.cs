@@ -11,7 +11,7 @@ using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerAccessServiceImpl = ServerEye.Core.Services.ServerAccessService;
 
-public class ServerAccessServiceTests
+internal class ServerAccessServiceTests
 {
     private readonly Mock<IMonitoredServerRepository> mockServerRepository;
     private readonly Mock<IUserServerAccessRepository> mockAccessRepository;
@@ -117,7 +117,7 @@ public class ServerAccessServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await this.serverAccessService.AddServerAsync(userId, serverKey);
+        var result = await serverAccessService.AddServerAsync(userId, serverKey).ConfigureAwait(false);
 
         // Assert
         Assert.NotNull(result);
@@ -130,7 +130,7 @@ public class ServerAccessServiceTests
         this.mockGoApiClient.Verify(x => x.AddServerSourceByKeyAsync(serverKey, "Web"), Times.Once);
         this.mockGoApiClient.Verify(
             x => x.AddServerSourceIdentifiersByKeyAsync(
-                serverKey, 
+                serverKey,
                 It.Is<GoApiSourceIdentifiersRequest>(req =>
                     req.SourceType == "Web" &&
                     req.IdentifierType == "user_id" &&
@@ -237,7 +237,7 @@ public class ServerAccessServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await this.serverAccessService.AddServerAsync(userId, serverKey);
+        var result = await serverAccessService.AddServerAsync(userId, serverKey).ConfigureAwait(false);
 
         // Assert
         Assert.NotNull(result);
@@ -250,7 +250,7 @@ public class ServerAccessServiceTests
         this.mockGoApiClient.Verify(x => x.AddServerSourceByKeyAsync(serverKey, "Web"), Times.Never); // Should not add source for existing server
         this.mockGoApiClient.Verify(
             x => x.AddServerSourceIdentifiersByKeyAsync(
-                serverKey, 
+                serverKey,
                 It.Is<GoApiSourceIdentifiersRequest>(req =>
                     req.SourceType == "Web" &&
                     req.IdentifierType == "user_id" &&
@@ -356,7 +356,7 @@ public class ServerAccessServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await this.serverAccessService.AddServerAsync(userId, serverKey);
+        var result = await serverAccessService.AddServerAsync(userId, serverKey).ConfigureAwait(false);
 
         // Assert
         Assert.NotNull(result);
@@ -367,7 +367,7 @@ public class ServerAccessServiceTests
         this.mockGoApiClient.Verify(x => x.AddServerSourceByKeyAsync(serverKey, "Web"), Times.Once);
         this.mockGoApiClient.Verify(
             x => x.AddServerSourceIdentifiersByKeyAsync(
-                serverKey, 
+                serverKey,
                 It.Is<GoApiSourceIdentifiersRequest>(req =>
                     req.SourceType == "Web" &&
                     req.IdentifierType == "user_id" &&
@@ -430,7 +430,7 @@ public class ServerAccessServiceTests
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await this.serverAccessService.AddServerAsync(userId, serverKey);
+        var result = await serverAccessService.AddServerAsync(userId, serverKey).ConfigureAwait(false);
 
         // Assert
         Assert.NotNull(result);
@@ -466,7 +466,7 @@ public class ServerAccessServiceTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => this.serverAccessService.AddServerAsync(userId, serverKey));
+            () => serverAccessService.AddServerAsync(userId, serverKey)).ConfigureAwait(false);
 
         Assert.Equal("Invalid server key", exception.Message);
 
