@@ -8,7 +8,7 @@ using ServerEye.Core.Interfaces.Services.Billing;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/billing/subscription")]
 public class SubscriptionController : ControllerBase
 {
     private readonly ISubscriptionService subscriptionService;
