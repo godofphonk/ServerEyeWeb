@@ -649,9 +649,15 @@ public class AuthController : BaseApiController
 
                 // SECURITY: Validate that the userId parameter matches the authenticated user
                 // This prevents an attacker from using a victim's userId to link OAuth accounts
-                if (!Guid.TryParse(userId, out var parameterUserGuid) || authenticatedUserId != parameterUserGuid)
+                if (!Guid.TryParse(userId, out var parameterUserGuid))
                 {
-                    this.logger.LogWarning("Security: OAuth linking attempted with mismatched or invalid user ID");
+                    this.logger.LogWarning("Security: Invalid GUID format provided for OAuth linking");
+                    return this.BadRequest(new { message = "Invalid user ID format" });
+                }
+
+                if (authenticatedUserId != parameterUserGuid)
+                {
+                    this.logger.LogWarning("Security: OAuth linking attempted with mismatched user ID");
                     return this.Unauthorized(new { message = "User ID mismatch - authentication required" });
                 }
 
