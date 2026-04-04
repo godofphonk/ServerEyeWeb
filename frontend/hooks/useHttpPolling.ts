@@ -9,7 +9,7 @@ interface UseMetricsPollingOptions {
   interval?: number; // в секундах
 }
 
-export function usehttpPolling({
+export function useHttpPolling({
   serverId,
   onMessage,
   onError,
