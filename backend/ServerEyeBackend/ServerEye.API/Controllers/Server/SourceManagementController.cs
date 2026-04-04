@@ -51,7 +51,7 @@ public class SourceManagementController : ControllerBase
                 userId);
 
             // Validate server key and get server info
-            var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey);
+            var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey ?? string.Empty);
             if (serverInfo == null)
             {
                 logger.LogWarning("Server key validation failed for {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
@@ -67,7 +67,7 @@ public class SourceManagementController : ControllerBase
             }
 
             // Get sources and identifiers from Go API
-            var result = await goApiClient.GetServerSourceIdentifiersByKeyAsync(serverKey);
+            var result = await goApiClient.GetServerSourceIdentifiersByKeyAsync(serverKey ?? string.Empty);
 
             if (result == null)
             {
@@ -115,7 +115,7 @@ public class SourceManagementController : ControllerBase
                 source?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 userId);
 
-            var result = await sourceManagementService.DeleteServerSourceAsync(userId, serverKey, source);
+            var result = await sourceManagementService.DeleteServerSourceAsync(userId, serverKey ?? string.Empty, source ?? string.Empty);
 
             if (!result.Success)
             {
@@ -156,7 +156,7 @@ public class SourceManagementController : ControllerBase
                 request.Identifiers.Count,
                 userId);
 
-            var result = await sourceManagementService.DeleteServerSourceIdentifiersAsync(userId, serverKey, request);
+            var result = await sourceManagementService.DeleteServerSourceIdentifiersAsync(userId, serverKey ?? string.Empty, request);
 
             if (!result.Success)
             {
@@ -200,7 +200,7 @@ public class SourceManagementController : ControllerBase
                 request.Identifiers.Count,
                 userId);
 
-            var result = await sourceManagementService.DeleteServerSourceIdentifiersByTypeAsync(userId, serverKey, sourceType, request);
+            var result = await sourceManagementService.DeleteServerSourceIdentifiersByTypeAsync(userId, serverKey ?? string.Empty, sourceType ?? string.Empty, request);
 
             if (!result.Success)
             {

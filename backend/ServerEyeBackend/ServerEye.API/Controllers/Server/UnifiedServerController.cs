@@ -58,7 +58,7 @@ public class UnifiedServerController : ControllerBase
 
             var response = new GoApiUnifiedResponse
             {
-                ServerKey = serverKey
+                ServerKey = serverKey ?? string.Empty
             };
 
             // Handle metrics request
@@ -78,12 +78,12 @@ public class UnifiedServerController : ControllerBase
                         granularity ??= "minute";
                     }
 
-                    var metrics = await metricsService.GetMetricsByKeyAsync(userGuid, serverKey, start.Value, end.Value, granularity);
+                    var metrics = await metricsService.GetMetricsByKeyAsync(userGuid, serverKey ?? string.Empty, start.Value, end.Value, granularity);
 
                     // Create new response with metrics
                     response = new GoApiUnifiedResponse
                     {
-                        ServerKey = serverKey,
+                        ServerKey = serverKey ?? string.Empty,
                         Metrics = metrics,
                         Status = response.Status,
                         StaticInfo = response.StaticInfo,
@@ -115,7 +115,7 @@ public class UnifiedServerController : ControllerBase
                         // Create new response with status
                         response = new GoApiUnifiedResponse
                         {
-                            ServerKey = serverKey,
+                            ServerKey = serverKey ?? string.Empty,
                             Metrics = response.Metrics,
                             Status = new GoApiServerStatus
                             {
@@ -131,7 +131,7 @@ public class UnifiedServerController : ControllerBase
                         // Create new response with offline status
                         response = new GoApiUnifiedResponse
                         {
-                            ServerKey = serverKey,
+                            ServerKey = serverKey ?? string.Empty,
                             Metrics = response.Metrics,
                             Status = new GoApiServerStatus
                             {
@@ -156,12 +156,12 @@ public class UnifiedServerController : ControllerBase
             {
                 try
                 {
-                    var staticInfo = await staticInfoService.GetStaticInfoAsync(userGuid, serverKey);
+                    var staticInfo = await staticInfoService.GetStaticInfoAsync(userGuid, serverKey ?? string.Empty);
 
                     // Create new response with static info
                     response = new GoApiUnifiedResponse
                     {
-                        ServerKey = serverKey,
+                        ServerKey = serverKey ?? string.Empty,
                         Metrics = response.Metrics,
                         Status = response.Status,
                         StaticInfo = staticInfo,
