@@ -591,9 +591,22 @@ public sealed class OAuthService(
             .Replace("=", string.Empty, StringComparison.Ordinal);
     }
 
+    private static string SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        // Remove line breaks to prevent log forging via crafted values
+        return value
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
+    }
+
     private async Task<User> FindOrCreateUserAsync(OAuthProvider provider, OAuthUserInfoDto userInfo, CancellationToken cancellationToken)
     {
-        this.logger.LogInformation("FindOrCreateUserAsync - Provider: {Provider}, UserId: {UserId}", provider, userInfo.Id);
+        this.logger.LogInformation("FindOrCreateUserAsync - Provider: {Provider}, UserId: {UserId}", provider, SanitizeForLog(userInfo.Id));
 
         // Check if external login already exists
         var externalLogin = await this.externalLoginRepository.GetByProviderAndProviderUserIdAsync(provider, userInfo.Id, cancellationToken);
