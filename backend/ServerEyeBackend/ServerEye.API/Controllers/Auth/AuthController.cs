@@ -3,6 +3,7 @@ namespace ServerEye.API.Controllers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServerEye.API.Helpers;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
@@ -419,19 +420,19 @@ public class AuthController : BaseApiController
 
         try
         {
-            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
+            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (returnUrl?.ToString() ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
-            var oauthProvider = this.oauthService.ParseProvider(provider);
-            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider);
+            var oauthProvider = this.oauthService.ParseProvider(provider ?? string.Empty);
+            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
-                this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
-                this.metrics.RecordError(provider, "controller_challenge", "provider_disabled");
-                return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
+                this.logger.LogWarning("OAuth provider {Provider} is not enabled", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                this.metrics.RecordError(provider ?? string.Empty, "controller_challenge", "provider_disabled");
+                return this.BadRequest(new { message = $"OAuth provider {(provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null"} is not enabled" });
             }
 
-            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider, action ?? "auto");
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
 
             this.logger.LogInformation(
@@ -442,15 +443,15 @@ public class AuthController : BaseApiController
 
             // Record controller-level metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
-            this.metrics.RecordChallengeCreated(provider, action);
+            this.metrics.RecordChallengeCreated(provider ?? string.Empty, action);
 
             return this.Ok(challenge);
         }
         catch (Exception ex)
         {
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
-            this.metrics.RecordError(provider, "controller_challenge", ex.GetType().Name, ex.Message);
-            this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", provider);
+            this.metrics.RecordError(provider ?? string.Empty, "controller_challenge", ex.GetType().Name, ex.Message);
+            this.logger.LogError(ex, "Error creating OAuth challenge for provider: {Provider}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
@@ -555,20 +556,19 @@ public class AuthController : BaseApiController
             var (isLinking, linkingProvider, linkingUserId, actualState) = ParseLinkingState(state ?? string.Empty);
 
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
-            provider,
-            code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
-            hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
-            state,
-            action ?? "auto",
-            isLinking,
-            linkingProvider,
-            linkingUserId);
+                "OAuth callback received - Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
+                (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...",
+                (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...",
+                (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                isLinking,
+                (linkingProvider ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                linkingUserId);
 
             // Validate required parameters
             if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
             {
-                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", code, hash, state);
+                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...", (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...", (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return this.BadRequest(new { message = "Missing authentication parameters" });
             }
 
@@ -637,6 +637,15 @@ public class AuthController : BaseApiController
             // Fallback to parameter-based linking (if state doesn't contain linking info)
             if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parameterUserGuid))
             {
+                // SECURITY: Validate that the userId parameter matches the authenticated user
+                // This prevents user-controlled bypass where an attacker could link OAuth to another user's account
+                var authenticatedUserId = this.GetUserId();
+                if (authenticatedUserId == Guid.Empty || authenticatedUserId != parameterUserGuid)
+                {
+                    this.logger.LogWarning("Security: Attempted OAuth linking with mismatched user ID - Authenticated: {AuthUserId}, Parameter: {ParamUserId}", authenticatedUserId, parameterUserGuid);
+                    return this.Unauthorized(new { message = "User ID mismatch - authentication required" });
+                }
+
                 this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
 
                 try
@@ -683,7 +692,7 @@ public class AuthController : BaseApiController
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Set to true in production with HTTPS
+                Secure = true, // Always use secure cookies for JWT tokens
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
 
@@ -694,7 +703,7 @@ public class AuthController : BaseApiController
             var refreshTokenOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Set to true in production with HTTPS
+                Secure = true, // Always use secure cookies for JWT tokens
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
 
@@ -710,8 +719,29 @@ public class AuthController : BaseApiController
             cookieOptions.Expires,
             refreshTokenOptions.Expires);
 
-            // Redirect to frontend OAuth callback page with token in query
-            var callbackUrl = $"{this.frontendSettings.BaseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+            // Validate and construct secure callback URL
+            string? baseUrl = this.frontendSettings.BaseUrl;
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", "null");
+                return this.BadRequest("Invalid callback configuration");
+            }
+            
+            if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
+            {
+                this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", baseUrl);
+                return this.BadRequest("Invalid callback configuration");
+            }
+            
+            var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" || 
+                         this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
+            if (validatedBaseUri.Scheme != "https" && !isLocal)
+            {
+                this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
+                return this.BadRequest("HTTPS required for non-local requests");
+            }
+            
+            var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
@@ -723,20 +753,20 @@ public class AuthController : BaseApiController
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
             this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
 
-            // Handle specific OAuth errors
+            // Handle specific OAuth errors with secure redirects
             if (ex.Message == "user_not_found")
             {
                 this.logger.LogWarning("OAuth login failed - user not found, redirecting to login page");
-                return this.Redirect($"{this.frontendSettings.BaseUrl}login?error=user_not_found");
+                return this.SafeRedirect("login?error=user_not_found");
             }
             else if (ex.Message == "user_already_exists")
             {
                 this.logger.LogWarning("OAuth registration failed - user already exists, redirecting to register page");
-                return this.Redirect($"{this.frontendSettings.BaseUrl}register?error=user_already_exists");
+                return this.SafeRedirect("register?error=user_already_exists");
             }
 
             this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
-            return this.Redirect($"{this.frontendSettings.BaseUrl}auth/callback?error=oauth_failed");
+            return this.SafeRedirect("auth/callback?error=oauth_failed");
         }
     }
 
@@ -833,17 +863,17 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation(
                 "Telegram OAuth callback received - User ID: {UserId}, State: {State}, Action: {Action}",
-                request.UserData?.Id,
-                request.State,
-                action ?? "null");
+                request.UserData?.Id.ToString() ?? "null",
+                (request.State ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             // Convert Telegram user data to OAuth format
             var telegramCode = JsonSerializer.Serialize(request.UserData);
 
             this.logger.LogInformation(
                 "Telegram OAuth callback received - UserData: {UserData}, SerializedCode: {TelegramCode}",
-                request.UserData,
-                telegramCode[..Math.Min(telegramCode.Length, 200)] + "...");
+                JsonSerializer.Serialize(request.UserData)?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (telegramCode ?? string.Empty)[..Math.Min(telegramCode?.Length ?? 0, 100)] + "...");
 
             // For Telegram, always generate a temporary state
             // Telegram doesn't return state in callback, so we need to handle this
@@ -859,30 +889,30 @@ public class AuthController : BaseApiController
             var oauthRequest = new OAuthCallbackRequestDto
             {
                 Provider = "telegram",
-                Code = telegramCode,
+                Code = telegramCode ?? string.Empty,
                 State = state,
                 Action = action, // Pass action from request body
                 LinkingAction = request.LinkingAction, // Pass linking flag from frontend
-                UserId = request.UserId // Pass userId from frontend for linking validation
+                UserId = request.UserId ?? string.Empty // Pass userId from frontend for linking validation
             };
 
             this.logger.LogInformation(
                 "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}",
-                oauthRequest.Provider,
-                oauthRequest.Action,
-                oauthRequest.State,
+                (oauthRequest.Provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                (oauthRequest.Action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                (oauthRequest.State ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
                 oauthRequest.LinkingAction,
-                oauthRequest.UserId ?? "null");
+                (oauthRequest.UserId ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
 
-            this.logger.LogInformation("Telegram OAuth processing result - Success: {Success}, Message: {Message}", response.Success, response.Message);
+            this.logger.LogInformation("Telegram OAuth processing result - Success: {Success}, Message: {Message}", response.Success, (response.Message ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
             if (!response.Success)
             {
                 this.logger.LogWarning(
                     "Telegram OAuth callback failed - Message: {Message}",
-                    response.Message);
+                    (response.Message ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
                 // Return error response for frontend to handle
                 return this.Ok(new
@@ -1005,6 +1035,49 @@ public class AuthController : BaseApiController
         }
 
         return state; // Return as-is for regular state and linking state
+    }
+
+    /// <summary>
+    /// Performs secure redirect with URL validation.
+    /// </summary>
+    private ActionResult SafeRedirect(string path)
+    {
+        string? baseUrl = this.frontendSettings.BaseUrl;
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            this.logger.LogWarning("Invalid frontend BaseUrl for redirect: {BaseUrl}", "null");
+            return this.BadRequest("Invalid redirect configuration");
+        }
+        
+        if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
+        {
+            this.logger.LogWarning("Invalid frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
+            return this.BadRequest("Invalid redirect configuration");
+        }
+        
+        var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" || 
+                     this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
+        if (validatedBaseUri.Scheme != "https" && !isLocal)
+        {
+            this.logger.LogWarning("Insecure frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
+            return this.BadRequest("HTTPS required for redirects");
+        }
+
+        var fullPath = $"{baseUrl}{path}";
+        if (!UriHelper.TryCreateAbsoluteUri(fullPath, out var fullUri) || fullUri == null)
+        {
+            this.logger.LogWarning("Invalid redirect URL constructed: {Url}", fullPath);
+            return this.BadRequest("Invalid redirect URL");
+        }
+
+        // Ensure the redirect is to the same base domain
+        if (fullUri.Host != validatedBaseUri.Host || fullUri.Scheme != validatedBaseUri.Scheme)
+        {
+            this.logger.LogWarning("Redirect URL points to different domain: {Url}", fullPath);
+            return this.BadRequest("Cross-domain redirects not allowed");
+        }
+
+        return this.Redirect(fullPath);
     }
 
     #endregion

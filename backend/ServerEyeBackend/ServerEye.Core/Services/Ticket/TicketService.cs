@@ -52,14 +52,14 @@ public sealed class TicketService : ITicketService
 
         await this.ticketRepository.AddAsync(ticket);
 
-        this.logger.LogInformation("Ticket created: {TicketNumber} for {Email}", ticketNumber, dto.Email);
+        this.logger.LogInformation("Ticket created: {TicketNumber} for {Email}", ticketNumber, dto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         try
         {
             await this.emailService.SendTicketCreatedEmailAsync(
                 ticketNumber,
                 dto.Name,
-                dto.Email,
+                dto.Email ?? string.Empty,
                 dto.Subject,
                 dto.Message);
         }

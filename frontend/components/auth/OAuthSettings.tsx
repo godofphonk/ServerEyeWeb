@@ -93,7 +93,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       let userId: string | null = null;
 
       if (typeof window !== 'undefined') {
-        const jwtToken = localStorage.getItem('jwt_token');
+        const jwtToken = sessionStorage.getItem('jwt_token');
 
         if (!jwtToken) {
           toast.error('Error', 'User not authenticated');

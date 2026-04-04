@@ -33,15 +33,15 @@ public sealed class GoogleOAuthProvider(
 
         Logger.LogInformation(
             "CreateGoogleChallengeAsync called - State: {State}, CodeChallenge: {CodeChallenge}, ReturnUrl: {ReturnUrl}",
-            state,
-            codeChallenge[..Math.Min(codeChallenge.Length, 20)] + "...",
-            returnUrl?.ToString() ?? "null");
+            state?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+            (codeChallenge ?? string.Empty)[..Math.Min(codeChallenge?.Length ?? 0, 20)] + "...",
+            returnUrl?.ToString()?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         try
         {
             var settings = Settings.Google;
             var scopes = "openid email profile";
-            var redirectUri = Uri.EscapeDataString(settings.RedirectUri.ToString());
+            var redirectUri = Uri.EscapeDataString(settings.RedirectUri?.ToString() ?? string.Empty);
 
             var url = $"https://accounts.google.com/o/oauth2/v2/auth?" +
                       $"client_id={settings.ClientId}&" +
@@ -59,17 +59,17 @@ public sealed class GoogleOAuthProvider(
                 url += $"&return_url={Uri.EscapeDataString(returnUrl.ToString())}";
             }
 
-            Logger.LogInformation("Created Google OAuth challenge URL: {Url}", url[..Math.Min(url.Length, 100)] + "...");
+            Logger.LogInformation("Created Google OAuth challenge URL: {Url}", (url ?? string.Empty)[..Math.Min(url?.Length ?? 0, 100)] + "...");
 
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
-            activity?.SetTag(OAuthActivitySource.StateAttribute, state);
-            activity?.SetTag(OAuthActivitySource.CodeVerifierAttribute, codeChallenge[..Math.Min(codeChallenge.Length, 10)] + "...");
+            activity?.SetTag(OAuthActivitySource.StateAttribute, state ?? string.Empty);
+            activity?.SetTag(OAuthActivitySource.CodeVerifierAttribute, (codeChallenge ?? string.Empty)[..Math.Min(codeChallenge?.Length ?? 0, 10)] + "...");
             activity?.SetSuccess();
 
             return new OAuthChallengeResponseDto
             {
-                ChallengeUrl = new Uri(url),
-                State = state,
+                ChallengeUrl = new Uri(url ?? string.Empty),
+                State = state ?? string.Empty,
                 CodeVerifier = string.Empty, // Code verifier is managed by OAuthService, not the provider
                 Action = null
             };
@@ -89,7 +89,7 @@ public sealed class GoogleOAuthProvider(
 
         Logger.LogInformation(
             "GetGoogleUserInfoAsync called - AccessToken: {AccessToken}, IdToken: {IdToken}",
-            accessToken[..Math.Min(accessToken.Length, 20)] + "...",
+            (accessToken ?? string.Empty)[..Math.Min(accessToken?.Length ?? 0, 20)] + "...",
             string.IsNullOrEmpty(idToken) ? "NULL" : idToken[..Math.Min(idToken.Length, 20)] + "...");
 
         try
@@ -175,27 +175,27 @@ public sealed class GoogleOAuthProvider(
 
         Logger.LogInformation(
             "Exchanging Google code for token - ClientId: {ClientId}, RedirectUri: {RedirectUri}, CodeVerifier: {CodeVerifier}",
-            settings.ClientId,
-            settings.RedirectUri.ToString(),
-            codeVerifier.Length > 20 ? $"{codeVerifier[..20]}..." : codeVerifier);
+            settings.ClientId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+            settings.RedirectUri.ToString()?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+            (codeVerifier ?? string.Empty)[..Math.Min(codeVerifier?.Length ?? 0, 20)] + "...");
 
         try
         {
             var parameters = new Dictionary<string, string>
             {
-                ["client_id"] = settings.ClientId,
-                ["client_secret"] = settings.ClientSecret,
-                ["code"] = code,
+                ["client_id"] = settings.ClientId ?? string.Empty,
+                ["client_secret"] = settings.ClientSecret ?? string.Empty,
+                ["code"] = code ?? string.Empty,
                 ["grant_type"] = "authorization_code",
-                ["redirect_uri"] = settings.RedirectUri.ToString(),
-                ["code_verifier"] = codeVerifier // Add PKCE code verifier
+                ["redirect_uri"] = settings.RedirectUri?.ToString() ?? string.Empty,
+                ["code_verifier"] = codeVerifier ?? string.Empty // Add PKCE code verifier
             };
 
             Logger.LogInformation(
                 "Google token request parameters: {Parameters}",
                 string.Join(
                     ", ",
-                    parameters.Select(p => $"{p.Key}={p.Value[..Math.Min(p.Value.Length, 20)]}...")));
+                    parameters.Select(p => $"{p.Key}={(p.Value ?? string.Empty)[..Math.Min(p.Value?.Length ?? 0, 50)]}...")));
 
             using var content = new FormUrlEncodedContent(parameters);
             var response = await httpClient.PostAsync(new Uri(tokenEndpoint), content, cancellationToken);
@@ -204,15 +204,15 @@ public sealed class GoogleOAuthProvider(
             Logger.LogInformation(
                 "Google token response - Status: {Status}, Content: {Content}",
                 (int)response.StatusCode,
-                responseContent);
+                responseContent?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             response.EnsureSuccessStatusCode();
 
             // Manual JSON parsing to extract id_token since JsonPropertyName doesn't work
-            Logger.LogInformation("Raw JSON response: {Json}", responseContent);
+            Logger.LogInformation("Raw JSON response: {Json}", responseContent?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             // Parse JSON manually to get all fields
-            using var jsonDoc = JsonDocument.Parse(responseContent);
+            using var jsonDoc = JsonDocument.Parse(responseContent ?? string.Empty);
             var root = jsonDoc.RootElement;
 
             var tokenResponse = new TokenResponseDto

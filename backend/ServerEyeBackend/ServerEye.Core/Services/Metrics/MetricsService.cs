@@ -61,7 +61,7 @@ public class MetricsService : IMetricsService
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
             "[PERF] GetTieredMetricsByKeyAsync started for server key {ServerKey} with Start={Start}, End={End}",
-            serverKey,
+            serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
             start,
             endTime);
 
@@ -69,7 +69,7 @@ public class MetricsService : IMetricsService
         {
             // Validate server key and get server info for access check
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
+            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey ?? string.Empty);
 #pragma warning disable IDE0270 // Simplify null check
             if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
@@ -93,7 +93,7 @@ public class MetricsService : IMetricsService
                 {
                     this.logger.LogInformation("[PERF] Cache miss - fetching tiered metrics from Go API");
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                    var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey, start, endTime, granularity);
+                    var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey ?? string.Empty, start, endTime, granularity);
                     goApiTime.Stop();
 
                     if (goResponse == null)
@@ -143,8 +143,8 @@ public class MetricsService : IMetricsService
             {
                 this.logger.LogInformation(
                     "Go API tiered message for server key {ServerKey}: {Message}",
-                    serverKey,
-                    response.Message);
+                    serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                    response.Message?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             }
 
             stopwatch.Stop();
@@ -173,16 +173,16 @@ public class MetricsService : IMetricsService
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
             "[PERF] GetMetricsByKeyAsync started for server key {ServerKey} with Start={Start}, End={End}, Granularity={Granularity}",
-            serverKey,
+            serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
             start,
             endTime,
-            granularity);
+            granularity?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         try
         {
             // Validate server key and get server info for access check
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
+            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey ?? string.Empty);
 #pragma warning disable IDE0270 // Simplify null check
             if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
@@ -206,7 +206,7 @@ public class MetricsService : IMetricsService
                 {
                     this.logger.LogInformation("[PERF] Cache miss - fetching from Go API by key");
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
-                    var goResponse = await this.goApiClient.GetMetricsByKeyAsync(serverKey, start, endTime, granularity);
+                    var goResponse = await this.goApiClient.GetMetricsByKeyAsync(serverKey ?? string.Empty, start, endTime, granularity);
                     goApiTime.Stop();
 
                     if (goResponse == null)
@@ -254,8 +254,8 @@ public class MetricsService : IMetricsService
             {
                 this.logger.LogInformation(
                     "Go API message for server key {ServerKey}: {Message}",
-                    serverKey,
-                    response.Message);
+                    serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                    response.Message?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             }
 
             stopwatch.Stop();
@@ -283,18 +283,18 @@ public class MetricsService : IMetricsService
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         this.logger.LogInformation(
             "[PERF] GetMetricsAsync started for server {ServerId} with Start={Start}, End={End}, Granularity={Granularity}",
-            serverId,
+            serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
             start,
             endTime,
-            granularity);
+            granularity?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-        await this.ValidateAccessAsync(userId, serverId);
+        await this.ValidateAccessAsync(userId, serverId ?? string.Empty);
         accessCheckTime.Stop();
         this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
         var dbQueryTime = System.Diagnostics.Stopwatch.StartNew();
-        var server = await this.serverRepository.GetByServerIdAsync(serverId) ?? throw new InvalidOperationException("Server not found");
+        var server = await this.serverRepository.GetByServerIdAsync(serverId ?? string.Empty) ?? throw new InvalidOperationException("Server not found");
         dbQueryTime.Stop();
         this.logger.LogInformation("[PERF] Database query took {Ms}ms", dbQueryTime.ElapsedMilliseconds);
 
