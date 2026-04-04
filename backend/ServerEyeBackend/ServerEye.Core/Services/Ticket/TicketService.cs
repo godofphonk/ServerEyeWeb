@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.Ticket;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -52,7 +53,7 @@ public sealed class TicketService : ITicketService
 
         await this.ticketRepository.AddAsync(ticket);
 
-        this.logger.LogInformation("Ticket created: {TicketNumber} for {Email}", ticketNumber, dto.Email?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+        this.logger.LogInformation("Ticket created: {TicketNumber} for {Email}", ticketNumber, LogSanitizer.MaskEmail(dto.Email));
 
         try
         {
