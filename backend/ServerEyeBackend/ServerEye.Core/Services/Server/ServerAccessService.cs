@@ -107,7 +107,7 @@ public class ServerAccessService(
             var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
             if (identifiersResponse == null)
             {
-                logger.LogWarning("Failed to add user identifier to Go API for existing server key {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                logger.LogWarning("Failed to add user identifier to Go API for existing server key {ServerKey}", serverKey?.Length > 8 ? $"{serverKey[..8]}***" : "***");
             }
             else
             {
@@ -143,7 +143,7 @@ public class ServerAccessService(
         var sourceResponse = await goApiClient.AddServerSourceByKeyAsync(serverKey, "Web");
         if (sourceResponse == null)
         {
-            logger.LogWarning("Failed to add Web source to Go API for server key {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            logger.LogWarning("Failed to add Web source to Go API for server key ***");
         }
         else
         {
@@ -171,7 +171,7 @@ public class ServerAccessService(
             var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
             if (identifiersResponse == null)
             {
-                logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey?.Length > 8 ? $"{serverKey[..8]}***" : "***");
             }
             else
             {
@@ -266,7 +266,7 @@ public class ServerAccessService(
         // This is the enterprise-level approach from Telegram bot
         try
         {
-            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
 
             var request = new GoApiDeleteSourceIdentifiersRequest
             {
@@ -277,7 +277,7 @@ public class ServerAccessService(
 
             if (result != null)
             {
-                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
             }
             else
             {
@@ -287,7 +287,7 @@ public class ServerAccessService(
         catch (Exception ex)
         {
             // Graceful degradation - if API fails, still remove from DB
-            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
         }
 
         // Always remove access from DB (even if API call failed)
@@ -298,7 +298,7 @@ public class ServerAccessService(
 
     public async Task ShareServerAsync(Guid ownerId, string serverId, string targetUserEmail, AccessLevel level)
     {
-        logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", level);
+        logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{targetUserEmail[..Math.Min(targetUserEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", level);
 
         var ownerAccessLevel = await accessRepository.GetAccessLevelAsync(ownerId, serverId ?? string.Empty);
         if (ownerAccessLevel != AccessLevel.Owner)
@@ -328,7 +328,7 @@ public class ServerAccessService(
                 AddedAt = DateTime.UtcNow
             });
 
-            logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", level);
+            logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{targetUserEmail[..Math.Min(targetUserEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", level);
         }
     }
 
