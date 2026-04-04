@@ -50,11 +50,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore backend/ServerEyeBackend/ServerEyeBackend.sln
 
-      - name: Check code formatting
-        run: dotnet format backend/ServerEyeBackend/ServerEyeBackend.sln --verify-no-changes --verbosity diagnostic
-
       - name: Build solution
         run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
+
+      - name: Check code formatting
+        run: dotnet format backend/ServerEyeBackend/ServerEyeBackend.sln --verify-no-changes --verbosity diagnostic --no-restore
 
   unit-tests:
     name: Unit Tests
