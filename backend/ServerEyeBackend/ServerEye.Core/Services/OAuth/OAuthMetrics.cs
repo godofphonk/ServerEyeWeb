@@ -78,7 +78,7 @@ public sealed class OAuthMetrics : IDisposable
         };
 
         this.oauthChallengesCreated.Add(1, tags);
-        this.logger.LogDebug("OAuth challenge created metric recorded - Provider: {Provider}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "login").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+        this.logger.LogDebug("OAuth challenge created metric recorded - Provider: {Provider}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (action ?? "login").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -197,10 +197,10 @@ public sealed class OAuthMetrics : IDisposable
         this.oauthErrors.Add(1, tags);
         this.logger.LogWarning(
             "OAuth error recorded - Provider: {Provider}, Operation: {Operation}, ErrorType: {ErrorType}, Message: {Message}",
-            provider,
-            operation,
-            errorType,
-            errorMessage);
+            (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            (operation ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            (errorType ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            (errorMessage ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
     }
 
     /// <summary>

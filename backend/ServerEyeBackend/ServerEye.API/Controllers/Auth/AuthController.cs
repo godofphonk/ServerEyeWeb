@@ -419,19 +419,19 @@ public class AuthController : BaseApiController
 
         try
         {
-            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", provider, returnUrl?.ToString() ?? "null", action ?? "null");
+            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (returnUrl?.ToString() ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var oauthProvider = this.oauthService.ParseProvider(provider);
-            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider);
+            this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider.ToString());
 
             if (!this.oauthService.IsProviderEnabled(oauthProvider))
             {
-                this.logger.LogWarning("OAuth provider {Provider} is not enabled", provider);
+                this.logger.LogWarning("OAuth provider {Provider} is not enabled", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 this.metrics.RecordError(provider, "controller_challenge", "provider_disabled");
-                return this.BadRequest(new { message = $"OAuth provider {provider} is not enabled" });
+                return this.BadRequest(new { message = $"OAuth provider {(provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null"} is not enabled" });
             }
 
-            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider, action ?? "auto");
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString(), (action ?? "auto"));
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
 
             this.logger.LogInformation(
@@ -555,20 +555,19 @@ public class AuthController : BaseApiController
             var (isLinking, linkingProvider, linkingUserId, actualState) = ParseLinkingState(state ?? string.Empty);
 
             this.logger.LogInformation(
-            "OAuth callback received - Provider: {Provider}, Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
-            provider,
-            code?.Length > 10 ? $"{code[..10]}..." : code ?? "null",
-            hash?.Length > 10 ? $"{hash[..10]}..." : hash ?? "null",
-            state,
-            action ?? "auto",
-            isLinking,
-            linkingProvider,
-            linkingUserId);
+                "OAuth callback received - Code: {Code}, Hash: {Hash}, State: {State}, Action: {Action}, IsLinking: {IsLinking}, LinkingProvider: {LinkingProvider}, LinkingUserId: {LinkingUserId}",
+                (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...",
+                (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...",
+                (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+                isLinking,
+                (linkingProvider ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                linkingUserId);
 
             // Validate required parameters
             if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(hash))
             {
-                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", code, hash, state);
+                this.logger.LogWarning("OAuth callback missing required parameters - Code: {Code}, Hash: {Hash}, State: {State}", (code ?? string.Empty)[..Math.Min(code?.Length ?? 0, 10)] + "...", (hash ?? string.Empty)[..Math.Min(hash?.Length ?? 0, 10)] + "...", (state ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return this.BadRequest(new { message = "Missing authentication parameters" });
             }
 
@@ -842,17 +841,17 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation(
                 "Telegram OAuth callback received - User ID: {UserId}, State: {State}, Action: {Action}",
-                request.UserData?.Id,
-                request.State,
-                action ?? "null");
+                (request.UserData?.Id ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (request.State ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             // Convert Telegram user data to OAuth format
             var telegramCode = JsonSerializer.Serialize(request.UserData);
 
             this.logger.LogInformation(
                 "Telegram OAuth callback received - UserData: {UserData}, SerializedCode: {TelegramCode}",
-                request.UserData,
-                telegramCode[..Math.Min(telegramCode.Length, 200)] + "...");
+                JsonSerializer.Serialize(request.UserData)?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (telegramCode ?? string.Empty)[..Math.Min(telegramCode?.Length ?? 0, 100)] + "...");
 
             // For Telegram, always generate a temporary state
             // Telegram doesn't return state in callback, so we need to handle this
@@ -877,21 +876,21 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation(
                 "Created OAuth request for Telegram - Provider: {Provider}, Action: {Action}, State: {State}, LinkingAction: {LinkingAction}, UserId: {UserId}",
-                oauthRequest.Provider,
-                oauthRequest.Action,
-                oauthRequest.State,
+                (oauthRequest.Provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (oauthRequest.Action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
+                (oauthRequest.State ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                 oauthRequest.LinkingAction,
-                oauthRequest.UserId ?? "null");
+                (oauthRequest.UserId ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var response = await this.oauthService.ProcessCallbackAsync(oauthRequest, ipAddress, userAgent);
 
-            this.logger.LogInformation("Telegram OAuth processing result - Success: {Success}, Message: {Message}", response.Success, response.Message);
+            this.logger.LogInformation("Telegram OAuth processing result - Success: {Success}, Message: {Message}", response.Success, (response.Message ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             if (!response.Success)
             {
                 this.logger.LogWarning(
                     "Telegram OAuth callback failed - Message: {Message}",
-                    response.Message);
+                    (response.Message ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
                 // Return error response for frontend to handle
                 return this.Ok(new
