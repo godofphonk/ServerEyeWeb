@@ -18,6 +18,10 @@ build/
 .env.test.local
 .env.production.local
 
+# Secrets 
+environments/**/secrets/
+secrets/
+
 # Database
 *.sqlite
 *.sqlite3
