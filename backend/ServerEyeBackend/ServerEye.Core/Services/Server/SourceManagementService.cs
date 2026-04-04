@@ -63,17 +63,17 @@ public class SourceManagementService(
             var response = await goApiClient.DeleteServerSourceByKeyAsync(serverKey, source);
             if (response == null)
             {
-                logger.LogWarning("Failed to delete source {Source} from Go API for server {ServerKey}", source, serverKey);
+                logger.LogWarning("Failed to delete source {Source} from Go API for server {ServerKey}", source?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return new DeleteSourceResponseDto
                 {
                     Message = "Failed to delete source from monitoring service",
                     ServerId = server.ServerId,
-                    Source = source,
+                    Source = source ?? string.Empty,
                     Success = false
                 };
             }
 
-            logger.LogInformation("Successfully deleted source {Source} from server {ServerKey} for user {UserId}", source, serverKey, userId);
+            logger.LogInformation("Successfully deleted source {Source} from server {ServerKey} for user {UserId}", source?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userId);
             return new DeleteSourceResponseDto
             {
                 Message = response.Message,
@@ -241,17 +241,17 @@ public class SourceManagementService(
             var response = await goApiClient.DeleteServerSourceIdentifiersByTypeAsync(serverKey, sourceType, goApiRequest);
             if (response == null)
             {
-                logger.LogWarning("Failed to delete identifiers of type {SourceType} from Go API for server {ServerKey}", sourceType, serverKey);
+                logger.LogWarning("Failed to delete identifiers of type {SourceType} from Go API for server {ServerKey}", sourceType?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 return new DeleteSourceIdentifiersResponseDto
                 {
                     Message = "Failed to delete identifiers from monitoring service",
                     ServerId = server.ServerId,
-                    SourceType = sourceType,
+                    SourceType = sourceType ?? string.Empty,
                     Success = false
                 };
             }
 
-            logger.LogInformation("Successfully deleted identifiers of type {SourceType} from server {ServerKey} for user {UserId}", sourceType, serverKey, userId);
+            logger.LogInformation("Successfully deleted identifiers of type {SourceType} from server {ServerKey} for user {UserId}", sourceType?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", userId);
             return new DeleteSourceIdentifiersResponseDto
             {
                 Message = response.Message,

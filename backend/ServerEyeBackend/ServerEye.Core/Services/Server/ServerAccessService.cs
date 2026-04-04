@@ -29,7 +29,7 @@ public class ServerAccessService(
 
         foreach (var server in servers)
         {
-            var accessLevel = await accessRepository.GetAccessLevelAsync(userId, server.ServerId);
+            var accessLevel = await accessRepository.GetAccessLevelAsync(userId, server.ServerId ?? string.Empty);
 
             // Decrypt ServerKey for frontend
             string decryptedKey;
@@ -42,14 +42,14 @@ public class ServerAccessService(
             catch (System.Security.Cryptography.CryptographicException)
             {
                 // Key was encrypted with old encryption key, return empty for now
-                logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId);
+                logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 decryptedKey = string.Empty;
             }
 
             result.Add(new ServerResponse
             {
                 Id = server.Id,
-                ServerId = server.ServerId,
+                ServerId = server.ServerId ?? string.Empty,
                 ServerKey = decryptedKey,
                 Hostname = server.Hostname,
                 OperatingSystem = server.OperatingSystem,
@@ -81,7 +81,7 @@ public class ServerAccessService(
             var hasAccess = await accessRepository.HasAccessAsync(userId, serverInfo.ServerId);
             if (hasAccess)
             {
-                logger.LogWarning("User {UserId} attempted to add server {ServerId} that's already in their account", userId, serverInfo.ServerId);
+                logger.LogWarning("User {UserId} attempted to add server {ServerId} that's already in their account", userId, serverInfo.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
                 throw new InvalidOperationException("Server already added to your account");
             }
 
@@ -107,11 +107,11 @@ public class ServerAccessService(
             var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
             if (identifiersResponse == null)
             {
-                logger.LogWarning("Failed to add user identifier to Go API for existing server key {ServerKey}", serverKey);
+                logger.LogWarning("Failed to add user identifier to Go API for existing server key {ServerKey}", serverKey?.Length > 8 ? $"{serverKey[..8]}***" : "***");
             }
             else
             {
-                logger.LogInformation("Successfully added user identifier to Go API for existing server {ServerId}", identifiersResponse.ServerId);
+                logger.LogInformation("Successfully added user identifier to Go API for existing server {ServerId}", identifiersResponse.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             }
 
             await accessRepository.AddAccessAsync(new UserServerAccess
@@ -123,7 +123,7 @@ public class ServerAccessService(
                 AddedAt = DateTime.UtcNow
             });
 
-            logger.LogInformation("User {UserId} added access to existing server {ServerId}", userId, serverInfo.ServerId);
+            logger.LogInformation("User {UserId} added access to existing server {ServerId}", userId, serverInfo.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             return new ServerResponse
             {
@@ -143,11 +143,11 @@ public class ServerAccessService(
         var sourceResponse = await goApiClient.AddServerSourceByKeyAsync(serverKey, "Web");
         if (sourceResponse == null)
         {
-            logger.LogWarning("Failed to add Web source to Go API for server key {ServerKey}", serverKey);
+            logger.LogWarning("Failed to add Web source to Go API for server key ***");
         }
         else
         {
-            logger.LogInformation("Successfully added Web source to Go API for server {ServerId}", sourceResponse.ServerId);
+            logger.LogInformation("Successfully added Web source to Go API for server {ServerId}", sourceResponse.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             // Add user identifier to the Web source
             var identifiersRequest = new GoApiSourceIdentifiersRequest
@@ -171,15 +171,15 @@ public class ServerAccessService(
             var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(serverKey, identifiersRequest);
             if (identifiersResponse == null)
             {
-                logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey);
+                logger.LogWarning("Failed to add user identifier to Go API for server key {ServerKey}", serverKey?.Length > 8 ? $"{serverKey[..8]}***" : "***");
             }
             else
             {
-                logger.LogInformation("Successfully added user identifier to Go API for server {ServerId}", identifiersResponse.ServerId);
+                logger.LogInformation("Successfully added user identifier to Go API for server {ServerId}", identifiersResponse.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             }
         }
 
-        var encryptedKey = encryptionService.Encrypt(serverKey);
+        var encryptedKey = encryptionService.Encrypt(serverKey ?? string.Empty);
 
         var newServer = new Server
         {
@@ -205,13 +205,13 @@ public class ServerAccessService(
             AddedAt = DateTime.UtcNow
         });
 
-        logger.LogInformation("User {UserId} added new server {ServerId} as owner", userId, serverInfo.ServerId);
+        logger.LogInformation("User {UserId} added new server {ServerId} as owner", userId, serverInfo.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
         return new ServerResponse
         {
             Id = newServer.Id,
             ServerId = newServer.ServerId,
-            ServerKey = serverKey, // Return original key for new servers
+            ServerKey = serverKey ?? string.Empty, // Return original key for new servers
             Hostname = newServer.Hostname,
             OperatingSystem = newServer.OperatingSystem,
             AccessLevel = AccessLevel.Owner,
@@ -223,21 +223,21 @@ public class ServerAccessService(
 
     public async Task RemoveServerAsync(Guid userId, string serverId)
     {
-        logger.LogInformation("User {UserId} attempting to remove server {ServerId}", userId, serverId);
+        logger.LogInformation("User {UserId} attempting to remove server {ServerId}", userId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
-        var hasAccess = await accessRepository.HasAccessAsync(userId, serverId);
+        var hasAccess = await accessRepository.HasAccessAsync(userId, serverId ?? string.Empty);
         if (!hasAccess)
         {
-            logger.LogWarning("User {UserId} attempted to remove server {ServerId} without access", userId, serverId);
+            logger.LogWarning("User {UserId} attempted to remove server {ServerId} without access", userId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             throw new UnauthorizedAccessException("You don't have access to this server");
         }
 
         // Get server to find server key
-        var server = await serverRepository.GetByServerIdAsync(serverId);
+        var server = await serverRepository.GetByServerIdAsync(serverId ?? string.Empty);
         if (server == null)
         {
-            logger.LogWarning("Server {ServerId} not found, removing access from DB only", serverId);
-            await accessRepository.RemoveAccessAsync(userId, serverId);
+            logger.LogWarning("Server {ServerId} not found, removing access from DB only", serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            await accessRepository.RemoveAccessAsync(userId, serverId ?? string.Empty);
             return;
         }
 
@@ -251,14 +251,14 @@ public class ServerAccessService(
         }
         catch (System.Security.Cryptography.CryptographicException)
         {
-            logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId);
+            logger.LogWarning("ServerKey for server {ServerId} could not be decrypted - possibly encrypted with old key", server.ServerId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             decryptedKey = string.Empty;
         }
 
         if (string.IsNullOrEmpty(decryptedKey))
         {
-            logger.LogWarning("Decrypted server key is empty for server {ServerId}, removing access from DB only", serverId);
-            await accessRepository.RemoveAccessAsync(userId, serverId);
+            logger.LogWarning("Decrypted server key is empty for server {ServerId}, removing access from DB only", serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            await accessRepository.RemoveAccessAsync(userId, serverId ?? string.Empty);
             return;
         }
 
@@ -266,7 +266,7 @@ public class ServerAccessService(
         // This is the enterprise-level approach from Telegram bot
         try
         {
-            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey);
+            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
 
             var request = new GoApiDeleteSourceIdentifiersRequest
             {
@@ -277,7 +277,7 @@ public class ServerAccessService(
 
             if (result != null)
             {
-                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey);
+                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
             }
             else
             {
@@ -287,35 +287,35 @@ public class ServerAccessService(
         catch (Exception ex)
         {
             // Graceful degradation - if API fails, still remove from DB
-            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey);
+            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
         }
 
         // Always remove access from DB (even if API call failed)
-        await accessRepository.RemoveAccessAsync(userId, serverId);
+        await accessRepository.RemoveAccessAsync(userId, serverId ?? string.Empty);
 
-        logger.LogInformation("User {UserId} removed access to server {ServerId}", userId, serverId);
+        logger.LogInformation("User {UserId} removed access to server {ServerId}", userId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
     }
 
     public async Task ShareServerAsync(Guid ownerId, string serverId, string targetUserEmail, AccessLevel level)
     {
-        logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId, targetUserEmail, level);
+        logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{targetUserEmail[..Math.Min(targetUserEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", level);
 
-        var ownerAccessLevel = await accessRepository.GetAccessLevelAsync(ownerId, serverId);
+        var ownerAccessLevel = await accessRepository.GetAccessLevelAsync(ownerId, serverId ?? string.Empty);
         if (ownerAccessLevel != AccessLevel.Owner)
         {
-            logger.LogWarning("User {OwnerId} attempted to share server {ServerId} without owner rights. Current level: {AccessLevel}", ownerId, serverId, ownerAccessLevel);
+            logger.LogWarning("User {OwnerId} attempted to share server {ServerId} without owner rights. Current level: {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", ownerAccessLevel);
             throw new UnauthorizedAccessException("Only owner can share server");
         }
 
-        var targetUser = await userRepository.GetByEmailAsync(targetUserEmail) ?? throw new InvalidOperationException("Target user not found");
+        var targetUser = await userRepository.GetByEmailAsync(targetUserEmail ?? string.Empty) ?? throw new InvalidOperationException("Target user not found");
 
-        var server = await serverRepository.GetByServerIdAsync(serverId) ?? throw new InvalidOperationException("Server not found");
+        var server = await serverRepository.GetByServerIdAsync(serverId ?? string.Empty) ?? throw new InvalidOperationException("Server not found");
 
-        var targetHasAccess = await accessRepository.HasAccessAsync(targetUser.Id, serverId);
+        var targetHasAccess = await accessRepository.HasAccessAsync(targetUser.Id, serverId ?? string.Empty);
         if (targetHasAccess)
         {
-            await accessRepository.UpdateAccessLevelAsync(targetUser.Id, serverId, level);
-            logger.LogInformation("Updated access level for user {UserId} to server {ServerId}", targetUser.Id, serverId);
+            await accessRepository.UpdateAccessLevelAsync(targetUser.Id, serverId ?? string.Empty, level);
+            logger.LogInformation("Updated access level for user {UserId} to server {ServerId}", targetUser.Id, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
         }
         else
         {
@@ -328,7 +328,7 @@ public class ServerAccessService(
                 AddedAt = DateTime.UtcNow
             });
 
-            logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, serverId, targetUserEmail, level);
+            logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, serverId?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", targetUserEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{targetUserEmail[..Math.Min(targetUserEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", level);
         }
     }
 

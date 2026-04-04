@@ -57,13 +57,11 @@ public sealed class JwtService : IJwtService
 
     private static RSA CreateStaticRsaKey()
     {
-        // SECURITY: No hardcoded RSA private key in source code
-        // For development, load RSA key from environment variable JWT_DEV_PRIVATE_KEY
+        // For development, load RSA key from environment variable
         // This ensures JWT tokens remain valid between development sessions
         // and removes hardcoded secrets from source code
-        // Fixed: Asymmetric Private Key security alert #223
         var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
-        
+
         if (string.IsNullOrEmpty(devPrivateKey))
         {
             // Fallback: generate dynamic key if environment variable not set

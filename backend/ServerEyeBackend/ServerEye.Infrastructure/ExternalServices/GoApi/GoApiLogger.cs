@@ -55,7 +55,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
             elapsedMs,
             url,
             statusCode,
-            content);
+            content?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
     }
 
     /// <summary>

@@ -64,7 +64,7 @@ public sealed class AuthService(
         await this.emailVerificationRepository.AddAsync(verification);
         await this.emailService.SendEmailVerificationCodeAsync(user.UserName, user.Email, code);
 
-        this.logger.LogInformation("Verification code sent successfully to: {Email}", user.Email);
+        this.logger.LogInformation("Verification code sent successfully to: {Email}", user.Email?.Contains('@', StringComparison.Ordinal) == true ? $"{user.Email[..Math.Min(user.Email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
     }
 
     public async Task<bool> VerifyEmailAsync(Guid userId, string code)
@@ -91,7 +91,7 @@ public sealed class AuthService(
 
         await this.userRepository.UpdateUserAsync(user);
 
-        this.logger.LogInformation("Email verified successfully for user: {UserId}, Email: {Email}", userId, user.Email);
+        this.logger.LogInformation("Email verified successfully for user: {UserId}, Email: {Email}", userId, user.Email?.Contains('@', StringComparison.Ordinal) == true ? $"{user.Email[..Math.Min(user.Email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
 
         if (!string.IsNullOrEmpty(user.Email))
         {
@@ -103,12 +103,12 @@ public sealed class AuthService(
 
     public async Task RequestPasswordResetAsync(string email)
     {
-        this.logger.LogInformation("Password reset requested for email: {Email}", email);
+        this.logger.LogInformation("Password reset requested for email: {Email}", email?.Contains('@', StringComparison.Ordinal) == true ? $"{email[..Math.Min(email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
 
-        var user = await this.userRepository.GetByEmailAsync(email);
+        var user = await this.userRepository.GetByEmailAsync(email ?? string.Empty);
         if (user == null)
         {
-            this.logger.LogWarning("Password reset requested for non-existent email: {Email}", email);
+            this.logger.LogWarning("Password reset requested for non-existent email: {Email}", email?.Contains('@', StringComparison.Ordinal) == true ? $"{email[..Math.Min(email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
             return;
         }
 
@@ -130,7 +130,7 @@ public sealed class AuthService(
         if (!string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendPasswordResetEmailAsync(user.UserName, user.Email, token);
-            this.logger.LogInformation("Password reset email sent to: {Email}", user.Email);
+            this.logger.LogInformation("Password reset email sent to: {Email}", user.Email?.Contains('@', StringComparison.Ordinal) == true ? $"{user.Email[..Math.Min(user.Email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
         }
     }
 
@@ -170,20 +170,20 @@ public sealed class AuthService(
 
     public async Task RequestEmailChangeAsync(Guid userId, string newEmail)
     {
-        this.logger.LogInformation("Email change requested for user: {UserId}, new email: {NewEmail}", userId, newEmail);
+        this.logger.LogInformation("Email change requested for user: {UserId}, new email: {NewEmail}", userId, newEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{newEmail[..Math.Min(newEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
 
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
-        var existingUser = await this.userRepository.GetByEmailAsync(newEmail);
+        var existingUser = await this.userRepository.GetByEmailAsync(newEmail ?? string.Empty);
         if (existingUser != null)
         {
-            this.logger.LogWarning("Email change failed - email already in use: {Email}", newEmail);
+            this.logger.LogWarning("Email change failed - email already in use: {Email}", newEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{newEmail[..Math.Min(newEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
             throw new InvalidOperationException("Email is already in use.");
         }
 
         await this.emailVerificationRepository.InvalidateAllByUserIdAsync(userId, EmailVerificationType.EmailChange);
 
-        user.PendingEmail = newEmail;
+        user.PendingEmail = newEmail ?? string.Empty;
         await this.userRepository.UpdateUserAsync(user);
 
         var code = GenerateVerificationCode();
@@ -191,7 +191,7 @@ public sealed class AuthService(
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Email = newEmail,
+            Email = newEmail ?? string.Empty,
             Code = code,
             Type = EmailVerificationType.EmailChange,
             ExpiresAt = DateTime.UtcNow.AddMinutes(15),
@@ -201,9 +201,9 @@ public sealed class AuthService(
         };
 
         await this.emailVerificationRepository.AddAsync(verification);
-        await this.emailService.SendEmailChangeConfirmationAsync(user.UserName, newEmail, code);
+        await this.emailService.SendEmailChangeConfirmationAsync(user.UserName, newEmail ?? string.Empty, code);
 
-        this.logger.LogInformation("Email change confirmation sent to: {NewEmail}", newEmail);
+        this.logger.LogInformation("Email change confirmation sent to: {NewEmail}", newEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{newEmail[..Math.Min(newEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
     }
 
     public async Task<bool> ConfirmEmailChangeAsync(Guid userId, string code)
@@ -233,7 +233,7 @@ public sealed class AuthService(
 
         await this.userRepository.UpdateUserAsync(user);
 
-        this.logger.LogInformation("Email changed successfully for user: {UserId}, from {OldEmail} to {NewEmail}", userId, oldEmail, user.Email);
+        this.logger.LogInformation("Email changed successfully for user: {UserId}, from {OldEmail} to {NewEmail}", userId, oldEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{oldEmail[..Math.Min(oldEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", user.Email?.Contains('@', StringComparison.Ordinal) == true ? $"{user.Email[..Math.Min(user.Email.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***");
 
         if (!string.IsNullOrEmpty(oldEmail) && !string.IsNullOrEmpty(user.Email))
         {

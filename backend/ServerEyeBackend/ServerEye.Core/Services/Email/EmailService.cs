@@ -241,8 +241,8 @@ public sealed class EmailService : IEmailService, IDisposable
                 var response = await this.sesClient.SendEmailAsync(sendRequest);
                 this.logger.LogInformation(
                     "Email sent successfully via AWS SES to {Email} with subject: {Subject}, MessageId: {MessageId}",
-                    toEmail,
-                    subject,
+                    toEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{toEmail[..Math.Min(toEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***",
+                    subject?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
                     response.MessageId);
             }
             else
@@ -252,7 +252,7 @@ public sealed class EmailService : IEmailService, IDisposable
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to send email to {Email} with subject: {Subject}", toEmail, subject);
+            this.logger.LogError(ex, "Failed to send email to {Email} with subject: {Subject}", toEmail?.Contains('@', StringComparison.Ordinal) == true ? $"{toEmail[..Math.Min(toEmail.IndexOf('@', StringComparison.Ordinal), 5)]}***" : "***", subject?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
             throw;
         }
     }
