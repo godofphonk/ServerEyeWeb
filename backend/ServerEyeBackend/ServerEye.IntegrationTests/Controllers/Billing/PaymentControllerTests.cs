@@ -26,6 +26,9 @@ public class PaymentControllerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        // Clear auth headers to prevent test pollution
+        this.client.DefaultRequestHeaders.Authorization = null;
+        
         await this.factory.ResetDatabaseAsync();
     }
 

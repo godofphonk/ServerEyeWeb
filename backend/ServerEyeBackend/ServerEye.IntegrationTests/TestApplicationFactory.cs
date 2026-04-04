@@ -75,6 +75,14 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                     BEGIN
                         -- Truncate tables in correct order to avoid foreign key constraints
                         -- Start with dependent tables, then parent tables
+                        
+                        -- Billing tables (dependent on Users)
+                        TRUNCATE TABLE "WebhookEvents" CASCADE;
+                        TRUNCATE TABLE "Payments" CASCADE;
+                        TRUNCATE TABLE "Subscriptions" CASCADE;
+                        TRUNCATE TABLE "SubscriptionPlans" CASCADE;
+                        
+                        -- User-related tables
                         TRUNCATE TABLE "UserServerAccess" CASCADE;
                         TRUNCATE TABLE "TicketMessages" CASCADE;
                         TRUNCATE TABLE "TicketAttachments" CASCADE;
@@ -249,6 +257,52 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
             // Add in-memory distributed cache instead of Redis
             services.AddDistributedMemoryCache();
+
+            // Remove real payment providers and add mocks
+            var paymentProviderDescriptors = services
+                .Where(d => d.ServiceType == typeof(Core.Interfaces.Services.Billing.IPaymentProviderFactory) ||
+                           d.ServiceType == typeof(Core.Interfaces.Services.Billing.IPaymentProvider))
+                .ToList();
+
+            foreach (var descriptor in paymentProviderDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Add mock payment providers
+            var mockStripeProvider = new Mock<Core.Interfaces.Services.Billing.IPaymentProvider>();
+            mockStripeProvider.Setup(p => p.ProviderType).Returns(Core.Enums.PaymentProvider.Stripe);
+            mockStripeProvider.Setup(p => p.VerifyWebhookSignatureAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(true);
+            mockStripeProvider.Setup(p => p.CreatePaymentIntentAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<Dictionary<string, string>>()))
+                .ReturnsAsync(new Core.DTOs.Billing.CreatePaymentIntentResponse
+                {
+                    PaymentIntentId = "pi_test_123456",
+                    ClientSecret = "pi_test_123456_secret_test"
+                });
+            mockStripeProvider.Setup(p => p.ParseWebhookEventAsync(It.IsAny<string>()))
+                .ReturnsAsync(("payment_intent.succeeded", new { id = "evt_test" }));
+
+            var mockYooKassaProvider = new Mock<Core.Interfaces.Services.Billing.IPaymentProvider>();
+            mockYooKassaProvider.Setup(p => p.ProviderType).Returns(Core.Enums.PaymentProvider.YooKassa);
+            mockYooKassaProvider.Setup(p => p.VerifyWebhookSignatureAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(true);
+            mockYooKassaProvider.Setup(p => p.CreatePaymentIntentAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<Dictionary<string, string>>()))
+                .ReturnsAsync(new Core.DTOs.Billing.CreatePaymentIntentResponse
+                {
+                    PaymentIntentId = "yk_test_123456",
+                    ClientSecret = "yk_test_123456_secret_test"
+                });
+            mockYooKassaProvider.Setup(p => p.ParseWebhookEventAsync(It.IsAny<string>()))
+                .ReturnsAsync(("payment.succeeded", new { id = "evt_test" }));
+
+            var mockProviderFactory = new Mock<Core.Interfaces.Services.Billing.IPaymentProviderFactory>();
+            mockProviderFactory.Setup(f => f.GetProvider(Core.Enums.PaymentProvider.Stripe))
+                .Returns(mockStripeProvider.Object);
+            mockProviderFactory.Setup(f => f.GetProvider(Core.Enums.PaymentProvider.YooKassa))
+                .Returns(mockYooKassaProvider.Object);
+
+            services.AddSingleton(mockProviderFactory.Object);
 
             // Remove all existing health check registrations
             var healthCheckServiceDescriptors = services
