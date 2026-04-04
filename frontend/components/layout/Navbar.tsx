@@ -81,9 +81,9 @@ export function Navbar() {
               <>
                 {/* <NotificationBell /> */}
                 <Link href='/profile'>
-                  <Button 
-                    variant='ghost' 
-                    size='sm' 
+                  <Button
+                    variant='ghost'
+                    size='sm'
                     className={cn(
                       'relative',
                       showPremium && [
@@ -92,15 +92,13 @@ export function Navbar() {
                         'shadow-lg shadow-purple-500/10',
                         'hover:from-purple-500/30 hover:to-blue-500/30',
                         'hover:border-purple-500/50',
-                        'hover:shadow-purple-500/20'
-                      ]
+                        'hover:shadow-purple-500/20',
+                      ],
                     )}
                   >
                     <User className='w-4 h-4 mr-2' />
                     {user?.username}
-                    {showPremium && (
-                      <Crown className='w-3 h-3 ml-1 text-yellow-400' />
-                    )}
+                    {showPremium && <Crown className='w-3 h-3 ml-1 text-yellow-400' />}
                     {!isEmailVerified && (
                       <div className='absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center'>
                         <AlertTriangle className='w-2 h-2 text-black' />
@@ -165,9 +163,9 @@ export function Navbar() {
                 {isAuthenticated ? (
                   <>
                     <Link href='/profile' onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button 
-                        variant='ghost' 
-                        size='sm' 
+                      <Button
+                        variant='ghost'
+                        size='sm'
                         fullWidth
                         className={cn(
                           'relative',
@@ -177,15 +175,13 @@ export function Navbar() {
                             'shadow-lg shadow-purple-500/10',
                             'hover:from-purple-500/30 hover:to-blue-500/30',
                             'hover:border-purple-500/50',
-                            'hover:shadow-purple-500/20'
-                          ]
+                            'hover:shadow-purple-500/20',
+                          ],
                         )}
                       >
                         <User className='w-4 h-4 mr-2' />
                         {user?.username}
-                        {showPremium && (
-                          <Crown className='w-3 h-3 ml-1 text-yellow-400' />
-                        )}
+                        {showPremium && <Crown className='w-3 h-3 ml-1 text-yellow-400' />}
                       </Button>
                     </Link>
                     {isAdmin(user) && (

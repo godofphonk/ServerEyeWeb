@@ -28,7 +28,7 @@ describe('Card', () => {
   });
 
   it('should merge custom className', () => {
-    render(<Card className="custom-class">Content</Card>);
+    render(<Card className='custom-class'>Content</Card>);
     const card = screen.getByText('Content').closest('div');
     expect(card).toHaveClass('custom-class');
   });
@@ -47,7 +47,7 @@ describe('CardHeader', () => {
   });
 
   it('should merge custom className', () => {
-    render(<CardHeader className="custom-header">Header</CardHeader>);
+    render(<CardHeader className='custom-header'>Header</CardHeader>);
     const header = screen.getByText('Header').closest('div');
     expect(header).toHaveClass('custom-header');
   });
@@ -67,7 +67,7 @@ describe('CardTitle', () => {
   });
 
   it('should merge custom className', () => {
-    render(<CardTitle className="custom-title">Title</CardTitle>);
+    render(<CardTitle className='custom-title'>Title</CardTitle>);
     const title = screen.getByText('Title');
     expect(title).toHaveClass('custom-title');
   });
@@ -87,7 +87,7 @@ describe('CardDescription', () => {
   });
 
   it('should merge custom className', () => {
-    render(<CardDescription className="custom-desc">Description</CardDescription>);
+    render(<CardDescription className='custom-desc'>Description</CardDescription>);
     const desc = screen.getByText('Description');
     expect(desc).toHaveClass('custom-desc');
   });
@@ -100,7 +100,7 @@ describe('CardContent', () => {
   });
 
   it('should merge custom className', () => {
-    render(<CardContent className="custom-content">Content</CardContent>);
+    render(<CardContent className='custom-content'>Content</CardContent>);
     const content = screen.getByText('Content').closest('div');
     expect(content).toHaveClass('custom-content');
   });
@@ -119,7 +119,7 @@ describe('CardFooter', () => {
   });
 
   it('should merge custom className', () => {
-    render(<CardFooter className="custom-footer">Footer</CardFooter>);
+    render(<CardFooter className='custom-footer'>Footer</CardFooter>);
     const footer = screen.getByText('Footer').closest('div');
     expect(footer).toHaveClass('custom-footer');
   });

@@ -16,7 +16,7 @@ function TelegramCallbackHandler() {
   useEffect(() => {
     // Check if this is a Telegram OAuth callback
     const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
-    
+
     if (urlHash?.includes('tgAuthResult=')) {
       window.location.href = `/telegram-callback${urlHash}`;
     }

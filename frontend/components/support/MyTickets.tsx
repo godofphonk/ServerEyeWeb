@@ -93,7 +93,6 @@ export function MyTickets() {
     setError(null);
 
     try {
-
       const result = await ticketApi.getTicketsByUserId(user.id, page, pagination.pageSize);
 
       // Backend returns array directly, not paginated object
@@ -119,7 +118,6 @@ export function MyTickets() {
           hasPreviousPage: result.hasPreviousPage,
         });
       } else {
-
         // Fallback to email-based loading
         try {
           const emailResult = await ticketApi.getTicketsByEmail(user.email);
@@ -156,8 +154,7 @@ export function MyTickets() {
 
       // Reload tickets after creating
       loadTickets();
-    } catch (err: any) {
-    }
+    } catch (err: any) {}
   };
 
   const toggleTicketExpansion = (ticketId: string) => {

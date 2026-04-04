@@ -22,18 +22,25 @@ export default function NetworkTab({
   loadHistoricalMetrics,
 }: NetworkTabProps) {
   // Independent time range states for network charts
-  const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  const [networkTxTimeRange, setNetworkTxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  
+  const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
+    '1h',
+  );
+  const [networkTxTimeRange, setNetworkTxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
+    '1h',
+  );
+
   // State for independently loaded metrics
   const [networkRxMetrics, setNetworkRxMetrics] = useState<MetricsResponse | null>(null);
   const [networkTxMetrics, setNetworkTxMetrics] = useState<MetricsResponse | null>(null);
 
   // Memoize time ranges to prevent unnecessary effect triggers
-  const timeRanges = useMemo(() => ({
-    networkRx: networkRxTimeRange,
-    networkTx: networkTxTimeRange,
-  }), [networkRxTimeRange, networkTxTimeRange]);
+  const timeRanges = useMemo(
+    () => ({
+      networkRx: networkRxTimeRange,
+      networkTx: networkTxTimeRange,
+    }),
+    [networkRxTimeRange, networkTxTimeRange],
+  );
 
   // Load all network metrics in parallel when any time range changes
   useEffect(() => {
@@ -57,13 +64,12 @@ export default function NetworkTab({
           setNetworkTxMetrics(txResult.value);
         } else {
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     loadAllNetworkMetrics();
   }, [timeRanges, loadHistoricalMetrics]);
-  
+
   return (
     <div className='space-y-6'>
       {/* Network Overview Cards */}
@@ -117,9 +123,9 @@ export default function NetworkTab({
           <Card className='p-6'>
             <div className='flex justify-between items-center mb-4'>
               <h4 className='text-sm font-medium text-gray-400'>Network Traffic (RX)</h4>
-              <TimeRangeSelector 
-                timeRange={networkRxTimeRange} 
-                onTimeRangeChange={setNetworkRxTimeRange} 
+              <TimeRangeSelector
+                timeRange={networkRxTimeRange}
+                onTimeRangeChange={setNetworkRxTimeRange}
               />
             </div>
             <div className='h-80'>

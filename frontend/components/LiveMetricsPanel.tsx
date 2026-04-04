@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { usehttpPolling } from '@/hooks/usehttpPolling';
+import { useHttpPolling } from '@/hooks/useHttpPolling';
 import { LiveMetrics } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { MetricsNotification } from '@/components/MetricsNotification';
@@ -18,7 +18,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const maxHistoryLength = 60; // Keep last 60 data points
 
-  const { isConnected, lastMessage, error, fetchMetrics, isLoading } = usehttpPolling({
+  const { isConnected, lastMessage, error, fetchMetrics, isLoading } = useHttpPolling({
     serverId,
     enabled,
     onMessage: data => {
@@ -37,7 +37,7 @@ export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetri
     },
   });
 
-  // Note: fetchMetrics is already called by usehttpPolling hook internally
+  // Note: fetchMetrics is already called by useHttpPolling hook internally
 
   const getMetricColor = (value: number, type: 'cpu' | 'memory' | 'disk' | 'temperature') => {
     switch (type) {

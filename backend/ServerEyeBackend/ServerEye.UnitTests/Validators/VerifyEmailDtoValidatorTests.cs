@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Auth;
 
-internal class VerifyEmailDtoValidatorTests
+public class VerifyEmailDtoValidatorTests
 {
     private readonly VerifyEmailDtoValidator sut;
 

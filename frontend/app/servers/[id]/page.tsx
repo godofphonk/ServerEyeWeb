@@ -67,7 +67,7 @@ export default function ServerDetailPage() {
       const loadAllData = async () => {
         // Only show loading for initial data load, not time range changes
         const isFirstLoad = !server || !staticInfo;
-        
+
         try {
           if (isFirstLoad) {
             setLoading(true);
@@ -89,11 +89,10 @@ export default function ServerDetailPage() {
 
           // Set dashboard metrics
           setDashboardMetrics(dashboardMetrics);
-          
+
           // Set historical metrics for all charts from single response
           setHistoricalMetrics(historicalMetrics);
         } catch (error) {
-          
         } finally {
           // Only hide loading for initial load
           if (isFirstLoad) {
@@ -223,14 +222,12 @@ export default function ServerDetailPage() {
     // Находим реальный период данных (когда агент был установлен)
     const firstDataPoint = new Date(dataPoints[0].timestamp);
 
-
     // Для коротких периодов (1ч, 6ч) используем все данные как есть
     // Для длинных периодов (24ч, 7д, 30д) заполняем нулями после реальных данных
     const periodHours = (endRounded - startRounded) / (1000 * 60 * 60);
 
     let actualStart: number = startRounded;
     const useLongPeriodLogic = periodHours >= 24; // 24ч и больше
-
 
     if (useLongPeriodLogic) {
       // Для длинных периодов проверяем есть ли данные за весь период
@@ -245,7 +242,6 @@ export default function ServerDetailPage() {
       }
     } else {
     }
-
 
     // Заполняем все временные слоты от actualStart до endRounded
     const result = [];
@@ -290,12 +286,11 @@ export default function ServerDetailPage() {
   const loadHistoricalMetrics = async (range: '1h' | '6h' | '24h' | '7d' | '30d' = '1h') => {
     const perfStart = performance.now();
     const now = new Date();
-    
+
     // Round to nearest minute for better alignment with Go API data
     const end = new Date(now);
     end.setSeconds(0, 0); // Round to minute
     const start = new Date(end);
-
 
     switch (range) {
       case '1h':
@@ -326,14 +321,17 @@ export default function ServerDetailPage() {
       '7d': { granularity: '2h', minutes: 120, expectedPoints: 84 },
       '30d': { granularity: '6h', minutes: 360, expectedPoints: 120 },
     };
-    
+
     const config = granularityConfig[range] || granularityConfig['1h'];
     const { granularity, expectedPoints } = config;
 
-    
     // Use tiered endpoint for all ranges with optimized granularity
-    const response = await getCachedTieredMetrics(serverKey, start.toISOString(), end.toISOString(), granularity);
-
+    const response = await getCachedTieredMetrics(
+      serverKey,
+      start.toISOString(),
+      end.toISOString(),
+      granularity,
+    );
 
     // Детальное логирование timestamps для проверки актуальности данных
     if (response.dataPoints && response.dataPoints.length > 0) {
@@ -342,7 +340,6 @@ export default function ServerDetailPage() {
       const lastPoint = new Date(response.dataPoints[response.dataPoints.length - 1].timestamp);
       const minutesAgoFirst = Math.floor((now.getTime() - firstPoint.getTime()) / (1000 * 60));
       const minutesAgoLast = Math.floor((now.getTime() - lastPoint.getTime()) / (1000 * 60));
-
 
       // Фильтр переустановки агента отключен - показываем все данные
     }

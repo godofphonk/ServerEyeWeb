@@ -10,7 +10,7 @@ describe('Input', () => {
   });
 
   it('should render a label when label prop is provided', () => {
-    render(<Input label="Email" />);
+    render(<Input label='Email' />);
     expect(screen.getByText('Email')).toBeInTheDocument();
   });
 
@@ -20,33 +20,33 @@ describe('Input', () => {
   });
 
   it('should display required asterisk when required prop is set', () => {
-    render(<Input label="Email" required />);
+    render(<Input label='Email' required />);
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 
   it('should not display required asterisk when required is not set', () => {
-    render(<Input label="Email" />);
+    render(<Input label='Email' />);
     expect(screen.queryByText('*')).not.toBeInTheDocument();
   });
 
   it('should render error message when error prop is provided', () => {
-    render(<Input error="This field is required" />);
+    render(<Input error='This field is required' />);
     expect(screen.getByText('This field is required')).toBeInTheDocument();
   });
 
   it('should apply error styles to input when error prop is provided', () => {
-    render(<Input error="Error" />);
+    render(<Input error='Error' />);
     const input = screen.getByRole('textbox');
     expect(input).toHaveClass('border-red-500');
   });
 
   it('should render helperText when provided and no error', () => {
-    render(<Input helperText="Enter your email address" />);
+    render(<Input helperText='Enter your email address' />);
     expect(screen.getByText('Enter your email address')).toBeInTheDocument();
   });
 
   it('should not render helperText when error is also provided', () => {
-    render(<Input helperText="Helper text" error="Error message" />);
+    render(<Input helperText='Helper text' error='Error message' />);
     expect(screen.queryByText('Helper text')).not.toBeInTheDocument();
     expect(screen.getByText('Error message')).toBeInTheDocument();
   });
@@ -57,18 +57,18 @@ describe('Input', () => {
   });
 
   it('should accept and display a placeholder', () => {
-    render(<Input placeholder="Enter text here" />);
+    render(<Input placeholder='Enter text here' />);
     expect(screen.getByPlaceholderText('Enter text here')).toBeInTheDocument();
   });
 
   it('should pass type attribute to input', () => {
-    render(<Input type="password" />);
+    render(<Input type='password' />);
     const input = document.querySelector('input[type="password"]');
     expect(input).toBeInTheDocument();
   });
 
   it('should merge custom className', () => {
-    render(<Input className="custom-class" />);
+    render(<Input className='custom-class' />);
     const input = screen.getByRole('textbox');
     expect(input).toHaveClass('custom-class');
   });
@@ -81,7 +81,7 @@ describe('Input', () => {
   });
 
   it('should pass arbitrary HTML attributes to input', () => {
-    render(<Input name="user-email" autoComplete="email" />);
+    render(<Input name='user-email' autoComplete='email' />);
     const input = screen.getByRole('textbox');
     expect(input).toHaveAttribute('name', 'user-email');
     expect(input).toHaveAttribute('autocomplete', 'email');

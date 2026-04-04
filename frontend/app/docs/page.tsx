@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Book, Code, Terminal, Zap, Shield, Github } from 'lucide-react';
+import { Search, Book, Code, Terminal, Zap, Shield, GitBranch } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
@@ -30,7 +30,7 @@ const docSections = [
   },
   {
     title: 'Project Repositories',
-    icon: Github,
+    icon: GitBranch,
     articles: [
       { title: 'View All Repositories', href: '/docs/repositories' },
       { title: 'Backend API', href: 'https://github.com/godofphonk/ServerEye' },
@@ -108,7 +108,7 @@ export default function DocsPage() {
                 href: '/docs/agent',
               },
               {
-                icon: Github,
+                icon: GitBranch,
                 title: 'Repositories',
                 desc: 'Explore project source code and examples',
                 href: '/docs/repositories',

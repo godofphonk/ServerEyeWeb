@@ -27,7 +27,6 @@ export function EmailVerificationModal({
   const [isResending, setIsResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

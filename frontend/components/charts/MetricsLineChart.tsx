@@ -97,7 +97,7 @@ export default function MetricsLineChart({
       }
       return null;
     };
-    
+
     CustomTooltipComponent.displayName = 'CustomTooltip';
     return CustomTooltipComponent;
   }, [unit]);

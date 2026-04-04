@@ -7,13 +7,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { token, refreshToken } = body;
-    
+
     if (!token) {
       return NextResponse.json({ error: 'No token provided' }, { status: 400 });
     }
-    
+
     const response = NextResponse.json({ success: true });
-    
+
     // Set cookies
     response.cookies.set('access_token', token, {
       httpOnly: true,
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: 3600, // 1 hour
     });
-    
+
     if (refreshToken) {
       response.cookies.set('refresh_token', refreshToken, {
         httpOnly: true,
@@ -32,9 +32,8 @@ export async function POST(request: NextRequest) {
         maxAge: 7 * 24 * 60 * 60, // 7 days
       });
     }
-    
+
     return response;
-    
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -48,7 +47,7 @@ export async function GET(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
-    
+
     const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'GET',
       headers: {
@@ -67,7 +66,7 @@ export async function GET(request: NextRequest) {
         token: accessToken,
         refreshToken: refreshToken,
       };
-      
+
       const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

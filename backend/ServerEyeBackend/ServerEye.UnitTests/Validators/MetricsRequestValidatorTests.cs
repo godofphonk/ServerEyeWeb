@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Metrics;
 
-internal class MetricsRequestValidatorTests
+public class MetricsRequestValidatorTests
 {
     private readonly MetricsRequestValidator sut;
 

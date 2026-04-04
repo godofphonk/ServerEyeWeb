@@ -33,39 +33,36 @@ export default function ProfilePage() {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     const linking = urlParams.get('linking');
-    
+
     // Check for linking=success (backend processed OAuth linking)
     if (linking === 'success') {
-      
       toast.success('Success', 'Account linked successfully!');
-      
+
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
-      
+
       // Reload page to refresh connected accounts
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-      
+
       return;
     }
-    
+
     // Check for error=already_linked
     if (error === 'already_linked') {
-      
       toast.error('Error', 'This account is already linked to another user');
-      
+
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
-      
+
       return;
     }
-    
+
     // Check for error=linking_failed
     if (error === 'linking_failed') {
-      
       const errorMessage = urlParams.get('message') || 'Failed to link Telegram account';
-      
+
       // Show user-friendly error message
       let userMessage = 'Failed to link Telegram account';
       if (errorMessage.toLowerCase().includes('already linked to another user')) {
@@ -75,27 +72,26 @@ export default function ProfilePage() {
       } else if (errorMessage.toLowerCase().includes('invalid')) {
         userMessage = 'Invalid Telegram data provided';
       }
-      
+
       toast.error('Linking Failed', userMessage);
-      
+
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
-      
+
       return;
     }
-    
+
     // Check for linking=error
     if (linking === 'error') {
-      
       const errorMessage = urlParams.get('message') || 'Failed to link account';
       toast.error('Error', errorMessage);
-      
+
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
-      
+
       return;
     }
-    
+
     if (error) {
       switch (error) {
         case 'backend_error':
@@ -110,7 +106,7 @@ export default function ProfilePage() {
         default:
           toast.error('OAuth Error', `Authentication failed: ${error}`);
       }
-      
+
       // Clean URL
       window.history.replaceState({}, document.title, '/profile');
     }
@@ -132,17 +128,17 @@ export default function ProfilePage() {
       router.push('/login');
       return;
     }
-    
+
     // Проверяем доступ с учетом OAuth пользователей
     if (!loading && isAuthenticated) {
       const userHasAccess = hasUserAccess(user, isEmailVerified);
-      
+
       if (!userHasAccess) {
         router.push('/verify-email');
         return;
       }
     }
-    
+
     if (user) {
       setProfileData({
         username: user.username,

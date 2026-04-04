@@ -3,7 +3,7 @@ namespace ServerEye.UnitTests.Validators;
 using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Auth;
 
-internal class ResetPasswordDtoValidatorTests
+public class ResetPasswordDtoValidatorTests
 {
     private readonly ResetPasswordDtoValidator sut;
 

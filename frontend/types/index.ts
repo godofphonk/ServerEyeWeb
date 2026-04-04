@@ -297,13 +297,13 @@ export interface CurrentMetrics {
   temperature: number;
   gpu_temperature?: number;
   load: number;
-  
+
   // Additional memory details
   memoryCache?: number;
   memoryBuffers?: number;
   memoryAvailable?: number;
   memorySwap?: number;
-  
+
   // Disk I/O metrics
   diskReadSpeed?: number;
   diskWriteSpeed?: number;
@@ -389,7 +389,7 @@ export interface ApiError {
 }
 
 // Go API Error Types
-export type GoApiErrorType = 
+export type GoApiErrorType =
   | 'ServiceUnavailable'
   | 'Timeout'
   | 'NetworkError'
@@ -744,7 +744,7 @@ export enum OAuthProvider {
   None = 0,
   Google = 1,
   GitHub = 2,
-  Telegram = 3
+  Telegram = 3,
 }
 
 export interface ExternalLogin {
@@ -766,15 +766,15 @@ export const OAuthProviderMap: Record<OAuthProvider, string> = {
   [OAuthProvider.None]: 'none',
   [OAuthProvider.Google]: 'google',
   [OAuthProvider.GitHub]: 'github',
-  [OAuthProvider.Telegram]: 'telegram'
+  [OAuthProvider.Telegram]: 'telegram',
 };
 
 // Утилита для маппинга string -> enum
 export const StringToOAuthProvider: Record<string, OAuthProvider> = {
-  'none': OAuthProvider.None,
-  'google': OAuthProvider.Google,
-  'github': OAuthProvider.GitHub,
-  'telegram': OAuthProvider.Telegram
+  none: OAuthProvider.None,
+  google: OAuthProvider.Google,
+  github: OAuthProvider.GitHub,
+  telegram: OAuthProvider.Telegram,
 };
 
 export interface LinkOAuthRequest {

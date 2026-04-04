@@ -77,10 +77,9 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
                 {isOAuthUser ? 'Add Email Address' : 'Verify Your Email Address'}
               </h3>
               <p className='text-sm text-gray-300 mb-3'>
-                {isOAuthUser 
+                {isOAuthUser
                   ? 'Add an email address to access all features and receive notifications.'
-                  : `Please verify <span class="font-mono">${email}</span> to access all features. Check your inbox for the verification code.`
-                }
+                  : `Please verify <span class="font-mono">${email}</span> to access all features. Check your inbox for the verification code.`}
               </p>
 
               <div className='flex flex-wrap gap-2'>

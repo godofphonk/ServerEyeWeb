@@ -5,7 +5,7 @@ using ServerEye.Core.DTOs.Metrics;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Services;
 
-internal class MetricsMapperTests
+public class MetricsMapperTests
 {
     private static GoApiDataPoint CreateDataPoint(
         double cpuAvg = 50, double cpuMax = 80, double cpuMin = 20,

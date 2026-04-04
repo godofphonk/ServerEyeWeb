@@ -39,32 +39,32 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
     if (error instanceof GoApiError) {
       return error.isTemporary;
     }
-    
+
     // Retry 500 Internal Server Error (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 500) {
       return true;
     }
-    
+
     // Retry 502 Bad Gateway (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 502) {
       return true;
     }
-    
+
     // Retry 503 Service Unavailable (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 503) {
       return true;
     }
-    
+
     // Retry 504 Gateway Timeout (temporary backend issues)
     if (hasResponseStatus(error) && error.response.status === 504) {
       return true;
     }
-    
+
     // Retry network errors (no response)
     if (!hasResponseStatus(error) && hasErrorCode(error) && error.code === 'ECONNABORTED') {
       return true;
     }
-    
+
     return false;
   },
 };
@@ -80,7 +80,7 @@ function calculateDelay(attempt: number, options: Required<RetryOptions>): numbe
 
 export async function fetchWithRetry<T>(
   fetchFn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   let lastError: any;
@@ -96,13 +96,13 @@ export async function fetchWithRetry<T>(
       }
 
       const shouldRetry = opts.shouldRetry(error, attempt);
-      
+
       if (!shouldRetry) {
         throw error;
       }
 
       const delayMs = calculateDelay(attempt, opts);
-      
+
       if (error instanceof GoApiError) {
       } else if (hasResponseStatus(error)) {
       } else {

@@ -12,14 +12,14 @@ export default function OAuthLinkHandlerPage() {
     const handleLinking = async () => {
       try {
         // Get linking info from sessionStorage
-        const linkingInfo = typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
+        const linkingInfo =
+          typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
 
         if (!linkingInfo) {
           throw new Error('No linking information found');
         }
 
         const { action, provider, code, state } = JSON.parse(linkingInfo);
-
 
         if (action !== 'link' || !provider || !code || !state) {
           throw new Error('Invalid linking information');
@@ -32,13 +32,12 @@ export default function OAuthLinkHandlerPage() {
           throw new Error('No authentication token found. Please log in first.');
         }
 
-
         // Call backend linking endpoint
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`,
+            Authorization: `Bearer ${jwtToken}`,
           },
           body: JSON.stringify({
             provider: provider,
@@ -71,7 +70,6 @@ export default function OAuthLinkHandlerPage() {
         setTimeout(() => {
           router.push('/profile');
         }, 1500);
-
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to link account');
         setStatus('error');
@@ -108,8 +106,18 @@ export default function OAuthLinkHandlerPage() {
       <div className='min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center'>
         <div className='text-center max-w-md mx-auto p-6'>
           <div className='w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4'>
-            <svg className='w-8 h-8 text-red-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+            <svg
+              className='w-8 h-8 text-red-400'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M6 18L18 6M6 6l12 12'
+              />
             </svg>
           </div>
           <h2 className='text-2xl font-bold text-white mb-2'>Linking Failed</h2>
@@ -124,7 +132,12 @@ export default function OAuthLinkHandlerPage() {
     <div className='min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center'>
       <div className='text-center'>
         <div className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4'>
-          <svg className='w-8 h-8 text-green-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+          <svg
+            className='w-8 h-8 text-green-400'
+            fill='none'
+            stroke='currentColor'
+            viewBox='0 0 24 24'
+          >
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
           </svg>
         </div>
