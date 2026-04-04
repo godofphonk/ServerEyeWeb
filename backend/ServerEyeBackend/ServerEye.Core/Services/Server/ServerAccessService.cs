@@ -266,18 +266,18 @@ public class ServerAccessService(
         // This is the enterprise-level approach from Telegram bot
         try
         {
-            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
+            logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
 
             var request = new GoApiDeleteSourceIdentifiersRequest
             {
                 Identifiers = new List<string> { userId.ToString() }
             };
 
-            var result = await goApiClient.DeleteServerSourceIdentifiersByTypeAsync(decryptedKey ?? string.Empty, "Web", request);
+            var result = await goApiClient.DeleteServerSourceIdentifiersByTypeAsync(decryptedKey, "Web", request);
 
             if (result != null)
             {
-                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
+                logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
             }
             else
             {
@@ -287,7 +287,7 @@ public class ServerAccessService(
         catch (Exception ex)
         {
             // Graceful degradation - if API fails, still remove from DB
-            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey?.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
+            logger.LogError(ex, "Failed to remove identifier from Go API for server {ServerKey}, continuing with DB removal", decryptedKey.Length > 8 ? $"{decryptedKey[..8]}***" : "***");
         }
 
         // Always remove access from DB (even if API call failed)
