@@ -23,7 +23,7 @@ public class ServerMetricsController : BaseApiController
     {
         return await ExecuteWithErrorHandling(async () =>
         {
-            this.logger.LogInformation("GetMetricsByKey called: ServerKey={ServerKey}", serverKey);
+            this.logger.LogInformation("GetMetricsByKey called: ServerKey={ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var userId = GetUserId();
             this.logger.LogInformation("GetMetricsByKey: UserId={UserId}", userId);
@@ -54,9 +54,9 @@ public class ServerMetricsController : BaseApiController
                 "GetMetricsByKey: Parameters processed - Start={Start}, End={End}, Granularity={Granularity}",
                 start,
                 end,
-                granularity);
+                granularity?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
-            var metrics = await metricsService.GetMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
+            var metrics = await metricsService.GetMetricsByKeyAsync(userId, serverKey ?? string.Empty, start!.Value, end!.Value, granularity);
             return metrics;
         });
     }
@@ -66,7 +66,7 @@ public class ServerMetricsController : BaseApiController
     {
         return await ExecuteWithErrorHandling(async () =>
         {
-            this.logger.LogInformation("GetTieredMetricsByKey called: ServerKey={ServerKey}", serverKey);
+            this.logger.LogInformation("GetTieredMetricsByKey called: ServerKey={ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
             var userId = GetUserId();
 
@@ -88,9 +88,9 @@ public class ServerMetricsController : BaseApiController
                 "GetTieredMetricsByKey: Parameters - Start={Start}, End={End}, Granularity={Granularity}",
                 start,
                 end,
-                granularity);
+                granularity?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
 
-            var metrics = await metricsService.GetTieredMetricsByKeyAsync(userId, serverKey, start!.Value, end!.Value, granularity);
+            var metrics = await metricsService.GetTieredMetricsByKeyAsync(userId, serverKey ?? string.Empty, start!.Value, end!.Value, granularity);
             return metrics;
         });
     }
