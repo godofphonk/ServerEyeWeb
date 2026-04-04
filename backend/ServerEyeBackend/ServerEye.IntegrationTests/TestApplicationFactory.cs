@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using DotNet.Testcontainers.Images;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,6 @@ using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
-using DotNet.Testcontainers.Images;
 
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
