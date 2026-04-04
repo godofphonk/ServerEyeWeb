@@ -1,9 +1,9 @@
 namespace ServerEye.IntegrationTests.Controllers;
 
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using ServerEye.Core.DTOs.UserDto;
 
 [Collection("UsersController Tests")]

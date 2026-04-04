@@ -7,8 +7,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using ServerEye.Core.DTOs.Billing;
 using ServerEye.API.Controllers.Billing;
+using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Interfaces.Repository.Billing;
 using Xunit;
 

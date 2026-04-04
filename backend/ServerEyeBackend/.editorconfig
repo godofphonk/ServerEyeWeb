@@ -111,6 +111,21 @@ dotnet_diagnostic.IDE0022.severity = none
 dotnet_diagnostic.SA1649.severity = none
 dotnet_diagnostic.SA1309.severity = none
 dotnet_diagnostic.SA1124.severity = none
+dotnet_diagnostic.CA1852.severity = none
+dotnet_diagnostic.xUnit1000.severity = none
+dotnet_diagnostic.IDE0078.severity = none
+dotnet_diagnostic.IDE0032.severity = none
+dotnet_diagnostic.IDE0021.severity = none
+dotnet_diagnostic.IDE0037.severity = none
+dotnet_diagnostic.IDE0056.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0100.severity = none
+dotnet_diagnostic.IDE0004.severity = none
+dotnet_diagnostic.IDE0051.severity = none
+dotnet_diagnostic.IDE0001.severity = none
+dotnet_diagnostic.IDE0002.severity = none
+dotnet_diagnostic.CS8618.severity = none
+dotnet_diagnostic.JSON002.severity = none
 
 # StyleCop Analyzer - disable blank line rules
 dotnet_diagnostic.SA1510.severity = none
