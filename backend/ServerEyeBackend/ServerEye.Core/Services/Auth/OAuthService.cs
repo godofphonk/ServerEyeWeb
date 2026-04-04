@@ -156,18 +156,18 @@ public sealed class OAuthService(
                 // Format: provider_action_randomstate
                 action = stateParts[1]; // Action is the second part
                 originalState = stateParts[2]; // The third part is the actual state
-                this.logger.LogInformation("Extracted action from provider state - Provider: {Provider}, Action: {Action}, OriginalState: {OriginalState}", stateParts[0], action, originalState);
+                this.logger.LogInformation("Extracted action from provider state - Provider: {Provider}, Action: {Action}, OriginalState: {OriginalState}", LogSanitizer.Sanitize(stateParts[0]), LogSanitizer.Sanitize(action), LogSanitizer.Sanitize(originalState));
             }
             else if (stateParts.Length >= 2 && (stateParts[0] == "login" || stateParts[0] == "register"))
             {
                 // Fallback for format: action_randomstate (without provider prefix)
                 action = stateParts[0];
                 originalState = stateParts[1];
-                this.logger.LogInformation("Extracted action from simple state - Action: {Action}, OriginalState: {OriginalState}", action, originalState);
+                this.logger.LogInformation("Extracted action from simple state - Action: {Action}, OriginalState: {OriginalState}", LogSanitizer.Sanitize(action), LogSanitizer.Sanitize(originalState));
             }
         }
 
-        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}, OriginalState: {OriginalState}", provider, (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), request.State.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), originalState.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
+        this.logger.LogInformation("ProcessCallbackAsync - Provider: {Provider}, Action: {Action}, State: {State}, OriginalState: {OriginalState}", provider, LogSanitizer.Sanitize(action) ?? "auto", LogSanitizer.Sanitize(request.State), LogSanitizer.Sanitize(originalState));
 
         try
         {
@@ -329,7 +329,7 @@ public sealed class OAuthService(
             var token = this.jwtService.GenerateAccessToken(user);
             var refreshToken = await Task.FromResult(this.jwtService.GenerateRefreshToken(user));
 
-            this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider} with action {Action}", user.Id, provider, action ?? "auto");
+            this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider} with action {Action}", user.Id, provider, LogSanitizer.Sanitize(action) ?? "auto");
 
             // Record success metrics
             var totalDuration = (DateTime.UtcNow - startTime).TotalSeconds;
@@ -395,11 +395,11 @@ public sealed class OAuthService(
 
         if (storedCodeVerifier == null)
         {
-            this.logger.LogError("Code verifier not found for linking state: {State}", originalState);
+            this.logger.LogError("Code verifier not found for linking state: {State}", LogSanitizer.Sanitize(originalState));
             throw new InvalidOperationException("Invalid or expired OAuth state for linking");
         }
 
-        this.logger.LogInformation("Retrieved code verifier for OAuth linking - State: {State}", originalState);
+        this.logger.LogInformation("Retrieved code verifier for OAuth linking - State: {State}", LogSanitizer.Sanitize(originalState));
 
         // Remove code verifier from Redis
         await cache.RemoveAsync($"oauth:code_verifier:{originalState}", cancellationToken);

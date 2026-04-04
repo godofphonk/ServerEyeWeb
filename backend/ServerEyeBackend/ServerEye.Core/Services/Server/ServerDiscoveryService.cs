@@ -6,6 +6,7 @@ using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 
@@ -99,7 +100,7 @@ public class ServerDiscoveryService(
                 if (existingServer == null)
                 {
                     errors.Add($"Server {serverId} not found in database");
-                    logger.LogWarning("Server {ServerId} not found for import", serverId);
+                    logger.LogWarning("Server {ServerId} not found for import", LogSanitizer.Sanitize(serverId));
                     continue;
                 }
 
@@ -107,7 +108,7 @@ public class ServerDiscoveryService(
                 if (hasAccess)
                 {
                     errors.Add($"Server {serverId} already added to your account");
-                    logger.LogWarning("User {UserId} already has access to server {ServerId}", userId, serverId);
+                    logger.LogWarning("User {UserId} already has access to server {ServerId}", userId, LogSanitizer.Sanitize(serverId));
                     continue;
                 }
 
@@ -122,13 +123,13 @@ public class ServerDiscoveryService(
                     var sourceResponse = await goApiClient.AddServerSourceByKeyAsync(decryptedKey, "Telegram");
                     if (sourceResponse == null)
                     {
-                        logger.LogWarning("Failed to add Telegram source to Go API for server {ServerId}", serverId);
+                        logger.LogWarning("Failed to add Telegram source to Go API for server {ServerId}", LogSanitizer.Sanitize(serverId));
 
                         // Continue with import even if source add fails
                     }
                     else
                     {
-                        logger.LogInformation("Successfully added Telegram source to Go API for server {ServerId}", serverId);
+                        logger.LogInformation("Successfully added Telegram source to Go API for server {ServerId}", LogSanitizer.Sanitize(serverId));
 
                         // Add user identifier to Telegram source
                         var identifiersRequest = new GoApiSourceIdentifiersRequest
@@ -153,11 +154,11 @@ public class ServerDiscoveryService(
                         var identifiersResponse = await goApiClient.AddServerSourceIdentifiersByKeyAsync(decryptedKey, identifiersRequest);
                         if (identifiersResponse == null)
                         {
-                            logger.LogWarning("Failed to add user identifier to Telegram source for server {ServerId}", serverId);
+                            logger.LogWarning("Failed to add user identifier to Telegram source for server {ServerId}", LogSanitizer.Sanitize(serverId));
                         }
                         else
                         {
-                            logger.LogInformation("Successfully added user identifier to Telegram source for server {ServerId}", serverId);
+                            logger.LogInformation("Successfully added user identifier to Telegram source for server {ServerId}", LogSanitizer.Sanitize(serverId));
                         }
                     }
                 }
