@@ -637,6 +637,15 @@ public class AuthController : BaseApiController
             // Fallback to parameter-based linking (if state doesn't contain linking info)
             if (linkingAction && !string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parameterUserGuid))
             {
+                // SECURITY: Validate that the userId parameter matches the authenticated user
+                // This prevents user-controlled bypass where an attacker could link OAuth to another user's account
+                var authenticatedUserId = this.GetUserId();
+                if (authenticatedUserId == Guid.Empty || authenticatedUserId != parameterUserGuid)
+                {
+                    this.logger.LogWarning("Security: Attempted OAuth linking with mismatched user ID - Authenticated: {AuthUserId}, Parameter: {ParamUserId}", authenticatedUserId, parameterUserGuid);
+                    return this.Unauthorized(new { message = "User ID mismatch - authentication required" });
+                }
+
                 this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
 
                 try
