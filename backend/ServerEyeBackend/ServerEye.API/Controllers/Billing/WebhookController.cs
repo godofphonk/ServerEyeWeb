@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.Stripe;
 using ServerEye.Infrastructure.ExternalServices.YooKassa;
 
 [ApiController]
-[Route("api/webhooks")]
+[Route("api/billing/webhook")]
 public class WebhookController : ControllerBase
 {
     private readonly IWebhookService webhookService;
@@ -41,6 +41,24 @@ public class WebhookController : ControllerBase
             {
                 payload = await reader.ReadToEndAsync();
             }
+
+            // Validate JSON payload
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                logger.LogWarning("Stripe webhook received with empty payload");
+                return BadRequest(new { message = "Empty payload" });
+            }
+
+            try
+            {
+                System.Text.Json.JsonDocument.Parse(payload);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                logger.LogWarning("Stripe webhook received with invalid JSON");
+                return BadRequest(new { message = "Invalid JSON payload" });
+            }
+
             var signature = Request.Headers["Stripe-Signature"].ToString();
 
             if (string.IsNullOrEmpty(signature))
@@ -96,7 +114,25 @@ public class WebhookController : ControllerBase
             {
                 payload = await reader.ReadToEndAsync();
             }
-            var signature = Request.Headers["X-YooKassa-Signature"].ToString();
+
+            // Validate JSON payload
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                this.logger.LogWarning("YooKassa webhook received with empty payload");
+                return BadRequest(new { message = "Empty payload" });
+            }
+
+            try
+            {
+                System.Text.Json.JsonDocument.Parse(payload);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                this.logger.LogWarning("YooKassa webhook received with invalid JSON");
+                return BadRequest(new { message = "Invalid JSON payload" });
+            }
+
+            var signature = Request.Headers["Content-HMAC"].ToString();
 
             if (string.IsNullOrEmpty(signature))
             {
