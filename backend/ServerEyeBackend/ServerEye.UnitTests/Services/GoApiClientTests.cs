@@ -15,7 +15,7 @@ using System.Text.Json;
 #pragma warning disable CA2000 // Dispose objects before losing scope - HttpResponseMessage is managed by Moq
 #pragma warning disable CA2007 // Do not directly await a Task - ConfigureAwait not needed in tests
 
-public class GoApiClientTests : IDisposable
+internal class GoApiClientTests : IDisposable
 {
     private readonly Mock<HttpMessageHandler> mockHandler;
     private readonly HttpClient httpClient;
@@ -29,11 +29,11 @@ public class GoApiClientTests : IDisposable
         {
             BaseAddress = new Uri("http://127.0.0.1:8080")
         };
-        
+
         var httpHandler = new GoApiHttpHandler(this.httpClient);
         var logger = new GoApiLogger(mockLogger1.Object);
         var operationFactory = new GoApiOperationFactory(httpHandler, logger);
-        
+
         this.goApiClient = new GoApiClient(operationFactory);
     }
 
@@ -82,7 +82,7 @@ public class GoApiClientTests : IDisposable
         this.mockHandler.Protected().Verify(
             "SendAsync",
             Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req => 
+            ItExpr.Is<HttpRequestMessage>(req =>
                 req.Method == HttpMethod.Post &&
                 req.RequestUri != null &&
                 req.RequestUri.AbsolutePath.Contains($"/api/servers/{serverId}/sources")),
@@ -130,7 +130,7 @@ public class GoApiClientTests : IDisposable
             .Verify(
                 "SendAsync",
                 Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req => 
+                ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
                     req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/by-key/{serverKey}/sources")),
@@ -204,7 +204,7 @@ public class GoApiClientTests : IDisposable
             .Verify(
                 "SendAsync",
                 Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req => 
+                ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
                     req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/{serverId}/sources/identifiers")),
@@ -276,7 +276,7 @@ public class GoApiClientTests : IDisposable
             .Verify(
                 "SendAsync",
                 Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req => 
+                ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Post &&
                     req.RequestUri != null &&
                     req.RequestUri.ToString().Contains($"/api/servers/by-key/{serverKey}/sources/identifiers")),

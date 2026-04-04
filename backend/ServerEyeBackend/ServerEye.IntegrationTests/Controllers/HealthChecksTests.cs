@@ -31,7 +31,7 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        
+
         var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
         healthReport.GetProperty("status").GetString().Should().Be("Healthy");
     }
@@ -42,16 +42,16 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
         using var client = this.factory.CreateClient();
         var response = await client.GetAsync("/health");
         var content = await response.Content.ReadAsStringAsync();
-        
+
         var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
         var checks = healthReport.GetProperty("checks");
 
         checks.EnumerateArray().Should().NotBeEmpty();
-        checks.EnumerateArray().Should().Contain(c => 
+        checks.EnumerateArray().Should().Contain(c =>
             c.GetProperty("name").GetString() == "postgres-servereye");
-        checks.EnumerateArray().Should().Contain(c => 
+        checks.EnumerateArray().Should().Contain(c =>
             c.GetProperty("name").GetString() == "postgres-tickets");
-        checks.EnumerateArray().Should().Contain(c => 
+        checks.EnumerateArray().Should().Contain(c =>
             c.GetProperty("name").GetString() == "redis");
     }
 
@@ -61,9 +61,9 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
         using var client = this.factory.CreateClient();
         var response = await client.GetAsync("/health");
         var content = await response.Content.ReadAsStringAsync();
-        
+
         var healthReport = JsonSerializer.Deserialize<JsonElement>(content);
-        
+
         healthReport.TryGetProperty("totalDuration", out var duration).Should().BeTrue();
         duration.GetDouble().Should().BeGreaterThan(0);
     }
@@ -114,10 +114,10 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
     public async Task HealthLive_ShouldBeFast()
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+
         using var client = this.factory.CreateClient();
         await client.GetAsync("/health/live");
-        
+
         stopwatch.Stop();
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(2000); // Increased timeout for test environment
     }

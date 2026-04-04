@@ -4,7 +4,7 @@ using ServerEye.API.Validators;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Enums;
 
-public class ShareServerRequestValidatorTests
+internal class ShareServerRequestValidatorTests
 {
     private readonly ShareServerRequestValidator sut;
 

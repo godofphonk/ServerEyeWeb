@@ -18,7 +18,7 @@ using ServerEye.Core.Interfaces.Services;
 using Xunit;
 using ServersServiceImpl = ServerEye.Core.Services.ServersService;
 
-public class ServersServiceTests
+internal class ServersServiceTests
 {
     private readonly Mock<IServerAccessService> mockServerAccessService;
     private readonly Mock<IMockDataProvider> mockDataProvider;
@@ -31,7 +31,7 @@ public class ServersServiceTests
         this.mockServerAccessService = new Mock<IServerAccessService>();
         this.mockDataProvider = new Mock<IMockDataProvider>();
         this.mockLogger = new Mock<ILogger<ServersServiceImpl>>();
-        
+
         this.configuration = new ServersConfiguration
         {
             EnableDetailedLogging = true,
@@ -93,7 +93,7 @@ public class ServersServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Servers.Should().HaveCount(2);
-        
+
         var firstServer = result.Servers.ElementAt(0);
         firstServer.Name.Should().Be("test-server-1");
         firstServer.Hostname.Should().Be("test-server-1");
@@ -183,7 +183,7 @@ public class ServersServiceTests
         // Arrange
         var userId = Guid.NewGuid();
         var mockServers = new List<ServerResponse>();
-        
+
         for (int i = 0; i < 10; i++)
         {
             mockServers.Add(new ServerResponse
@@ -245,7 +245,7 @@ public class ServersServiceTests
             async () => await this.serversService.GetUserServersAsync(userId));
 
         exception.Message.Should().Be("Database connection failed");
-        
+
         this.mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,

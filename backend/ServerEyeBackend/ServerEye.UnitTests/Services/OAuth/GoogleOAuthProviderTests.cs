@@ -19,7 +19,7 @@ using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.OAuth.Providers;
 using Xunit;
 
-public class GoogleOAuthProviderTests
+internal class GoogleOAuthProviderTests
 {
     private readonly Mock<ILogger<GoogleOAuthProvider>> mockLogger;
     private readonly OAuthSettings oauthSettings;
@@ -28,7 +28,7 @@ public class GoogleOAuthProviderTests
     public GoogleOAuthProviderTests()
     {
         this.mockLogger = new Mock<ILogger<GoogleOAuthProvider>>();
-        
+
         this.oauthSettings = new OAuthSettings
         {
             Google = new GoogleSettings
@@ -131,7 +131,7 @@ public class GoogleOAuthProviderTests
         // Assert
         result.Should().NotBeNull();
         result.ChallengeUrl.Should().NotBeNull();
-        
+
         var url = result.ChallengeUrl.ToString();
         url.Should().NotContain("return_url=");
     }
@@ -165,7 +165,7 @@ public class GoogleOAuthProviderTests
 
         // Act
         var result = await mockProvider.Object.ExchangeCodeAsync(code, "verifier", CancellationToken.None);
-        
+
         // Assert
         result.Should().NotBeNull();
         result.AccessToken.Should().Be(expectedTokenResponse.AccessToken);
@@ -344,7 +344,7 @@ public class GoogleOAuthProviderTests
         var payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
             "{\"sub\":\"123456789\",\"email\":\"test@example.com\",\"name\":\"Test User\",\"given_name\":\"Test\",\"picture\":\"https://example.com/avatar.jpg\",\"email_verified\":true}"));
         var signature = "fake-signature";
-        
+
         return $"{header.Replace("+", "-", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal).Replace("=", "", StringComparison.Ordinal)}.{payload.Replace("+", "-", StringComparison.Ordinal).Replace("/", "_", StringComparison.Ordinal).Replace("=", "", StringComparison.Ordinal)}.{signature}";
     }
 

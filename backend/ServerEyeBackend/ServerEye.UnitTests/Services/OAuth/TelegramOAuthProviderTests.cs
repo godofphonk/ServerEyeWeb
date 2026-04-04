@@ -18,7 +18,7 @@ using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.OAuth.Providers;
 using Xunit;
 
-public class TelegramOAuthProviderTests
+internal class TelegramOAuthProviderTests
 {
     private readonly Mock<ILogger<TelegramOAuthProvider>> mockLogger;
     private readonly OAuthSettings oauthSettings;
@@ -27,7 +27,7 @@ public class TelegramOAuthProviderTests
     public TelegramOAuthProviderTests()
     {
         this.mockLogger = new Mock<ILogger<TelegramOAuthProvider>>();
-        
+
         this.oauthSettings = new OAuthSettings
         {
             Telegram = new TelegramSettings
@@ -129,7 +129,7 @@ public class TelegramOAuthProviderTests
         // Assert
         result.Should().NotBeNull();
         result.ChallengeUrl.Should().NotBeNull();
-        
+
         var url = result.ChallengeUrl.ToString();
         url.Should().NotContain("return_url=" + Uri.EscapeDataString(state));
     }
@@ -455,7 +455,7 @@ public class TelegramOAuthProviderTests
         // Arrange
         var state = "test";
         var codeChallenge = "test";
-        
+
         // Test with different port configurations
         var testCases = new[]
         {
@@ -501,7 +501,7 @@ public class TelegramOAuthProviderTests
         result.Name.Should().Be("Test User");
         result.Username.Should().Be("testuser");
         result.RawData.Should().NotBeNull();
-        
+
         // Check that additional fields are preserved in RawData
         var rawDataDict = result.RawData as Dictionary<string, object>;
         rawDataDict.Should().NotBeNull();

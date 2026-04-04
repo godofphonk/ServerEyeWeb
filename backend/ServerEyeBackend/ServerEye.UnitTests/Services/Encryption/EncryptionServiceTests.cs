@@ -8,7 +8,7 @@ using ServerEye.Core.Configuration;
 using ServerEye.Core.Services;
 using Xunit;
 
-public class EncryptionServiceTests
+internal class EncryptionServiceTests
 {
     private readonly EncryptionService encryptionService;
     private const string ValidKey = "ThisIsASecureEncryptionKeyWith32Chars!";
@@ -91,7 +91,7 @@ public class EncryptionServiceTests
         // Assert
         encrypted.Should().NotBeNullOrWhiteSpace();
         encrypted.Should().NotBe(plainText);
-        
+
         // Verify it's valid Base64
         Action act = () => Convert.FromBase64String(encrypted);
         act.Should().NotThrow();
@@ -212,7 +212,7 @@ public class EncryptionServiceTests
         // Arrange
         const string plainText = "Original Message";
         var encrypted = this.encryptionService.Encrypt(plainText);
-        
+
         // Tamper with the encrypted data
         var tamperedBytes = Convert.FromBase64String(encrypted);
         tamperedBytes[tamperedBytes.Length - 1] ^= 0xFF; // Flip bits in last byte
@@ -282,7 +282,7 @@ public class EncryptionServiceTests
         const string plainText = "Secret Data";
         var settings1 = new EncryptionSettings { Key = "FirstKeyWith32CharactersMinimum!" };
         var settings2 = new EncryptionSettings { Key = "SecondKeyWith32CharactersMinimum" };
-        
+
         var service1 = new EncryptionService(settings1);
         var service2 = new EncryptionService(settings2);
 

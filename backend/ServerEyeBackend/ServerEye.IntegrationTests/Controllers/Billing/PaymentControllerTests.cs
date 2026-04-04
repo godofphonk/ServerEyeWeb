@@ -186,7 +186,7 @@ public class PaymentControllerTests : IAsyncLifetime
         // Create and complete a payment (mock success)
         using var scope = this.factory.Services.CreateScope();
         var paymentRepository = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
-        
+
         var payment = new ServerEye.Core.Entities.Billing.Payment
         {
             Id = Guid.NewGuid(),

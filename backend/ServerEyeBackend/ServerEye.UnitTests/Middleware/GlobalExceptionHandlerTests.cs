@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using ServerEye.API.Middleware;
 using System.IO;
 
-public class GlobalExceptionHandlerTests
+internal class GlobalExceptionHandlerTests
 {
     private readonly Mock<ILogger<GlobalExceptionHandler>> loggerMock;
     private readonly GlobalExceptionHandler sut;
@@ -99,7 +99,7 @@ public class GlobalExceptionHandlerTests
 
         context.Response.Body.Position = 0;
         using var reader = new StreamReader(context.Response.Body);
-        var responseBody = await reader.ReadToEndAsync();
+        var responseBody = await reader.ReadToEndAsync().ConfigureAwait(false);
 
         responseBody.Should().Contain("test-trace-id");
     }
