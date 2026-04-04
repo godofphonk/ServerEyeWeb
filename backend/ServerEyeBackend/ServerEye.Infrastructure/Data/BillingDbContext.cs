@@ -57,7 +57,11 @@ public class BillingDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Status).HasConversion<string>();
             entity.Property(e => e.Provider).HasConversion<string>();
-            entity.Property(e => e.Metadata).HasColumnType("jsonb");
+            entity.Property(e => e.Metadata)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, string>());
             entity.HasOne<Subscription>()
                 .WithMany()
                 .HasForeignKey(p => p.SubscriptionId)

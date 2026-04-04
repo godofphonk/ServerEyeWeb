@@ -28,7 +28,6 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         .WithUsername("testuser")
         .WithPassword("testpass")
         .WithCleanUp(true)
-        .WithImagePullPolicy(PullPolicy.Always) // Используем локальные образы если доступны
         .Build();
 
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
