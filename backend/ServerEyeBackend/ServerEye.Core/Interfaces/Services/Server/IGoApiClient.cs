@@ -11,19 +11,19 @@ public interface IGoApiClient
     public Task<List<GoApiServerInfo>?> GetServersListAsync();
     public Task<GoApiStaticInfo?> GetStaticInfoAsync(string serverKey);
     public Task<GoApiServerStatus?> GetServerStatusAsync(string serverKey);
-    
+
     // Source management methods
     public Task<GoApiSourceResponse?> AddServerSourceAsync(string serverId, string source);
     public Task<GoApiSourceResponse?> AddServerSourceByKeyAsync(string serverKey, string source);
     public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersAsync(string serverId, GoApiSourceIdentifiersRequest request);
     public Task<GoApiSourceIdentifiersResponse?> AddServerSourceIdentifiersByKeyAsync(string serverKey, GoApiSourceIdentifiersRequest request);
     public Task<GoApiSourceIdentifiersResponse?> GetServerSourceIdentifiersByKeyAsync(string serverKey);
-    
+
     // Source deletion methods
     public Task<GoApiDeleteSourceResponse?> DeleteServerSourceByKeyAsync(string serverKey, string source);
     public Task<GoApiDeleteSourceResponse?> DeleteServerSourceIdentifiersByKeyAsync(string serverKey, GoApiDeleteSourceIdentifiersRequest request);
     public Task<GoApiDeleteSourceResponse?> DeleteServerSourceIdentifiersByTypeAsync(string serverKey, string sourceType, GoApiDeleteSourceIdentifiersRequest request);
-    
+
     // Server discovery methods
     public Task<List<GoApiServerInfo>?> FindServersByTelegramIdAsync(long telegramId);
 }

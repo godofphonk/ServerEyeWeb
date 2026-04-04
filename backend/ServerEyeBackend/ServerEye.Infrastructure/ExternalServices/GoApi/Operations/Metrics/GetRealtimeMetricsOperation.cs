@@ -7,7 +7,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get realtime metrics for a server.
 /// </summary>
 public class GetRealtimeMetricsOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverId,
     TimeSpan? duration = null) : MetricsOperation(httpHandler, logger)

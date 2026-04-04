@@ -52,10 +52,10 @@ public static class DatabaseInitializer
             if (pendingCount > 0)
             {
                 logger.LogInformation("{DatabaseName}: Found {Count} pending migrations", databaseName, pendingCount);
-                
+
                 // Apply migrations
                 await context.Database.MigrateAsync();
-                
+
                 logger.LogInformation("{DatabaseName}: Migrations applied successfully", databaseName);
             }
             else

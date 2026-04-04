@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to delete server source by server key.
 /// </summary>
 public class DeleteServerSourceByKeyOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey,
     string source) : GoApiOperation<GoApiDeleteSourceResponse?>(httpHandler, logger)

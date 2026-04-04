@@ -83,7 +83,7 @@ public abstract class BaseOAuthProvider
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         response.EnsureSuccessStatusCode();
-        return JsonSerializer.Deserialize<T>(content, JsonOptions) 
+        return JsonSerializer.Deserialize<T>(content, JsonOptions)
                ?? throw new InvalidOperationException("Failed to parse response");
     }
 
@@ -91,7 +91,7 @@ public abstract class BaseOAuthProvider
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         response.EnsureSuccessStatusCode();
-        return JsonSerializer.Deserialize<Dictionary<string, object>>(content, JsonOptions) 
+        return JsonSerializer.Deserialize<Dictionary<string, object>>(content, JsonOptions)
                ?? throw new InvalidOperationException("Failed to parse response");
     }
 }

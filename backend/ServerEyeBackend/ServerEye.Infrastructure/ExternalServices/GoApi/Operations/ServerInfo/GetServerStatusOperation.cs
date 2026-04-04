@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get server status by server key.
 /// </summary>
 public class GetServerStatusOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey) : GoApiOperation<GoApiServerStatus>(httpHandler, logger)
 {

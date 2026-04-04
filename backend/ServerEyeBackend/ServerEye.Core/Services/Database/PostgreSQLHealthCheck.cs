@@ -32,7 +32,7 @@ public sealed class PostgreSQLHealthCheck : IHealthCheck
 
             await using var connection = new NpgsqlConnection(this.options.MainDatabaseConnectionString);
             await connection.OpenAsync(cancellationToken);
-            
+
             await using var cmd = connection.CreateCommand();
             cmd.CommandText = "SELECT 1";
             await cmd.ExecuteScalarAsync(cancellationToken);

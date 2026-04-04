@@ -68,7 +68,7 @@ public class SourceManagementController : ControllerBase
 
             // Get sources and identifiers from Go API
             var result = await goApiClient.GetServerSourceIdentifiersByKeyAsync(serverKey);
-            
+
             if (result == null)
             {
                 logger.LogWarning("Failed to get sources and identifiers from Go API for server {ServerKey}", serverKey);

@@ -1,9 +1,9 @@
 namespace ServerEye.API.Controllers;
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
 /// Base controller with common functionality for all API controllers.
@@ -20,13 +20,13 @@ public abstract class BaseApiController : ControllerBase
     {
         // Try NameIdentifier first (our JWT uses this claim type)
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         // Fallback to sub claim if NameIdentifier not found
         if (string.IsNullOrEmpty(userIdClaim))
         {
             userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
         }
-        
+
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             throw new UnauthorizedAccessException($"Invalid user identifier. Claim value: {userIdClaim}");

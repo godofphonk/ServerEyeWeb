@@ -1,8 +1,8 @@
 namespace ServerEye.API.Configuration.Extensions;
 
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using ServerEye.Core.Configuration;
-using System.Threading.RateLimiting;
 
 /// <summary>
 /// Middleware configuration setup.
@@ -16,7 +16,7 @@ public static class MiddlewareSetup
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>() 
+        var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>()
             ?? new CorsSettings();
 
         // Configure Response Compression
@@ -78,7 +78,7 @@ public static class MiddlewareSetup
         });
 
         // Configure Global Exception Handler
-        services.AddExceptionHandler<ServerEye.API.Middleware.GlobalExceptionHandler>();
+        services.AddExceptionHandler<Middleware.GlobalExceptionHandler>();
         services.AddProblemDetails();
 
         return services;

@@ -15,10 +15,10 @@ public static class CachingSetup
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var redisSettings = configuration.GetSection("RedisSettings").Get<RedisSettings>() 
+        var redisSettings = configuration.GetSection("RedisSettings").Get<RedisSettings>()
             ?? new RedisSettings();
 
-        var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>() 
+        var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>()
             ?? new CacheSettings();
 
         var connectionString = configuration["REDIS_CONNECTION_STRING"]

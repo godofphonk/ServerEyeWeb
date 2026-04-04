@@ -1,5 +1,6 @@
 namespace ServerEye.Core.Services.OAuth.Providers;
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -9,11 +10,10 @@ using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
-using System.Diagnostics;
 
 public sealed class GoogleOAuthProvider(
     OAuthSettings oauthSettings,
-    ILogger<GoogleOAuthProvider> logger) 
+    ILogger<GoogleOAuthProvider> logger)
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
     public override OAuthProvider ProviderType => OAuthProvider.Google;
@@ -30,7 +30,7 @@ public sealed class GoogleOAuthProvider(
     {
         using var activity = OAuthActivitySource.StartCreateChallengeActivity("Google", null, returnUrl);
         var startTime = DateTime.UtcNow;
-        
+
         Logger.LogInformation(
             "CreateGoogleChallengeAsync called - State: {State}, CodeChallenge: {CodeChallenge}, ReturnUrl: {ReturnUrl}",
             state,
@@ -60,7 +60,7 @@ public sealed class GoogleOAuthProvider(
             }
 
             Logger.LogInformation("Created Google OAuth challenge URL: {Url}", url[..Math.Min(url.Length, 100)] + "...");
-            
+
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             activity?.SetTag(OAuthActivitySource.StateAttribute, state);
             activity?.SetTag(OAuthActivitySource.CodeVerifierAttribute, codeChallenge[..Math.Min(codeChallenge.Length, 10)] + "...");
@@ -86,7 +86,7 @@ public sealed class GoogleOAuthProvider(
     {
         using var activity = OAuthActivitySource.StartGetUserInfoActivity("Google", accessToken);
         var startTime = DateTime.UtcNow;
-        
+
         Logger.LogInformation(
             "GetGoogleUserInfoAsync called - AccessToken: {AccessToken}, IdToken: {IdToken}",
             accessToken[..Math.Min(accessToken.Length, 20)] + "...",
@@ -95,12 +95,12 @@ public sealed class GoogleOAuthProvider(
         try
         {
             OAuthUserInfoDto userInfo;
-            
+
             // If we have an ID token, decode it first
             if (!string.IsNullOrEmpty(idToken))
             {
                 Logger.LogInformation("Decoding user info from ID token");
-                
+
                 // This is a simplified implementation - in production, you should validate the token signature
                 var parts = idToken.Split('.');
                 if (parts.Length > 1)
@@ -118,18 +118,18 @@ public sealed class GoogleOAuthProvider(
                         EmailVerified = bool.TryParse(tokenData.GetValueOrDefault("email_verified")?.ToString(), out var verified) && verified,
                         RawData = tokenData
                     };
-                    
+
                     activity?.SetTag(OAuthActivitySource.ExternalIdAttribute, userInfo.Id);
                     activity?.SetTag(OAuthActivitySource.EmailAttribute, userInfo.Email);
                     activity?.SetSuccess();
-                    
+
                     return userInfo;
                 }
             }
 
             // Fallback to API call
             Logger.LogInformation("Fetching user info from Google API");
-            
+
             using var httpClient = new HttpClient();
             var response = await httpClient.GetAsync(new Uri($"https://www.googleapis.com/oauth2/v2/userinfo?access_token={accessToken}"), cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -148,12 +148,12 @@ public sealed class GoogleOAuthProvider(
                 EmailVerified = bool.TryParse(userData.GetValueOrDefault("verified_email")?.ToString(), out var emailVerified) && emailVerified,
                 RawData = userData
             };
-            
+
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             activity?.SetTag(OAuthActivitySource.ExternalIdAttribute, userInfo.Id);
             activity?.SetTag(OAuthActivitySource.EmailAttribute, userInfo.Email);
             activity?.SetSuccess();
-            
+
             return userInfo;
         }
         catch (Exception ex)
@@ -168,7 +168,7 @@ public sealed class GoogleOAuthProvider(
     {
         using var activity = OAuthActivitySource.StartExchangeCodeActivity("Google", code[..Math.Min(code.Length, 10)] + "...");
         var startTime = DateTime.UtcNow;
-        
+
         using var httpClient = new HttpClient();
         var settings = Settings.Google;
         var tokenEndpoint = "https://oauth2.googleapis.com/token";
@@ -236,7 +236,7 @@ public sealed class GoogleOAuthProvider(
 
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
             activity?.SetSuccess();
-            
+
             return tokenResponse;
         }
         catch (Exception ex)

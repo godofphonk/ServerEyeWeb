@@ -86,15 +86,15 @@ public sealed class ServerEyeDbContext : DbContext
         {
             // Index for token validation (GetByTokenAsync)
             entity.HasIndex(r => new { r.Token, r.IsRevoked, r.ExpiresAt });
-            
+
             // Index for user's active tokens (GetByUserIdAsync, RevokeAllUserTokensAsync)
             entity.HasIndex(r => new { r.UserId, r.IsRevoked, r.ExpiresAt });
-            
+
             // Additional indexes for common queries
             entity.HasIndex(r => r.UserId);
             entity.HasIndex(r => r.ExpiresAt);
             entity.HasIndex(r => r.IsRevoked);
-            
+
             entity.HasOne(r => r.User)
                 .WithMany()
                 .HasForeignKey(r => r.UserId)
@@ -107,16 +107,16 @@ public sealed class ServerEyeDbContext : DbContext
             // Unique index for provider + provider user id
             entity.HasIndex(el => new { el.Provider, el.ProviderUserId })
                 .IsUnique();
-            
+
             // Index for user's external logins
             entity.HasIndex(el => el.UserId);
-            
+
             // Index for provider-specific queries
             entity.HasIndex(el => el.Provider);
-            
+
             entity.Property(el => el.Provider)
                 .HasConversion<int>();
-            
+
             entity.HasOne(el => el.User)
                 .WithMany(u => u.ExternalLogins)
                 .HasForeignKey(el => el.UserId)
@@ -129,7 +129,7 @@ public sealed class ServerEyeDbContext : DbContext
         // Remove dangerous SQL logging to console
         // SQL queries should be logged through proper logging infrastructure only in development
         // optionsBuilder?.LogTo(Console.WriteLine); // REMOVED FOR SECURITY
-        
+
         // Note: PostgreSQL metrics interceptor is now handled through OpenTelemetry EF Core instrumentation
         // No manual interceptor needed as we rely on automatic instrumentation
     }

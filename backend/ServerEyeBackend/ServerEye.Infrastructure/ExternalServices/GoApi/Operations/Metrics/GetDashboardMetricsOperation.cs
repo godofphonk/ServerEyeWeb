@@ -7,7 +7,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get dashboard metrics (last 5 minutes) for a server.
 /// </summary>
 public class GetDashboardMetricsOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverId) : MetricsOperation(httpHandler, logger)
 {

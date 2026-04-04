@@ -252,7 +252,7 @@ public sealed class TicketService : ITicketService
 
     public async Task DeleteTicketAsync(Guid ticketId)
     {
-        var ticket = await this.ticketRepository.GetByIdAsync(ticketId) 
+        var ticket = await this.ticketRepository.GetByIdAsync(ticketId)
             ?? throw new InvalidOperationException($"Ticket with ID {ticketId} not found");
 
         this.logger.LogInformation("Deleting ticket {TicketNumber}", ticket.TicketNumber);

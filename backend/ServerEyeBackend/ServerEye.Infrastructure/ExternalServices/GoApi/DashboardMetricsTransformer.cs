@@ -34,7 +34,7 @@ public static class DashboardMetricsTransformer
     private static CurrentMetrics GetCurrentMetrics(RawMetricsResponse rawResponse)
     {
         var latestPoint = rawResponse.DataPoints?.LastOrDefault();
-        
+
         if (latestPoint != null)
         {
             return new CurrentMetrics
@@ -45,13 +45,13 @@ public static class DashboardMetricsTransformer
                 Network = latestPoint.NetworkAvg,
                 Temperature = latestPoint.TempAvg,
                 Load = latestPoint.LoadAvg,
-                
+
                 // Extract memory details from data point
                 MemoryCache = latestPoint.MemoryCacheGb,
                 MemoryBuffers = latestPoint.MemoryBuffersGb,
                 MemoryAvailable = latestPoint.MemoryAvailableGb,
                 MemorySwap = latestPoint.MemorySwapPercent,
-                
+
                 // Extract disk I/O metrics from data point
                 DiskReadSpeed = latestPoint.DiskReadMb,
                 DiskWriteSpeed = latestPoint.DiskWriteMb
@@ -67,13 +67,13 @@ public static class DashboardMetricsTransformer
             Network = 0,
             Temperature = rawResponse.TemperatureDetails?.CpuTemperature ?? 0,
             Load = 0,
-            
+
             // Memory details fallback to zeros
             MemoryCache = 0,
             MemoryBuffers = 0,
             MemoryAvailable = 0,
             MemorySwap = 0,
-            
+
             // Disk I/O metrics fallback to zeros
             DiskReadSpeed = 0,
             DiskWriteSpeed = 0
@@ -86,7 +86,7 @@ public static class DashboardMetricsTransformer
     private static MetricTrends CalculateTrends(RawMetricsResponse rawResponse)
     {
         var dataPoints = rawResponse.DataPoints?.ToList() ?? new List<GoApiDataPoint>();
-        
+
         if (dataPoints.Count < 2)
         {
             return new MetricTrends(); // No trend data
@@ -115,7 +115,7 @@ public static class DashboardMetricsTransformer
         {
             return 0;
         }
-        
+
         var change = newValue - oldValue;
         return Math.Round(change / oldValue * 100, 2);
     }

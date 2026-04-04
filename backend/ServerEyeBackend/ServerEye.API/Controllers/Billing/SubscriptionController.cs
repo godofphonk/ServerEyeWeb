@@ -1,10 +1,10 @@
 namespace ServerEye.API.Controllers.Billing;
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Interfaces.Services.Billing;
-using System.Security.Claims;
 
 [Authorize]
 [ApiController]

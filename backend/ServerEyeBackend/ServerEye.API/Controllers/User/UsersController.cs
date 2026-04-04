@@ -24,15 +24,15 @@ public class UsersController(IUserService userService, IAuthService authService,
     private readonly ILogger<UsersController> logger = logger;
 
     [HttpGet]
-    public async Task<ActionResult<List<ServerEye.Core.DTOs.UserDto.UserData>>> GetAllUsersAsync()
+    public async Task<ActionResult<List<UserData>>> GetAllUsersAsync()
     {
         return await ExecuteWithErrorHandling(userService.GetAllUsersAsync);
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.UserDto.UserData>> GetCurrentUser()
+    public async Task<ActionResult<UserData>> GetCurrentUser()
     {
-        return await ExecuteWithErrorHandling(async () => 
+        return await ExecuteWithErrorHandling(async () =>
         {
             var userId = GetUserId();
             var user = await userService.GetUserByIdAsync(userId);
@@ -41,13 +41,13 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.UserDto.UserData>> GetUserByIdAsync(Guid id)
+    public async Task<ActionResult<UserData>> GetUserByIdAsync(Guid id)
     {
         return await ExecuteWithErrorHandling(async () => await userService.GetUserByIdAsync(id) ?? throw new KeyNotFoundException("User not found"));
     }
 
     [HttpGet("by-email/{email}")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.UserDto.UserData>> GetUserByEmailAsync(string email)
+    public async Task<ActionResult<UserData>> GetUserByEmailAsync(string email)
     {
         return await ExecuteWithErrorHandling(async () => await userService.GetUserByEmailAsync(email) ?? throw new KeyNotFoundException("User not found"));
     }
@@ -55,7 +55,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     [HttpPost("register")]
     [AllowAnonymous]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.Auth.AuthResponseDto>> CreateUser([FromBody] UserRegisterDto userRegisterDto)
+    public async Task<ActionResult<AuthResponseDto>> CreateUser([FromBody] UserRegisterDto userRegisterDto)
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
@@ -84,7 +84,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     [HttpPost("login")]
     [AllowAnonymous]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.Auth.AuthResponseDto>> LoginUser([FromBody] UserLoginDto userLoginDto)
+    public async Task<ActionResult<AuthResponseDto>> LoginUser([FromBody] UserLoginDto userLoginDto)
     {
         ArgumentNullException.ThrowIfNull(userLoginDto);
 
@@ -105,7 +105,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     [HttpPost("verify-email")]
     public async Task<ActionResult<object>> VerifyEmail([FromBody] VerifyEmailDto request)
     {
-        return await ExecuteWithErrorHandling(async () => 
+        return await ExecuteWithErrorHandling(async () =>
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -123,7 +123,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<ServerEye.Core.DTOs.UserDto.UserData>> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto)
+    public async Task<ActionResult<UserData>> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto)
     {
         ArgumentNullException.ThrowIfNull(userUpdateDto);
 
@@ -139,7 +139,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     [HttpPost("create-admin")]
     public async Task<ActionResult<object>> CreateAdminUser()
     {
-        return await ExecuteWithErrorHandling(async () => 
+        return await ExecuteWithErrorHandling(async () =>
         {
             var adminDto = new UserRegisterDto
             {
@@ -149,11 +149,11 @@ public class UsersController(IUserService userService, IAuthService authService,
             };
 
             var result = await userService.CreateUserAsync(adminDto);
-            
+
             // Обновляем роль на Admin в базе данных
             // Это временный solution - в production лучше сделать через миграцию
             this.logger.LogInformation("Admin user created successfully with email: {Email}", "admin@servereye.dev");
-            
+
             return new { message = "Admin user created successfully", email = "admin@servereye.dev", password = "admin123" };
         });
     }
@@ -161,7 +161,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     [HttpDelete]
     public async Task<ActionResult<bool>> DeleteUser(Guid id)
     {
-        return await ExecuteWithErrorHandling(async () => 
+        return await ExecuteWithErrorHandling(async () =>
         {
             await userService.DeleteUserAsync(id);
             return true;

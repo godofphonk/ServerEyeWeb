@@ -18,16 +18,16 @@ public class GoApiSourceIdentifiersRequest
 {
     [JsonPropertyName("source_type")]
     public string SourceType { get; init; } = string.Empty;
-    
+
     [JsonPropertyName("identifiers")]
     public List<string> Identifiers { get; init; } = new();
-    
+
     [JsonPropertyName("identifier_type")]
     public string IdentifierType { get; init; } = string.Empty;
-    
+
     [JsonPropertyName("metadata")]
     public Dictionary<string, object>? Metadata { get; init; }
-    
+
     [JsonPropertyName("telegram_id")]
     public long? TelegramId { get; init; }
 }

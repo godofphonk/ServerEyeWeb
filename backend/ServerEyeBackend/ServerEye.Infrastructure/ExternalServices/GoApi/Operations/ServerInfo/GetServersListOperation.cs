@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to get list of all servers.
 /// </summary>
 public class GetServersListOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger) : GoApiOperation<List<GoApiServerInfo>?>(httpHandler, logger)
 {
     protected override Uri BuildUrl()

@@ -28,7 +28,7 @@ public class CspMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
-        
+
         if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase) ||
             environment.Equals("Docker", StringComparison.OrdinalIgnoreCase))
         {
@@ -39,7 +39,7 @@ public class CspMiddleware
                      "style-src 'self' 'unsafe-inline' " +
                      "img-src 'self' data: blob: " +
                      "font-src 'self' data:";
-            
+
             context.Response.Headers.ContentSecurityPolicy = csp;
         }
         else
@@ -51,7 +51,7 @@ public class CspMiddleware
                      "style-src 'self' 'unsafe-inline'; " +
                      "img-src 'self' data: blob:; " +
                      "font-src 'self' data:;";
-            
+
             context.Response.Headers.ContentSecurityPolicy = csp;
         }
 

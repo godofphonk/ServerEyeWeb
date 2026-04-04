@@ -46,7 +46,7 @@ public sealed class NotificationService(INotificationRepository notificationRepo
     public async Task CreateNotificationAsync(Guid userId, NotificationType type, string title, string message, Guid? ticketId = null)
     {
         this.logger.LogInformation("Creating notification for user: {UserId}, type: {Type}, title: {Title}", userId, type, title);
-        
+
         var notification = new Notification
         {
             Id = Guid.NewGuid(),
@@ -60,7 +60,7 @@ public sealed class NotificationService(INotificationRepository notificationRepo
         };
 
         await this.notificationRepository.AddAsync(notification);
-        
+
         this.logger.LogInformation("Notification created successfully: {NotificationId}", notification.Id);
     }
 

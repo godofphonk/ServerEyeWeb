@@ -2,15 +2,15 @@
 
 namespace ServerEye.Core.Services;
 
-using Microsoft.IdentityModel.Tokens;
-using ServerEye.Core.Entities;
-using ServerEye.Core.Interfaces.Services;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using ServerEye.Core.Entities;
+using ServerEye.Core.Interfaces.Services;
 
 public class JwtSettings
 {
@@ -89,7 +89,7 @@ public sealed class JwtService : IJwtService
             10uo6TwyxXGiUOGV3EJYUg==
             -----END PRIVATE KEY-----
             """;
-        
+
         try
         {
             var rsa = RSA.Create();
@@ -109,7 +109,7 @@ public sealed class JwtService : IJwtService
         {
             var keyBytes = Convert.FromBase64String(base64Key);
             var rsa = RSA.Create();
-            
+
             // Try to import as private key first
             try
             {

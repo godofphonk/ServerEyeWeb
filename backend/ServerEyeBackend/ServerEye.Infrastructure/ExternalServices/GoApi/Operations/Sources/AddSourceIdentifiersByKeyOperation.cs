@@ -8,7 +8,7 @@ using ServerEye.Infrastructure.ExternalServices.GoApi.Operations.Base;
 /// Operation to add server source identifiers by server key.
 /// </summary>
 public class AddSourceIdentifiersByKeyOperation(
-    GoApiHttpHandler httpHandler, 
+    GoApiHttpHandler httpHandler,
     GoApiLogger logger,
     string serverKey,
     GoApiSourceIdentifiersRequest request) : GoApiOperation<GoApiSourceIdentifiersResponse?>(httpHandler, logger)

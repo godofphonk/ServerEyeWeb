@@ -66,7 +66,7 @@ public static class DatabaseSetup
             logger.LogInformation("Ensuring database exists...");
             await serverEyeContext.Database.EnsureCreatedAsync();
             logger.LogInformation("Database ensured successfully");
-            
+
             // Billing plans are now hardcoded in SubscriptionService, no DB needed
         }
         catch (Exception ex)

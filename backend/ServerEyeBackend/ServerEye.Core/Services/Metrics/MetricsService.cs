@@ -28,7 +28,7 @@ public class MetricsService : IMetricsService
         this.logger = logger;
     }
 
-    #pragma warning disable SA1204 // Static members should appear before non-static members
+#pragma warning disable SA1204 // Static members should appear before non-static members
 #pragma warning disable SA1202 // 'public' members should come before 'private' members
     private static MetricsSummary CalculateSummary(List<GoApiDataPoint> dataPoints)
 #pragma warning restore SA1202 // 'public' members should come before 'private' members
@@ -54,7 +54,7 @@ public class MetricsService : IMetricsService
         };
     }
 
-    #pragma warning disable SA1202 // 'public' members should come before 'private' members
+#pragma warning disable SA1202 // 'public' members should come before 'private' members
     public async Task<RawMetricsResponse> GetTieredMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime, string? granularity = null)
 #pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
@@ -70,7 +70,7 @@ public class MetricsService : IMetricsService
             // Validate server key and get server info for access check
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
             var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
-            #pragma warning disable IDE0270 // Simplify null check
+#pragma warning disable IDE0270 // Simplify null check
             if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
             {
@@ -95,20 +95,20 @@ public class MetricsService : IMetricsService
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
                     var goResponse = await this.goApiClient.GetTieredMetricsByKeyAsync(serverKey, start, endTime, granularity);
                     goApiTime.Stop();
-                    
+
                     if (goResponse == null)
                     {
                         this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
                         throw new InvalidOperationException("Failed to retrieve tiered metrics from Go API");
                     }
-                    
+
                     if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
                     {
                         this.logger.LogWarning("[PERF] Go API returned empty tiered data after {Ms}ms", goApiTime.ElapsedMilliseconds);
                     }
-                    
+
                     this.logger.LogInformation("[PERF] Go API tiered response received in {GoApiMs}ms with {Points} data points", goApiTime.ElapsedMilliseconds, goResponse.DataPoints?.Count ?? 0);
-                    
+
                     // Return raw Go API response
                     var rawResponse = new RawMetricsResponse
                     {
@@ -128,7 +128,7 @@ public class MetricsService : IMetricsService
                         IsCached = false,
                         CachedAt = null
                     };
-                    
+
                     return rawResponse;
                 },
                 ttl);
@@ -166,7 +166,7 @@ public class MetricsService : IMetricsService
         }
     }
 
-    #pragma warning disable SA1202 // 'public' members should come before 'private' members
+#pragma warning disable SA1202 // 'public' members should come before 'private' members
     public async Task<RawMetricsResponse> GetMetricsByKeyAsync(Guid userId, string serverKey, DateTime start, DateTime endTime, string? granularity = null)
 #pragma warning restore SA1202 // 'public' members should come before 'private' members
     {
@@ -183,7 +183,7 @@ public class MetricsService : IMetricsService
             // Validate server key and get server info for access check
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
             var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
-            #pragma warning disable IDE0270 // Simplify null check
+#pragma warning disable IDE0270 // Simplify null check
             if (serverInfo is null)
 #pragma warning restore IDE0270 // Simplify null check
             {
@@ -208,18 +208,18 @@ public class MetricsService : IMetricsService
                     var goApiTime = System.Diagnostics.Stopwatch.StartNew();
                     var goResponse = await this.goApiClient.GetMetricsByKeyAsync(serverKey, start, endTime, granularity);
                     goApiTime.Stop();
-                    
+
                     if (goResponse == null)
                     {
                         this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
                         throw new InvalidOperationException("Failed to retrieve metrics from Go API");
                     }
-                    
+
                     if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
                     {
                         this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
                     }
-                    
+
                     // Return raw Go API response without mapping
                     var rawResponse = new RawMetricsResponse
                     {
@@ -239,7 +239,7 @@ public class MetricsService : IMetricsService
                         IsCached = false,
                         CachedAt = null
                     };
-                    
+
                     return rawResponse;
                 },
                 ttl);
@@ -319,18 +319,18 @@ public class MetricsService : IMetricsService
                 var goApiTime = System.Diagnostics.Stopwatch.StartNew();
                 var goResponse = await this.goApiClient.GetMetricsByKeyAsync(server.ServerKey, start!.Value, endTime!.Value, granularity);
                 goApiTime.Stop();
-                
+
                 if (goResponse == null)
                 {
                     this.logger.LogWarning("[PERF] Go API returned null after {Ms}ms", goApiTime.ElapsedMilliseconds);
                     throw new InvalidOperationException("Failed to retrieve metrics from Go API");
                 }
-                
+
                 if (goResponse.DataPoints == null || goResponse.DataPoints.Count == 0)
                 {
                     this.logger.LogWarning("[PERF] Go API returned empty data after {Ms}ms - caching with short TTL", goApiTime.ElapsedMilliseconds);
                 }
-                
+
                 // Return raw Go API response without mapping
                 var rawResponse = new RawMetricsResponse
                 {
@@ -350,7 +350,7 @@ public class MetricsService : IMetricsService
                     IsCached = false,
                     CachedAt = null
                 };
-                
+
                 return rawResponse;
             },
             ttl);

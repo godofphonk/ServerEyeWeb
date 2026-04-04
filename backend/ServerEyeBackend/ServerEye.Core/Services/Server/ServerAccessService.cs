@@ -66,9 +66,9 @@ public class ServerAccessService(
     public async Task<ServerResponse> AddServerAsync(Guid userId, string serverKey)
     {
         logger.LogInformation("User {UserId} attempting to add server with key", userId);
-        
+
         var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey) ?? throw new InvalidOperationException("Invalid server key");
-        
+
         logger.LogInformation("Server key validated successfully: {ServerId}", serverInfo.ServerId);
 
         // Get telegram_id if user has Telegram OAuth linked
@@ -224,7 +224,7 @@ public class ServerAccessService(
     public async Task RemoveServerAsync(Guid userId, string serverId)
     {
         logger.LogInformation("User {UserId} attempting to remove server {ServerId}", userId, serverId);
-        
+
         var hasAccess = await accessRepository.HasAccessAsync(userId, serverId);
         if (!hasAccess)
         {
@@ -245,8 +245,8 @@ public class ServerAccessService(
         string decryptedKey;
         try
         {
-            decryptedKey = string.IsNullOrEmpty(server.ServerKey) 
-                ? string.Empty 
+            decryptedKey = string.IsNullOrEmpty(server.ServerKey)
+                ? string.Empty
                 : encryptionService.Decrypt(server.ServerKey);
         }
         catch (System.Security.Cryptography.CryptographicException)
@@ -267,14 +267,14 @@ public class ServerAccessService(
         try
         {
             logger.LogInformation("Removing user {UserId} identifier from Web source of server {ServerKey}", userId, decryptedKey);
-            
+
             var request = new GoApiDeleteSourceIdentifiersRequest
             {
                 Identifiers = new List<string> { userId.ToString() }
             };
 
             var result = await goApiClient.DeleteServerSourceIdentifiersByTypeAsync(decryptedKey, "Web", request);
-            
+
             if (result != null)
             {
                 logger.LogInformation("Successfully removed user identifier from Go API for server {ServerKey}", decryptedKey);
@@ -299,7 +299,7 @@ public class ServerAccessService(
     public async Task ShareServerAsync(Guid ownerId, string serverId, string targetUserEmail, AccessLevel level)
     {
         logger.LogInformation("User {OwnerId} attempting to share server {ServerId} with {TargetEmail} at level {AccessLevel}", ownerId, serverId, targetUserEmail, level);
-        
+
         var ownerAccessLevel = await accessRepository.GetAccessLevelAsync(ownerId, serverId);
         if (ownerAccessLevel != AccessLevel.Owner)
         {

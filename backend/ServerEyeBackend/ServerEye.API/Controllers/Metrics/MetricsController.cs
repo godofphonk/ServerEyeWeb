@@ -1,7 +1,7 @@
 namespace ServerEye.API.Controllers;
 
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs;
 

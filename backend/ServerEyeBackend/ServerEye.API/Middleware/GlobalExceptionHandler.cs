@@ -1,8 +1,8 @@
 namespace ServerEye.API.Middleware;
 
+using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {

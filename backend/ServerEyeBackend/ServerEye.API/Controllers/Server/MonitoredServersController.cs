@@ -1,11 +1,11 @@
 namespace ServerEye.API.Controllers;
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Services;
-using System.Security.Claims;
 
 [Authorize]
 [ApiController]
@@ -64,7 +64,7 @@ public class MonitoredServersController : ControllerBase
         try
         {
             var userId = this.GetUserId();
-            
+
             // Check if it's a UUID (new format) or serverId (old format)
             if (Guid.TryParse(serverId, out var serverGuid))
             {
@@ -82,7 +82,7 @@ public class MonitoredServersController : ControllerBase
                 // It's a serverId string
                 await this.serverAccessService.RemoveServerAsync(userId, serverId);
             }
-            
+
             return this.NoContent();
         }
         catch (UnauthorizedAccessException ex)

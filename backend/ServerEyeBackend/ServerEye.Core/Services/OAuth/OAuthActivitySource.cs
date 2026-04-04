@@ -42,18 +42,18 @@ public static class OAuthActivitySource
         if (activity != null)
         {
             activity.SetTag(ProviderAttribute, provider);
-            
+
             if (!string.IsNullOrEmpty(action))
             {
                 activity.SetTag(ActionAttribute, action);
             }
-            
+
             if (returnUrl != null)
             {
                 activity.SetTag(ReturnUrlAttribute, returnUrl.ToString());
             }
         }
-        
+
         return activity;
     }
 
@@ -68,7 +68,7 @@ public static class OAuthActivitySource
             activity.SetTag(ProviderAttribute, provider);
             activity.SetTag(StateAttribute, state);
         }
-        
+
         return activity;
     }
 
@@ -81,11 +81,11 @@ public static class OAuthActivitySource
         if (activity != null)
         {
             activity.SetTag(ProviderAttribute, provider);
-            
+
             // Don't log full access token for security
             activity.SetTag("oauth.access_token_length", accessToken?.Length ?? 0);
         }
-        
+
         return activity;
     }
 
@@ -98,11 +98,11 @@ public static class OAuthActivitySource
         if (activity != null)
         {
             activity.SetTag(ProviderAttribute, provider);
-            
+
             // Don't log full access token for security
             activity.SetTag("oauth.access_token_length", accessToken?.Length ?? 0);
         }
-        
+
         return activity;
     }
 
@@ -115,18 +115,18 @@ public static class OAuthActivitySource
         if (activity != null)
         {
             activity.SetTag(ProviderAttribute, provider);
-            
+
             if (!string.IsNullOrEmpty(ipAddress))
             {
                 activity.SetTag(IpAddressAttribute, ipAddress);
             }
-            
+
             if (!string.IsNullOrEmpty(userAgent))
             {
                 activity.SetTag(UserAgentAttribute, userAgent);
             }
         }
-        
+
         return activity;
     }
 
@@ -140,18 +140,18 @@ public static class OAuthActivitySource
         {
             activity.SetTag(ProviderAttribute, provider);
             activity.SetTag(UserIdAttribute, userId.ToString());
-            
+
             if (!string.IsNullOrEmpty(ipAddress))
             {
                 activity.SetTag(IpAddressAttribute, ipAddress);
             }
-            
+
             if (!string.IsNullOrEmpty(userAgent))
             {
                 activity.SetTag(UserAgentAttribute, userAgent);
             }
         }
-        
+
         return activity;
     }
 
@@ -161,17 +161,17 @@ public static class OAuthActivitySource
     public static void SetSuccess(this Activity activity, string? userId = null, string? email = null, string? externalId = null)
     {
         activity.SetStatus(ActivityStatusCode.Ok);
-        
+
         if (!string.IsNullOrEmpty(userId))
         {
             activity.SetTag(UserIdAttribute, userId);
         }
-        
+
         if (!string.IsNullOrEmpty(email))
         {
             activity.SetTag(EmailAttribute, email);
         }
-        
+
         if (!string.IsNullOrEmpty(externalId))
         {
             activity.SetTag(ExternalIdAttribute, externalId);
@@ -185,17 +185,17 @@ public static class OAuthActivitySource
     {
         activity.SetStatus(ActivityStatusCode.Error, errorMessage);
         activity.SetTag(ErrorTypeAttribute, errorType);
-        
+
         if (!string.IsNullOrEmpty(errorMessage))
         {
             activity.SetTag(ErrorMessageAttribute, errorMessage);
         }
-        
+
         if (exception != null)
         {
             activity.SetTag("exception.type", exception.GetType().Name);
             activity.SetTag("exception.message", exception.Message);
-            
+
             // Add exception as event instead of RecordException
             var exceptionTags = new ActivityTagsCollection
             {
@@ -213,12 +213,12 @@ public static class OAuthActivitySource
     public static void SetLinkingContext(this Activity activity, string linkingAction, string? linkingProvider = null, string? linkingUserId = null)
     {
         activity.SetTag(LinkingActionAttribute, linkingAction);
-        
+
         if (!string.IsNullOrEmpty(linkingProvider))
         {
             activity.SetTag("oauth.linking_provider", linkingProvider);
         }
-        
+
         if (!string.IsNullOrEmpty(linkingUserId))
         {
             activity.SetTag("oauth.linking_user_id", linkingUserId);

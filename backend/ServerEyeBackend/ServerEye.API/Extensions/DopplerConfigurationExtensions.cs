@@ -1,6 +1,6 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 #pragma warning disable SA1629 // Documentation text should end with a period
 #pragma warning disable SA1512 // Single-line comments should not be followed by blank line
@@ -57,7 +57,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
         try
         {
             var secrets = GetDopplerSecretsAsync().GetAwaiter().GetResult();
-            
+
             if (secrets != null)
             {
                 foreach (var secret in secrets)
@@ -88,7 +88,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
 
             var url = $"https://api.doppler.com/v3/configs/config/secrets/list?project={_project}&config={_config}";
-            
+
             var response = await httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
@@ -99,7 +99,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
 
             var json = await response.Content.ReadAsStringAsync();
             var dopplerResponse = JsonSerializer.Deserialize<DopplerSecretsResponse>(json);
-            
+
             if (dopplerResponse?.Secrets == null)
             {
                 _logger?.LogWarning("No secrets found in Doppler response");
@@ -129,7 +129,7 @@ public class DopplerConfigurationProvider : ConfigurationProvider
     {
         // Convert JWT_SECRET_KEY to JwtSettings:SecretKey
         // Convert DATABASE_CONNECTION_STRING to ConnectionStrings:Database
-        
+
         var replacements = new Dictionary<string, string>
         {
             ["JWT_"] = "JwtSettings:",
@@ -163,8 +163,8 @@ public class DopplerConfigurationProvider : ConfigurationProvider
             // Special handling for OAuth:Telegram* - keep BotId, BotToken as is
             return key;
         }
-        
-        key = string.Join("", key.Split('_', ':').Select(part => 
+
+        key = string.Join("", key.Split('_', ':').Select(part =>
             char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
 
         return key;
