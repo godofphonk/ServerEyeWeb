@@ -66,7 +66,7 @@ jobs:
 
       - name: TypeScript type check
         working-directory: frontend
-        run: npm run type-check
+        run: npm run type-check:next
 
       - name: Check for circular dependencies
         working-directory: frontend
@@ -174,7 +174,7 @@ jobs:
 
       - name: Build application
         working-directory: frontend
-        run: npm run build
+        run: npm run build:next
         env:
           NODE_ENV: production
 
@@ -225,7 +225,7 @@ jobs:
 
       - name: Build application
         working-directory: frontend
-        run: npm run build
+        run: npm run build:next
         env:
           NODE_ENV: production
 
@@ -233,7 +233,7 @@ jobs:
         working-directory: frontend
         run: |
           npm install -g @lhci/cli
-          npm run start &
+          npm run start:next &
           sleep 10
           lhci autorun --config=.lighthouserc.json || true
         env:
@@ -321,7 +321,7 @@ jobs:
 
       - name: Build application
         working-directory: frontend
-        run: npm run build
+        run: npm run build:next
         env:
           NODE_ENV: production
           ANALYZE: true
@@ -412,12 +412,12 @@ jobs:
 
       - name: Build application
         working-directory: frontend
-        run: npm run build
+        run: npm run build:next
 
       - name: Run accessibility tests
         working-directory: frontend
         run: |
-          npm run start &
+          npm run start:next &
           sleep 10
           npx -y @axe-core/cli http://localhost:3000 --exit
 

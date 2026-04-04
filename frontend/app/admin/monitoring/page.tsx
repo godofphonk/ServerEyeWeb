@@ -77,7 +77,7 @@ export default function SystemMonitoringPage() {
       };
 
       setStats(mockStats);
-      
+
       // Original commented code - uncomment when backend endpoint is implemented
       /*
       const token = localStorage.getItem('jwt_token');

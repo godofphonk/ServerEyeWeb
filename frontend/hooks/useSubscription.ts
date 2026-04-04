@@ -23,14 +23,16 @@ export function useSubscription() {
         logger.debug('Loading subscription data');
         const sub = await billingApi.getCurrentSubscription();
         setSubscription(sub);
-        const isPremium = sub ? (sub.planType > 0 || sub.planName === 'Pro' || sub.planName === 'Enterprise') : false;
+        const isPremium = sub
+          ? sub.planType > 0 || sub.planName === 'Pro' || sub.planName === 'Enterprise'
+          : false;
         setHasPremium(isPremium);
-        
+
         if (sub) {
-          logger.info('Subscription loaded', { 
-            planType: sub.planType, 
+          logger.info('Subscription loaded', {
+            planType: sub.planType,
             status: sub.status,
-            hasPremium: isPremium 
+            hasPremium: isPremium,
           });
         } else {
           logger.debug('No active subscription found');

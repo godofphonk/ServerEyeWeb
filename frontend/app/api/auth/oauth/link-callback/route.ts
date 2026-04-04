@@ -18,37 +18,33 @@ export async function GET(request: NextRequest) {
   // Handle OAuth errors
   if (error) {
     return NextResponse.redirect(
-      new URL(`${returnUrl}?error=${encodeURIComponent(error)}`, request.url)
+      new URL(`${returnUrl}?error=${encodeURIComponent(error)}`, request.url),
     );
   }
 
   // Validate required parameters
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL(`${returnUrl}?error=missing_parameters`, request.url)
-    );
+    return NextResponse.redirect(new URL(`${returnUrl}?error=missing_parameters`, request.url));
   }
 
   try {
     // Get JWT token from cookies or localStorage
-    const jwtToken = request.cookies.get('jwt_token')?.value || 
-                     request.cookies.get('access_token')?.value;
-    
-    
+    const jwtToken =
+      request.cookies.get('jwt_token')?.value || request.cookies.get('access_token')?.value;
+
     // Forward the callback to the backend as POST (backend expects POST, not GET)
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://backend:80'}/api/auth/oauth/callback`;
-    
-    
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Cookie': request.headers.get('cookie') || '',
+      Cookie: request.headers.get('cookie') || '',
     };
-    
+
     // Add Authorization header if JWT token is available (for linking)
     if (jwtToken && action === 'link') {
       headers['Authorization'] = `Bearer ${jwtToken}`;
     }
-    
+
     const backendResponse = await fetch(backendUrl, {
       method: 'POST',
       headers,
@@ -58,12 +54,9 @@ export async function GET(request: NextRequest) {
       }),
     });
 
-
     if (!backendResponse.ok) {
       const errorText = await backendResponse.text();
-      return NextResponse.redirect(
-        new URL(`${returnUrl}?error=backend_error`, request.url)
-      );
+      return NextResponse.redirect(new URL(`${returnUrl}?error=backend_error`, request.url));
     }
 
     // Get response data to check if account was linked
@@ -71,13 +64,8 @@ export async function GET(request: NextRequest) {
 
     // Backend should set httpOnly cookies and return user data
     // Redirect to return URL on success
-    return NextResponse.redirect(
-      new URL(returnUrl, request.url)
-    );
-
+    return NextResponse.redirect(new URL(returnUrl, request.url));
   } catch (error) {
-    return NextResponse.redirect(
-      new URL(`${returnUrl}?error=callback_exception`, request.url)
-    );
+    return NextResponse.redirect(new URL(`${returnUrl}?error=callback_exception`, request.url));
   }
 }

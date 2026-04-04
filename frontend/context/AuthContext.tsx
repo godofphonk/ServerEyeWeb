@@ -15,7 +15,7 @@ import {
   OAuthChallengeResponse,
   ExternalLoginsResponse,
   LinkOAuthRequest,
-  ExternalLogin
+  ExternalLogin,
 } from '@/types';
 import { apiClient } from '@/lib/api';
 import { logger } from '@/lib/telemetry/logger';
@@ -32,7 +32,11 @@ interface AuthContextType {
   refreshToken: () => Promise<void>;
   loginWithOAuth: (provider: string, code: string, state: string) => Promise<void>;
   getOAuthURL: (provider: string, action?: string) => Promise<string>;
-  getOAuthChallenge: (provider: string, returnUrl?: string, action?: string) => Promise<OAuthChallengeResponse>;
+  getOAuthChallenge: (
+    provider: string,
+    returnUrl?: string,
+    action?: string,
+  ) => Promise<OAuthChallengeResponse>;
   getExternalLogins: () => Promise<ExternalLoginsResponse>;
   linkExternalAccount: (provider: string, code: string, state: string) => Promise<void>;
   unlinkExternalAccount: (provider: string) => Promise<void>;
@@ -78,30 +82,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       logger.debug('Checking authentication status');
       setLoading(true);
-      
+
       // First check if we have tokens in localStorage (from OAuth callback)
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
-        
+
         if (token && !user) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            
+
             const userId = payload.sub || payload.nameid || payload.userId || payload.id;
             const email = payload.email || payload.Email || '';
-            const username = payload.username || payload.UserName || payload.name || payload.unique_name || email.split('@')[0] || 'user';
+            const username =
+              payload.username ||
+              payload.UserName ||
+              payload.name ||
+              payload.unique_name ||
+              email.split('@')[0] ||
+              'user';
             const role = payload.role || payload.Role || 'user';
             // OAuth пользователи обычно не имеют email или email пустой
-            const isOAuthUser = !email || email.trim() === '' || email.includes('telegram.local') || email.includes('@oauth.');
+            const isOAuthUser =
+              !email ||
+              email.trim() === '' ||
+              email.includes('telegram.local') ||
+              email.includes('@oauth.');
             const hasPassword = payload.hasPassword ?? payload.HasPassword ?? !isOAuthUser;
-            
-            
+
             // Clear OAuth tokens from localStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
               clearAuthData();
               throw new Error('OAuth token detected, clearing and using session API');
             }
-            
+
             if (userId) {
               const localStorageUser: User = {
                 id: userId,
@@ -109,26 +122,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 username: username || email.split('@')[0] || 'user',
                 role: role as 'user' | 'admin',
                 createdAt: new Date().toISOString(),
-                isEmailVerified: payload.email_verified === 'TRUE' || payload.email_verified === true,
+                isEmailVerified:
+                  payload.email_verified === 'TRUE' || payload.email_verified === true,
                 hasPassword: hasPassword,
               };
-              
+
               setUserWithLogging(localStorageUser);
               setLoading(false);
               return;
             }
-          } catch (decodeError) {
-          }
+          } catch (decodeError) {}
         }
       }
-      
+
       // Always try session API as fallback or if no user found
-      
+
       const res = await fetch('/api/auth/session', { credentials: 'include' });
-      
+
       if (res.ok) {
         const data = await res.json();
-        
+
         if (data.user) {
           const mappedUser = mapBackendUser(data.user);
           setUserWithLogging(mappedUser);
@@ -144,17 +157,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   localStorage.setItem('jwt_token', tokenData.token);
                 }
               }
-            } catch (error) {
-            }
+            } catch (error) {}
           }
           return;
         }
       } else {
       }
-      
+
       clearAuthData();
     } catch (error) {
-      logger.warn('Authentication check failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+      logger.warn('Authentication check failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       setUserWithLogging(null);
     } finally {
       setLoading(false);
@@ -167,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // Пустые зависимости - вызывается только при монтировании
 
   const login = async (email: string, password: string) => {
-
     const loginUrl = '/api/users/login?t=' + Date.now();
 
     const res = await fetch(loginUrl, {
@@ -182,7 +195,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
-
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
@@ -210,13 +222,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setTokensFromCallback = async (token: string, refreshToken: string) => {
-    
     // Store tokens in localStorage for apiClient
     if (typeof window !== 'undefined') {
       localStorage.setItem('jwt_token', token);
       localStorage.setItem('access_token', token);
       localStorage.setItem('refresh_token', refreshToken);
-      
+
       // Also try to set cookies for backend compatibility
       document.cookie = `access_token=${token}; path=/; max-age=3600; SameSite=Lax`;
       document.cookie = `refresh_token=${refreshToken}; path=/; max-age=604800; SameSite=Lax`;
@@ -225,13 +236,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Decode JWT token to get user info
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      
+
       // Handle different claim formats
       const userId = payload.sub || payload.nameid || payload.userId || payload.id;
       const email = payload.email || payload.Email;
       const username = payload.username || payload.UserName || payload.name || payload.unique_name;
       const role = payload.role || payload.Role || 'user';
-      
+
       // For OAuth users, email can be empty but userId is required
       if (userId) {
         const user: User = {
@@ -243,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isEmailVerified: payload.email_verified === 'TRUE' || payload.email_verified === true,
           hasPassword: false, // OAuth users don't have passwords
         };
-        
+
         setUserWithLogging(user);
         return; // Success, don't try fallback
       } else {
@@ -252,20 +263,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fallback: try to get user data from API
       try {
         const response = await apiClient.get<{ user: BackendUser | null }>('/auth/session');
-      
-      if ((response as any).data.user) {
-        const mappedUser = mapBackendUser((response as any).data.user);
-        logger.info('User authenticated', { userId: mappedUser.id, email: mappedUser.email });
-        setUserWithLogging(mappedUser);
-      } else {
-        logger.debug('No active session found');
-        setUserWithLogging(null);
-      }
-      } catch (fallbackError) {
-        
-      }
+
+        if ((response as any).data.user) {
+          const mappedUser = mapBackendUser((response as any).data.user);
+          logger.info('User authenticated', { userId: mappedUser.id, email: mappedUser.email });
+          setUserWithLogging(mappedUser);
+        } else {
+          logger.debug('No active session found');
+          setUserWithLogging(null);
+        }
+      } catch (fallbackError) {}
     }
-    
+
     // If we get here, both JWT decode and API fallback failed
     ('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
     throw new Error('Failed to authenticate user');
@@ -301,7 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const cookie = c.trim();
         const eqPos = cookie.indexOf('=');
         const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-        
+
         // Clear cookie with all possible combinations
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname};`;
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname};`;
@@ -338,18 +347,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // Убираем зависимость checkAuth
 
   // New OAuth methods using the updated endpoints
-  const getOAuthChallenge = useCallback(async (provider: string, returnUrl?: string, action?: string): Promise<OAuthChallengeResponse> => {
-    const params = new URLSearchParams();
-    if (returnUrl) params.append('returnUrl', returnUrl);
-    if (action) params.append('action', action);
-    
-    const response = await apiClient.get<OAuthChallengeResponse>(
-      `/auth/oauth/${provider}/challenge?${params.toString()}`
-    );
-    
-    
-    return response;
-  }, []);
+  const getOAuthChallenge = useCallback(
+    async (
+      provider: string,
+      returnUrl?: string,
+      action?: string,
+    ): Promise<OAuthChallengeResponse> => {
+      const params = new URLSearchParams();
+      if (returnUrl) params.append('returnUrl', returnUrl);
+      if (action) params.append('action', action);
+
+      const response = await apiClient.get<OAuthChallengeResponse>(
+        `/auth/oauth/${provider}/challenge?${params.toString()}`,
+      );
+
+      return response;
+    },
+    [],
+  );
 
   const getExternalLogins = useCallback(async (): Promise<ExternalLoginsResponse> => {
     const response = await apiClient.get<ExternalLogin[]>('/auth/oauth/providers');
@@ -357,44 +372,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { externalLogins: response };
   }, []);
 
-  const linkExternalAccount = useCallback(async (provider: string, code: string, state: string): Promise<void> => {
-    await apiClient.post<LinkOAuthRequest>('/auth/oauth/link', {
-      provider,
-      code,
-      state,
-    });
-  }, []);
+  const linkExternalAccount = useCallback(
+    async (provider: string, code: string, state: string): Promise<void> => {
+      await apiClient.post<LinkOAuthRequest>('/auth/oauth/link', {
+        provider,
+        code,
+        state,
+      });
+    },
+    [],
+  );
 
   const unlinkExternalAccount = useCallback(async (provider: string): Promise<void> => {
     await apiClient.delete(`/auth/oauth/${provider}`);
   }, []);
 
   // Legacy OAuth methods (updated to use new challenge flow)
-  const getOAuthURL = useCallback(async (provider: string, action?: string): Promise<string> => {
-    const challenge = await getOAuthChallenge(provider, undefined, action);
-    // Store challenge data in sessionStorage for callback handling
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('oauth_state', challenge.state);
-      sessionStorage.setItem('oauth_code_verifier', challenge.codeVerifier);
-      sessionStorage.setItem('oauth_provider', provider);
-      if (action) {
-        sessionStorage.setItem('oauth_action', action);
-        // For Telegram, also store action with provider prefix for special handling
-        if (provider.toLowerCase() === 'telegram') {
-          sessionStorage.setItem('telegram_oauth_action', action);
+  const getOAuthURL = useCallback(
+    async (provider: string, action?: string): Promise<string> => {
+      const challenge = await getOAuthChallenge(provider, undefined, action);
+      // Store challenge data in sessionStorage for callback handling
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('oauth_state', challenge.state);
+        sessionStorage.setItem('oauth_code_verifier', challenge.codeVerifier);
+        sessionStorage.setItem('oauth_provider', provider);
+        if (action) {
+          sessionStorage.setItem('oauth_action', action);
+          // For Telegram, also store action with provider prefix for special handling
+          if (provider.toLowerCase() === 'telegram') {
+            sessionStorage.setItem('telegram_oauth_action', action);
+          }
         }
       }
-    }
-    
-    return challenge.challengeUrl;
-  }, [getOAuthChallenge]);
 
-  const loginWithOAuth = useCallback(async (provider: string, code: string, state: string): Promise<void> => {
-    // This method is now handled by the backend callback endpoint
-    // Frontend just needs to redirect to the OAuth URL
-    const challenge = await getOAuthChallenge(provider);
-    window.location.href = challenge.challengeUrl;
-  }, [getOAuthChallenge]);
+      return challenge.challengeUrl;
+    },
+    [getOAuthChallenge],
+  );
+
+  const loginWithOAuth = useCallback(
+    async (provider: string, code: string, state: string): Promise<void> => {
+      // This method is now handled by the backend callback endpoint
+      // Frontend just needs to redirect to the OAuth URL
+      const challenge = await getOAuthChallenge(provider);
+      window.location.href = challenge.challengeUrl;
+    },
+    [getOAuthChallenge],
+  );
 
   const isEmailVerifiedValue = Boolean(user?.isEmailVerified);
 

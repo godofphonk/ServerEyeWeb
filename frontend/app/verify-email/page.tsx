@@ -25,7 +25,7 @@ export default function VerifyEmailPage() {
     // Проверяем есть ли email в sessionStorage (пользователь пытался войти с неверифицированным email)
     if (typeof window !== 'undefined' && !pendingEmail) {
       const storedEmail = sessionStorage.getItem('pending_verification_email');
-      
+
       if (storedEmail) {
         setPendingEmail(storedEmail);
         // НЕ очищаем sessionStorage сразу - пусть будет для следующих рендеров
@@ -84,16 +84,15 @@ export default function VerifyEmailPage() {
               <Mail className='w-8 h-8 text-yellow-400' />
             </div>
             <h1 className='text-3xl font-bold text-white mb-2'>Verify Your Email</h1>
-            <p className='text-gray-300'>
-              We sent a verification code to
-            </p>
+            <p className='text-gray-300'>We sent a verification code to</p>
             <p className='text-blue-400 font-mono text-sm mt-1'>{displayEmail}</p>
           </div>
 
           {/* Message */}
           <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6'>
             <p className='text-sm text-yellow-400'>
-              <strong>Access Restricted:</strong> You need to verify your email address to access the dashboard and other features.
+              <strong>Access Restricted:</strong> You need to verify your email address to access
+              the dashboard and other features.
             </p>
           </div>
 
@@ -122,7 +121,8 @@ export default function VerifyEmailPage() {
           {/* Help text */}
           <div className='mt-6 text-center'>
             <p className='text-xs text-gray-400'>
-              Didn't receive the code? Check your spam folder or click "Resend Code" in the verification modal.
+              Didn't receive the code? Check your spam folder or click "Resend Code" in the
+              verification modal.
             </p>
           </div>
         </div>

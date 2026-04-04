@@ -5,7 +5,7 @@ using ServerEye.Core.Entities;
 using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Repositories;
 
-internal class UserRepositoryTests : IDisposable
+public class UserRepositoryTests : IDisposable
 {
     private readonly ServerEyeDbContext context;
     private readonly UserRepository sut;

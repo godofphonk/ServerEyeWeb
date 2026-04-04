@@ -2,7 +2,7 @@ namespace ServerEye.UnitTests.Services.Auth;
 
 using ServerEye.Core.Services;
 
-internal class PasswordHasherTests
+public class PasswordHasherTests
 {
     private readonly PasswordHasher sut;
 

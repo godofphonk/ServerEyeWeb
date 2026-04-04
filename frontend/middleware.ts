@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  
+
   // Set CSP based on environment
   const isDevelopment = process.env.NODE_ENV === 'development';
   if (isDevelopment) {
@@ -109,7 +109,7 @@ export function middleware(request: NextRequest) {
     const interceptUrl = new URL('/oauth/intercept', request.url);
     interceptUrl.searchParams.set('code', code);
     interceptUrl.searchParams.set('state', state);
-    
+
     return NextResponse.redirect(interceptUrl);
   }
 
@@ -124,7 +124,7 @@ export function middleware(request: NextRequest) {
     const interceptUrl = new URL('/oauth/intercept', request.url);
     interceptUrl.searchParams.set('code', code);
     interceptUrl.searchParams.set('state', state);
-    
+
     return NextResponse.redirect(interceptUrl);
   }
 

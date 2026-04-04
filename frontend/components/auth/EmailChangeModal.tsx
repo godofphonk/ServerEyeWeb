@@ -82,11 +82,14 @@ export function EmailChangeModal({
       await authApi.confirmEmailChange({ code: verificationCode });
       setIsVerified(true);
 
-      const successMessage = isOAuthUser 
-        ? 'Email Added Successfully' 
+      const successMessage = isOAuthUser
+        ? 'Email Added Successfully'
         : 'Email Changed Successfully';
-      
-      toast.success(successMessage, `Your email has been successfully ${isOAuthUser ? 'added' : 'updated'}`);
+
+      toast.success(
+        successMessage,
+        `Your email has been successfully ${isOAuthUser ? 'added' : 'updated'}`,
+      );
 
       setTimeout(() => {
         onSuccess(newEmail);
@@ -167,16 +170,22 @@ export function EmailChangeModal({
                 <div>
                   <h3 className='text-xl font-bold text-white'>
                     {isVerified
-                      ? (isOAuthUser ? 'Email Added!' : 'Email Updated!')
+                      ? isOAuthUser
+                        ? 'Email Added!'
+                        : 'Email Updated!'
                       : step === 'input'
-                        ? (isOAuthUser ? 'Add Email Address' : 'Change Email')
+                        ? isOAuthUser
+                          ? 'Add Email Address'
+                          : 'Change Email'
                         : 'Verify Email Address'}
                   </h3>
                   <p className='text-sm text-gray-400'>
                     {isVerified
                       ? `Your email has been successfully ${isOAuthUser ? 'added' : 'updated'}`
                       : step === 'input'
-                        ? (isOAuthUser ? 'Add an email address to your account' : `Current: ${currentEmail}`)
+                        ? isOAuthUser
+                          ? 'Add an email address to your account'
+                          : `Current: ${currentEmail}`
                         : `Code sent to ${newEmail}`}
                   </p>
                 </div>
@@ -201,7 +210,9 @@ export function EmailChangeModal({
                       type='email'
                       value={newEmail}
                       onChange={e => setNewEmail(e.target.value)}
-                      placeholder={isOAuthUser ? 'Enter your email address' : 'Enter new email address'}
+                      placeholder={
+                        isOAuthUser ? 'Enter your email address' : 'Enter new email address'
+                      }
                       required
                       disabled={isLoading}
                     />

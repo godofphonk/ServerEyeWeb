@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Link as LinkIcon, 
-  Unlink, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  Link as LinkIcon,
+  Unlink,
+  CheckCircle,
+  AlertCircle,
   Loader2,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -21,7 +21,8 @@ interface OAuthSettingsProps {
 }
 
 export function OAuthSettings({ className }: OAuthSettingsProps) {
-  const { getExternalLogins, linkExternalAccount, unlinkExternalAccount, getOAuthChallenge, user } = useAuth();
+  const { getExternalLogins, linkExternalAccount, unlinkExternalAccount, getOAuthChallenge, user } =
+    useAuth();
   const [externalLogins, setExternalLogins] = useState<ExternalLogin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLinking, setIsLinking] = useState<string | null>(null);
@@ -32,8 +33,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
     try {
       const response = await getExternalLogins();
       const providers = response.externalLogins || [];
-      
-      
+
       setExternalLogins(providers);
     } catch (error: any) {
       toast.error('Error', 'Failed to load connected accounts');
@@ -44,7 +44,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
 
   useEffect(() => {
     loadExternalLogins();
-    
+
     // Check if there's a pending linking request from OAuth callback
     const checkPendingLinking = () => {
       if (typeof window !== 'undefined') {
@@ -52,22 +52,23 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
-        
+
         if (linkingInfo && code && state) {
           try {
             const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
-            
-            
+
             if (action === 'link' && state.includes(expectedState)) {
-              
               // Update sessionStorage with code and state
-              sessionStorage.setItem('oauth_linking', JSON.stringify({
-                action,
-                provider,
-                code,
-                state,
-              }));
-              
+              sessionStorage.setItem(
+                'oauth_linking',
+                JSON.stringify({
+                  action,
+                  provider,
+                  code,
+                  state,
+                }),
+              );
+
               // Redirect to link handler
               window.location.href = '/oauth/link-handler';
               return;
@@ -78,76 +79,78 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
         }
       }
     };
-    
+
     checkPendingLinking();
   }, []);
 
   const handleLinkAccount = async (provider: string) => {
     try {
-      
       setIsLinking(provider);
       // Get OAuth challenge URL
       const challenge = await getOAuthChallenge(provider, '/profile');
-      
-      // Get userId from JWT token
-    let userId: string | null = null;
-    
-    if (typeof window !== 'undefined') {
-      const jwtToken = localStorage.getItem('jwt_token');
-      
-      if (!jwtToken) {
-        toast.error('Error', 'User not authenticated');
-        setIsLinking(null);
-        return;
-      }
-      
-      // Decode JWT to get userId
-      const tokenParts = jwtToken.split('.');
-      if (tokenParts.length !== 3) {
-        toast.error('Error', 'Invalid authentication token');
-        setIsLinking(null);
-        return;
-      }
-      
-      const payload = JSON.parse(atob(tokenParts[1]));
-      userId = payload.sub || payload.userId;
-      
-      if (!userId) {
-        toast.error('Error', 'User not authenticated');
-        setIsLinking(null);
-        return;
-      }
-      
-      sessionStorage.setItem('oauth_linking', JSON.stringify({
-        action: 'link',
-        provider: provider,
-        userId: userId,
-        state: challenge.state,
-      }));
-    }
-    
-    // Create linking state in format: linking_{provider}_{userId}_{actualState}
-    if (!userId) {
-      throw new Error('User ID is required for linking');
-    }
-    
-    const linkingState = `linking_${provider}_${userId}_${challenge.state}`;
-    
-    // Replace state parameter in challenge URL
-    // Google uses state without prefix, GitHub uses state with prefix
-    const statePattern = provider === 'google' 
-      ? `state=${challenge.state}` 
-      : `state=${provider}_${challenge.state}`;
-    
-    const modifiedChallengeUrl = challenge.challengeUrl.replace(
-      statePattern,
-      `state=${linkingState}`
-    );
-    
-    
-    alert(`About to redirect to ${provider} with linking state:\n${linkingState}\n\nCheck console for full URL!`);
 
-    window.location.href = modifiedChallengeUrl;
+      // Get userId from JWT token
+      let userId: string | null = null;
+
+      if (typeof window !== 'undefined') {
+        const jwtToken = localStorage.getItem('jwt_token');
+
+        if (!jwtToken) {
+          toast.error('Error', 'User not authenticated');
+          setIsLinking(null);
+          return;
+        }
+
+        // Decode JWT to get userId
+        const tokenParts = jwtToken.split('.');
+        if (tokenParts.length !== 3) {
+          toast.error('Error', 'Invalid authentication token');
+          setIsLinking(null);
+          return;
+        }
+
+        const payload = JSON.parse(atob(tokenParts[1]));
+        userId = payload.sub || payload.userId;
+
+        if (!userId) {
+          toast.error('Error', 'User not authenticated');
+          setIsLinking(null);
+          return;
+        }
+
+        sessionStorage.setItem(
+          'oauth_linking',
+          JSON.stringify({
+            action: 'link',
+            provider: provider,
+            userId: userId,
+            state: challenge.state,
+          }),
+        );
+      }
+
+      // Create linking state in format: linking_{provider}_{userId}_{actualState}
+      if (!userId) {
+        throw new Error('User ID is required for linking');
+      }
+
+      const linkingState = `linking_${provider}_${userId}_${challenge.state}`;
+
+      // Replace state parameter in challenge URL
+      // Google uses state without prefix, GitHub uses state with prefix
+      const statePattern =
+        provider === 'google' ? `state=${challenge.state}` : `state=${provider}_${challenge.state}`;
+
+      const modifiedChallengeUrl = challenge.challengeUrl.replace(
+        statePattern,
+        `state=${linkingState}`,
+      );
+
+      alert(
+        `About to redirect to ${provider} with linking state:\n${linkingState}\n\nCheck console for full URL!`,
+      );
+
+      window.location.href = modifiedChallengeUrl;
     } catch (error: any) {
       toast.error('Error', `Failed to link ${provider} account: ${error.message}`);
       setIsLinking(null);
@@ -160,7 +163,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
     }
 
     setIsUnlinking(provider);
-    
+
     try {
       await unlinkExternalAccount(provider);
       toast.success('Success', `${provider} account unlinked successfully`);
@@ -198,13 +201,13 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       case 'github':
         return (
           <svg className='w-5 h-5' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/>
+            <path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z' />
           </svg>
         );
       case 'telegram':
         return (
           <svg className='w-5 h-5' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z'/>
+            <path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z' />
           </svg>
         );
       default:
@@ -213,13 +216,13 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
   };
 
   interface Provider {
-  name: string;
-  key: string;
-  available: boolean;
-  reason?: string;
-}
+    name: string;
+    key: string;
+    available: boolean;
+    reason?: string;
+  }
 
-const availableProviders: Provider[] = [
+  const availableProviders: Provider[] = [
     { name: 'Google', key: 'google', available: true },
     { name: 'GitHub', key: 'github', available: true },
     { name: 'Telegram', key: 'telegram', available: true },
@@ -246,24 +249,24 @@ const availableProviders: Provider[] = [
           </div>
           <div>
             <CardTitle>Connected Accounts</CardTitle>
-            <p className='text-sm text-gray-400 mt-1'>
-              Link your social accounts for easier login
-            </p>
+            <p className='text-sm text-gray-400 mt-1'>Link your social accounts for easier login</p>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className='space-y-4'>
-          {availableProviders.map((provider) => {
+          {availableProviders.map(provider => {
             // Маппинг string -> OAuthProvider enum для поиска
-            const providerEnum = provider.key === 'google' ? OAuthProvider.Google :
-                                provider.key === 'github' ? OAuthProvider.GitHub :
-                                provider.key === 'telegram' ? OAuthProvider.Telegram :
-                                OAuthProvider.None;
-            
-            const linkedAccount = externalLogins.find(
-              (login) => login.provider === providerEnum
-            );
+            const providerEnum =
+              provider.key === 'google'
+                ? OAuthProvider.Google
+                : provider.key === 'github'
+                  ? OAuthProvider.GitHub
+                  : provider.key === 'telegram'
+                    ? OAuthProvider.Telegram
+                    : OAuthProvider.None;
+
+            const linkedAccount = externalLogins.find(login => login.provider === providerEnum);
 
             return (
               <motion.div
@@ -288,8 +291,8 @@ const availableProviders: Provider[] = [
                         {linkedAccount.providerEmail ? (
                           <p className='text-sm text-gray-500'>{linkedAccount.providerEmail}</p>
                         ) : (
-                          <button 
-                            onClick={() => window.location.href = '/profile'}
+                          <button
+                            onClick={() => (window.location.href = '/profile')}
                             className='text-sm text-blue-400 hover:text-blue-300 transition-colors'
                           >
                             No email. Add email?
@@ -345,7 +348,7 @@ const availableProviders: Provider[] = [
 
         <div className='mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg'>
           <p className='text-sm text-blue-400'>
-            <strong>Note:</strong> Connecting an account allows you to sign in with that provider. 
+            <strong>Note:</strong> Connecting an account allows you to sign in with that provider.
             Your existing login method will continue to work.
           </p>
         </div>

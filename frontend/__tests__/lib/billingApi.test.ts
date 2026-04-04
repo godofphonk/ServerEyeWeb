@@ -113,30 +113,44 @@ describe('billingApi', () => {
 
   describe('createCheckout', () => {
     it('creates a checkout session', async () => {
-      const checkoutResponse = { sessionId: 'sess_123', sessionUrl: 'https://checkout.stripe.com/pay/sess_123' };
+      const checkoutResponse = {
+        sessionId: 'sess_123',
+        sessionUrl: 'https://checkout.stripe.com/pay/sess_123',
+      };
       apiClient.post.mockResolvedValue(checkoutResponse);
 
       const result = await billingApi.createCheckout({ planType: 1, isYearly: false });
 
-      expect(apiClient.post).toHaveBeenCalledWith('/subscription/checkout', { planType: 1, isYearly: false });
+      expect(apiClient.post).toHaveBeenCalledWith('/subscription/checkout', {
+        planType: 1,
+        isYearly: false,
+      });
       expect(result.sessionId).toBe('sess_123');
       expect(result.sessionUrl).toContain('stripe.com');
     });
 
     it('creates a yearly checkout session', async () => {
-      const checkoutResponse = { sessionId: 'sess_yearly', sessionUrl: 'https://checkout.stripe.com/pay/sess_yearly' };
+      const checkoutResponse = {
+        sessionId: 'sess_yearly',
+        sessionUrl: 'https://checkout.stripe.com/pay/sess_yearly',
+      };
       apiClient.post.mockResolvedValue(checkoutResponse);
 
       const result = await billingApi.createCheckout({ planType: 2, isYearly: true });
 
-      expect(apiClient.post).toHaveBeenCalledWith('/subscription/checkout', { planType: 2, isYearly: true });
+      expect(apiClient.post).toHaveBeenCalledWith('/subscription/checkout', {
+        planType: 2,
+        isYearly: true,
+      });
       expect(result).toEqual(checkoutResponse);
     });
 
     it('propagates errors from apiClient', async () => {
       apiClient.post.mockRejectedValue(new Error('Payment failed'));
 
-      await expect(billingApi.createCheckout({ planType: 1, isYearly: false })).rejects.toThrow('Payment failed');
+      await expect(billingApi.createCheckout({ planType: 1, isYearly: false })).rejects.toThrow(
+        'Payment failed',
+      );
     });
   });
 
@@ -147,7 +161,10 @@ describe('billingApi', () => {
 
       const result = await billingApi.updatePlan(1, false);
 
-      expect(apiClient.put).toHaveBeenCalledWith('/subscription/plan', { newPlanType: 1, isYearly: false });
+      expect(apiClient.put).toHaveBeenCalledWith('/subscription/plan', {
+        newPlanType: 1,
+        isYearly: false,
+      });
       expect(result.planType).toBe(1);
       expect(result.planName).toBe('Pro');
     });
@@ -158,7 +175,10 @@ describe('billingApi', () => {
 
       const result = await billingApi.updatePlan(1, true);
 
-      expect(apiClient.put).toHaveBeenCalledWith('/subscription/plan', { newPlanType: 1, isYearly: true });
+      expect(apiClient.put).toHaveBeenCalledWith('/subscription/plan', {
+        newPlanType: 1,
+        isYearly: true,
+      });
       expect(result.isYearly).toBe(true);
     });
   });
@@ -201,7 +221,9 @@ describe('billingApi', () => {
     it('propagates errors from apiClient', async () => {
       apiClient.post.mockRejectedValue(new Error('No cancelled subscription'));
 
-      await expect(billingApi.reactivateSubscription()).rejects.toThrow('No cancelled subscription');
+      await expect(billingApi.reactivateSubscription()).rejects.toThrow(
+        'No cancelled subscription',
+      );
     });
   });
 

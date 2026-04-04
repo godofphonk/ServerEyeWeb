@@ -6,7 +6,7 @@ describe('retryUtils', () => {
   const makeGoApiError = (
     errorType: string,
     isTemporary: boolean,
-    httpStatus = 503
+    httpStatus = 503,
   ): GoApiError => {
     const response: GoApiErrorResponse = {
       error: 'Test error',
@@ -86,7 +86,9 @@ describe('retryUtils', () => {
     it('should throw after max retries', async () => {
       const fetchFn = jest.fn().mockRejectedValue({ response: { status: 500 } });
 
-      await expect(fetchWithRetry(fetchFn, { maxRetries: 2 })).rejects.toEqual({ response: { status: 500 } });
+      await expect(fetchWithRetry(fetchFn, { maxRetries: 2 })).rejects.toEqual({
+        response: { status: 500 },
+      });
       expect(fetchFn).toHaveBeenCalledTimes(3); // initial + 2 retries
     });
 
@@ -156,10 +158,7 @@ describe('retryUtils', () => {
 
     it('should retry on GoApiError with isTemporary=true', async () => {
       const error = makeGoApiError('Timeout', true, 500);
-      const fetchFn = jest
-        .fn()
-        .mockRejectedValueOnce(error)
-        .mockResolvedValue('success');
+      const fetchFn = jest.fn().mockRejectedValueOnce(error).mockResolvedValue('success');
 
       const result = await fetchWithRetry(fetchFn);
 

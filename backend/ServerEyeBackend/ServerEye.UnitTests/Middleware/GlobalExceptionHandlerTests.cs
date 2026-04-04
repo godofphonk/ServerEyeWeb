@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using ServerEye.API.Middleware;
 
-internal class GlobalExceptionHandlerTests
+public class GlobalExceptionHandlerTests
 {
     private readonly Mock<ILogger<GlobalExceptionHandler>> loggerMock;
     private readonly GlobalExceptionHandler sut;

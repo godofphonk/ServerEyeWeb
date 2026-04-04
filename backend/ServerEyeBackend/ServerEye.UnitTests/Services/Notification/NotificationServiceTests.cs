@@ -16,7 +16,7 @@ using ServerEye.Core.Interfaces.Repository;
 using Xunit;
 using NotificationServiceImpl = ServerEye.Core.Services.NotificationService;
 
-internal class NotificationServiceTests
+public class NotificationServiceTests
 {
     private readonly Mock<INotificationRepository> mockNotificationRepository;
     private readonly Mock<IUserRepository> mockUserRepository;

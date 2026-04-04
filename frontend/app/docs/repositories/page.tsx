@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Github, Download, ExternalLink, Code, Terminal, Globe } from 'lucide-react';
+import { GitBranch, Download, ExternalLink, Code, Terminal, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 
@@ -112,7 +112,7 @@ export default function RepositoriesPage() {
               className='text-center max-w-4xl mx-auto'
             >
               <div className='inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6'>
-                <Github className='w-4 h-4 text-blue-400' />
+                <GitBranch className='w-4 h-4 text-blue-400' />
                 <span className='text-sm text-blue-400'>Open Source</span>
               </div>
               <h1 className='text-5xl md:text-6xl font-bold mb-6'>Project Repositories</h1>

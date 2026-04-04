@@ -36,7 +36,10 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
-import { MonitoringServiceError, MonitoringServiceErrorInline } from '@/components/ui/MonitoringServiceError';
+import {
+  MonitoringServiceError,
+  MonitoringServiceErrorInline,
+} from '@/components/ui/MonitoringServiceError';
 import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
 import { TelegramServerDiscoveryModal } from '@/components/TelegramServerDiscoveryModal';
 import { useTelegramServerDiscovery } from '@/hooks/useTelegramServerDiscovery';
@@ -58,7 +61,7 @@ export default function DashboardPage() {
   const { hasPremium, isPro } = useSubscription();
   const router = useRouter();
   const toast = useToast();
-  
+
   // Защита от множественных редиректов
   const redirectAttempted = useRef(false);
   const effectCalled = useRef(false);
@@ -99,7 +102,7 @@ export default function DashboardPage() {
       }
 
       setLoadingMetrics(prev => new Set(prev).add(serverKey));
-      
+
       // Clear previous error for this server
       setMetricsErrors(prev => {
         const newErrors = { ...prev };
@@ -110,16 +113,17 @@ export default function DashboardPage() {
       try {
         // Use unified endpoint for optimal performance (metrics + status + static in 1 request)
         const response = await fetchWithRetry(
-          () => getServerUnifiedData(serverKey, {
-            granularity: 'minute',
-            includeMetrics: true,
-            includeStatus: true,
-            includeStatic: false, // Static info already loaded separately
-          }),
+          () =>
+            getServerUnifiedData(serverKey, {
+              granularity: 'minute',
+              includeMetrics: true,
+              includeStatus: true,
+              includeStatic: false, // Static info already loaded separately
+            }),
           {
             maxRetries: 2,
             initialDelay: 1000,
-          }
+          },
         );
 
         // Transform unified API response to expected format
@@ -129,8 +133,10 @@ export default function DashboardPage() {
             cpu: metricsData?.summary?.avgCpu || 0,
             memory: metricsData?.summary?.avgMemory || 0,
             disk: metricsData?.summary?.avgDisk || 0,
-            network: metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.network?.avg || 0,
-            load: metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+            network:
+              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.network?.avg || 0,
+            load:
+              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.loadAverage?.avg || 0,
             temperature:
               metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature_details
                 ?.cpu_temperature ||
@@ -172,7 +178,8 @@ export default function DashboardPage() {
         // For other errors, store error and show toast
         setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
         if (error.message !== 'canceled') {
-          const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+          const errorMessage =
+            error.response?.data?.message || error.message || 'Unknown error occurred';
           toast.error('Failed to load server metrics', errorMessage);
         }
       } finally {
@@ -183,7 +190,7 @@ export default function DashboardPage() {
         });
       }
     },
-    [toast]
+    [toast],
   );
 
   const loadServers = useCallback(async () => {
@@ -194,13 +201,10 @@ export default function DashboardPage() {
     try {
       setIsLoadingServers(true);
       // Load servers with static info in parallel with retry
-      const serversWithStatic = await fetchWithRetry(
-        () => getServersWithStaticInfo(),
-        {
-          maxRetries: 2,
-          initialDelay: 2000,
-        }
-      );
+      const serversWithStatic = await fetchWithRetry(() => getServersWithStaticInfo(), {
+        maxRetries: 2,
+        initialDelay: 2000,
+      });
       setServers(serversWithStatic || []);
 
       // Load metrics for all servers in parallel (critical optimization)
@@ -212,11 +216,11 @@ export default function DashboardPage() {
         if (serverKeys.length > 0) {
           // Load all metrics in parallel instead of sequentially
           // This reduces load time from O(n) to O(1) for n servers
-          const metricsPromises = serverKeys.map(serverKey => 
+          const metricsPromises = serverKeys.map(serverKey =>
             loadServerMetrics(serverKey).catch(error => {
               logger.error('Failed to load server metrics', error, { serverKey });
               return null;
-            })
+            }),
           );
 
           // Execute all requests in parallel
@@ -247,7 +251,8 @@ export default function DashboardPage() {
       setServers([]);
       // Show error toast to user
       if (error.message !== 'canceled') {
-        const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Unknown error occurred';
         toast.error('Failed to load servers', errorMessage);
       }
     } finally {
@@ -256,17 +261,25 @@ export default function DashboardPage() {
   }, [loadServerMetrics, toast]); // Add dependencies
 
   // Handle server import from Telegram discovery
-  const handleTelegramImport = useCallback(async (serverIds: string[]) => {
-    try {
-      await telegramDiscovery.importServers(serverIds);
-      // Refresh servers list after successful import
-      await loadServers();
-      toast.success('Import Successful', `Successfully imported ${serverIds.length} server(s) from Telegram bot`);
-    } catch (error) {
-      logger.error('Failed to import Telegram servers', error as Error, { serverCount: serverIds.length });
-      toast.error('Import Failed', 'Failed to import some servers. Please try again.');
-    }
-  }, [telegramDiscovery, loadServers, toast]);
+  const handleTelegramImport = useCallback(
+    async (serverIds: string[]) => {
+      try {
+        await telegramDiscovery.importServers(serverIds);
+        // Refresh servers list after successful import
+        await loadServers();
+        toast.success(
+          'Import Successful',
+          `Successfully imported ${serverIds.length} server(s) from Telegram bot`,
+        );
+      } catch (error) {
+        logger.error('Failed to import Telegram servers', error as Error, {
+          serverCount: serverIds.length,
+        });
+        toast.error('Import Failed', 'Failed to import some servers. Please try again.');
+      }
+    },
+    [telegramDiscovery, loadServers, toast],
+  );
 
   const handleAddServer = async (serverKey: string) => {
     try {
@@ -276,10 +289,17 @@ export default function DashboardPage() {
       setServers(prev => [...prev, newServer]);
       // setShowAddServerModal(false);
       // setAddServerKey('');
-      logger.info('Server added successfully', { serverId: newServer.id, hostname: newServer.hostname });
+      logger.info('Server added successfully', {
+        serverId: newServer.id,
+        hostname: newServer.hostname,
+      });
       toast.success('Server added successfully!');
     } catch (error: any) {
-      logger.error('Failed to add server', error instanceof Error ? error : new Error(String(error)), { serverKey: serverKey.substring(0, 8) + '...' });
+      logger.error(
+        'Failed to add server',
+        error instanceof Error ? error : new Error(String(error)),
+        { serverKey: serverKey.substring(0, 8) + '...' },
+      );
       toast.error(error.response?.data?.message || 'Failed to add server');
     }
   };
@@ -296,45 +316,52 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined' && isAuthenticated && user) {
       const urlParams = new URLSearchParams(window.location.search);
       const subscriptionStatus = urlParams.get('subscription');
-      
+
       if (subscriptionStatus === 'success') {
-        toast.success('Subscription Activated!', 'Welcome to your premium plan! Enjoy all the features.');
+        toast.success(
+          'Subscription Activated!',
+          'Welcome to your premium plan! Enjoy all the features.',
+        );
         // Clean URL
         window.history.replaceState({}, '', window.location.pathname);
       } else if (subscriptionStatus === 'canceled') {
-        toast.info('Subscription Canceled', 'You can always subscribe again from the pricing page.');
+        toast.info(
+          'Subscription Canceled',
+          'You can always subscribe again from the pricing page.',
+        );
         // Clean URL
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-    
+
     // Ничего не делаем пока идет загрузка auth
     if (authLoading) {
       return;
     }
-    
+
     // Check for pending OAuth linking
     if (typeof window !== 'undefined') {
       const linkingInfo = sessionStorage.getItem('oauth_linking');
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
-      
+
       if (linkingInfo && code && state) {
         try {
           const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
-          
-          
+
           if (action === 'link' && state.includes(expectedState)) {
-            
             // Update sessionStorage with code and state
-            sessionStorage.setItem('oauth_linking', JSON.stringify({
-              action,
-              provider,
-              code,
-              state,
-            }));
-            
+            sessionStorage.setItem(
+              'oauth_linking',
+              JSON.stringify({
+                action,
+                provider,
+                code,
+                state,
+              }),
+            );
+
             // Redirect to link handler
             window.location.href = '/oauth/link-handler';
             return;
@@ -345,7 +372,7 @@ export default function DashboardPage() {
         }
       }
     }
-    
+
     if (!authLoading && !isAuthenticated && !redirectAttempted.current) {
       redirectAttempted.current = true;
       setIsLoadingServers(false);
@@ -353,7 +380,7 @@ export default function DashboardPage() {
     } else if (!authLoading && isAuthenticated && !redirectAttempted.current) {
       // Проверяем доступ с учетом OAuth пользователей
       const userHasAccess = hasUserAccess(user, isEmailVerified);
-      
+
       if (!userHasAccess) {
         redirectAttempted.current = true;
         setIsLoadingServers(false);
@@ -497,12 +524,12 @@ export default function DashboardPage() {
                   Add Server
                 </Button>
                 {/* TODO: FIX - Remove this test button before production release */}
-                <Button 
+                <Button
                   onClick={() => telegramDiscovery.discoverServersForced()}
                   className='bg-blue-500 hover:bg-blue-600'
                 >
                   <svg className='w-5 h-5 text-white mr-2' viewBox='0 0 24 24' fill='currentColor'>
-                    <path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z'/>
+                    <path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z' />
                   </svg>
                   Sync Telegram
                 </Button>
@@ -656,7 +683,9 @@ export default function DashboardPage() {
                               <ServerSourcesBadge
                                 serverKey={server.serverKey}
                                 serverId={server.serverId}
-                                hostname={server.staticInfo?.hostname || server.hostname || server.serverId}
+                                hostname={
+                                  server.staticInfo?.hostname || server.hostname || server.serverId
+                                }
                                 sources={server.sources || []}
                                 compact={true}
                                 onSourceUpdated={loadServers}
@@ -709,7 +738,7 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         </div>
-                        
+
                         {/* Error for this server's metrics */}
                         {metricsErrors[server.serverKey] && (
                           <div className='mt-3'>
@@ -717,7 +746,9 @@ export default function DashboardPage() {
                               <MonitoringServiceErrorInline
                                 error={metricsErrors[server.serverKey]}
                                 onRetry={() => {
-                                  logger.info('Retrying metrics load', { serverKey: server.serverKey });
+                                  logger.info('Retrying metrics load', {
+                                    serverKey: server.serverKey,
+                                  });
                                   loadServerMetrics(server.serverKey);
                                 }}
                               />
@@ -725,14 +756,16 @@ export default function DashboardPage() {
                               <ServerErrorInline
                                 error={metricsErrors[server.serverKey]}
                                 onRetry={() => {
-                                  logger.info('Retrying metrics load', { serverKey: server.serverKey });
+                                  logger.info('Retrying metrics load', {
+                                    serverKey: server.serverKey,
+                                  });
                                   loadServerMetrics(server.serverKey);
                                 }}
                               />
                             )}
                           </div>
                         )}
-                        
+
                         {metrics[server.serverKey] === null && !metricsErrors[server.serverKey] && (
                           <div className='mt-2 text-xs text-red-400'>
                             Metrics unavailable - server may be offline

@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   // Initialize OpenTelemetry for frontend tracing
   initializeTelemetry();
-  
+
   return (
     <html lang='en'>
       <body className={inter.className}>

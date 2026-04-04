@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Services;
 
-internal class JwtServiceTests
+public class JwtServiceTests
 {
     private readonly Mock<ILogger<JwtService>> loggerMock;
     private readonly JwtSettings jwtSettings;

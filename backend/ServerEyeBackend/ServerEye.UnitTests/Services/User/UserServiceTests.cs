@@ -23,7 +23,7 @@ using ServerEye.Core.Services;
 using Xunit;
 using UserServiceImpl = ServerEye.Core.Services.UserService;
 
-internal class UserServiceTests
+public class UserServiceTests
 {
     private readonly Mock<IUserRepository> mockUserRepository;
     private readonly Mock<IPasswordHasher> mockPasswordHasher;

@@ -39,10 +39,13 @@ export default function MetricsTabs({
   onActiveTabChange,
   loadHistoricalMetrics,
 }: MetricsTabsProps) {
-
   return (
     <div className='space-y-6'>
-      <TabsNavigation tabs={tabs} activeTab={activeTab} onTabChange={onActiveTabChange || (() => {})} />
+      <TabsNavigation
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={onActiveTabChange || (() => {})}
+      />
 
       <TabsContent activeTab={activeTab}>
         <TabPanel value='cpu' activeTab={activeTab}>

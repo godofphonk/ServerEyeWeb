@@ -1,7 +1,6 @@
 namespace ServerEye.Infrastructure.Repositories;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Repository;
 
@@ -45,7 +44,7 @@ public sealed class RefreshTokenRepository(ServerEyeDbContext context) : IRefres
 
     public async Task AddAsync(RefreshToken entity)
     {
-        EntityEntry<RefreshToken> entityEntry = await this.context.RefreshTokens.AddAsync(entity);
+        await this.context.RefreshTokens.AddAsync(entity);
         await this.context.SaveChangesAsync().ConfigureAwait(false);
     }
 
@@ -58,7 +57,7 @@ public sealed class RefreshTokenRepository(ServerEyeDbContext context) : IRefres
 
     public async Task DeleteAsync(Guid id)
     {
-        RefreshToken? entity = await this.GetByIdAsync(id);
+        RefreshToken? entity = await this.context.RefreshTokens.FindAsync(id).ConfigureAwait(false);
         if (entity != null)
         {
             this.context.RefreshTokens.Remove(entity);
@@ -68,21 +67,29 @@ public sealed class RefreshTokenRepository(ServerEyeDbContext context) : IRefres
 
     public async Task RevokeAllUserTokensAsync(Guid userId)
     {
-        await this.context.RefreshTokens
+        var tokens = await this.context.RefreshTokens
             .Where(x => x.UserId == userId && !x.IsRevoked)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsRevoked, true))
+            .ToListAsync()
             .ConfigureAwait(false);
 
-        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
+        foreach (var token in tokens)
+        {
+            token.IsRevoked = true;
+        }
+
+        await this.context.SaveChangesAsync().ConfigureAwait(false);
     }
 
     public async Task RevokeTokenAsync(Guid tokenId)
     {
-        await this.context.RefreshTokens
-            .Where(x => x.Id == tokenId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsRevoked, true))
+        var token = await this.context.RefreshTokens
+            .FirstOrDefaultAsync(x => x.Id == tokenId)
             .ConfigureAwait(false);
 
-        // ExecuteUpdateAsync already saves changes to database, no need for SaveChangesAsync()
+        if (token != null)
+        {
+            token.IsRevoked = true;
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 }

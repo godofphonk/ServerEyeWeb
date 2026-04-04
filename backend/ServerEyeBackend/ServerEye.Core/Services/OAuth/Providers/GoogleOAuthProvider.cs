@@ -70,7 +70,7 @@ public sealed class GoogleOAuthProvider(
             {
                 ChallengeUrl = new Uri(url),
                 State = state,
-                CodeVerifier = codeChallenge, // Store for verification
+                CodeVerifier = string.Empty, // Code verifier is managed by OAuthService, not the provider
                 Action = null
             };
         }

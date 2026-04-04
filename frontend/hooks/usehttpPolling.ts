@@ -58,10 +58,8 @@ export function usehttpPolling({
         isCached: metrics.isCached || false,
       };
 
-
       // Log message if present
       if (metrics.message) {
-
         // Stop polling if no data found
         if (metrics.message === 'No data found in specified range') {
           setShouldStop(true);
@@ -78,8 +76,6 @@ export function usehttpPolling({
       setError(null);
       onMessage?.(processedData);
     } catch (err: any) {
-      
-
       // Handle errors
       if (err.response?.status === 401) {
         setError('Authentication required');

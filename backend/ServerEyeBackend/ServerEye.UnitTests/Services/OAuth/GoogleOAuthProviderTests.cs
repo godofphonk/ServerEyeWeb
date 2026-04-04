@@ -19,7 +19,7 @@ using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.OAuth.Providers;
 using Xunit;
 
-internal class GoogleOAuthProviderTests
+public class GoogleOAuthProviderTests
 {
     private readonly Mock<ILogger<GoogleOAuthProvider>> mockLogger;
     private readonly OAuthSettings oauthSettings;
@@ -306,6 +306,8 @@ internal class GoogleOAuthProviderTests
 
         mockProvider.Setup(x => x.GetUserInfoAsync(accessToken, null, It.IsAny<CancellationToken>()))
                    .ReturnsAsync(expectedUserInfo);
+        mockProvider.Setup(x => x.ValidateTokenAsync(accessToken, It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(true);
 
         // Act
         var result = await mockProvider.Object.ValidateTokenAsync(accessToken, CancellationToken.None);

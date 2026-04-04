@@ -22,8 +22,10 @@ export default function StorageTab({
   loadHistoricalMetrics,
 }: StorageTabProps) {
   // Independent time range state for storage chart
-  const [storageTimeRange, setStorageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
-  
+  const [storageTimeRange, setStorageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
+    '1h',
+  );
+
   // State for independently loaded metrics
   const [storageMetrics, setStorageMetrics] = useState<MetricsResponse | null>(null);
 
@@ -66,7 +68,7 @@ export default function StorageTab({
                 label='Read Speed'
                 value={dashboardMetrics.current.diskReadSpeed || 0}
                 unit='MB/s'
-                trend="-"
+                trend='-'
                 color='green'
               />
               <CurrentMetricsCard
@@ -74,7 +76,7 @@ export default function StorageTab({
                 label='Write Speed'
                 value={dashboardMetrics.current.diskWriteSpeed || 0}
                 unit='MB/s'
-                trend="-"
+                trend='-'
                 color='orange'
               />
             </>
@@ -88,9 +90,9 @@ export default function StorageTab({
           <Card className='p-6'>
             <div className='flex justify-between items-center mb-4'>
               <h4 className='text-sm font-medium text-gray-400'>Disk Usage</h4>
-              <TimeRangeSelector 
-                timeRange={storageTimeRange} 
-                onTimeRangeChange={setStorageTimeRange} 
+              <TimeRangeSelector
+                timeRange={storageTimeRange}
+                onTimeRangeChange={setStorageTimeRange}
               />
             </div>
             <div className='h-80'>

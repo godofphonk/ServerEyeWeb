@@ -2,12 +2,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
 
 export async function POST(request: NextRequest) {
   try {
-
     const backendUrl = `${API_BASE_URL}/users/login`;
 
     const body = await request.json();
@@ -17,7 +15,6 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({}));
@@ -51,7 +48,6 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       domain: undefined, // Позволяем браузеру установить домен автоматически
     });
-
 
     return response;
   } catch (error) {

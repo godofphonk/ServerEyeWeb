@@ -11,18 +11,9 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/$1',
   },
   collectCoverage: false,
-  transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$))',
-  ],
-  testMatch: [
-    '**/__tests__/**/*.(js|jsx|ts|tsx)',
-    '**/*.(test|spec).(js|jsx|ts|tsx)'
-  ],
-  testPathIgnorePatterns: [
-    '<rootDir>/.next/',
-    '<rootDir>/node_modules/',
-    '<rootDir>/app/api/'
-  ],
+  transformIgnorePatterns: ['node_modules/(?!(.*\\.mjs$))'],
+  testMatch: ['**/__tests__/**/*.(js|jsx|ts|tsx)', '**/*.(test|spec).(js|jsx|ts|tsx)'],
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/app/api/'],
 };
 
 module.exports = createJestConfig(customJestConfig);

@@ -166,9 +166,13 @@ describe('ticketApi', () => {
       const updatedTicket = makeTicket({ status: 'InProgress' });
       apiClient.put.mockResolvedValue(updatedTicket);
 
-      const result = await ticketApi.updateTicketStatus('ticket-1', { status: 'InProgress' as any });
+      const result = await ticketApi.updateTicketStatus('ticket-1', {
+        status: 'InProgress' as any,
+      });
 
-      expect(apiClient.put).toHaveBeenCalledWith('/tickets/ticket-1/status', { status: 'InProgress' });
+      expect(apiClient.put).toHaveBeenCalledWith('/tickets/ticket-1/status', {
+        status: 'InProgress',
+      });
       expect(result.status).toBe('InProgress');
     });
 

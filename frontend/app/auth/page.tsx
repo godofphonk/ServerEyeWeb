@@ -13,10 +13,10 @@ function AuthContent() {
   useEffect(() => {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
-    
+
     // Temporarily disable auth error page - always redirect to login
     router.push('/login');
-    
+
     // if (error === 'oauth_failed') {
     //   setMessage('OAuth authentication failed. Please try again.');
     // } else if (error) {
@@ -74,15 +74,17 @@ function AuthContent() {
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={
-      <main className='min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
-          <h2 className='text-xl font-semibold text-white mb-2'>Loading...</h2>
-          <p className='text-gray-300'>Please wait...</p>
-        </div>
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className='min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center'>
+          <div className='text-center'>
+            <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
+            <h2 className='text-xl font-semibold text-white mb-2'>Loading...</h2>
+            <p className='text-gray-300'>Please wait...</p>
+          </div>
+        </main>
+      }
+    >
       <AuthContent />
     </Suspense>
   );
