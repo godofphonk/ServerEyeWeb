@@ -65,7 +65,7 @@ public sealed class AuthService(
         await this.emailVerificationRepository.AddAsync(verification);
         await this.emailService.SendEmailVerificationCodeAsync(user.UserName, user.Email, code);
 
-        this.logger.LogInformation("Verification code sent successfully to: {Email}", LogSanitizer.MaskEmail(user.Email));
+        this.logger.LogInformation("Verification code sent successfully to user: {UserId}", user.Id);
     }
 
     public async Task<bool> VerifyEmailAsync(Guid userId, string code)
@@ -92,7 +92,7 @@ public sealed class AuthService(
 
         await this.userRepository.UpdateUserAsync(user);
 
-        this.logger.LogInformation("Email verified successfully for user: {UserId}, Email: {Email}", userId, LogSanitizer.MaskEmail(user.Email));
+        this.logger.LogInformation("Email verified successfully for user: {UserId}", userId);
 
         if (!string.IsNullOrEmpty(user.Email))
         {
@@ -104,12 +104,12 @@ public sealed class AuthService(
 
     public async Task RequestPasswordResetAsync(string email)
     {
-        this.logger.LogInformation("Password reset requested for email: {Email}", LogSanitizer.MaskEmail(email));
+        this.logger.LogInformation("Password reset requested");
 
         var user = await this.userRepository.GetByEmailAsync(email ?? string.Empty);
         if (user == null)
         {
-            this.logger.LogWarning("Password reset requested for non-existent email: {Email}", LogSanitizer.MaskEmail(email));
+            this.logger.LogWarning("Password reset requested for non-existent email");
             return;
         }
 
@@ -131,7 +131,7 @@ public sealed class AuthService(
         if (!string.IsNullOrEmpty(user.Email))
         {
             await this.emailService.SendPasswordResetEmailAsync(user.UserName, user.Email, token);
-            this.logger.LogInformation("Password reset email sent to: {Email}", LogSanitizer.MaskEmail(user.Email));
+            this.logger.LogInformation("Password reset email sent to user: {UserId}", user.Id);
         }
     }
 
@@ -171,14 +171,14 @@ public sealed class AuthService(
 
     public async Task RequestEmailChangeAsync(Guid userId, string newEmail)
     {
-        this.logger.LogInformation("Email change requested for user: {UserId}, new email: {NewEmail}", userId, LogSanitizer.MaskEmail(newEmail));
+        this.logger.LogInformation("Email change requested for user: {UserId}", userId);
 
         var user = await this.userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found.");
 
         var existingUser = await this.userRepository.GetByEmailAsync(newEmail ?? string.Empty);
         if (existingUser != null)
         {
-            this.logger.LogWarning("Email change failed - email already in use: {Email}", LogSanitizer.MaskEmail(newEmail));
+            this.logger.LogWarning("Email change failed - email already in use");
             throw new InvalidOperationException("Email is already in use.");
         }
 
@@ -204,7 +204,7 @@ public sealed class AuthService(
         await this.emailVerificationRepository.AddAsync(verification);
         await this.emailService.SendEmailChangeConfirmationAsync(user.UserName, newEmail ?? string.Empty, code);
 
-        this.logger.LogInformation("Email change confirmation sent to: {NewEmail}", LogSanitizer.MaskEmail(newEmail));
+        this.logger.LogInformation("Email change confirmation sent to user: {UserId}", userId);
     }
 
     public async Task<bool> ConfirmEmailChangeAsync(Guid userId, string code)
@@ -234,7 +234,7 @@ public sealed class AuthService(
 
         await this.userRepository.UpdateUserAsync(user);
 
-        this.logger.LogInformation("Email changed successfully for user: {UserId}, from {OldEmail} to {NewEmail}", userId, LogSanitizer.MaskEmail(oldEmail), LogSanitizer.MaskEmail(user.Email));
+        this.logger.LogInformation("Email changed successfully for user: {UserId}", userId);
 
         if (!string.IsNullOrEmpty(oldEmail) && !string.IsNullOrEmpty(user.Email))
         {

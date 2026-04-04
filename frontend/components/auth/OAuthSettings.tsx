@@ -89,41 +89,21 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       // Get OAuth challenge URL
       const challenge = await getOAuthChallenge(provider, '/profile');
 
-      // Get userId from JWT token
-      let userId: string | null = null;
+      // Get userId from auth context (already available, no need to read from sessionStorage)
+      const userId = user?.id;
+
+      if (!userId) {
+        toast.error('Error', 'User not authenticated');
+        setIsLinking(null);
+        return;
+      }
 
       if (typeof window !== 'undefined') {
-        const jwtToken = sessionStorage.getItem('jwt_token');
-
-        if (!jwtToken) {
-          toast.error('Error', 'User not authenticated');
-          setIsLinking(null);
-          return;
-        }
-
-        // Decode JWT to get userId
-        const tokenParts = jwtToken.split('.');
-        if (tokenParts.length !== 3) {
-          toast.error('Error', 'Invalid authentication token');
-          setIsLinking(null);
-          return;
-        }
-
-        const payload = JSON.parse(atob(tokenParts[1]));
-        userId = payload.sub || payload.userId;
-
-        if (!userId) {
-          toast.error('Error', 'User not authenticated');
-          setIsLinking(null);
-          return;
-        }
-
         sessionStorage.setItem(
           'oauth_linking',
           JSON.stringify({
             action: 'link',
             provider: provider,
-            userId: userId,
             state: challenge.state,
           }),
         );

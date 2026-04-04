@@ -1,0 +1,14 @@
+extensions:
+  - addsTo:
+      pack: codeql/csharp-all
+      extensible: neutralModel
+    data:
+      # Mark LogSanitizer methods as neutral (no taint propagation) for log injection
+      # This tells CodeQL that tainted data does not flow from arguments to return value
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "Sanitize", "(System.String)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskEmail", "(System.String)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskEmail", "(System.String,System.Int32)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskServerKey", "(System.String)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskServerKey", "(System.String,System.Int32)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskToken", "(System.String)", "", "log-injection"]
+      - ["ServerEye.Core.Helpers", "LogSanitizer", false, "MaskToken", "(System.String,System.Int32)", "", "log-injection"]

@@ -439,7 +439,7 @@ public class AuthController : BaseApiController
             this.logger.LogInformation(
                 "OAuth challenge created successfully - Provider: {OAuthProvider}, Action: {Action}, ChallengeUrl: {ChallengeUrl}",
                 oauthProvider,
-                action ?? "auto",
+                LogSanitizer.Sanitize(action) ?? "auto",
                 challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
 
             // Record controller-level metrics
@@ -527,7 +527,7 @@ public class AuthController : BaseApiController
             this.metrics.RecordError(request.Provider, "controller_callback", ex.GetType().Name, ex.Message);
             this.metrics.RecordTokenExchange(request.Provider, false);
             this.metrics.RecordTokenExchangeDuration(request.Provider, duration, false);
-            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", request.Provider);
+            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", LogSanitizer.Sanitize(request.Provider) ?? "null");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
@@ -582,7 +582,7 @@ public class AuthController : BaseApiController
             // If this is a linking request from state, use LinkExternalLoginAsync
             if (isLinking && !string.IsNullOrEmpty(linkingProvider) && !string.IsNullOrEmpty(linkingUserId))
             {
-                this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", linkingProvider, linkingUserId);
+                this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", LogSanitizer.Sanitize(linkingProvider), LogSanitizer.Sanitize(linkingUserId));
 
                 if (Guid.TryParse(linkingUserId, out var userGuid))
                 {
@@ -636,63 +636,60 @@ public class AuthController : BaseApiController
             };
 
             // Fallback to parameter-based linking (if state doesn't contain linking info)
-            // SECURITY: First validate authentication before processing any user-provided GUID
-            if (linkingAction && !string.IsNullOrEmpty(userId))
+            // SECURITY: Always validate authentication when userId is present in query params,
+            // regardless of linkingAction flag, to prevent user-controlled bypass
+            if (!string.IsNullOrEmpty(userId))
             {
                 var authenticatedUserId = this.GetUserId();
                 if (authenticatedUserId == Guid.Empty)
                 {
-                    this.logger.LogWarning("Security: OAuth linking attempted without authentication");
-                    return this.Unauthorized(new { message = "Authentication required for OAuth linking" });
-                }
-
-                // Only parse user-provided GUID after authentication is confirmed
-                if (!Guid.TryParse(userId, out var parameterUserGuid))
-                {
-                    this.logger.LogWarning("Security: Invalid GUID format provided for OAuth linking");
-                    return this.BadRequest(new { message = "Invalid user ID format" });
+                    this.logger.LogWarning("Security: Request with userId parameter without authentication");
+                    return this.Unauthorized(new { message = "Authentication required" });
                 }
 
                 // SECURITY: Validate that the userId parameter matches the authenticated user
-                // This prevents user-controlled bypass where an attacker could link OAuth to another user's account
-                if (authenticatedUserId != parameterUserGuid)
+                // This prevents an attacker from using a victim's userId to link OAuth accounts
+                if (!Guid.TryParse(userId, out var parameterUserGuid) || authenticatedUserId != parameterUserGuid)
                 {
-                    this.logger.LogWarning("Security: Attempted OAuth linking with mismatched user ID - Authenticated: {AuthUserId}, Parameter: {ParamUserId}", authenticatedUserId, parameterUserGuid);
+                    this.logger.LogWarning("Security: OAuth linking attempted with mismatched or invalid user ID");
                     return this.Unauthorized(new { message = "User ID mismatch - authentication required" });
                 }
 
-                this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
-
-                try
+                if (linkingAction)
                 {
-                    var linkRequest = new OAuthLinkRequestDto
+                    this.logger.LogInformation("Processing OAuth linking from parameters - User: {UserId}", parameterUserGuid);
+
+                    try
                     {
-                        Provider = request.Provider,
-                        Code = request.Code,
-                        State = request.State
-                    };
+                        var linkRequest = new OAuthLinkRequestDto
+                        {
+                            Provider = request.Provider,
+                            Code = request.Code,
+                            State = request.State
+                        };
 
-                    var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
+                        var linkResponse = await this.oauthService.LinkExternalLoginAsync(parameterUserGuid, linkRequest, ipAddress, userAgent);
 
-                    this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
+                        this.logger.LogInformation("OAuth linking successful for user: {UserId}", parameterUserGuid);
 
-                    // Redirect to profile page with success
-                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
-                {
-                    this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
-                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
-                {
-                    this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
-                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "OAuth linking failed with unexpected error");
-                    return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=linking_failed");
+                        // Redirect to profile page with success
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?linking=success");
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to another user", StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.logger.LogWarning("OAuth linking failed - external account already linked to another user");
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
+                    }
+                    catch (Exception ex)
+                    {
+                        this.logger.LogError(ex, "OAuth linking failed with unexpected error");
+                        return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=linking_failed");
+                    }
                 }
             }
 
@@ -756,7 +753,7 @@ public class AuthController : BaseApiController
                 return this.BadRequest("HTTPS required for non-local requests");
             }
 
-            var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+            var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={Uri.EscapeDataString(provider ?? string.Empty)}";
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
                 callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
@@ -765,7 +762,7 @@ public class AuthController : BaseApiController
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
+            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", LogSanitizer.Sanitize(provider) ?? "null");
             this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
 
             // Handle specific OAuth errors with secure redirects
@@ -897,9 +894,9 @@ public class AuthController : BaseApiController
             this.logger.LogInformation(
                 "Generated temporary state for Telegram OAuth - State: {State}, Action: {Action}, LinkingAction: {LinkingAction}, UserId: {UserId}",
                 state,
-                action ?? "null",
+                LogSanitizer.Sanitize(action) ?? "null",
                 request.LinkingAction,
-                request.UserId ?? "null");
+                LogSanitizer.Sanitize(request.UserId) ?? "null");
 
             var oauthRequest = new OAuthCallbackRequestDto
             {

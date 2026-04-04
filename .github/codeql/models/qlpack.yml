@@ -1,0 +1,8 @@
+---
+name: "godofphonk/servereye-models"
+version: 0.0.1
+dependencies:
+  codeql/csharp-all: "*"
+library: true
+dataExtensions:
+  - extensions/**/*.yml

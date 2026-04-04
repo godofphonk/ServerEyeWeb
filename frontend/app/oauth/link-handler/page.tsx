@@ -11,15 +11,29 @@ export default function OAuthLinkHandlerPage() {
   useEffect(() => {
     const handleLinking = async () => {
       try {
-        // Get linking info from sessionStorage
-        const linkingInfo =
-          typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
+        // Try to get linking info from URL params first (passed from dashboard for security),
+        // then fall back to sessionStorage for backward compatibility
+        let action: string | null = null;
+        let provider: string | null = null;
+        let code: string | null = null;
+        let state: string | null = null;
 
-        if (!linkingInfo) {
-          throw new Error('No linking information found');
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('code') && urlParams.get('provider')) {
+          action = urlParams.get('action');
+          provider = urlParams.get('provider');
+          code = urlParams.get('code');
+          state = urlParams.get('state');
+        } else {
+          const linkingInfo =
+            typeof window !== 'undefined' ? sessionStorage.getItem('oauth_linking') : null;
+
+          if (!linkingInfo) {
+            throw new Error('No linking information found');
+          }
+
+          ({ action, provider, code, state } = JSON.parse(linkingInfo));
         }
-
-        const { action, provider, code, state } = JSON.parse(linkingInfo);
 
         if (action !== 'link' || !provider || !code || !state) {
           throw new Error('Invalid linking information');

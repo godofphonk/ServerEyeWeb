@@ -241,8 +241,7 @@ public sealed class EmailService : IEmailService, IDisposable
 
                 var response = await this.sesClient.SendEmailAsync(sendRequest);
                 this.logger.LogInformation(
-                    "Email sent successfully via AWS SES to {Email} with subject: {Subject}, MessageId: {MessageId}",
-                    LogSanitizer.MaskEmail(toEmail),
+                    "Email sent successfully via AWS SES with subject: {Subject}, MessageId: {MessageId}",
                     LogSanitizer.Sanitize(subject),
                     response.MessageId);
             }
@@ -253,7 +252,7 @@ public sealed class EmailService : IEmailService, IDisposable
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to send email to {Email} with subject: {Subject}", LogSanitizer.MaskEmail(toEmail), LogSanitizer.Sanitize(subject));
+            this.logger.LogError(ex, "Failed to send email with subject: {Subject}", LogSanitizer.Sanitize(subject));
             throw;
         }
     }

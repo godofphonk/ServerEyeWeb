@@ -18,7 +18,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
         logger.LogInformation(
             "[GoApi] {Operation} - Request: {Url}",
             operation,
-            url);
+            LogSanitizer.Sanitize(url.ToString()));
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
                 "[GoApi] {Operation} - Response in {ElapsedMs}ms: {Url} - {@Data}",
                 operation,
                 elapsedMs,
-                url,
+                LogSanitizer.Sanitize(url.ToString()),
                 data);
         }
         else
@@ -41,7 +41,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
                 "[GoApi] {Operation} - Success in {ElapsedMs}ms: {Url}",
                 operation,
                 elapsedMs,
-                url);
+                LogSanitizer.Sanitize(url.ToString()));
         }
     }
 
@@ -54,7 +54,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
             "[GoApi] {Operation} - Error in {ElapsedMs}ms: {Url} - Status: {StatusCode} - Content: {Content}",
             operation,
             elapsedMs,
-            url,
+            LogSanitizer.Sanitize(url.ToString()),
             statusCode,
             LogSanitizer.Sanitize(content));
     }
@@ -69,7 +69,7 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
             "[GoApi] {Operation} - Exception in {ElapsedMs}ms: {Url} - {ExceptionType}: {Message}",
             operation,
             elapsedMs,
-            url,
+            LogSanitizer.Sanitize(url.ToString()),
             exception.GetType().Name,
             exception.Message);
     }

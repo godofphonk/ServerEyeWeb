@@ -266,7 +266,7 @@ public class MetricsService : IMetricsService
                 accessCheckTime.ElapsedMilliseconds,
                 cacheTime.ElapsedMilliseconds,
                 LogSanitizer.MaskServerKey(serverKey),
-                granularity ?? "auto",
+                LogSanitizer.Sanitize(granularity) ?? "auto",
                 response.DataPoints?.Count ?? 0);
 
             return response;

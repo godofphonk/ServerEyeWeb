@@ -351,19 +351,9 @@ export default function DashboardPage() {
           const { action, provider, state: expectedState } = JSON.parse(linkingInfo);
 
           if (action === 'link' && state.includes(expectedState)) {
-            // Update sessionStorage with code and state
-            sessionStorage.setItem(
-              'oauth_linking',
-              JSON.stringify({
-                action,
-                provider,
-                code,
-                state,
-              }),
-            );
-
-            // Redirect to link handler
-            window.location.href = '/oauth/link-handler';
+            // Pass code and state directly via URL params instead of storing in sessionStorage
+            const handlerParams = new URLSearchParams({ action, provider, code, state });
+            window.location.href = `/oauth/link-handler?${handlerParams.toString()}`;
             return;
           }
         } catch (err) {

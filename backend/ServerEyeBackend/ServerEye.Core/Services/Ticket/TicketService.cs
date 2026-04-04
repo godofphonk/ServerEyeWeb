@@ -53,7 +53,7 @@ public sealed class TicketService : ITicketService
 
         await this.ticketRepository.AddAsync(ticket);
 
-        this.logger.LogInformation("Ticket created: {TicketNumber} for {Email}", ticketNumber, LogSanitizer.MaskEmail(dto.Email));
+        this.logger.LogInformation("Ticket created: {TicketNumber}", ticketNumber);
 
         try
         {

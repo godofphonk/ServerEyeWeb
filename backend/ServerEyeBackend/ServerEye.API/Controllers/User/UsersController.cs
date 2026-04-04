@@ -62,9 +62,7 @@ public class UsersController(IUserService userService, IAuthService authService,
 
         // Log incoming request for debugging
         this.logger.LogInformation(
-            "Registration request - UserName: {UserName}, Email: {Email}, Password length: {PasswordLength}",
-            userRegisterDto.UserName,
-            userRegisterDto.Email,
+            "Registration request received, Password length: {PasswordLength}",
             userRegisterDto.Password?.Length ?? 0);
 
         var validationResult = await this.registerValidator.ValidateAsync(userRegisterDto);
@@ -74,11 +72,11 @@ public class UsersController(IUserService userService, IAuthService authService,
             return BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
         }
 
-        this.logger.LogInformation("Registration attempt for email: {Email}, username: {UserName}", LogSanitizer.MaskEmail(userRegisterDto.Email), LogSanitizer.Sanitize(userRegisterDto.UserName));
+        this.logger.LogInformation("Registration attempt received");
 
         var result = await ExecuteWithErrorHandling(() => userService.CreateUserAsync(userRegisterDto));
 
-        this.logger.LogInformation("Registration successful for user: {Email}", LogSanitizer.MaskEmail(userRegisterDto.Email));
+        this.logger.LogInformation("Registration successful");
         return result;
     }
 
@@ -95,11 +93,11 @@ public class UsersController(IUserService userService, IAuthService authService,
             return BadRequest(new { message = "Validation failed", errors = validationResult.Errors });
         }
 
-        this.logger.LogInformation("Login attempt for email: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
+        this.logger.LogInformation("Login attempt received");
 
         var result = await ExecuteWithErrorHandling(() => userService.LoginUserAsync(userLoginDto));
 
-        this.logger.LogInformation("Login successful for user: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
+        this.logger.LogInformation("Login successful");
         return result;
     }
 
@@ -118,7 +116,7 @@ public class UsersController(IUserService userService, IAuthService authService,
                 throw new InvalidOperationException("Invalid or expired verification code");
             }
 
-            this.logger.LogInformation("Email verified for user: {Email}", LogSanitizer.MaskEmail(request.Email));
+            this.logger.LogInformation("Email verified for user: {UserId}", user.Id);
             return new { message = "Email verified successfully" };
         });
     }
@@ -153,7 +151,7 @@ public class UsersController(IUserService userService, IAuthService authService,
 
             // Обновляем роль на Admin в базе данных
             // Это временный solution - в production лучше сделать через миграцию
-            this.logger.LogInformation("Admin user created successfully with email: {Email}", LogSanitizer.MaskEmail("admin@servereye.dev"));
+            this.logger.LogInformation("Admin user created successfully");
 
             return new { message = "Admin user created successfully", email = "admin@servereye.dev", password = "admin123" };
         });
