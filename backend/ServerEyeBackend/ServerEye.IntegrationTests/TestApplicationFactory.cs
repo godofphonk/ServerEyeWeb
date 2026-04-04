@@ -58,10 +58,10 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
     public async Task ResetDatabaseAsync()
     {
         // Use direct DbContext connection to clean data
-        var optionsBuilder = new DbContextOptionsBuilder<ServerEyeDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<ServerEye.Infrastructure.ServerEyeDbContext>();
         optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
         
-        await using var serverEyeDb = new ServerEyeDbContext(optionsBuilder.Options);
+        await using var serverEyeDb = new ServerEye.Infrastructure.ServerEyeDbContext(optionsBuilder.Options);
         
         try
         {
@@ -194,12 +194,12 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
             // Remove existing DbContext registrations
             var dbContextDescriptors = services
                 .Where(d => 
-                    d.ServiceType == typeof(DbContextOptions<ServerEyeDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions<TicketDbContext>) ||
-                    d.ServiceType == typeof(DbContextOptions<BillingDbContext>) ||
-                    d.ServiceType == typeof(ServerEyeDbContext) ||
-                    d.ServiceType == typeof(TicketDbContext) ||
-                    d.ServiceType == typeof(BillingDbContext))
+                    d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.ServerEyeDbContext>) ||
+                    d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.TicketDbContext>) ||
+                    d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.Data.BillingDbContext>) ||
+                    d.ServiceType == typeof(ServerEye.Infrastructure.ServerEyeDbContext) ||
+                    d.ServiceType == typeof(ServerEye.Infrastructure.TicketDbContext) ||
+                    d.ServiceType == typeof(ServerEye.Infrastructure.Data.BillingDbContext))
                 .ToList();
 
             foreach (var descriptor in dbContextDescriptors)
@@ -208,17 +208,17 @@ protected override void ConfigureWebHost(IWebHostBuilder builder)
             }
 
             // Add PostgreSQL databases using Testcontainers
-            services.AddDbContext<ServerEyeDbContext>(options =>
+            services.AddDbContext<ServerEye.Infrastructure.ServerEyeDbContext>(options =>
             {
                 options.UseNpgsql(this.postgresContainer.GetConnectionString());
             });
 
-            services.AddDbContext<TicketDbContext>(options =>
+            services.AddDbContext<ServerEye.Infrastructure.TicketDbContext>(options =>
             {
                 options.UseNpgsql(this.postgresContainer.GetConnectionString());
             });
 
-            services.AddDbContext<BillingDbContext>(options =>
+            services.AddDbContext<ServerEye.Infrastructure.Data.BillingDbContext>(options =>
             {
                 options.UseNpgsql(this.postgresContainer.GetConnectionString());
             });

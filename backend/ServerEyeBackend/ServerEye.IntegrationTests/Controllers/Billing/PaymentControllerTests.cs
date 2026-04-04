@@ -202,7 +202,7 @@ public class PaymentControllerTests : IAsyncLifetime
         };
         await paymentRepository.AddAsync(payment);
 
-        var refundRequest = new RefundPaymentRequest
+        var refundRequest = new ServerEye.API.Controllers.Billing.RefundPaymentRequest
         {
             Amount = 15.00m
         };
@@ -221,7 +221,7 @@ public class PaymentControllerTests : IAsyncLifetime
     {
         // Arrange
         var paymentId = Guid.NewGuid();
-        var refundRequest = new RefundPaymentRequest
+        var refundRequest = new ServerEye.API.Controllers.Billing.RefundPaymentRequest
         {
             Amount = 10.00m
         };
