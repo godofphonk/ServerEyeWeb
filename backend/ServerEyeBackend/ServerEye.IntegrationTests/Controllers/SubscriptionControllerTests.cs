@@ -39,7 +39,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
     public async Task GetAvailablePlans_ShouldReturnAllPlans()
     {
         // Act
-        var response = await this.client.GetAsync("/api/subscription/plans");
+        var response = await this.client.GetAsync("/api/billing/subscription/plans");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -55,7 +55,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
     public async Task GetAvailablePlans_FreePlan_ShouldHaveCorrectProperties()
     {
         // Act
-        var response = await this.client.GetAsync("/api/subscription/plans");
+        var response = await this.client.GetAsync("/api/billing/subscription/plans");
         var plans = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto[]>();
 
         // Assert
@@ -74,7 +74,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
     public async Task GetAvailablePlans_ProPlan_ShouldHaveCorrectProperties()
     {
         // Act
-        var response = await this.client.GetAsync("/api/subscription/plans");
+        var response = await this.client.GetAsync("/api/billing/subscription/plans");
         var plans = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto[]>();
 
         // Assert
@@ -93,7 +93,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
     public async Task GetAvailablePlans_EnterprisePlan_ShouldHaveCorrectProperties()
     {
         // Act
-        var response = await this.client.GetAsync("/api/subscription/plans");
+        var response = await this.client.GetAsync("/api/billing/subscription/plans");
         var plans = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto[]>();
 
         // Assert
@@ -124,7 +124,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
         };
 
         // Act
-        var response = await this.client.PostAsJsonAsync("/api/subscription/checkout", request);
+        var response = await this.client.PostAsJsonAsync("/api/billing/subscription/checkout", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -146,7 +146,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
         };
 
         // Act
-        var response = await this.client.PostAsJsonAsync("/api/subscription/checkout", request);
+        var response = await this.client.PostAsJsonAsync("/api/billing/subscription/checkout", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -160,7 +160,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
         this.client.DefaultRequestHeaders.Authorization = new("Bearer", userToken);
 
         // Act
-        var response = await this.client.GetAsync("/api/subscription/current");
+        var response = await this.client.GetAsync("/api/billing/subscription/current");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -172,7 +172,7 @@ public class SubscriptionControllerTests : IAsyncLifetime
     public async Task GetCurrentSubscription_WithoutAuth_ShouldReturnUnauthorized()
     {
         // Act
-        var response = await this.client.GetAsync("/api/subscription/current");
+        var response = await this.client.GetAsync("/api/billing/subscription/current");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
