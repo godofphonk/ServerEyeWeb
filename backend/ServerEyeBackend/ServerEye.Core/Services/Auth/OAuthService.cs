@@ -35,6 +35,20 @@ public sealed class OAuthService(
     private readonly ILogger<OAuthService> logger = logger;
     private readonly OAuthMetrics metrics = metrics;
 
+    private static string? SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        var sanitized = value
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty);
+
+        return sanitized;
+    }
+
     // Public interface implementation
     public async Task<OAuthChallengeResponseDto> CreateChallengeAsync(OAuthProvider provider, Uri? returnUrl = null, string? action = null, CancellationToken cancellationToken = default)
     {
@@ -180,20 +194,20 @@ public sealed class OAuthService(
 
                 if (codeVerifier == null)
                 {
-                    this.logger.LogError("Code verifier not found for state: {State}", request.State);
+                    this.logger.LogError("Code verifier not found for state: {State}", SanitizeForLog(request.State));
                     this.metrics.RecordError(provider.ToString(), "process_callback", "code_verifier_not_found");
                     activity?.SetError("code_verifier_not_found", "Invalid or expired OAuth state");
                     throw new InvalidOperationException("Invalid or expired OAuth state");
                 }
 
-                this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", request.State);
+                this.logger.LogInformation("Retrieved code verifier for OAuth callback - State: {State}", SanitizeForLog(request.State));
 
                 // Remove code verifier from Redis
                 await cache.RemoveAsync($"oauth:code_verifier:{request.State}", cancellationToken);
             }
             else
             {
-                this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", originalState);
+                this.logger.LogInformation("Using temporary state for Telegram OAuth - State: {State}", SanitizeForLog(originalState));
             }
 
             // Get provider instance and exchange code for token
@@ -222,10 +236,10 @@ public sealed class OAuthService(
             this.logger.LogInformation(
                 "OAuth callback - Provider: {Provider}, ProviderUserId: {ProviderUserId}, ExternalLoginFound: {ExternalLoginFound}, LinkingAction: {LinkingAction}, RequestUserId: {RequestUserId}",
                 provider,
-                userInfo.Id,
+                SanitizeForLog(userInfo.Id),
                 existingExternalLogin != null,
-                request.LinkingAction,
-                request.UserId ?? "null");
+                SanitizeForLog(request.LinkingAction),
+                SanitizeForLog(request.UserId ?? "null"));
 
             activity?.SetTag(OAuthActivitySource.ExternalIdAttribute, userInfo.Id);
             activity?.SetTag(OAuthActivitySource.EmailAttribute, userInfo.Email);

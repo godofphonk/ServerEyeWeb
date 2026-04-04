@@ -14,6 +14,19 @@ public sealed partial class TelegramOAuthProvider(
     ILogger<TelegramOAuthProvider> logger)
     : BaseOAuthProvider(oauthSettings, logger), IOAuthProvider
 {
+    private static string? SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        var sanitized = value
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty);
+
+        return sanitized;
+    }
     public override OAuthProvider ProviderType => OAuthProvider.Telegram;
 
     [GeneratedRegex(@"""Id"":(\d+)")]
@@ -235,7 +248,7 @@ public sealed partial class TelegramOAuthProvider(
                     if (manualData?.TryGetValue("id", out var idValue) == true)
                     {
                         var extractedId = idValue.ToString();
-                        Logger.LogInformation("Extracted Telegram ID from fallback: {Id}", extractedId);
+                        Logger.LogInformation("Extracted Telegram ID from fallback: {Id}", SanitizeForLog(extractedId));
 
                         manualData.TryGetValue("first_name", out var firstNameValue);
                         manualData.TryGetValue("username", out var usernameValue);
