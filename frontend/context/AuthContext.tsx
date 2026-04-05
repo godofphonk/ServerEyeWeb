@@ -392,10 +392,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getOAuthURL = useCallback(
     async (provider: string, action?: string): Promise<string> => {
       const challenge = await getOAuthChallenge(provider, undefined, action);
-      // Store challenge data in sessionStorage for callback handling
+      // Store non-sensitive data in sessionStorage for callback handling
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('oauth_state', challenge.state);
-        sessionStorage.setItem('oauth_code_verifier', challenge.codeVerifier);
         sessionStorage.setItem('oauth_provider', provider);
         if (action) {
           sessionStorage.setItem('oauth_action', action);
