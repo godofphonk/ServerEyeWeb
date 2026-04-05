@@ -140,6 +140,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
                 Email = user.Email ?? string.Empty,
                 UserName = user.UserName ?? string.Empty,
                 ServerId = user.ServerId,
+                IsEmailVerified = user.IsEmailVerified,
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
             },
             Token = accessToken,
             RefreshToken = refreshToken,
@@ -206,13 +208,15 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             return true;
         }
 
-        // OAuth users without email (Telegram) - access allowed
-        if (!user.HasPassword && string.IsNullOrEmpty(user.Email))
+        // OAuth users - access allowed without email verification
+        if (!user.HasPassword)
         {
+            // OAuth users (Google, GitHub, Telegram) don't need email verification
+            this.logger.LogDebug("OAuth user {UserId} accessing protected resources - email verification skipped", userId);
             return true;
         }
 
-        // Users with email - require verification
+        // Regular users with password - require email verification
         if (!string.IsNullOrEmpty(user.Email))
         {
             return user.IsEmailVerified;
@@ -268,6 +272,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
                 Email = user.Email ?? string.Empty,
                 UserName = user.UserName,
                 ServerId = user.ServerId,
+                IsEmailVerified = user.IsEmailVerified,
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
             },
             Token = accessToken,
             RefreshToken = refreshToken,

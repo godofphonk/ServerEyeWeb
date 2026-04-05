@@ -18,6 +18,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     // OAuth пользователи не должны попадать на страницу верификации
     if (user && isOAuthUser(user)) {
+      console.log('OAuth user detected on verify-email page, redirecting to dashboard');
       router.push('/dashboard');
       return;
     }

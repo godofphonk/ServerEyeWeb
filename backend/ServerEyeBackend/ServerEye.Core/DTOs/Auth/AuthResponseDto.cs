@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ServerEye.Core.DTOs.Auth;
 
 public class AuthResponseDto
@@ -8,6 +10,9 @@ public class AuthResponseDto
     public string Token { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;
     public int ExpiresIn { get; set; }
+    
+    [JsonPropertyName("skipEmailVerification")]
+    public bool SkipEmailVerification { get; set; }
 }
 
 public class RefreshTokenRequestDto
@@ -18,8 +23,21 @@ public class RefreshTokenRequestDto
 
 public class AuthUserDto
 {
+    [JsonPropertyName("id")]
     public Guid Id { get; init; }
+    
+    [JsonPropertyName("username")]
     public string UserName { get; init; } = string.Empty;
+    
+    [JsonPropertyName("email")]
     public string Email { get; init; } = string.Empty;
+    
+    [JsonPropertyName("serverId")]
     public Guid ServerId { get; set; }
+    
+    [JsonPropertyName("isEmailVerified")]
+    public bool IsEmailVerified { get; init; }
+    
+    [JsonPropertyName("requiresEmailVerification")]
+    public bool RequiresEmailVerification { get; init; }
 }
