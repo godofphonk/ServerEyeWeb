@@ -48,25 +48,37 @@ public static class LogSanitizer
     /// <returns>Masked email address safe for logging.</returns>
     public static string MaskEmail(string? email, int visibleChars = 3)
     {
+        // If there is no email, log a generic placeholder.
         if (string.IsNullOrEmpty(email))
         {
             return "***";
         }
 
+        // Remove control characters to prevent log injection.
         var sanitized = Sanitize(email);
         if (sanitized == null)
         {
             return "***";
         }
 
+        // Basic structural validation: must contain '@' and at least one character before it.
         var atIndex = sanitized.IndexOf('@', StringComparison.Ordinal);
         if (atIndex <= 0)
         {
             return "***";
         }
 
+        // Only expose a small, fixed number of characters from the local part.
+        if (visibleChars < 1)
+        {
+            visibleChars = 1;
+        }
+
         var charsToShow = Math.Min(atIndex, visibleChars);
-        return $"{sanitized[..charsToShow]}***";
+
+        // Construct a fixed-format, masked value that is safe to log.
+        var prefix = sanitized[..charsToShow];
+        return $"{prefix}***";
     }
 
     /// <summary>
