@@ -20,9 +20,24 @@ public static class LogSanitizer
             return input;
         }
 
-        return input
-            .Replace("\r", string.Empty, StringComparison.Ordinal)
-            .Replace("\n", string.Empty, StringComparison.Ordinal);
+        // Remove all control characters (including CR/LF) to prevent log injection.
+        // This keeps printable characters intact while ensuring log-safe output.
+        var span = input.AsSpan();
+        var buffer = new char[span.Length];
+        var index = 0;
+
+        for (var i = 0; i < span.Length; i++)
+        {
+            var c = span[i];
+            if (!char.IsControl(c))
+            {
+                buffer[index++] = c;
+            }
+        }
+
+        return index == span.Length
+            ? input
+            : new string(buffer, 0, index);
     }
 
     /// <summary>
