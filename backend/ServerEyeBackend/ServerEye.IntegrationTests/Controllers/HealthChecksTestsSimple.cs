@@ -4,12 +4,12 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 
-[Collection("HealthChecks Tests")]
-public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
+[Collection("HealthChecks Tests Simple")]
+public class HealthChecksTestsSimple : IClassFixture<TestApplicationFactorySimple>, IAsyncLifetime
 {
-    private readonly TestApplicationFactory factory;
+    private readonly TestApplicationFactorySimple factory;
 
-    public HealthChecksTests(TestApplicationFactory factory)
+    public HealthChecksTestsSimple(TestApplicationFactorySimple factory)
     {
         this.factory = factory;
         // Client will be created in each test method after JWT is configured
@@ -47,6 +47,8 @@ public class HealthChecksTests : IClassFixture<TestApplicationFactory>, IAsyncLi
         var checks = healthReport.GetProperty("checks");
 
         checks.EnumerateArray().Should().NotBeEmpty();
+        checks.EnumerateArray().Should().Contain(c =>
+            c.GetProperty("name").GetString() == "test-health");
         checks.EnumerateArray().Should().Contain(c =>
             c.GetProperty("name").GetString() == "postgres-servereye");
         checks.EnumerateArray().Should().Contain(c =>
