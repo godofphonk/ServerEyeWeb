@@ -284,12 +284,12 @@ test-backend:
 	@echo "✅ Backend tests completed!"
 
 test-backend-ci:
-	@echo "🧪 Running backend CI/CD tests (Unit + Simple Integration)..."
+	@echo "🧪 Running backend CI/CD tests (Unit + Integration)..."
 	cd ./backend/ServerEyeBackend && \
 		echo "📝 Unit Tests..." && \
 		dotnet test ServerEye.UnitTests --logger "console;verbosity=minimal" --no-build && \
-		echo "🔧 Simple Integration Tests..." && \
-		dotnet test ServerEye.IntegrationTests --filter "FullyQualifiedName~Simple" --logger "console;verbosity=minimal" --no-build
+		echo "🔧 Integration Tests..." && \
+		dotnet test ServerEye.IntegrationTests --logger "console;verbosity=minimal" --no-build
 	@echo "✅ Backend CI/CD tests completed!"
 
 test-frontend:

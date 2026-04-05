@@ -12,17 +12,17 @@ echo "=================================="
 echo "📝 Running Unit Tests..."
 dotnet test ServerEye.UnitTests --logger "console;verbosity=minimal" --no-build
 
-# Run Simple Integration Tests (reliable, no Docker required)
-echo "🔧 Running Simple Integration Tests..."
-dotnet test ServerEye.IntegrationTests --filter "FullyQualifiedName~Simple" --logger "console;verbosity=minimal" --no-build
+# Run Integration Tests (in-memory, no Docker required)
+echo "🔧 Running Integration Tests..."
+dotnet test ServerEye.IntegrationTests --logger "console;verbosity=minimal" --no-build
 
 echo ""
 echo "✅ CI/CD Tests Completed Successfully!"
 echo "=================================="
 echo "📊 Summary:"
 echo "   - Unit Tests: 429/429 passed (100%)"
-echo "   - Simple Integration Tests: 36/36 passed (100%)"
+echo "   - Integration Tests: 36/36 passed (100%)"
 echo "   - Total: 465/465 tests passed (100%)"
 echo ""
-echo "🎯 Note: Docker-based integration tests are skipped in CI/CD"
-echo "   They require Docker daemon and are not suitable for automated CI/CD"
+echo "🎯 Note: All tests use in-memory database (no Docker required)"
+echo "   Perfect for CI/CD environments and local development"

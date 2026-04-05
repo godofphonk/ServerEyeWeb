@@ -146,12 +146,11 @@ jobs:
       - name: Build
         run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
 
-      - name: Run integration tests (Simple - no Docker)
+      - name: Run integration tests (in-memory - no Docker)
         run: |
           dotnet test backend/ServerEyeBackend/ServerEye.IntegrationTests/ServerEye.IntegrationTests.csproj \
             --no-build \
             --configuration Release \
-            --filter "FullyQualifiedName~Simple" \
             --logger "trx;LogFileName=integration-test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./coverage \
