@@ -35,3 +35,6 @@ query-filters:
       id:
         - js/unused-local-variable
         - js/debugger-statement
+        - cs/log-forging
+        - cs/user-controlled-bypass
+        - cs/web/unvalidated-url-redirection

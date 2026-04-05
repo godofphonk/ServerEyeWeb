@@ -1,0 +1,45 @@
+---
+sourceLocationPrefix: /home/gospodin/Desktop/homeProjects/ServerEyeProjects/ServerEyeWeb/backend/ServerEyeBackend
+baselineLinesOfCode: 26949
+unicodeNewlines: false
+columnKind: utf16
+primaryLanguage: csharp
+inProgress:
+  primaryLanguage: csharp
+  installedExtractors:
+    go:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/go
+    actions:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/actions
+    ruby:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/ruby
+    yaml:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/yaml
+    rust:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/rust
+    python:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/python
+    xml:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/xml
+    csv:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/csv
+    cpp:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/cpp
+    java:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/java
+    javascript:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/javascript
+    html:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/html
+    swift:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/swift
+    properties:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/properties
+    csharp:
+     - /home/gospodin/.local/share/gh/extensions/gh-codeql/dist/release/v2.25.1/csharp
+creationMetadata:
+  cliVersion: 2.25.1
+  creationTime: 2026-04-05T15:39:28.962123950Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: false
