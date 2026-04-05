@@ -30,8 +30,16 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Redirect to success page
-                            window.location.href = 'http://127.0.0.1:3000/dashboard?auth=success';
+                            // Check if email verification is required
+                            if (data.skipEmailVerification === true) {
+                                // OAuth user - skip email verification
+                                console.log('OAuth user - skipping email verification');
+                                window.location.href = 'http://127.0.0.1:3000/dashboard?auth=success';
+                            } else {
+                                // Regular user - require email verification
+                                console.log('Regular user - redirecting to email verification');
+                                window.location.href = 'http://127.0.0.1:3000/verify-email?auth=success';
+                            }
                         } else {
                             // Redirect to error page
                             window.location.href = 'http://127.0.0.1:3000/login?auth=error&message=' + encodeURIComponent(data.message || 'Authentication failed');

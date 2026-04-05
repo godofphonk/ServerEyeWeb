@@ -133,7 +133,9 @@ public class AuthController : BaseApiController
                     Id = user.Id,
                     Email = user.Email,
                     UserName = user.UserName,
-                    ServerId = Guid.Empty // Default value for now
+                    ServerId = Guid.Empty, // Default value for now
+                    IsEmailVerified = user.IsEmailVerified,
+                    RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
                 },
                 Token = newAccessToken,
                 RefreshToken = newRefreshToken,
@@ -504,6 +506,7 @@ public class AuthController : BaseApiController
     [HttpPost("oauth/callback")]
     public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
     {
+        this.logger.LogInformation("OAuthCallback START - Provider: {Provider}", request.Provider);
         var startTime = DateTime.UtcNow;
 
         try
@@ -519,7 +522,45 @@ public class AuthController : BaseApiController
             this.metrics.RecordTokenExchange(request.Provider, true);
             this.metrics.RecordTokenExchangeDuration(request.Provider, duration, true);
 
-            return this.Ok(response);
+            // Special handling for OAuth users - add skip verification flag
+            // Check if this is OAuth user by checking if user has no password (OAuth users don't have passwords)
+            var isOAuthUser = string.IsNullOrEmpty(response.User?.Email) || 
+                (!string.Equals(request.Provider, "email", StringComparison.OrdinalIgnoreCase) && response.User?.Email == null);
+            
+            if (isOAuthUser)
+            {
+                this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}, Email: '{Email}'", request.Provider, response.User?.Id, response.User?.Email);
+                
+                // Set skip flag directly on response
+                var responseWithSkip = new AuthResponseDto
+                {
+                    Success = true,
+                    Message = "OAuth authentication successful - no email verification required",
+                    User = response.User,
+                    Token = response.Token,
+                    RefreshToken = response.RefreshToken,
+                    ExpiresIn = response.ExpiresIn,
+                    SkipEmailVerification = true
+                };
+                
+                return this.Ok(responseWithSkip);
+            }
+
+            this.logger.LogInformation("Regular user detected - UserId: {UserId}, Email: '{Email}'", response.User?.Id, response.User?.Email);
+            
+            // Ensure skip flag is false for users requiring verification
+            var responseWithVerification = new AuthResponseDto
+            {
+                Success = response.Success,
+                Message = response.Message,
+                User = response.User,
+                Token = response.Token,
+                RefreshToken = response.RefreshToken,
+                ExpiresIn = response.ExpiresIn,
+                SkipEmailVerification = false
+            };
+            
+            return this.Ok(responseWithVerification);
         }
         catch (Exception ex)
         {
@@ -936,7 +977,8 @@ public class AuthController : BaseApiController
                     message = response.Message,
                     token = string.Empty,
                     refreshToken = string.Empty,
-                    user = (object?)null
+                    user = (object?)null,
+                    skipEmailVerification = false
                 });
             }
 
@@ -944,6 +986,14 @@ public class AuthController : BaseApiController
                 "Telegram OAuth callback processed successfully - User: {UserId}, Token: {Token}",
                 response.User?.Id,
                 response.Token.Length > 20 ? $"{response.Token[..20]}..." : response.Token);
+
+            // Check if OAuth user (Telegram users always have empty email or no email)
+            var isOAuthUser = string.IsNullOrEmpty(response.User?.Email);
+            this.logger.LogInformation(
+                "Telegram OAuth user check - UserId: {UserId}, Email: '{Email}', IsOAuthUser: {IsOAuthUser}",
+                response.User?.Id,
+                response.User?.Email,
+                isOAuthUser);
 
             // Return tokens in response body for frontend to handle
             // Frontend will redirect with tokens
@@ -958,7 +1008,8 @@ public class AuthController : BaseApiController
                     id = response.User?.Id,
                     email = response.User?.Email,
                     username = response.User?.UserName
-                }
+                },
+                skipEmailVerification = isOAuthUser // OAuth users skip email verification
             });
         }
         catch (Exception ex)

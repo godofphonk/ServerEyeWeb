@@ -136,6 +136,7 @@ public sealed class JwtService : IJwtService
             new Claim("role", user.Role.ToString().ToUpperInvariant()),
             new Claim("email_verified", user.IsEmailVerified.ToString().ToUpperInvariant()),
             new Claim("has_email", (!string.IsNullOrEmpty(user.Email)).ToString().ToUpperInvariant()),
+            new Claim("has_password", user.HasPassword.ToString().ToUpperInvariant()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
             new Claim(JwtRegisteredClaimNames.Exp, DateTimeOffset.UtcNow.Add(this.jwtSettings.AccessTokenExpiration).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
         };

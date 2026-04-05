@@ -123,6 +123,8 @@ public sealed class OAuthService(
     {
         using var activity = OAuthActivitySource.StartProcessCallbackActivity(request.Provider, ipAddress, userAgent);
         var startTime = DateTime.UtcNow;
+        
+        this.logger.LogInformation("ProcessCallbackAsync START - Provider: {Provider}", request.Provider);
 
         var provider = this.ParseProvider(request.Provider);
 
@@ -336,6 +338,14 @@ public sealed class OAuthService(
             activity?.SetTag(OAuthActivitySource.UserIdAttribute, user.Id.ToString());
             activity?.SetSuccess();
 
+            var requiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email);
+            this.logger.LogInformation(
+                "OAuth response - UserId: {UserId}, HasPassword: {HasPassword}, IsEmailVerified: {IsEmailVerified}, RequiresEmailVerification: {RequiresEmailVerification}",
+                user.Id,
+                user.HasPassword,
+                user.IsEmailVerified,
+                requiresEmailVerification);
+
             return new AuthResponseDto
             {
                 User = new AuthUserDto
@@ -343,7 +353,9 @@ public sealed class OAuthService(
                     Id = user.Id,
                     UserName = user.UserName,
                     Email = user.Email ?? string.Empty,
-                    ServerId = user.ServerId
+                    ServerId = user.ServerId,
+                    IsEmailVerified = user.IsEmailVerified,
+                    RequiresEmailVerification = requiresEmailVerification
                 },
                 Token = token,
                 RefreshToken = refreshToken,
@@ -433,7 +445,9 @@ public sealed class OAuthService(
                 Id = user.Id,
                 UserName = user.UserName,
                 Email = user.Email ?? string.Empty,
-                ServerId = user.ServerId
+                ServerId = user.ServerId,
+                IsEmailVerified = user.IsEmailVerified,
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
             },
             Token = token,
             RefreshToken = refreshToken,

@@ -95,8 +95,16 @@ function TelegramCallbackContent() {
                 if (linkingInfo) {
                   window.location.href = '/profile?linking=success';
                 } else {
-                  // Otherwise redirect to dashboard
-                  window.location.href = '/dashboard';
+                  // Check if email verification is required
+                  if (data.skipEmailVerification === true) {
+                    // OAuth user - skip email verification
+                    console.log('OAuth user - skipping email verification');
+                    window.location.href = '/dashboard';
+                  } else {
+                    // Regular user - require email verification
+                    console.log('Regular user - redirecting to email verification');
+                    window.location.href = '/verify-email';
+                  }
                 }
               } else {
                 // Check if this is a linking error

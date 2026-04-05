@@ -107,7 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email.trim() === '' ||
               email.includes('telegram.local') ||
               email.includes('@oauth.');
-            const hasPassword = payload.hasPassword ?? payload.HasPassword ?? !isOAuthUser;
+            // Приоритет JWT claim для hasPassword, fallback на логику
+            const hasPasswordFromJwt = payload.has_password === 'FALSE' ? false : 
+                                      (payload.hasPassword ?? payload.HasPassword);
+            const hasPassword = hasPasswordFromJwt !== undefined ? hasPasswordFromJwt : !isOAuthUser;
+            
+            console.log('JWT parsing:', {
+              has_password: payload.has_password,
+              hasPasswordFromJwt,
+              hasPassword,
+              isOAuthUser
+            });
 
             // Clear OAuth tokens from sessionStorage if user is not actually OAuth user
             if (email.includes('telegram.local') || email.includes('@oauth.')) {
