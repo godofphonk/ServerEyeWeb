@@ -72,8 +72,12 @@ app.MapHealthChecks("/health/ready", healthCheckOptions);
 // Map Prometheus metrics endpoint
 app.MapPrometheusScrapingEndpoint();
 
-// Apply database migrations
-await ServerEye.API.Configuration.DatabaseInitializer.InitializeAsync(app.Services);
+// Apply database migrations (skip for testing environment)
+var environment = app.Environment;
+if (!environment.IsEnvironment("Testing"))
+{
+    await ServerEye.API.Configuration.DatabaseInitializer.InitializeAsync(app.Services);
+}
 await app.RunAsync();
 
 #pragma warning restore CA1303 // Localize strings

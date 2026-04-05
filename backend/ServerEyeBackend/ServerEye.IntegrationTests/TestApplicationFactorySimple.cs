@@ -19,17 +19,9 @@ using ServerEye.API;
 using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
 using StackExchange.Redis;
-using Testcontainers.PostgreSql;
 
-public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class TestApplicationFactorySimple : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
-        .WithDatabase("testdb")
-        .WithUsername("testuser")
-        .WithPassword("testpass")
-        .WithCleanUp(true)
-        .Build();
-
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
     private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
     private static readonly string TestPublicKey = Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo());
@@ -40,75 +32,25 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
     public async Task InitializeAsync()
     {
-        await this.postgresContainer.StartAsync();
-
-        // Let migrations handle all database creation
-        // Don't create any schema here to avoid conflicts
+        // No Testcontainers - use in-memory database
+        await Task.CompletedTask;
     }
 
     public async Task EnsureDatabaseCreatedAsync()
     {
-        // Database is already created in InitializeAsync
+        // Database is created in-memory
         await Task.CompletedTask;
     }
 
     public new async Task DisposeAsync()
     {
-        await this.postgresContainer.DisposeAsync();
+        await Task.CompletedTask;
     }
 
     public async Task ResetDatabaseAsync()
     {
-        // Use direct DbContext connection to clean data
-        var optionsBuilder = new DbContextOptionsBuilder<ServerEye.Infrastructure.ServerEyeDbContext>();
-        optionsBuilder.UseNpgsql(this.postgresContainer.GetConnectionString());
-
-        await using var serverEyeDb = new ServerEye.Infrastructure.ServerEyeDbContext(optionsBuilder.Options);
-
-        try
-        {
-            if (await serverEyeDb.Database.CanConnectAsync())
-            {
-                // Clear all data from tables in correct order (respecting foreign keys)
-                await serverEyeDb.Database.ExecuteSqlRawAsync(
-                    """
-                    DO $$ 
-                    BEGIN
-                        -- Truncate tables in correct order to avoid foreign key constraints
-                        -- Start with dependent tables, then parent tables
-                        
-                        -- Billing tables (dependent on Users)
-                        TRUNCATE TABLE "WebhookEvents" CASCADE;
-                        TRUNCATE TABLE "Payments" CASCADE;
-                        TRUNCATE TABLE "Subscriptions" CASCADE;
-                        TRUNCATE TABLE "SubscriptionPlans" CASCADE;
-                        
-                        -- User-related tables
-                        TRUNCATE TABLE "UserServerAccess" CASCADE;
-                        TRUNCATE TABLE "TicketMessages" CASCADE;
-                        TRUNCATE TABLE "TicketAttachments" CASCADE;
-                        TRUNCATE TABLE "Tickets" CASCADE;
-                        TRUNCATE TABLE "Notifications" CASCADE;
-                        TRUNCATE TABLE "MonitoredServers" CASCADE;
-                        TRUNCATE TABLE "UserExternalLogins" CASCADE;
-                        TRUNCATE TABLE "UserSessions" CASCADE;
-                        TRUNCATE TABLE "RefreshTokens" CASCADE;
-                        TRUNCATE TABLE "PasswordResetTokens" CASCADE;
-                        TRUNCATE TABLE "EmailVerifications" CASCADE;
-                        TRUNCATE TABLE "AccountDeletions" CASCADE;
-                        TRUNCATE TABLE "Users" CASCADE;
-                    EXCEPTION
-                        WHEN OTHERS THEN
-                            -- Ignore errors if tables don't exist yet
-                            NULL;
-                    END $$;
-                    """);
-            }
-        }
-        catch
-        {
-            // Ignore errors if database doesn't exist yet
-        }
+        // In-memory database is automatically reset
+        await Task.CompletedTask;
     }
 
     protected override IHostBuilder? CreateHostBuilder()
@@ -122,7 +64,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["JwtSettings:SecretKey"] = "TestSecretKey123456789012345678901234567890",
+                ["JwtSettings:SecretKey"] = "ThisIsASecretKeyForDevelopment123456789",
                 ["JwtSettings:Issuer"] = "TestIssuer",
                 ["JwtSettings:Audience"] = "TestAudience",
                 ["JwtSettings:AccessTokenExpiration"] = "01:00:00",
@@ -131,29 +73,32 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JwtSettings:PublicKeyBase64"] = TestPublicKey,
                 ["JWT_PRIVATE_KEY_BASE64"] = TestPrivateKey,
                 ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
-                ["ConnectionStrings:DefaultConnection"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:ServerEyeDbContext"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:TicketDbContext"] = this.postgresContainer.GetConnectionString(),
-                ["ConnectionStrings:BillingDbContext"] = this.postgresContainer.GetConnectionString(),
+                // Use in-memory database
+                ["ConnectionStrings:DefaultConnection"] = "DataSource=:memory:",
+                ["ConnectionStrings:ServerEyeDbContext"] = "DataSource=:memory:",
+                ["ConnectionStrings:TicketDbContext"] = "DataSource=:memory:",
+                ["ConnectionStrings:BillingDbContext"] = "DataSource=:memory:",
                 ["ConnectionStrings:Redis"] = "127.0.0.1:6379",
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false",
-                // Enable OAuth providers for tests
+                // Enable OAuth providers for tests with real configuration
                 ["OAuth:Google:Enabled"] = "true",
-                ["OAuth:Google:ClientId"] = "test-client-id",
-                ["OAuth:Google:ClientSecret"] = "test-client-secret",
-                ["OAuth:Google:RedirectUri"] = "https://127.0.0.1/oauth/callback",
+                ["OAuth:Google:ClientId"] = "191261163109-57ph58fcvbf97p4pc4b9vq0e34o7hbi3.apps.googleusercontent.com",
+                ["OAuth:Google:ClientSecret"] = "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",
+                ["OAuth:Google:RedirectUri"] = "http://127.0.0.1:5246/api/auth/oauth/callback",
                 ["OAuth:GitHub:Enabled"] = "true",
-                ["OAuth:GitHub:ClientId"] = "test-client-id",
-                ["OAuth:GitHub:ClientSecret"] = "test-client-secret",
-                ["OAuth:GitHub:RedirectUri"] = "https://127.0.0.1/oauth/callback",
+                ["OAuth:GitHub:ClientId"] = "Ov23liahEWZhQvi65PZH",
+                ["OAuth:GitHub:ClientSecret"] = "f61b09ccef2fdada3b6b5a66e7a60d26a40fef8e",
+                ["OAuth:GitHub:RedirectUri"] = "http://127.0.0.1:5246/api/auth/oauth/callback",
                 ["OAuth:Telegram:Enabled"] = "true",
-                ["OAuth:Telegram:BotId"] = "test-bot-id",
-                ["OAuth:Telegram:BotToken"] = "test-bot-token",
-                ["OAuth:Telegram:RedirectUri"] = "https://127.0.0.1/oauth/callback",
+                ["OAuth:Telegram:BotId"] = "8364624365",
+                ["OAuth:Telegram:BotToken"] = "8364624365:AAH0MDDknDt9MOAjMvSGTDIzUa7jYFN8AtU",
+                ["OAuth:Telegram:RedirectUri"] = "http://127.0.0.1:3000/oauth/callback",
                 // Disable Redis instrumentation for tests
-                ["OpenTelemetry:DisableRedisInstrumentation"] = "true"
+                ["OpenTelemetry:DisableRedisInstrumentation"] = "true",
+                // Disable database initialization for tests
+                ["DatabaseInitialization:Enabled"] = "false"
             });
         });
 
@@ -172,7 +117,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
 
         builder.ConfigureServices(services =>
         {
-            // Remove existing OpenTelemetry configuration completely
+            // Remove ALL existing OpenTelemetry configuration completely
             var openTelemetryDescriptors = services
                 .Where(d => d.ServiceType.FullName?.Contains("OpenTelemetry", StringComparison.Ordinal) == true ||
                            d.ServiceType.FullName?.Contains("TracerProvider", StringComparison.Ordinal) == true ||
@@ -180,6 +125,19 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 .ToList();
 
             foreach (var descriptor in openTelemetryDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            // Remove ALL Entity Framework Core related services
+            var efCoreDescriptors = services
+                .Where(d => d.ServiceType.FullName?.Contains("EntityFrameworkCore", StringComparison.Ordinal) == true ||
+                           d.ServiceType.FullName?.Contains("DbContext", StringComparison.Ordinal) == true ||
+                           d.ServiceType.FullName?.Contains("IDbContext", StringComparison.Ordinal) == true ||
+                           d.ServiceType.FullName?.Contains("Database", StringComparison.Ordinal) == true)
+                .ToList();
+
+            foreach (var descriptor in efCoreDescriptors)
             {
                 services.Remove(descriptor);
             }
@@ -213,8 +171,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                     options.TokenValidationParameters.ValidAudience = "TestAudience";
                 });
 
-
-            // Remove existing DbContext registrations
+            // Remove existing DbContext registrations - this is now redundant but kept for safety
             var dbContextDescriptors = services
                 .Where(d =>
                     d.ServiceType == typeof(DbContextOptions<ServerEye.Infrastructure.ServerEyeDbContext>) ||
@@ -230,20 +187,20 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 services.Remove(descriptor);
             }
 
-            // Add PostgreSQL databases using Testcontainers
+            // Add in-memory databases
             services.AddDbContext<ServerEye.Infrastructure.ServerEyeDbContext>(options =>
             {
-                options.UseNpgsql(this.postgresContainer.GetConnectionString());
+                options.UseInMemoryDatabase("TestServerEyeDb");
             });
 
             services.AddDbContext<ServerEye.Infrastructure.TicketDbContext>(options =>
             {
-                options.UseNpgsql(this.postgresContainer.GetConnectionString());
+                options.UseInMemoryDatabase("TestTicketDb");
             });
 
             services.AddDbContext<ServerEye.Infrastructure.Data.BillingDbContext>(options =>
             {
-                options.UseNpgsql(this.postgresContainer.GetConnectionString());
+                options.UseInMemoryDatabase("TestBillingDb");
             });
 
             // Remove all Redis-related services including IConnectionMultiplexer
@@ -335,10 +292,46 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 .AddCheck("postgres-tickets", () => HealthCheckResult.Healthy("Test Tickets DB"))
                 .AddCheck("redis", () => HealthCheckResult.Healthy("Test Redis"));
 
+            // Override OAuthSettings with test configuration
+            var testOAuthSettings = new Core.Configuration.OAuthSettings
+            {
+                Google = new Core.Configuration.GoogleSettings
+                {
+                    Enabled = true,
+                    ClientId = "191261163109-57ph58fcvbf97p4pc4b9vq0e34o7hbi3.apps.googleusercontent.com",
+                    ClientSecret = "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",
+                    RedirectUri = new Uri("http://127.0.0.1:5246/api/auth/oauth/callback")
+                },
+                GitHub = new Core.Configuration.GitHubSettings
+                {
+                    Enabled = true,
+                    ClientId = "Ov23liahEWZhQvi65PZH",
+                    ClientSecret = "f61b09ccef2fdada3b6b5a66e7a60d26a40fef8e",
+                    RedirectUri = new Uri("http://127.0.0.1:5246/api/auth/oauth/callback")
+                },
+                Telegram = new Core.Configuration.TelegramSettings
+                {
+                    Enabled = true,
+                    BotId = "8364624365",
+                    BotToken = "8364624365:AAH0MDDknDt9MOAjMvSGTDIzUa7jYFN8AtU",
+                    RedirectUri = new Uri("http://127.0.0.1:3000/oauth/callback")
+                }
+            };
+
+            // Remove existing OAuthSettings
+            var oauthSettingsDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(Core.Configuration.OAuthSettings));
+            if (oauthSettingsDescriptor != null)
+            {
+                services.Remove(oauthSettingsDescriptor);
+            }
+
+            // Add test OAuthSettings
+            services.AddSingleton(testOAuthSettings);
+
             // Override JwtService with test settings to ensure token generation uses same keys as validation
             var testJwtSettings = new Core.Services.JwtSettings
             {
-                SecretKey = "TestSecretKey123456789012345678901234567890",
+                SecretKey = "ThisIsASecretKeyForDevelopment123456789",
                 Issuer = "TestIssuer",
                 Audience = "TestAudience",
                 AccessTokenExpiration = TimeSpan.Parse("01:00:00", CultureInfo.InvariantCulture),

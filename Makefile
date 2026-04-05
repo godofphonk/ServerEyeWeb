@@ -43,7 +43,11 @@ help:
 	@echo ""
 	@echo "🔨 Build & Test:"
 	@echo "  build            - Build all services"
-	@echo "  test             - Run all tests"
+	@echo "  test             - Run all tests (including Docker tests)"
+	@echo "  test-ci          - Run CI/CD tests (Unit + Simple Integration only)"
+	@echo "  test-backend     - Run all backend tests"
+	@echo "  test-backend-ci  - Run backend CI/CD tests (no Docker)"
+	@echo "  test-frontend    - Run frontend tests"
 	@echo "  lint             - Run linting"
 	@echo ""
 	@echo "🛠️  Utility:"
@@ -269,10 +273,24 @@ test:
 	make test-frontend
 	@echo "✅ All tests completed!"
 
+test-ci:
+	@echo "🚀 Running CI/CD tests (reliable only)..."
+	./ci-tests.sh
+	@echo "✅ CI/CD tests completed!"
+
 test-backend:
 	@echo "🧪 Running backend tests..."
 	cd ./backend/ServerEyeBackend && dotnet test --logger "console;verbosity=detailed"
 	@echo "✅ Backend tests completed!"
+
+test-backend-ci:
+	@echo "🧪 Running backend CI/CD tests (Unit + Simple Integration)..."
+	cd ./backend/ServerEyeBackend && \
+		echo "📝 Unit Tests..." && \
+		dotnet test ServerEye.UnitTests --logger "console;verbosity=minimal" --no-build && \
+		echo "🔧 Simple Integration Tests..." && \
+		dotnet test ServerEye.IntegrationTests --filter "FullyQualifiedName~Simple" --logger "console;verbosity=minimal" --no-build
+	@echo "✅ Backend CI/CD tests completed!"
 
 test-frontend:
 	@echo "🧪 Running frontend tests..."
