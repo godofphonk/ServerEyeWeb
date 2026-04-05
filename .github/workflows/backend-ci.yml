@@ -274,6 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
+    if: false  # Disabled - no Dockerfile in project yet
     
     steps:
       - name: Checkout code
