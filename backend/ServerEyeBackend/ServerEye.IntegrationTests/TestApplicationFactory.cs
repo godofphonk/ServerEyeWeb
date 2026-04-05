@@ -139,6 +139,19 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false",
+                // Enable OAuth providers for tests
+                ["OAuth:Google:Enabled"] = "true",
+                ["OAuth:Google:ClientId"] = "test-client-id",
+                ["OAuth:Google:ClientSecret"] = "test-client-secret",
+                ["OAuth:Google:RedirectUri"] = "https://127.0.0.1/oauth/callback",
+                ["OAuth:GitHub:Enabled"] = "true",
+                ["OAuth:GitHub:ClientId"] = "test-client-id",
+                ["OAuth:GitHub:ClientSecret"] = "test-client-secret",
+                ["OAuth:GitHub:RedirectUri"] = "https://127.0.0.1/oauth/callback",
+                ["OAuth:Telegram:Enabled"] = "true",
+                ["OAuth:Telegram:BotId"] = "test-bot-id",
+                ["OAuth:Telegram:BotToken"] = "test-bot-token",
+                ["OAuth:Telegram:RedirectUri"] = "https://127.0.0.1/oauth/callback",
                 // Disable Redis instrumentation for tests
                 ["OpenTelemetry:DisableRedisInstrumentation"] = "true"
             });
