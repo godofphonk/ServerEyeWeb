@@ -20,16 +20,16 @@ using ServerEye.Core.Services.OAuth;
 using ServerEye.Core.Services.OAuth.Factory;
 using Xunit;
 
-[Collection("OAuth Integration Tests Simple")]
-public class OAuthIntegrationTestsSimple : IClassFixture<TestApplicationFactorySimple>, IAsyncLifetime
+[Collection("OAuth Integration Tests")]
+public class OAuthIntegrationTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
-    private readonly TestApplicationFactorySimple factory;
+    private readonly TestApplicationFactory factory;
     private readonly Mock<IUserRepository> mockUserRepository;
     private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IJwtService> mockJwtService;
     private readonly Mock<ISubscriptionService> mockSubscriptionService;
 
-    public OAuthIntegrationTestsSimple(TestApplicationFactorySimple factory)
+    public OAuthIntegrationTests(TestApplicationFactory factory)
     {
         this.factory = factory;
         this.mockUserRepository = new Mock<IUserRepository>();
@@ -121,7 +121,7 @@ public class OAuthIntegrationTestsSimple : IClassFixture<TestApplicationFactoryS
 
         // Act
         var response = await client.GetAsync("/api/auth/oauth/InvalidProvider/challenge?state=test");
-        
+
         // Debug: Let's see what we actually get
         var responseContent = await response.Content.ReadAsStringAsync();
         Console.WriteLine($"Response Status: {response.StatusCode}");
@@ -222,7 +222,7 @@ public class OAuthIntegrationTestsSimple : IClassFixture<TestApplicationFactoryS
     {
         // This test assumes there's an endpoint to list available OAuth providers
         using var client = this.factory.CreateClient();
-        
+
         // Create a valid JWT token for authorization
         var token = this.GenerateTestToken(new User { Id = Guid.NewGuid(), Email = "test@example.com" });
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);

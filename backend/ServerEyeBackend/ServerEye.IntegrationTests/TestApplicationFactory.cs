@@ -20,7 +20,7 @@ using ServerEye.Infrastructure;
 using ServerEye.Infrastructure.Data;
 using StackExchange.Redis;
 
-public class TestApplicationFactorySimple : WebApplicationFactory<Program>, IAsyncLifetime
+public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
     private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
@@ -82,18 +82,18 @@ public class TestApplicationFactorySimple : WebApplicationFactory<Program>, IAsy
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false",
-                // Enable OAuth providers for tests with real configuration
+                // Enable OAuth providers for tests - use environment variables or test values
                 ["OAuth:Google:Enabled"] = "true",
-                ["OAuth:Google:ClientId"] = "191261163109-57ph58fcvbf97p4pc4b9vq0e34o7hbi3.apps.googleusercontent.com",
-                ["OAuth:Google:ClientSecret"] = "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",
+                ["OAuth:Google:ClientId"] = "test-google-client-id",
+                ["OAuth:Google:ClientSecret"] = "test-google-client-secret",
                 ["OAuth:Google:RedirectUri"] = "http://127.0.0.1:5246/api/auth/oauth/callback",
                 ["OAuth:GitHub:Enabled"] = "true",
-                ["OAuth:GitHub:ClientId"] = "Ov23liahEWZhQvi65PZH",
-                ["OAuth:GitHub:ClientSecret"] = "f61b09ccef2fdada3b6b5a66e7a60d26a40fef8e",
+                ["OAuth:GitHub:ClientId"] = "test-github-client-id",
+                ["OAuth:GitHub:ClientSecret"] = "test-github-client-secret",
                 ["OAuth:GitHub:RedirectUri"] = "http://127.0.0.1:5246/api/auth/oauth/callback",
                 ["OAuth:Telegram:Enabled"] = "true",
-                ["OAuth:Telegram:BotId"] = "8364624365",
-                ["OAuth:Telegram:BotToken"] = "8364624365:AAH0MDDknDt9MOAjMvSGTDIzUa7jYFN8AtU",
+                ["OAuth:Telegram:BotId"] = "test-telegram-bot-id",
+                ["OAuth:Telegram:BotToken"] = "test-telegram-bot-token",
                 ["OAuth:Telegram:RedirectUri"] = "http://127.0.0.1:3000/oauth/callback",
                 // Disable Redis instrumentation for tests
                 ["OpenTelemetry:DisableRedisInstrumentation"] = "true",

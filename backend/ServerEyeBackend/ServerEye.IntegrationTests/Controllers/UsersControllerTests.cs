@@ -7,11 +7,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using ServerEye.Core.DTOs.UserDto;
 
 [Collection("UsersController Tests Simple")]
-public class UsersControllerTestsSimple : IClassFixture<TestApplicationFactorySimple>, IAsyncLifetime
+public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyncLifetime
 {
-    private readonly TestApplicationFactorySimple factory;
+    private readonly TestApplicationFactory factory;
 
-    public UsersControllerTestsSimple(TestApplicationFactorySimple factory)
+    public UsersControllerTests(TestApplicationFactory factory)
     {
         this.factory = factory;
         // Client will be created in each test method after JWT is configured
@@ -59,7 +59,7 @@ public class UsersControllerTestsSimple : IClassFixture<TestApplicationFactorySi
         };
 
         using var client = this.factory.CreateClient();
-        
+
         // First registration should succeed
         var firstResponse = await client.PostAsJsonAsync("/api/users/register", registerDto);
         firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -112,7 +112,7 @@ public class UsersControllerTestsSimple : IClassFixture<TestApplicationFactorySi
         };
 
         using var client = this.factory.CreateClient();
-        
+
         // Register user first
         await client.PostAsJsonAsync("/api/users/register", registerDto);
 
@@ -156,7 +156,7 @@ public class UsersControllerTestsSimple : IClassFixture<TestApplicationFactorySi
         };
 
         using var client = this.factory.CreateClient();
-        
+
         // Register user first
         await client.PostAsJsonAsync("/api/users/register", registerDto);
 
@@ -183,10 +183,10 @@ public class UsersControllerTestsSimple : IClassFixture<TestApplicationFactorySi
         };
 
         using var client = this.factory.CreateClient();
-        
+
         // Register and get token
         var registerResponse = await client.PostAsJsonAsync("/api/users/register", registerDto);
-        
+
         // Check if registration was successful
         if (registerResponse.StatusCode == HttpStatusCode.OK)
         {

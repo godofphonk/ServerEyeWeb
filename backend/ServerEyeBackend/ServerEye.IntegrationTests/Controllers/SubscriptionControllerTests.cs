@@ -14,14 +14,14 @@ using ServerEye.Core.Enums;
 using Xunit;
 
 [Collection("Integration Tests Simple")]
-public class SubscriptionControllerTestsSimple : IAsyncLifetime, IDisposable
+public class SubscriptionControllerTests : IAsyncLifetime, IDisposable
 {
-    private readonly TestApplicationFactorySimple factory;
+    private readonly TestApplicationFactory factory;
     private readonly HttpClient client;
 
-    public SubscriptionControllerTestsSimple()
+    public SubscriptionControllerTests()
     {
-        this.factory = new TestApplicationFactorySimple();
+        this.factory = new TestApplicationFactory();
         this.client = this.factory.CreateClient();
     }
 
@@ -51,7 +51,7 @@ public class SubscriptionControllerTestsSimple : IAsyncLifetime, IDisposable
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
-        
+
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var plans = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto[]>();
@@ -156,7 +156,7 @@ public class SubscriptionControllerTestsSimple : IAsyncLifetime, IDisposable
         };
 
         var signature = "test-signature";
-        
+
         // Act
         var response = await this.client.PostAsJsonAsync($"/api/billing/webhook/stripe?signature={signature}", webhookData);
 
