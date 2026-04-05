@@ -421,7 +421,7 @@ public class AuthController : BaseApiController
 
         try
         {
-            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", (provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (returnUrl?.ToString() ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", (action ?? "null").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+            this.logger.LogInformation("OAuth challenge request received - Provider: {Provider}, ReturnUrl: {ReturnUrl}, Action: {Action}", LogSanitizer.Sanitize(provider) ?? "null", LogSanitizer.Sanitize(returnUrl?.ToString()) ?? "null", LogSanitizer.Sanitize(action) ?? "null");
 
             var oauthProvider = this.oauthService.ParseProvider(provider ?? string.Empty);
             this.logger.LogInformation("Parsed OAuth provider: {OAuthProvider}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
@@ -433,13 +433,13 @@ public class AuthController : BaseApiController
                 return this.BadRequest(new { message = $"OAuth provider {(provider ?? string.Empty).Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null"} is not enabled" });
             }
 
-            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), (action ?? "auto").Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
+            this.logger.LogInformation("Creating OAuth challenge for provider: {OAuthProvider} with action: {Action}", oauthProvider.ToString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal), LogSanitizer.Sanitize(action) ?? "auto");
             var challenge = await this.oauthService.CreateChallengeAsync(oauthProvider, returnUrl, action);
 
             this.logger.LogInformation(
                 "OAuth challenge created successfully - Provider: {OAuthProvider}, Action: {Action}, ChallengeUrl: {ChallengeUrl}",
                 oauthProvider,
-                action ?? "auto",
+                LogSanitizer.Sanitize(action) ?? "auto",
                 challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
 
             // Record controller-level metrics
