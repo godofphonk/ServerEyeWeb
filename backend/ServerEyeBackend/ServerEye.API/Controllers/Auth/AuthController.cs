@@ -7,8 +7,8 @@ using ServerEye.API.Helpers;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
-using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Helpers;
+using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services.OAuth;
 

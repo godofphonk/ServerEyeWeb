@@ -2,13 +2,13 @@ namespace ServerEye.Core.Services;
 
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
-using Microsoft.Extensions.Logging;
 
 public sealed class AuthService(
     IUserRepository userRepository,
