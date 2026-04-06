@@ -46,6 +46,17 @@ updates:
     ignore:
       - dependency-name: "@types/*"
         update-types: ["version-update:semver-patch"]
+      # Игнорировать ESLint 10.x пока не готова миграция (требует Node.js 20+)
+      - dependency-name: "eslint"
+        versions: ["10.x"]
+      - dependency-name: "@eslint/js"
+        versions: ["10.x"]
+      # Игнорировать Next.js 16.x пока не обновлен Node.js до 20+
+      - dependency-name: "next"
+        versions: ["16.x"]
+      # Игнорировать major обновления TypeScript для стабильности
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
