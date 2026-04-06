@@ -7,10 +7,16 @@ describe('utils', () => {
       expect(result).toBe('foo bar');
     });
 
-    it('should handle conditional classes', () => {
+    it('should handle conditional classes with falsy condition', () => {
       const condition = false;
       const result = cn('foo', condition && 'bar', 'baz');
       expect(result).toBe('foo baz');
+    });
+
+    it('should handle conditional classes with truthy condition', () => {
+      const condition = true;
+      const result = cn('foo', condition && 'bar', 'baz');
+      expect(result).toBe('foo bar baz');
     });
 
     it('should handle undefined and null', () => {
