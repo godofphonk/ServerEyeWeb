@@ -46,6 +46,14 @@ const nextConfig = {
   },
   // Compression
   compress: true,
+  // Development optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    swcMinify: false,
+    compiler: {
+      removeConsole: false,
+    },
+  }),
+  
   // Production optimizations
   poweredByHeader: false,
   generateEtags: true,
@@ -55,4 +63,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

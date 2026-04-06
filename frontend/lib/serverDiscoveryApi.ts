@@ -3,31 +3,23 @@ import { DiscoveredServersResponse, ImportServersRequest, ImportServersResponse 
 
 export class ServerDiscoveryAPI {
   async findTelegramServers(): Promise<DiscoveredServersResponse> {
-    try {
-      const response = await apiClient.get<DiscoveredServersResponse>(
-        '/servers/discovery/telegram',
-      );
-      return response;
-    } catch (error: any) {
-      throw error;
-    }
+    const response = await apiClient.get<DiscoveredServersResponse>(
+      '/servers/discovery/telegram',
+    );
+    return response;
   }
 
   async importServers(serverIds: string[]): Promise<ImportServersResponse> {
-    try {
-      const request: ImportServersRequest = {
-        server_ids: serverIds,
-      };
+    const request: ImportServersRequest = {
+      server_ids: serverIds,
+    };
 
-      const response = await apiClient.post<ImportServersResponse>(
-        '/servers/discovery/import',
-        request,
-      );
+    const response = await apiClient.post<ImportServersResponse>(
+      '/servers/discovery/import',
+      request,
+    );
 
-      return response;
-    } catch (error: any) {
-      throw error;
-    }
+    return response;
   }
 }
 

@@ -26,7 +26,8 @@ EXPOSE 3000
 
 # Environment variables
 ENV NODE_ENV=development \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_OPTIONS="--max-old-space-size=4096"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

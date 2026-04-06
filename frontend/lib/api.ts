@@ -26,13 +26,16 @@ class ApiClient {
     this.setupInterceptors();
   }
 
-  private isGoApiError(error: any): error is AxiosError<GoApiErrorResponse> {
+  private isGoApiError(error: unknown): error is AxiosError<GoApiErrorResponse> {
     return (
-      error.response?.data &&
-      typeof error.response.data === 'object' &&
-      'error_code' in error.response.data &&
-      typeof error.response.data.error_code === 'string' &&
-      error.response.data.error_code.startsWith('GO_API_')
+      error &&
+      typeof error === 'object' &&
+      'response' in error &&
+      (error as any).response?.data &&
+      typeof (error as any).response.data === 'object' &&
+      'error_code' in (error as any).response.data &&
+      typeof (error as any).response.data.error_code === 'string' &&
+      (error as any).response.data.error_code.startsWith('GO_API_')
     );
   }
 
@@ -44,7 +47,6 @@ class ApiClient {
           const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-          } else {
           }
         }
         return config;
@@ -85,7 +87,9 @@ class ApiClient {
                 }
               }
             }
-          } catch (refreshError) {}
+          } catch (refreshError) {
+            // Refresh failed, continue with logout
+          }
 
           // If refresh failed, clear tokens and redirect to login
           localStorage.removeItem('jwt_token');
@@ -111,18 +115,16 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const fullUrl = `${this.client.defaults.baseURL}${url}`;
-
     const response = await this.client.get<T>(url, config);
     return response.data;
   }
 
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
     return response.data;
   }
@@ -132,7 +134,7 @@ class ApiClient {
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }
