@@ -256,12 +256,10 @@ export function useTelegramServerDiscovery({
       if (shouldShowModal) return;
 
       // Rate limiting: don't trigger more than once per hour (temporarily disabled for testing)
-      const lastDiscovery = getLastDiscoveryTime();
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-
-      // TODO: Re-enable rate limiting after testing: if (lastDiscovery > oneHourAgo) return;
-      void lastDiscovery;
-      void oneHourAgo;
+      // TODO: Re-enable rate limiting after testing:
+      // const lastDiscovery = getLastDiscoveryTime();
+      // const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      // if (lastDiscovery > oneHourAgo) return;
 
       if (isModalDismissed()) {
         return;
