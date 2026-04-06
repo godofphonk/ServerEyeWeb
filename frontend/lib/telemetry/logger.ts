@@ -61,11 +61,9 @@ class StructuredLogger {
 
     // Always log to console in development for debugging
     if (process.env.NODE_ENV === 'development') {
-      const style = this.getConsoleStyle(entry.level);
       if (entry.error) {
         // error details available in entry.error
       }
-      void style;
     }
 
     // Send to Loki via Alloy (OTLP HTTP endpoint)
