@@ -100,6 +100,7 @@ export default [
   },
   {
     files: ['**/*.js'],
+    ignores: ['jest.setup.js'],
     languageOptions: {
       sourceType: 'commonjs',
     },

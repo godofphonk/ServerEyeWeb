@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setLoading(false);
               return;
             }
-          } catch (decodeError) {}
+          } catch (decodeError) { /* ignore error */ }
         }
       }
 
@@ -180,11 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   sessionStorage.setItem('jwt_token', tokenData.token);
                 }
               }
-            } catch (error) {}
+            } catch (error) { /* ignore error */ }
           }
           return;
         }
       } else {
+        // no session response
       }
 
       clearAuthData();
@@ -281,6 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserWithLogging(user);
         return; // Success, don't try fallback
       } else {
+        // no token in JWT payload, fall through to error handling
       }
     } catch (error) {
       // Fallback: try to get user data from API
@@ -295,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logger.debug('No active session found');
           setUserWithLogging(null);
         }
-      } catch (fallbackError) {}
+      } catch (fallbackError) { /* ignore fallback error */ }
     }
 
     // If we get here, both JWT decode and API fallback failed

@@ -75,6 +75,7 @@ export default function LogViewer() {
 
       setLogs(result.data?.logs || []);
     } catch (error) {
+      // ignore error
     } finally {
       setLoading(false);
     }

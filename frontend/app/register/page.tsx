@@ -77,7 +77,7 @@ export default function RegisterPage() {
         await refreshUserData();
         ('[RegisterPage] User data refreshed successfully');
       }
-    } catch (error) {}
+    } catch (error) { /* ignore error */ }
 
     ('[RegisterPage] Redirecting to dashboard');
     router.push('/dashboard');

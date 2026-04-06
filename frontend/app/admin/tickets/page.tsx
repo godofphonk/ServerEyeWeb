@@ -221,6 +221,7 @@ export default function AdminTicketsPage() {
   // Debug logging for stats
   useEffect(() => {
     if (stats) {
+      // stats available
     }
   }, [stats]);
 
