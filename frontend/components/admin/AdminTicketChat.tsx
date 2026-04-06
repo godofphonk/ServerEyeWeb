@@ -165,6 +165,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       // Notify parent
       onTicketUpdate?.();
     } catch (error) {
+      // ignore error
     } finally {
       setIsUpdatingStatus(false);
     }

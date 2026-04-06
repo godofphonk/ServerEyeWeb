@@ -33,6 +33,7 @@ export function useServerDiscovery() {
       const result = await serverDiscoveryApi.importServers(serverIds);
 
       if (result.failed_count > 0) {
+        // some servers failed to import
       }
 
       return result;
