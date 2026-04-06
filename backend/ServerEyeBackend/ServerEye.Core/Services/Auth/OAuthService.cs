@@ -655,8 +655,8 @@ public sealed class OAuthService(
                       $"oauth_{userInfo.Id}",
             Email = userInfo.Email, // Keep null for OAuth users without email
             Role = UserRole.User,
-            IsEmailVerified = userInfo.EmailVerified || !string.IsNullOrEmpty(userInfo.Email), // OAuth providers verify email ownership
-            EmailVerifiedAt = (userInfo.EmailVerified || !string.IsNullOrEmpty(userInfo.Email)) ? DateTime.UtcNow : null,
+            IsEmailVerified = true, // OAuth users are always considered verified
+            EmailVerifiedAt = DateTime.UtcNow, // Set verification time for OAuth users
             Password = string.Empty, // OAuth users don't have passwords
             HasPassword = false,
             ServerId = Guid.NewGuid()
