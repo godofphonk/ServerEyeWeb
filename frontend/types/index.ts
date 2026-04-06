@@ -23,7 +23,7 @@ export interface BackendUser {
   role?: 'user' | 'admin' | string;
   serverId?: string;
   isEmailVerified?: boolean;
-  hasPassword?: boolean; // Указывает есть ли у пользователя пароль
+  hasPassword?: boolean | string; // Может быть boolean или строка "f"/"t"
 }
 
 export interface BackendAuthResponse {

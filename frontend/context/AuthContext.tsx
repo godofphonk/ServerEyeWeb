@@ -65,14 +65,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role = backendRole === 'admin' ? 'admin' : 'user';
     }
 
+    // Правильно определяем hasPassword - может быть строка "f"/"t" или boolean
+    let hasPassword = true; // по умолчанию
+    
+    if (backendUser.hasPassword === false) {
+      hasPassword = false;
+    } else if (backendUser.hasPassword === "f") {
+      hasPassword = false;
+    }
+
+    // OAuth пользователи (hasPassword: false) считаются верифицированными
+    const isOAuthUser = !hasPassword;
+
     const user = {
       id: backendUser.id,
       email: backendUser.email,
       username: backendUser.userName,
       role: role,
       createdAt: new Date().toISOString(),
-      isEmailVerified: Boolean(backendUser.isEmailVerified),
-      hasPassword: backendUser.hasPassword ?? true, // По умолчанию true для обратной совместимости
+      isEmailVerified: isOAuthUser ? true : Boolean(backendUser.isEmailVerified),
+      hasPassword: hasPassword,
     };
 
     return user;
@@ -132,8 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 username: username || email.split('@')[0] || 'user',
                 role: role as 'user' | 'admin',
                 createdAt: new Date().toISOString(),
-                isEmailVerified:
-                  payload.email_verified === 'TRUE' || payload.email_verified === true,
+                // OAuth пользователи считаются верифицированными
+                isEmailVerified: isOAuthUser ? true : 
+                  (payload.email_verified === 'TRUE' || payload.email_verified === true),
                 hasPassword: hasPassword,
               };
 
@@ -429,7 +442,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [getOAuthChallenge],
   );
 
-  const isEmailVerifiedValue = Boolean(user?.isEmailVerified);
+  const isEmailVerifiedValue = user ? 
+    (user.hasPassword === false ? true : Boolean(user.isEmailVerified)) : false;
 
   return (
     <AuthContext.Provider

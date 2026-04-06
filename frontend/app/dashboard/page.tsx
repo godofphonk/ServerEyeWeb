@@ -380,15 +380,6 @@ export default function DashboardPage() {
     } else if (!authLoading && isAuthenticated && !redirectAttempted.current) {
       // Проверяем доступ с учетом OAuth пользователей
       const userHasAccess = hasUserAccess(user, isEmailVerified);
-      
-      // Логируем для отладки
-      console.log('Dashboard access check:', {
-        user: user,
-        isEmailVerified: isEmailVerified,
-        userHasAccess: userHasAccess,
-        hasPassword: user?.hasPassword,
-        email: user?.email
-      });
 
       if (!userHasAccess) {
         redirectAttempted.current = true;
