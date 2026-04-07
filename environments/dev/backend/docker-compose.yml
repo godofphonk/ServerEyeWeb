@@ -4,8 +4,8 @@
 services:
   backend:
     build:
-      context: ${PATH_BACKEND}
-      dockerfile: ${PATH_PROJECT}/environments/dev/dockerfiles/backend-dev.Dockerfile
+      context: ../../../backend/ServerEyeBackend
+      dockerfile: ../../environments/dev/dockerfiles/backend-dev.Dockerfile
     container_name: ServerEyeWeb-backend-dev
     ports:
       - "5246:8080"
@@ -18,10 +18,12 @@ services:
       - ASPNETCORE_URLS=http://+:8080
     volumes:
       # Mount appsettings for hot reload
-      - ${PATH_API}/appsettings.Development.json:/app/appsettings.json:ro
-      - ${PATH_API}/appsettings.Development.json:/app/appsettings.Development.json:ro
-      - ${PATH_API}/appsettings.Local.json:/app/appsettings.Local.json:ro
+      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.json:ro
+      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.Development.json:ro
+      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
     restart: unless-stopped
+    networks:
+      - servereye-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
