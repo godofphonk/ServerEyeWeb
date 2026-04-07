@@ -10,15 +10,21 @@ using ServerEye.Core.Interfaces.Services.Billing;
 public class WebhookService : IWebhookService
 {
     private readonly IWebhookEventRepository webhookEventRepository;
+    private readonly IPaymentRepository paymentRepository;
+    private readonly ISubscriptionRepository subscriptionRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<WebhookService> logger;
 
     public WebhookService(
         IWebhookEventRepository webhookEventRepository,
+        IPaymentRepository paymentRepository,
+        ISubscriptionRepository subscriptionRepository,
         IPaymentProviderFactory providerFactory,
         ILogger<WebhookService> logger)
     {
         this.webhookEventRepository = webhookEventRepository;
+        this.paymentRepository = paymentRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
     }
@@ -192,17 +198,95 @@ public class WebhookService : IWebhookService
         return Task.CompletedTask;
     }
 
-    private Task HandleSubscriptionCreatedAsync(object data)
+    private async Task HandleSubscriptionCreatedAsync(object data)
     {
-        _ = data;
-
         logger.LogInformation("Handling subscription created");
 
-        // Business metric: New subscription
-        logger.LogInformation(
-            "Subscription lifecycle: New subscription created");
+        try
+        {
+            var subscriptionId = StripeWebhookHelper.GetStringProperty(data, "Id");
+            var customerId = StripeWebhookHelper.GetStringProperty(data, "CustomerId");
+            var metadata = StripeWebhookHelper.GetMetadata(data);
 
-        return Task.CompletedTask;
+            logger.LogInformation(
+                "Processing subscription {SubscriptionId} for customer {CustomerId}",
+                subscriptionId,
+                customerId);
+
+            // Extract user ID from metadata
+            if (metadata == null || !metadata.TryGetValue("user_id", out var userIdStr) ||
+                !Guid.TryParse(userIdStr, out var userId))
+            {
+                logger.LogWarning("Subscription {SubscriptionId} missing user_id in metadata", subscriptionId);
+                return;
+            }
+
+            // Get existing subscription
+            var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
+            if (subscription == null)
+            {
+                logger.LogWarning("No subscription found for user {UserId}", userId);
+                return;
+            }
+
+            // Determine plan from Stripe subscription
+            var planId = DeterminePlanIdFromStripeSubscription(data);
+            var currentPeriodStart = StripeWebhookHelper.GetProperty(data, "CurrentPeriodStart");
+            var currentPeriodEnd = StripeWebhookHelper.GetProperty(data, "CurrentPeriodEnd");
+            var cancelAtPeriodEnd = StripeWebhookHelper.GetProperty(data, "CancelAtPeriodEnd");
+
+            // Update subscription
+            subscription.PlanId = planId;
+            subscription.Status = SubscriptionStatus.Active;
+            subscription.CurrentPeriodStart = currentPeriodStart as DateTime?;
+            subscription.CurrentPeriodEnd = currentPeriodEnd as DateTime?;
+            subscription.CancelAtPeriodEnd = cancelAtPeriodEnd as bool? ?? false;
+            subscription.UpdatedAt = DateTime.UtcNow;
+
+            await subscriptionRepository.UpdateAsync(subscription);
+
+            logger.LogInformation(
+                "Updated subscription {SubscriptionId} for user {UserId} to plan {PlanId}",
+                subscription.Id,
+                userId,
+                planId);
+
+            // Business metric: New subscription
+            logger.LogInformation(
+                "Subscription lifecycle: New subscription created for user {UserId}, plan {PlanId}",
+                userId,
+                planId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling subscription created");
+            throw;
+        }
+    }
+
+    private Guid DeterminePlanIdFromStripeSubscription(object data)
+    {
+        // Known plan IDs from database
+        var freePlanId = Guid.Parse("f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c");
+        var proPlanId = Guid.Parse("841bb3db-424c-46e5-a752-04641391c993");
+
+        // Get first price ID from subscription items
+        var priceId = StripeWebhookHelper.GetFirstPriceId(data);
+        
+        if (!string.IsNullOrEmpty(priceId))
+        {
+            logger.LogInformation("Stripe subscription has price ID: {PriceId}", priceId);
+
+            // Map Stripe price IDs to our plan IDs
+            return priceId switch
+            {
+                "price_1TCvgkFpa5lei83s50BoBxyV" => proPlanId, // Pro Monthly
+                "price_1TCvhQFpa5lei83sVjR0nHDm" => proPlanId, // Pro Yearly
+                _ => freePlanId // Default to Free
+            };
+        }
+
+        return freePlanId;
     }
 
     private Task HandleSubscriptionUpdatedAsync(object data)
@@ -231,17 +315,95 @@ public class WebhookService : IWebhookService
         return Task.CompletedTask;
     }
 
-    private Task HandleInvoicePaymentSucceededAsync(object data)
+    private async Task HandleInvoicePaymentSucceededAsync(object data)
     {
-        _ = data;
-
         logger.LogInformation("Handling invoice payment succeeded");
 
-        // Business metric: Revenue recognition
-        logger.LogInformation(
-            "Revenue recognition: Invoice payment succeeded");
+        try
+        {
+            // Extract data using helper
+            var invoiceId = StripeWebhookHelper.GetStringProperty(data, "Id");
+            var customerId = StripeWebhookHelper.GetStringProperty(data, "CustomerId");
+            var amountPaid = StripeWebhookHelper.GetLongProperty(data, "AmountPaid") / 100.0m;
+            var currency = StripeWebhookHelper.GetStringProperty(data, "Currency");
+            var metadata = StripeWebhookHelper.GetMetadata(data);
 
-        return Task.CompletedTask;
+            logger.LogInformation(
+                "Processing invoice {InvoiceId} for customer {CustomerId}, amount: {Amount} {Currency}",
+                invoiceId,
+                customerId,
+                amountPaid,
+                currency);
+
+            // Extract user ID from metadata
+            if (metadata == null || !metadata.TryGetValue("user_id", out var userIdStr) ||
+                !Guid.TryParse(userIdStr, out var userId))
+            {
+                logger.LogWarning("Invoice {InvoiceId} missing user_id in metadata", invoiceId);
+                return;
+            }
+
+            // Check if payment already exists
+            var existingPayment = await paymentRepository.GetByProviderPaymentIdAsync(invoiceId);
+            if (existingPayment != null)
+            {
+                logger.LogInformation("Payment for invoice {InvoiceId} already exists", invoiceId);
+                return;
+            }
+
+            // Get subscription
+            var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
+            if (subscription == null)
+            {
+                logger.LogWarning("No subscription found for user {UserId}", userId);
+                return;
+            }
+
+            // Create payment record
+            var payment = new Payment
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                SubscriptionId = subscription.Id,
+                Provider = PaymentProvider.Stripe,
+                ProviderPaymentId = invoiceId,
+                ProviderPaymentIntentId = StripeWebhookHelper.GetStringProperty(data, "PaymentIntentId"),
+                Amount = amountPaid,
+                Currency = currency,
+                Status = PaymentStatus.Succeeded,
+                ReceiptUrl = StripeWebhookHelper.GetStringProperty(data, "HostedInvoiceUrl"),
+                InvoiceUrl = StripeWebhookHelper.GetStringProperty(data, "InvoicePdf"),
+                Metadata = new Dictionary<string, string>
+                {
+                    ["stripe_invoice_id"] = invoiceId,
+                    ["stripe_customer_id"] = customerId,
+                    ["subscription_id"] = StripeWebhookHelper.GetStringProperty(data, "SubscriptionId")
+                },
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await paymentRepository.AddAsync(payment);
+
+            logger.LogInformation(
+                "Created payment {PaymentId} for user {UserId}, amount: {Amount} {Currency}",
+                payment.Id,
+                userId,
+                payment.Amount,
+                payment.Currency);
+
+            // Business metric: Revenue recognition
+            logger.LogInformation(
+                "Revenue recognition: Invoice payment succeeded for user {UserId}, amount {Amount} {Currency}",
+                userId,
+                payment.Amount,
+                payment.Currency);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error handling invoice payment succeeded");
+            throw;
+        }
     }
 
     private Task HandleInvoicePaymentFailedAsync(object data)
