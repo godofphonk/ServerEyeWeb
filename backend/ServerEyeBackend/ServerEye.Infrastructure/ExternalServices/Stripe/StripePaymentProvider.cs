@@ -351,7 +351,7 @@ public class StripePaymentProvider : IPaymentProvider
     {
         try
         {
-            EventUtility.ConstructEvent(payload, signature, secret);
+            EventUtility.ConstructEvent(payload, signature, secret, throwOnApiVersionMismatch: false);
             return Task.FromResult(true);
         }
         catch (StripeException ex)
@@ -365,7 +365,7 @@ public class StripePaymentProvider : IPaymentProvider
     {
         try
         {
-            var stripeEvent = EventUtility.ParseEvent(payload);
+            var stripeEvent = EventUtility.ParseEvent(payload, throwOnApiVersionMismatch: false);
             return Task.FromResult((stripeEvent.Type, (object)stripeEvent.Data.Object));
         }
         catch (StripeException ex)
