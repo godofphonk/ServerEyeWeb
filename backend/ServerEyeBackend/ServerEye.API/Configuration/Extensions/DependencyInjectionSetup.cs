@@ -102,6 +102,7 @@ public static class DependencyInjectionSetup
         services.AddScoped<Core.Interfaces.Repository.Billing.IPaymentRepository, Infrastructure.Repositories.Billing.PaymentRepository>();
         services.AddScoped<Core.Interfaces.Repository.Billing.ISubscriptionPlanRepository, Infrastructure.Repositories.Billing.SubscriptionPlanRepository>();
         services.AddScoped<Core.Interfaces.Repository.Billing.IWebhookEventRepository, Infrastructure.Repositories.Billing.WebhookEventRepository>();
+        services.AddScoped<Core.Interfaces.Repository.Billing.IOutboxMessageRepository, Infrastructure.Repositories.Billing.OutboxMessageRepository>();
     }
 
     /// <summary>
@@ -284,5 +285,19 @@ public static class DependencyInjectionSetup
 
         // Add self health check
         healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
+    }
+
+    /// <summary>
+    /// Registers billing-specific services.
+    /// </summary>
+    private static void RegisterBillingServices(IServiceCollection services)
+    {
+        // Register core billing services
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IWebhookService, WebhookService>();
+
+        // Register background processor for webhook handling
+        services.AddHostedService<WebhookEventProcessor>();
     }
 }

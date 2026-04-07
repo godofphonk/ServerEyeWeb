@@ -223,7 +223,7 @@ public class SubscriptionService : ISubscriptionService
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                PlanId = Guid.Parse("00000000-0000-0000-0000-000000000001"), // Free plan ID
+                PlanId = Guid.Parse("f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c"), // Free plan ID from subscriptionplans table
                 Status = SubscriptionStatus.Active,
                 CurrentPeriodStart = DateTime.UtcNow,
                 CurrentPeriodEnd = null, // No end date for free plan

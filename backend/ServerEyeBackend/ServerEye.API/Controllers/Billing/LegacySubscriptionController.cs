@@ -36,8 +36,16 @@ public class LegacySubscriptionController : ControllerBase
 
             if (subscription == null)
             {
+                logger.LogWarning("No subscription found for user {UserId}", userId);
                 return NotFound(new { message = "No subscription found" });
             }
+
+            logger.LogInformation(
+                "Returning subscription to frontend: Id={Id}, PlanType={PlanType}, PlanName={PlanName}, Status={Status}",
+                subscription.Id,
+                subscription.PlanType,
+                subscription.PlanName,
+                subscription.Status);
 
             return Ok(subscription);
         }

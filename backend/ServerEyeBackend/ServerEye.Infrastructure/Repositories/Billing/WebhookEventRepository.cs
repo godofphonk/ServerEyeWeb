@@ -22,9 +22,32 @@ public class WebhookEventRepository : IWebhookEventRepository
     {
         return await context.WebhookEvents
             .AsNoTracking()
-            .Where(w => !w.IsProcessed && w.ProcessingAttempts < 3)
+            .Where(w => w.Status != WebhookEventStatus.Processed && w.ProcessingAttempts < 3)
             .OrderBy(w => w.CreatedAt)
             .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<List<WebhookEvent>> GetPendingEventsAsync(int limit = 100)
+    {
+        return await context.WebhookEvents
+            .AsNoTracking()
+            .Where(w => w.Status == WebhookEventStatus.Received || w.Status == WebhookEventStatus.Failed)
+            .Where(w => w.ProcessingAttempts < 5)
+            .OrderBy(w => w.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<List<WebhookEvent>> GetFailedEventsAsync(int maxRetries, TimeSpan threshold)
+    {
+        var cutoffTime = DateTime.UtcNow.Subtract(threshold);
+
+        return await context.WebhookEvents
+            .AsNoTracking()
+            .Where(w => w.ProcessingAttempts >= maxRetries)
+            .Where(w => w.Status == WebhookEventStatus.Failed)
+            .Where(w => w.UpdatedAt < cutoffTime)
             .ToListAsync();
     }
 

@@ -8,6 +8,10 @@ public interface IWebhookEventRepository
 
     public Task<List<WebhookEvent>> GetUnprocessedAsync(int limit = 100);
 
+    public Task<List<WebhookEvent>> GetPendingEventsAsync(int limit = 100);
+
+    public Task<List<WebhookEvent>> GetFailedEventsAsync(int maxRetries, TimeSpan threshold);
+
     public Task AddAsync(WebhookEvent webhookEvent);
 
     public Task UpdateAsync(WebhookEvent webhookEvent);
