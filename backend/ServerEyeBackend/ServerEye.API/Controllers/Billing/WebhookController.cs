@@ -2,7 +2,9 @@ namespace ServerEye.API.Controllers.Billing;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Interfaces.Repository.Billing;
 using ServerEye.Core.Interfaces.Services.Billing;
 using ServerEye.Infrastructure.ExternalServices.Stripe;
 using ServerEye.Infrastructure.ExternalServices.YooKassa;
@@ -11,20 +13,20 @@ using ServerEye.Infrastructure.ExternalServices.YooKassa;
 [Route("api/billing/webhook")]
 public class WebhookController : ControllerBase
 {
-    private readonly IWebhookService webhookService;
+    private readonly IWebhookEventRepository webhookEventRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly StripeConfiguration stripeConfig;
     private readonly YooKassaConfiguration yookassaConfig;
     private readonly ILogger<WebhookController> logger;
 
     public WebhookController(
-        IWebhookService webhookService,
+        IWebhookEventRepository webhookEventRepository,
         IPaymentProviderFactory providerFactory,
         IOptions<StripeConfiguration> stripeConfig,
         IOptions<YooKassaConfiguration> yookassaConfig,
         ILogger<WebhookController> logger)
     {
-        this.webhookService = webhookService;
+        this.webhookEventRepository = webhookEventRepository;
         this.providerFactory = providerFactory;
         this.stripeConfig = stripeConfig.Value;
         this.yookassaConfig = yookassaConfig.Value;
@@ -34,72 +36,108 @@ public class WebhookController : ControllerBase
     [HttpPost("stripe")]
     public async Task<IActionResult> HandleStripeWebhook()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
-            string payload;
+            // Read raw payload
+            string rawPayload;
             using (var reader = new StreamReader(HttpContext.Request.Body))
             {
-                payload = await reader.ReadToEndAsync();
+                rawPayload = await reader.ReadToEndAsync();
             }
 
-            // Validate JSON payload
-            if (string.IsNullOrWhiteSpace(payload))
+            // Fast validation - minimal checks
+            if (string.IsNullOrWhiteSpace(rawPayload))
             {
                 logger.LogWarning("Stripe webhook received with empty payload");
                 return BadRequest(new { message = "Empty payload" });
             }
 
-            try
-            {
-                System.Text.Json.JsonDocument.Parse(payload);
-            }
-            catch (System.Text.Json.JsonException)
-            {
-                logger.LogWarning("Stripe webhook received with invalid JSON");
-                return BadRequest(new { message = "Invalid JSON payload" });
-            }
-
             var signature = Request.Headers["Stripe-Signature"].ToString();
-
             if (string.IsNullOrEmpty(signature))
             {
                 logger.LogWarning("Stripe webhook received without signature");
                 return BadRequest(new { message = "Missing signature" });
             }
 
-            this.logger.LogInformation("Processing Stripe webhook, payload size: {Size} bytes", payload.Length);
+            logger.LogInformation(
+                "Received Stripe webhook, payload size: {Size} bytes",
+                rawPayload.Length);
 
+            // Verify signature (fail fast if invalid)
             var provider = providerFactory.GetProvider(PaymentProvider.Stripe);
             var isValid = await provider.VerifyWebhookSignatureAsync(
-                payload,
+                rawPayload,
                 signature,
                 stripeConfig.WebhookSecret);
 
             if (!isValid)
             {
-                logger.LogWarning("Invalid Stripe webhook signature");
+                logger.LogWarning("Invalid Stripe webhook signature - rejecting");
                 return Unauthorized(new { message = "Invalid signature" });
             }
 
-            this.logger.LogInformation("Stripe webhook signature verified successfully");
-
-            var success = await webhookService.ProcessWebhookAsync(
-                PaymentProvider.Stripe,
-                payload,
-                signature);
-
-            if (success)
+            // Extract event ID and type from payload (fast parse)
+            string eventId;
+            string eventType;
+            try
             {
-                this.logger.LogInformation("Stripe webhook processed successfully");
-                return Ok();
+                using var jsonDoc = System.Text.Json.JsonDocument.Parse(rawPayload);
+                var root = jsonDoc.RootElement;
+                eventId = root.GetProperty("id").GetString() ?? Guid.NewGuid().ToString();
+                eventType = root.GetProperty("type").GetString() ?? "unknown";
+            }
+            catch
+            {
+                logger.LogWarning("Failed to parse Stripe event ID from payload");
+                return BadRequest(new { message = "Invalid payload structure" });
             }
 
-            this.logger.LogError("Failed to process Stripe webhook");
-            return StatusCode(500, new { message = "Failed to process webhook" });
+            // Check for duplicate (idempotency) - fast check
+            var existingEvent = await webhookEventRepository.GetByEventIdAsync(eventId);
+            if (existingEvent != null)
+            {
+                stopwatch.Stop();
+                logger.LogInformation(
+                    "Stripe webhook event {EventId} already received (idempotency check), returning 200 in {ElapsedMs}ms",
+                    eventId,
+                    stopwatch.ElapsedMilliseconds);
+                return Ok(new { received = true, duplicate = true });
+            }
+
+            // Persist raw event immediately (no processing)
+            var webhookEvent = new WebhookEvent
+            {
+                Id = Guid.NewGuid(),
+                Provider = PaymentProvider.Stripe,
+                EventId = eventId,
+                EventType = eventType,
+                RawPayload = rawPayload,
+                Headers = $"Stripe-Signature: {signature}",
+                Status = WebhookEventStatus.Received,
+                ProcessingAttempts = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await webhookEventRepository.AddAsync(webhookEvent);
+
+            // FAST ACKNOWLEDGMENT: Return 200 immediately
+            // All processing happens asynchronously in WebhookEventProcessor
+            stopwatch.Stop();
+
+            logger.LogInformation(
+                "Stripe webhook {EventId} persisted and acknowledged in {ElapsedMs}ms. Processing will continue asynchronously.",
+                eventId,
+                stopwatch.ElapsedMilliseconds);
+
+            return Ok(new { received = true, eventId = eventId });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling Stripe webhook");
+            stopwatch.Stop();
+            logger.LogError(ex, "Error handling Stripe webhook after {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
             return StatusCode(500, new { message = "Internal server error" });
         }
     }

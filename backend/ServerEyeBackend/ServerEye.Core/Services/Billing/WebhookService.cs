@@ -68,7 +68,11 @@ public class WebhookService : IWebhookService
 
             await webhookEventRepository.AddAsync(webhookEvent);
 
+            logger.LogInformation("About to call ProcessWebhookEventAsync with event type: {EventType}", webhookEvent.EventType);
+
             await ProcessWebhookEventAsync(webhookEvent, data);
+
+            logger.LogInformation("ProcessWebhookEventAsync completed successfully");
 
             webhookEvent.ProcessedAt = DateTime.UtcNow;
             await webhookEventRepository.UpdateAsync(webhookEvent);

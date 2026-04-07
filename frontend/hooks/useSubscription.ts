@@ -22,6 +22,15 @@ export function useSubscription() {
       try {
         logger.debug('Loading subscription data');
         const sub = await billingApi.getCurrentSubscription();
+        
+        // Log the raw subscription data
+        logger.info('Raw subscription data received', {
+          subscription: sub,
+          planType: sub?.planType,
+          planName: sub?.planName,
+          status: sub?.status,
+        });
+        
         setSubscription(sub);
         const isPremium = sub
           ? sub.planType > 0 || sub.planName === 'Pro' || sub.planName === 'Enterprise'
@@ -31,6 +40,7 @@ export function useSubscription() {
         if (sub) {
           logger.info('Subscription loaded', {
             planType: sub.planType,
+            planName: sub.planName,
             status: sub.status,
             hasPremium: isPremium,
           });

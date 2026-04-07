@@ -14,6 +14,7 @@ public class BillingDbContext : DbContext
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<WebhookEvent> WebhookEvents { get; set; }
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,8 +74,17 @@ public class BillingDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Provider).HasConversion<string>();
-            entity.Property(e => e.Payload).HasColumnType("jsonb");
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.RawPayload).HasColumnType("jsonb");
             entity.HasIndex(e => e.EventId).IsUnique();
+        });
+
+        // OutboxMessage configuration
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.Payload).HasColumnType("jsonb");
         });
     }
 }
