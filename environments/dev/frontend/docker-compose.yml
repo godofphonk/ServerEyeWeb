@@ -15,6 +15,8 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
+      - TURBOPACK=1
     volumes:
       # Mount source code for hot reload
       - ${PATH_FRONTEND}/package.json:/app/package.json
@@ -25,7 +27,7 @@ services:
       - ${PATH_FRONTEND}/public:/app/public
       - ${PATH_FRONTEND}/styles:/app/styles
       - ${PATH_FRONTEND}/next.config.js:/app/next.config.js
-      - ${PATH_FRONTEND}/tailwind.config.ts:/app/tailwind.config.js
+      - ${PATH_FRONTEND}/tailwind.config.js:/app/tailwind.config.js
       - /app/node_modules
       - /app/.next
     restart: unless-stopped
