@@ -38,6 +38,7 @@ export function NotificationDropdown({
       const response = await notificationApi.getNotifications(1, 50);
       setNotifications(response.notifications || []);
     } catch (error) {
+      // ignore error
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +59,7 @@ export function NotificationDropdown({
         onClose();
         router.push(`/admin/tickets?ticketId=${notification.ticketId}`);
       }
-    } catch (error) {}
+    } catch (error) { /* ignore error */ }
   };
 
   const handleMarkAllAsRead = async () => {

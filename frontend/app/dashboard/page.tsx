@@ -391,7 +391,6 @@ export default function DashboardPage() {
         loadServers();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated]); // Правильные зависимости
 
   const handleRefresh = async () => {

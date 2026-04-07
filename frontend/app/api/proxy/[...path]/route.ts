@@ -48,9 +48,7 @@ async function proxyRequest(request: NextRequest, method: string) {
 
           headers['Authorization'] = `Bearer ${refreshData.token}`;
           if (method !== 'GET' && method !== 'HEAD') {
-            try {
-              fetchOptions.body = fetchOptions.body;
-            } catch {}
+            // fetchOptions.body is already set from the original request above
           }
           fetchOptions.headers = headers;
 

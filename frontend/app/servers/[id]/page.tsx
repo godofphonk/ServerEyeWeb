@@ -93,6 +93,7 @@ export default function ServerDetailPage() {
           // Set historical metrics for all charts from single response
           setHistoricalMetrics(historicalMetrics);
         } catch (error) {
+          // ignore error
         } finally {
           // Only hide loading for initial load
           if (isFirstLoad) {
@@ -241,6 +242,7 @@ export default function ServerDetailPage() {
         actualStart = Math.max(startRounded, firstDataPoint.getTime());
       }
     } else {
+      // use default actualStart
     }
 
     // Заполняем все временные слоты от actualStart до endRounded
@@ -346,6 +348,7 @@ export default function ServerDetailPage() {
 
     // Детальное логирование первых и последних точек данных
     if (response.dataPoints && response.dataPoints.length > 0) {
+      // data points available for logging
     }
 
     if (response.dataPoints?.length > 0) {

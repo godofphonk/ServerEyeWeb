@@ -104,8 +104,11 @@ export async function fetchWithRetry<T>(
       const delayMs = calculateDelay(attempt, opts);
 
       if (error instanceof GoApiError) {
+        // GoApiError: will be retried
       } else if (hasResponseStatus(error)) {
+        // HTTP error with status: will be retried
       } else {
+        // generic error: will be retried
       }
 
       await delay(delayMs);

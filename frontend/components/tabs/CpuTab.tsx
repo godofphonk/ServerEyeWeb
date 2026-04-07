@@ -64,18 +64,21 @@ export default function CpuTab({
         if (usageResult.status === 'fulfilled') {
           setCpuUsageMetrics(usageResult.value);
         } else {
+          // ignore fetch failure
         }
 
         if (loadResult.status === 'fulfilled') {
           setCpuLoadMetrics(loadResult.value);
         } else {
+          // ignore fetch failure
         }
 
         if (tempResult.status === 'fulfilled') {
           setCpuTemperatureMetrics(tempResult.value);
         } else {
+          // ignore fetch failure
         }
-      } catch (error) {}
+      } catch (error) { /* ignore error */ }
     };
 
     loadAllMetrics();
