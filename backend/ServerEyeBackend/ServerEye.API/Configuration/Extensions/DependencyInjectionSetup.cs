@@ -299,6 +299,7 @@ public static class DependencyInjectionSetup
         services.AddScoped<IWebhookService, WebhookService>();
 
         // Register background processor for webhook handling
-        services.AddHostedService<WebhookEventProcessor>();
+        // TODO: Uncomment after rebuilding Docker image with new code
+        // services.AddHostedService<WebhookEventProcessor>();
     }
 }
