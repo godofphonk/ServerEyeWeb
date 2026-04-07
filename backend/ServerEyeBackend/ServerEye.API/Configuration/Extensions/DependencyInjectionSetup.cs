@@ -8,6 +8,7 @@ using ServerEye.Core.Configuration;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Services;
+using ServerEye.Core.Services.Billing;
 using ServerEye.Core.Services.Database;
 using ServerEye.Infrastructure.Caching;
 using ServerEye.Infrastructure.ExternalServices;
