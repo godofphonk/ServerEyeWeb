@@ -154,7 +154,7 @@ export function MyTickets() {
 
       // Reload tickets after creating
       loadTickets();
-    } catch (err: any) {}
+    } catch (err: any) { /* ignore error */ }
   };
 
   const toggleTicketExpansion = (ticketId: string) => {

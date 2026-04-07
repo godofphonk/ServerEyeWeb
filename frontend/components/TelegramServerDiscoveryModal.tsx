@@ -85,7 +85,7 @@ export function TelegramServerDiscoveryModal({
         if (isLinked && onDiscoverServers && !discovered && !isLoading) {
           onDiscoverServers();
         }
-      } catch (error) {}
+      } catch (error) { /* ignore error */ }
     };
 
     if (isOpen) {

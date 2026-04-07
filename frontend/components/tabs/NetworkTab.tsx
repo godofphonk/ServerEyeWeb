@@ -58,13 +58,15 @@ export default function NetworkTab({
         if (rxResult.status === 'fulfilled') {
           setNetworkRxMetrics(rxResult.value);
         } else {
+          // ignore fetch failure
         }
 
         if (txResult.status === 'fulfilled') {
           setNetworkTxMetrics(txResult.value);
         } else {
+          // ignore fetch failure
         }
-      } catch (error) {}
+      } catch (error) { /* ignore error */ }
     };
 
     loadAllNetworkMetrics();

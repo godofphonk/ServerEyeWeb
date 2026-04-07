@@ -80,10 +80,7 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const isModalDismissed = useCallback(() => {
-    // TODO: FIX - Remove this temporary bypass for testing
-    // Proper behavior: Check if user has dismissed the modal to prevent spam
-    return false; // Always return false during testing to allow repeated discovery
-
+    // Check if user has dismissed the modal to prevent spam
     if (typeof window === 'undefined') return true;
 
     try {
@@ -257,12 +254,10 @@ export function useTelegramServerDiscovery({
       if (shouldShowModal) return;
 
       // Rate limiting: don't trigger more than once per hour (temporarily disabled for testing)
-      const lastDiscovery = getLastDiscoveryTime();
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-
-      if (false && lastDiscovery > oneHourAgo) {
-        return;
-      }
+      // TODO: Re-enable rate limiting after testing:
+      // const lastDiscovery = getLastDiscoveryTime();
+      // const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      // if (lastDiscovery > oneHourAgo) return;
 
       if (isModalDismissed()) {
         return;

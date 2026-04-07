@@ -61,8 +61,25 @@ class StructuredLogger {
 
     // Always log to console in development for debugging
     if (process.env.NODE_ENV === 'development') {
+      const consoleMethod =
+        entry.level === LogLevel.DEBUG
+          ? console.debug
+          : entry.level === LogLevel.INFO
+            ? console.info
+            : entry.level === LogLevel.WARN
+              ? console.warn
+              : console.error;
+      const prefix = `%c[${entry.level.toUpperCase()}] ${entry.timestamp}`;
       const style = this.getConsoleStyle(entry.level);
-      if (entry.error) {
+
+      if (entry.error && entry.context) {
+        consoleMethod(prefix, style, entry.message, entry.context, entry.error);
+      } else if (entry.error) {
+        consoleMethod(prefix, style, entry.message, entry.error);
+      } else if (entry.context) {
+        consoleMethod(prefix, style, entry.message, entry.context);
+      } else {
+        consoleMethod(prefix, style, entry.message);
       }
     }
 

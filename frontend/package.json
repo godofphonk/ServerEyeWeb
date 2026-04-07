@@ -13,8 +13,8 @@
     "start": "npm run start:next",
     "start:next": "next start",
     "start:doppler": "doppler run --config prd npm run start:next",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "type-check": "npm run type-check:next",
     "type-check:next": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
@@ -56,7 +56,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^8.57.1",
     "@next/bundle-analyzer": "^15.1.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@types/jest": "^30.0.0",
