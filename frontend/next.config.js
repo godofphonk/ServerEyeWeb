@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  allowedDevOrigins: ['127.0.0.1'],
   images: {
     domains: ['api.servereye.com', 'cdn.servereye.com'],
     formats: ['image/webp', 'image/avif'],
@@ -43,6 +44,10 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
     scrollRestoration: true,
+  },
+  // Turbopack configuration
+  turbopack: {
+    // Empty config to prevent webpack conflicts
   },
   // Compression
   compress: true,

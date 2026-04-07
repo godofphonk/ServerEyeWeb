@@ -8,7 +8,7 @@ help:
 	@echo "🚀 ServerEye Web - Enterprise Environment Management"
 	@echo ""
 	@echo "📦 Development - Full Stack:"
-	@echo "  dev-up           - Start all development services (infra + backend + frontend)"
+	@echo "  dev-up           - Start all development services (infra + stripe + observability + backend + frontend)"
 	@echo "  dev-down         - Stop all development services"
 	@echo "  dev-logs         - Show all development logs"
 	@echo "  dev-clean        - Clean all development services"
@@ -16,12 +16,18 @@ help:
 	@echo ""
 	@echo "🔧 Development - Component-wise:"
 	@echo "  dev-infra-up     - Start infrastructure only (PostgreSQL, Redis, Mock API)"
+	@echo "  dev-stripe-up   - Start Stripe CLI for webhook forwarding"
+	@echo "  dev-observability-up - Start observability stack (Grafana, Prometheus, Loki)"
 	@echo "  dev-backend-up   - Start backend only (requires infrastructure)"
 	@echo "  dev-frontend-up  - Start frontend only (requires backend)"
 	@echo "  dev-infra-down   - Stop infrastructure"
+	@echo "  dev-stripe-down  - Stop Stripe CLI"
+	@echo "  dev-observability-down - Stop observability stack"
 	@echo "  dev-backend-down - Stop backend"
 	@echo "  dev-frontend-down - Stop frontend"
 	@echo "  dev-infra-logs   - Show infrastructure logs"
+	@echo "  dev-stripe-logs  - Show Stripe CLI logs"
+	@echo "  dev-observability-logs - Show observability stack logs"
 	@echo "  dev-backend-logs - Show backend logs"
 	@echo "  dev-frontend-logs - Show frontend logs"
 	@echo ""
@@ -60,29 +66,38 @@ help:
 # ==============================================================================
 
 # Full Stack Development
-dev-up: dev-infra-up dev-backend-up dev-frontend-up
-	@echo "✅ All development services started!"
-	@echo "🌐 Frontend: http://127.0.0.1:3000"
-	@echo "🔧 Backend:  http://127.0.0.1:5246"
-	@echo "🗄️  PostgreSQL: 127.0.0.1:5433 (main), 127.0.0.1:5434 (tickets)"
-	@echo "🔴 Redis: 127.0.0.1:6380"
+dev-up: dev-infra-up dev-stripe-up dev-observability-up dev-backend-up dev-frontend-up
+	@echo "https://stripe.com/docs/webhooks"
+	@echo "All development services started!"
+	@echo "Frontend: http://127.0.0.1:3000"
+	@echo "Backend:  http://127.0.0.1:5246"
+	@echo "PostgreSQL: 127.0.0.1:5433 (main), 127.0.0.1:5434 (tickets)"
+	@echo "Redis: 127.0.0.1:6380"
+	@echo "Grafana: http://localhost:3010 (admin/admin)"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Loki: http://localhost:3100"
+	@echo "Tempo: http://localhost:3200"
 
-dev-down: dev-frontend-down dev-backend-down dev-infra-down
+dev-down: dev-frontend-down dev-backend-down dev-stripe-down dev-observability-down dev-infra-down
 	@echo "✅ All development services stopped!"
 
 dev-logs:
-	@echo "� Showing all development logs..."
+	@echo "Showing all development logs..."
 	docker compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f & \
+	docker compose -f ./environments/dev/stripe/docker-compose.yml logs -f & \
+	docker compose -f ./environments/dev/observability/docker-compose.yml logs -f & \
 	docker compose -f ./environments/dev/backend/docker-compose.yml logs -f & \
 	docker compose -f ./environments/dev/frontend/docker-compose.yml logs -f
 
 dev-clean: dev-down
-	@echo "🧹 Cleaning development environment..."
+	@echo "Cleaning development environment..."
 	docker compose -f ./environments/dev/infrastructure/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/dev/stripe/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/dev/observability/docker-compose.yml down -v --remove-orphans
 	docker compose -f ./environments/dev/backend/docker-compose.yml down -v --remove-orphans
 	docker compose -f ./environments/dev/frontend/docker-compose.yml down -v --remove-orphans
 	docker system prune -f
-	@echo "✅ Development environment cleaned!"
+	@echo "Development environment cleaned!"
 
 dev-restart: dev-down dev-up
 
@@ -112,9 +127,16 @@ dev-backend-up:
 
 dev-frontend-up:
 	@echo "🌐 Starting development frontend..."
-	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	@docker network create servereye-network 2>/dev/null || echo "Network servereye-network already exists"
 	cd ./environments/dev && docker compose -f ./frontend/docker-compose.yml --env-file .env up -d --build
-	@echo "✅ Frontend started!"
+	@echo "Frontend started!"
+
+dev-stripe-up:
+	@echo "Starting Stripe CLI for webhook forwarding..."
+	@docker network create servereye-network 2>/dev/null || echo "Network servereye-network already exists"
+	cd ./environments/dev && docker compose -f ./stripe/docker-compose.yml --env-file .env up -d
+	@echo "Stripe CLI started!"
+	@echo "Webhooks forwarding to: http://servereye-backend-dev:8080/api/webhooks/stripe"
 
 dev-infra-down:
 	@echo "🛑 Stopping infrastructure..."
@@ -132,6 +154,10 @@ dev-frontend-down:
 	@echo "🛑 Stopping frontend..."
 	docker compose -f ./environments/dev/frontend/docker-compose.yml down
 
+dev-stripe-down:
+	@echo "🛑 Stopping Stripe CLI..."
+	docker compose -f ./environments/dev/stripe/docker-compose.yml down
+
 dev-infra-logs:
 	@echo "📋 Infrastructure logs..."
 	docker compose -f ./environments/dev/infrastructure/docker-compose.yml logs -f
@@ -147,6 +173,10 @@ dev-backend-logs:
 dev-frontend-logs:
 	@echo "📋 Frontend logs..."
 	docker compose -f ./environments/dev/frontend/docker-compose.yml logs -f
+
+dev-stripe-logs:
+	@echo "📋 Stripe CLI logs..."
+	docker compose -f ./environments/dev/stripe/docker-compose.yml logs -f
 
 dev-shell:
 	@echo "🐚 Accessing development backend shell..."
@@ -332,7 +362,16 @@ status:
 	@echo "📊 Status of all environments..."
 	@echo ""
 	@echo "🔧 Development:"
-	@docker compose -f ./environments/dev/docker-compose.yml ps 2>/dev/null || echo "Development environment not running"
+	@echo "Infrastructure:"
+	@docker compose -f ./environments/dev/infrastructure/docker-compose.yml ps 2>/dev/null || echo "Infrastructure not running"
+	@echo "Stripe:"
+	@docker compose -f ./environments/dev/stripe/docker-compose.yml ps 2>/dev/null || echo "Stripe CLI not running"
+	@echo "Observability:"
+	@docker compose -f ./environments/dev/observability/docker-compose.yml ps 2>/dev/null || echo "Observability stack not running"
+	@echo "Backend:"
+	@docker compose -f ./environments/dev/backend/docker-compose.yml ps 2>/dev/null || echo "Backend not running"
+	@echo "Frontend:"
+	@docker compose -f ./environments/dev/frontend/docker-compose.yml ps 2>/dev/null || echo "Frontend not running"
 	@echo ""
 	@echo "🚀 Production:"
 	@if command -v doppler &> /dev/null; then \
