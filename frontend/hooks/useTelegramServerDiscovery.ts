@@ -80,9 +80,7 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const isModalDismissed = useCallback(() => {
-    // TODO: FIX - Remove this temporary bypass for testing
-    // Proper behavior: Check if user has dismissed the modal to prevent spam
-    // Always return false during testing to allow repeated discovery
+    // Check if user has dismissed the modal to prevent spam
     if (typeof window === 'undefined') return true;
 
     try {

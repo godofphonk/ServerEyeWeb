@@ -66,8 +66,6 @@ export default function RegisterPage() {
 
   const handleVerificationSuccess = async () => {
     // User has verified email, refresh auth context and redirect to dashboard
-    ('[RegisterPage] Email verified - refreshing user data');
-
     try {
       // Wait a bit for backend to update the database
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -75,11 +73,9 @@ export default function RegisterPage() {
       // Refresh user data to get updated isEmailVerified status
       if (refreshUserData) {
         await refreshUserData();
-        ('[RegisterPage] User data refreshed successfully');
       }
     } catch (error) { /* ignore error */ }
 
-    ('[RegisterPage] Redirecting to dashboard');
     router.push('/dashboard');
   };
 
