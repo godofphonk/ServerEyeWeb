@@ -1,0 +1,93 @@
+# Infrastructure Services for Production
+# PostgreSQL and Redis
+
+services:
+  # PostgreSQL Main Database
+  postgres-main:
+    image: postgres:16-alpine
+    container_name: ServerEyeWeb-postgres-main-prod
+    environment:
+      POSTGRES_DB: ServerEyeWeb_Prod
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: postgres -c ssl=off
+    volumes:
+      - postgres_main_prod_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servereye-network
+
+  # PostgreSQL Ticket Database
+  postgres-ticket:
+    image: postgres:16-alpine
+    container_name: ServerEyeWeb-postgres-ticket-prod
+    environment:
+      POSTGRES_DB: ServerEyeWeb_Prod_Ticket
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: postgres -c ssl=off
+    volumes:
+      - postgres_ticket_prod_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servereye-network
+
+  # PostgreSQL Billing Database
+  postgres-billing:
+    image: postgres:16-alpine
+    container_name: ServerEyeWeb-postgres-billing-prod
+    environment:
+      POSTGRES_DB: ServerEyeWeb_Prod_Billing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: postgres -c ssl=off
+    volumes:
+      - postgres_billing_prod_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servereye-network
+
+  # Redis Cache
+  redis:
+    image: redis:8-alpine
+    container_name: ServerEyeWeb-redis-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    networks:
+      - servereye-network
+
+networks:
+  servereye-network:
+    external: true
+    name: servereye-network
+
+volumes:
+  postgres_main_prod_data:
+    driver: local
+    name: ServerEyeWeb_postgres_main_prod
+  postgres_ticket_prod_data:
+    driver: local
+    name: ServerEyeWeb_postgres_ticket_prod
+  postgres_billing_prod_data:
+    driver: local
+    name: ServerEyeWeb_postgres_billing_prod

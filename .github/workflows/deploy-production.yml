@@ -54,10 +54,10 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@v7
         with:
           context: ./backend/ServerEyeBackend
-          file: ./environments/dockerfiles/backend-prod.Dockerfile
+          file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
@@ -75,10 +75,10 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
-          file: ./environments/dockerfiles/frontend-prod.Dockerfile
+          file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
