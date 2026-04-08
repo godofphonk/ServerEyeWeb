@@ -5,7 +5,7 @@ services:
   stripe-cli:
     image: stripe/stripe-cli:latest
     container_name: ServerEyeWeb-stripe-cli-dev
-    command: listen --forward-to http://172.19.0.8:8080/api/billing/webhook/stripe --events checkout.session.completed,invoice.payment_succeeded,customer.subscription.created
+    command: listen --forward-to http://ServerEyeWeb-backend-dev:8080/api/billing/webhook/stripe --events checkout.session.completed,invoice.payment_succeeded,customer.subscription.created
     env_file:
       - ../secrets/backend.env
     restart: unless-stopped
