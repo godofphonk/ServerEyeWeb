@@ -3,9 +3,7 @@ import { DiscoveredServersResponse, ImportServersRequest, ImportServersResponse 
 
 export class ServerDiscoveryAPI {
   async findTelegramServers(): Promise<DiscoveredServersResponse> {
-    const response = await apiClient.get<DiscoveredServersResponse>(
-      '/servers/discovery/telegram',
-    );
+    const response = await apiClient.get<DiscoveredServersResponse>('/servers/discovery/telegram');
     return response;
   }
 

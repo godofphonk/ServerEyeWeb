@@ -58,7 +58,7 @@ const nextConfig = {
       removeConsole: false,
     },
   }),
-  
+
   // Production optimizations
   poweredByHeader: false,
   generateEtags: true,

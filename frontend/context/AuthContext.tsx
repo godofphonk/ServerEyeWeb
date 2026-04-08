@@ -67,10 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Правильно определяем hasPassword - может быть строка "f"/"t" или boolean
     let hasPassword = true; // по умолчанию
-    
+
     if (backendUser.hasPassword === false) {
       hasPassword = false;
-    } else if (backendUser.hasPassword === "f") {
+    } else if (backendUser.hasPassword === 'f') {
       hasPassword = false;
     }
 
@@ -120,15 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email.includes('telegram.local') ||
               email.includes('@oauth.');
             // Приоритет JWT claim для hasPassword, fallback на логику
-            const hasPasswordFromJwt = payload.has_password === 'FALSE' ? false : 
-                                      (payload.hasPassword ?? payload.HasPassword);
-            const hasPassword = hasPasswordFromJwt !== undefined ? hasPasswordFromJwt : !isOAuthUser;
-            
+            const hasPasswordFromJwt =
+              payload.has_password === 'FALSE'
+                ? false
+                : (payload.hasPassword ?? payload.HasPassword);
+            const hasPassword =
+              hasPasswordFromJwt !== undefined ? hasPasswordFromJwt : !isOAuthUser;
+
             console.log('JWT parsing:', {
               has_password: payload.has_password,
               hasPasswordFromJwt,
               hasPassword,
-              isOAuthUser
+              isOAuthUser,
             });
 
             // Clear OAuth tokens from sessionStorage if user is not actually OAuth user
@@ -145,8 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: role as 'user' | 'admin',
                 createdAt: new Date().toISOString(),
                 // OAuth пользователи считаются верифицированными
-                isEmailVerified: isOAuthUser ? true : 
-                  (payload.email_verified === 'TRUE' || payload.email_verified === true),
+                isEmailVerified: isOAuthUser
+                  ? true
+                  : payload.email_verified === 'TRUE' || payload.email_verified === true,
                 hasPassword: hasPassword,
               };
 
@@ -154,7 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setLoading(false);
               return;
             }
-          } catch (decodeError) { /* ignore error */ }
+          } catch (decodeError) {
+            /* ignore error */
+          }
         }
       }
 
@@ -180,7 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   sessionStorage.setItem('jwt_token', tokenData.token);
                 }
               }
-            } catch (error) { /* ignore error */ }
+            } catch (error) {
+              /* ignore error */
+            }
           }
           return;
         }
@@ -297,7 +305,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logger.debug('No active session found');
           setUserWithLogging(null);
         }
-      } catch (fallbackError) { /* ignore fallback error */ }
+      } catch (fallbackError) {
+        /* ignore fallback error */
+      }
     }
 
     // If we get here, both JWT decode and API fallback failed
@@ -444,8 +454,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [getOAuthChallenge],
   );
 
-  const isEmailVerifiedValue = user ? 
-    (user.hasPassword === false ? true : Boolean(user.isEmailVerified)) : false;
+  const isEmailVerifiedValue = user
+    ? user.hasPassword === false
+      ? true
+      : Boolean(user.isEmailVerified)
+    : false;
 
   return (
     <AuthContext.Provider

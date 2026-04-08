@@ -159,7 +159,9 @@ export function DeleteAccountModal({
             }
 
             // If we get here, account is deleted (no user in session or 401)
-          } catch (sessionError) { /* ignore error */ }
+          } catch (sessionError) {
+            /* ignore error */
+          }
 
           // Clear all authentication data using AuthContext
           clearAuthData();

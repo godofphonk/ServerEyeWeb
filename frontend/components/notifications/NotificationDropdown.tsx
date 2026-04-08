@@ -59,7 +59,9 @@ export function NotificationDropdown({
         onClose();
         router.push(`/admin/tickets?ticketId=${notification.ticketId}`);
       }
-    } catch (error) { /* ignore error */ }
+    } catch (error) {
+      /* ignore error */
+    }
   };
 
   const handleMarkAllAsRead = async () => {

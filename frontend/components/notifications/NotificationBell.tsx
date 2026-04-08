@@ -18,7 +18,9 @@ export function NotificationBell() {
     try {
       const response = await notificationApi.getUnreadCount();
       setUnreadCount(response.count);
-    } catch (error) { /* ignore error */ }
+    } catch (error) {
+      /* ignore error */
+    }
   };
 
   const handleNotificationRead = () => {

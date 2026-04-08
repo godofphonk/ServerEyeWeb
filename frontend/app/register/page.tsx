@@ -74,7 +74,9 @@ export default function RegisterPage() {
       if (refreshUserData) {
         await refreshUserData();
       }
-    } catch (error) { /* ignore error */ }
+    } catch (error) {
+      /* ignore error */
+    }
 
     router.push('/dashboard');
   };

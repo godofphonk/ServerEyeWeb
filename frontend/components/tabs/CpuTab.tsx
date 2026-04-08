@@ -78,7 +78,9 @@ export default function CpuTab({
         } else {
           // ignore fetch failure
         }
-      } catch (error) { /* ignore error */ }
+      } catch (error) {
+        /* ignore error */
+      }
     };
 
     loadAllMetrics();
