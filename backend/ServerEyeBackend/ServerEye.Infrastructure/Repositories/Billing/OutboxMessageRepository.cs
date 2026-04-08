@@ -37,13 +37,13 @@ public class OutboxMessageRepository : IOutboxMessageRepository
         }
     }
 
-    public async Task MarkAsFailedAsync(Guid id, string error)
+    public async Task MarkAsFailedAsync(Guid id, string errorMessage)
     {
         var message = await context.OutboxMessages.FindAsync(id);
         if (message != null)
         {
             message.Status = OutboxMessageStatus.Failed;
-            message.Error = error;
+            message.Error = errorMessage;
             await context.SaveChangesAsync();
         }
     }

@@ -58,8 +58,8 @@ public class WebhookService : IWebhookService
                 Provider = provider,
                 EventId = eventType,
                 EventType = eventType,
-                Payload = payload,
-                IsProcessed = false,
+                RawPayload = payload,
+                Status = Entities.Billing.WebhookEventStatus.Received,
                 ProcessingError = null,
                 ProcessingAttempts = 0,
                 ProcessedAt = null,
@@ -121,11 +121,11 @@ public class WebhookService : IWebhookService
             try
             {
                 var provider = providerFactory.GetProvider(webhookEvent.Provider);
-                var (eventType, data) = await provider.ParseWebhookEventAsync(webhookEvent.Payload);
+                var (eventType, data) = await provider.ParseWebhookEventAsync(webhookEvent.RawPayload);
 
                 await ProcessWebhookEventAsync(webhookEvent, data);
 
-                webhookEvent.IsProcessed = true;
+                webhookEvent.Status = Entities.Billing.WebhookEventStatus.Processed;
                 webhookEvent.ProcessedAt = DateTime.UtcNow;
                 await webhookEventRepository.UpdateAsync(webhookEvent);
 

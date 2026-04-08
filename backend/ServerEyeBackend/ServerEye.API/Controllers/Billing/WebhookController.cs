@@ -14,6 +14,7 @@ using ServerEye.Infrastructure.ExternalServices.YooKassa;
 public class WebhookController : ControllerBase
 {
     private readonly IWebhookEventRepository webhookEventRepository;
+    private readonly IWebhookService webhookService;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly StripeConfiguration stripeConfig;
     private readonly YooKassaConfiguration yookassaConfig;
@@ -21,12 +22,14 @@ public class WebhookController : ControllerBase
 
     public WebhookController(
         IWebhookEventRepository webhookEventRepository,
+        IWebhookService webhookService,
         IPaymentProviderFactory providerFactory,
         IOptions<StripeConfiguration> stripeConfig,
         IOptions<YooKassaConfiguration> yookassaConfig,
         ILogger<WebhookController> logger)
     {
         this.webhookEventRepository = webhookEventRepository;
+        this.webhookService = webhookService;
         this.providerFactory = providerFactory;
         this.stripeConfig = stripeConfig.Value;
         this.yookassaConfig = yookassaConfig.Value;

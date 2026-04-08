@@ -257,6 +257,9 @@ public static class DependencyInjectionSetup
         services.AddScoped<Core.Interfaces.Services.Billing.IWebhookService, Core.Services.Billing.WebhookService>();
         services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
         services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
+
+        // Register background processor for webhook handling
+        services.AddHostedService<Core.Services.Billing.WebhookEventProcessor>();
     }
 
     /// <summary>
@@ -286,20 +289,5 @@ public static class DependencyInjectionSetup
 
         // Add self health check
         healthChecksBuilder.AddCheck("self", () => HealthCheckResult.Healthy("Application is running"));
-    }
-
-    /// <summary>
-    /// Registers billing-specific services.
-    /// </summary>
-    private static void RegisterBillingServices(IServiceCollection services)
-    {
-        // Register core billing services
-        services.AddScoped<IPaymentService, PaymentService>();
-        services.AddScoped<ISubscriptionService, SubscriptionService>();
-        services.AddScoped<IWebhookService, WebhookService>();
-
-        // Register background processor for webhook handling
-        // TODO: Uncomment after rebuilding Docker image with new code
-        // services.AddHostedService<WebhookEventProcessor>();
     }
 }

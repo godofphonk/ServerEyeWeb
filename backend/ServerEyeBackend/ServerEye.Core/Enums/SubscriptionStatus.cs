@@ -9,5 +9,6 @@ public enum SubscriptionStatus
     Trialing = 4,
     Incomplete = 5,
     IncompleteExpired = 6,
-    Paused = 7
+    Paused = 7,
+    Free = 8
 }

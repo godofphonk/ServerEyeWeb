@@ -81,6 +81,7 @@ public class StripePaymentProvider : IPaymentProvider
 
     public async Task<CreateSubscriptionResponse> CreateCheckoutSessionAsync(
         string customerId,
+        Guid userId,
         SubscriptionPlan planType,
         bool isYearly,
         string successUrl,
@@ -108,6 +109,7 @@ public class StripePaymentProvider : IPaymentProvider
                 BillingAddressCollection = "auto",
                 Metadata = new Dictionary<string, string>
                 {
+                    { "user_id", userId.ToString() },
                     { "plan_type", planType.ToString() },
                     { "is_yearly", isYearly.ToString() }
                 }
