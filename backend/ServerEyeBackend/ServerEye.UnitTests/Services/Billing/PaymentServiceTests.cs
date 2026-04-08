@@ -180,6 +180,7 @@ public class PaymentServiceTests
         this.mockProvider
             .Setup(x => x.CreateCheckoutSessionAsync(
                 expectedCustomerId,
+                userId,
                 request.PlanType,
                 request.IsYearly,
                 request.SuccessUrl,
