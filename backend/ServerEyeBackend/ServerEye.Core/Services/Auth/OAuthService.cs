@@ -124,9 +124,8 @@ public sealed class OAuthService(
         using var activity = OAuthActivitySource.StartProcessCallbackActivity(request.Provider, ipAddress, userAgent);
         var startTime = DateTime.UtcNow;
         
-        this.logger.LogInformation("ProcessCallbackAsync START - Provider: {Provider}", request.Provider);
-
         var provider = this.ParseProvider(request.Provider);
+        this.logger.LogInformation("ProcessCallbackAsync START - Provider: {Provider}", provider);
 
         // Extract action from request or state
         var action = request.Action;
