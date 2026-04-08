@@ -111,7 +111,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/**/coverage.cobertura.xml
-          flags: unittests
+          flags: backend
           name: backend-unit-tests
           fail_ci_if_error: false
 
@@ -170,7 +170,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/**/coverage.cobertura.xml
-          flags: integrationtests
+          flags: backend
           name: backend-integration-tests
           fail_ci_if_error: false
 

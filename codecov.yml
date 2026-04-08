@@ -1,0 +1,116 @@
+# Codecov configuration for ServerEyeWeb
+# Supports both Frontend and Backend coverage reporting
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+        flags:
+          - backend
+          - frontend
+        paths:
+          - backend
+          - frontend
+      backend:
+        target: auto
+        threshold: 1%
+        flags:
+          - backend
+        paths:
+          - backend
+      frontend:
+        target: auto
+        threshold: 1%
+        flags:
+          - frontend
+        paths:
+          - frontend
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+
+# Define components to track coverage separately
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+      - type: patch
+        target: auto
+        threshold: 1%
+
+  individual_components:
+    - component_id: backend
+      name: Backend
+      paths:
+        - backend/**
+      statuses:
+        - type: project
+          target: auto
+          threshold: 1%
+        - type: patch
+          target: auto
+          threshold: 1%
+
+    - component_id: frontend
+      name: Frontend
+      paths:
+        - frontend/**
+      statuses:
+        - type: project
+          target: auto
+          threshold: 1%
+        - type: patch
+          target: auto
+          threshold: 1%
+
+# Flag management for parallel uploads
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+      - type: patch
+        target: auto
+        threshold: 1%
+
+# Comment on PRs with coverage summary
+comment:
+  layout: "header, diff, flags, components, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
+
+# Ignore patterns
+ignore:
+  - "**/node_modules/**"
+  - "**/.next/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/test*/**"
+  - "**/tests/**"
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "**/Migrations/**"
+  - "**/coverage/**"
+  - "**/playwright-report/**"
+  - "**/playwright.config.*"
+  - "**/jest.config.*"
+  - "**/jest.setup.*"
+
+# General settings
+codecov:
+  require_ci_to_pass: false
+  notify:
+    wait_for_ci: false
+    after_n_builds: 2  # Wait for both frontend and backend uploads
