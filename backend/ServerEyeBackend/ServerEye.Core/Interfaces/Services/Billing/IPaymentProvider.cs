@@ -13,6 +13,7 @@ public interface IPaymentProvider
     [SuppressMessage("Design", "CA1054:URI parameters should not be strings", Justification = "Stripe API requires string URLs")]
     public Task<CreateSubscriptionResponse> CreateCheckoutSessionAsync(
         string customerId,
+        Guid userId,
         SubscriptionPlan planType,
         bool isYearly,
         string successUrl,

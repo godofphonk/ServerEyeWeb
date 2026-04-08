@@ -141,6 +141,7 @@ public class PaymentService : IPaymentService
 
             var response = await provider.CreateCheckoutSessionAsync(
                 customerId,
+                userId,
                 request.PlanType,
                 request.IsYearly,
                 successUrl,

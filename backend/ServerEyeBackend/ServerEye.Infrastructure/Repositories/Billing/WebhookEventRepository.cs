@@ -31,7 +31,6 @@ public class WebhookEventRepository : IWebhookEventRepository
     public async Task<List<WebhookEvent>> GetPendingEventsAsync(int limit = 100)
     {
         return await context.WebhookEvents
-            .AsNoTracking()
             .Where(w => w.Status == WebhookEventStatus.Received || w.Status == WebhookEventStatus.Failed)
             .Where(w => w.ProcessingAttempts < 5)
             .OrderBy(w => w.CreatedAt)
@@ -59,7 +58,7 @@ public class WebhookEventRepository : IWebhookEventRepository
 
     public async Task UpdateAsync(WebhookEvent webhookEvent)
     {
-        context.WebhookEvents.Update(webhookEvent);
+        context.Entry(webhookEvent).State = EntityState.Modified;
         await context.SaveChangesAsync();
     }
 }

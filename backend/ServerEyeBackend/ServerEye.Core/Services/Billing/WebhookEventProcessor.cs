@@ -45,7 +45,7 @@ public class WebhookEventProcessor : BackgroundService
             {
                 await ProcessPendingEventsAsync(stoppingToken);
                 await ProcessOutboxMessagesAsync(stoppingToken);
-                await MoveFailedEventsToDeadLetterAsync(stoppingToken);
+                await MoveFailedEventsToDeadLetterAsync();
             }
             catch (Exception ex)
             {
@@ -58,13 +58,59 @@ public class WebhookEventProcessor : BackgroundService
         logger.LogInformation("Webhook Event Processor stopped");
     }
 
+    private static SubscriptionStatus MapStripeStatus(string stripeStatus)
+    {
+        return stripeStatus?.ToUpperInvariant() switch
+        {
+            "ACTIVE" => SubscriptionStatus.Active,
+            "CANCELED" => SubscriptionStatus.Canceled,
+            "INCOMPLETE" => SubscriptionStatus.PastDue,
+            "INCOMPLETE_EXPIRED" => SubscriptionStatus.Canceled,
+            "PAST_DUE" => SubscriptionStatus.PastDue,
+            "TRIALING" => SubscriptionStatus.Active,
+            "UNPAID" => SubscriptionStatus.PastDue,
+            _ => SubscriptionStatus.Active
+        };
+    }
+
+    private static bool IsValidTransition(SubscriptionStatus current, SubscriptionStatus next)
+    {
+        // Define valid state transitions
+        return (current, next) switch
+        {
+            // Free can go to Active (upgrade)
+            (SubscriptionStatus.Free, SubscriptionStatus.Active) => true,
+
+            // Active can go to PastDue (payment failed)
+            (SubscriptionStatus.Active, SubscriptionStatus.PastDue) => true,
+
+            // Active can go to Canceled (cancellation)
+            (SubscriptionStatus.Active, SubscriptionStatus.Canceled) => true,
+
+            // PastDue can go to Active (payment recovered)
+            (SubscriptionStatus.PastDue, SubscriptionStatus.Active) => true,
+
+            // PastDue can go to Canceled (final cancellation)
+            (SubscriptionStatus.PastDue, SubscriptionStatus.Canceled) => true,
+
+            // Same state is valid (idempotent)
+            (var s1, var s2) when s1 == s2 => true,
+
+            // All other transitions are invalid
+            _ => false
+        };
+    }
+
     private async Task ProcessPendingEventsAsync(CancellationToken stoppingToken)
     {
         var pendingEvents = await webhookEventRepository.GetPendingEventsAsync(10);
 
         foreach (var webhookEvent in pendingEvents)
         {
-            if (stoppingToken.IsCancellationRequested) break;
+            if (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
 
             await ProcessEventWithIdempotencyAsync(webhookEvent);
         }
@@ -93,7 +139,7 @@ public class WebhookEventProcessor : BackgroundService
             var (eventType, data) = await provider.ParseWebhookEventAsync(webhookEvent.RawPayload);
 
             // Process based on event type with state machine validation
-            var result = await ProcessEventByTypeAsync(webhookEvent.EventType, data, webhookEvent);
+            var result = await ProcessEventByTypeAsync(webhookEvent.EventType, data);
 
             if (result.IsSuccess)
             {
@@ -150,7 +196,7 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessEventByTypeAsync(string eventType, object data, WebhookEvent webhookEvent)
+    private async Task<ProcessResult> ProcessEventByTypeAsync(string eventType, object data)
     {
         return eventType switch
         {
@@ -160,8 +206,8 @@ public class WebhookEventProcessor : BackgroundService
             "customer.subscription.deleted" => await ProcessSubscriptionDeletedAsync(data),
             "invoice.payment_succeeded" => await ProcessInvoicePaymentSucceededAsync(data),
             "invoice.payment_failed" => await ProcessInvoicePaymentFailedAsync(data),
-            "payment_intent.succeeded" => await ProcessPaymentIntentSucceededAsync(data),
-            "payment_intent.payment_failed" => await ProcessPaymentIntentFailedAsync(data),
+            "payment_intent.succeeded" => await ProcessPaymentIntentSucceededAsync(),
+            "payment_intent.payment_failed" => await ProcessPaymentIntentFailedAsync(),
             _ => ProcessResult.Success() // Unhandled event types
         };
     }
@@ -189,27 +235,42 @@ public class WebhookEventProcessor : BackgroundService
             // Get subscription details from session
             var subscriptionId = StripeWebhookHelper.GetStringProperty(data, "SubscriptionId");
 
-            // Create outbox message for side effects
-            var outboxMessage = new OutboxMessage
+            // Update or create subscription directly
+            var existingSubscription = await subscriptionRepository.GetByUserIdAsync(userId);
+            var proPlanId = Guid.Parse("841bb3db-424c-46e5-a752-04641391c993"); // Pro plan ID
+
+            if (existingSubscription != null)
             {
-                Id = Guid.NewGuid(),
-                MessageType = "CheckoutSessionCompleted",
-                Payload = System.Text.Json.JsonSerializer.Serialize(new
+                // Update existing subscription to Pro
+                existingSubscription.PlanId = proPlanId;
+                existingSubscription.Status = SubscriptionStatus.Active;
+                existingSubscription.UpdatedAt = DateTime.UtcNow;
+                await subscriptionRepository.UpdateAsync(existingSubscription);
+
+                logger.LogInformation(
+                    "Updated subscription for user {UserId} to Pro plan, session {SessionId}",
+                    userId,
+                    sessionId);
+            }
+            else
+            {
+                // Create new Pro subscription
+                var newSubscription = new Subscription
                 {
+                    Id = Guid.NewGuid(),
                     UserId = userId,
-                    SessionId = sessionId,
-                    SubscriptionId = subscriptionId,
-                    CustomerId = customerId
-                }),
-                CreatedAt = DateTime.UtcNow
-            };
+                    PlanId = proPlanId,
+                    Status = SubscriptionStatus.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await subscriptionRepository.AddAsync(newSubscription);
 
-            await outboxRepository.AddAsync(outboxMessage);
-
-            logger.LogInformation(
-                "Created outbox message for checkout session {SessionId}, user {UserId}",
-                sessionId,
-                userId);
+                logger.LogInformation(
+                    "Created new Pro subscription for user {UserId}, session {SessionId}",
+                    userId,
+                    sessionId);
+            }
 
             return ProcessResult.Success();
         }
@@ -515,13 +576,13 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private Task<ProcessResult> ProcessPaymentIntentSucceededAsync(object data)
+    private Task<ProcessResult> ProcessPaymentIntentSucceededAsync()
     {
         logger.LogInformation("Processing payment_intent.succeeded");
         return Task.FromResult(ProcessResult.Success());
     }
 
-    private Task<ProcessResult> ProcessPaymentIntentFailedAsync(object data)
+    private Task<ProcessResult> ProcessPaymentIntentFailedAsync()
     {
         logger.LogWarning("Processing payment_intent.payment_failed");
         return Task.FromResult(ProcessResult.Success());
@@ -533,7 +594,10 @@ public class WebhookEventProcessor : BackgroundService
 
         foreach (var message in pendingMessages)
         {
-            if (stoppingToken.IsCancellationRequested) break;
+            if (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
 
             try
             {
@@ -544,7 +608,6 @@ public class WebhookEventProcessor : BackgroundService
 
                 // Process side effects here (emails, notifications, etc.)
                 // This is where you'd send emails, update external systems, etc.
-
                 await outboxRepository.MarkAsProcessedAsync(message.Id);
 
                 logger.LogInformation(
@@ -565,7 +628,7 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task MoveFailedEventsToDeadLetterAsync(CancellationToken stoppingToken)
+    private async Task MoveFailedEventsToDeadLetterAsync()
     {
         var failedEvents = await webhookEventRepository.GetFailedEventsAsync(
             maxRetries,
@@ -604,43 +667,6 @@ public class WebhookEventProcessor : BackgroundService
         }
 
         return freePlanId;
-    }
-
-    private static SubscriptionStatus MapStripeStatus(string stripeStatus)
-    {
-        return stripeStatus?.ToUpperInvariant() switch
-        {
-            "ACTIVE" => SubscriptionStatus.Active,
-            "CANCELED" => SubscriptionStatus.Canceled,
-            "INCOMPLETE" => SubscriptionStatus.PastDue,
-            "INCOMPLETE_EXPIRED" => SubscriptionStatus.Canceled,
-            "PAST_DUE" => SubscriptionStatus.PastDue,
-            "TRIALING" => SubscriptionStatus.Active,
-            "UNPAID" => SubscriptionStatus.PastDue,
-            _ => SubscriptionStatus.Active
-        };
-    }
-
-    private static bool IsValidTransition(SubscriptionStatus current, SubscriptionStatus next)
-    {
-        // Define valid state transitions
-        return (current, next) switch
-        {
-            // Free can go to Active (upgrade)
-            (SubscriptionStatus.Free, SubscriptionStatus.Active) => true,
-            // Active can go to PastDue (payment failed)
-            (SubscriptionStatus.Active, SubscriptionStatus.PastDue) => true,
-            // Active can go to Canceled (cancellation)
-            (SubscriptionStatus.Active, SubscriptionStatus.Canceled) => true,
-            // PastDue can go to Active (payment recovered)
-            (SubscriptionStatus.PastDue, SubscriptionStatus.Active) => true,
-            // PastDue can go to Canceled (final cancellation)
-            (SubscriptionStatus.PastDue, SubscriptionStatus.Canceled) => true,
-            // Same state is valid (idempotent)
-            (var s1, var s2) when s1 == s2 => true,
-            // All other transitions are invalid
-            _ => false
-        };
     }
 }
 

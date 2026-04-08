@@ -72,16 +72,19 @@ public class BillingDbContext : DbContext
         // WebhookEvent configuration
         modelBuilder.Entity<WebhookEvent>(entity =>
         {
+            entity.ToTable("WebhookEvents");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Provider).HasConversion<string>();
             entity.Property(e => e.Status).HasConversion<string>();
             entity.Property(e => e.RawPayload).HasColumnType("jsonb");
             entity.HasIndex(e => e.EventId).IsUnique();
+            entity.HasIndex(e => e.Status);
         });
 
         // OutboxMessage configuration
         modelBuilder.Entity<OutboxMessage>(entity =>
         {
+            entity.ToTable("OutboxMessages");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Status).HasConversion<string>();
             entity.Property(e => e.Payload).HasColumnType("jsonb");
