@@ -524,13 +524,13 @@ public class AuthController : BaseApiController
 
             // Special handling for OAuth users - add skip verification flag
             // Check if this is OAuth user by checking if user has no password (OAuth users don't have passwords)
-            var isOAuthUser = string.IsNullOrEmpty(response.User?.Email) || 
+            var isOAuthUser = string.IsNullOrEmpty(response.User?.Email) ||
                 (!string.Equals(request.Provider, "email", StringComparison.OrdinalIgnoreCase) && response.User?.Email == null);
-            
+
             if (isOAuthUser)
             {
                 this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}", request.Provider, response.User?.Id);
-                
+
                 // Set skip flag directly on response
                 var responseWithSkip = new AuthResponseDto
                 {
@@ -542,12 +542,12 @@ public class AuthController : BaseApiController
                     ExpiresIn = response.ExpiresIn,
                     SkipEmailVerification = true
                 };
-                
+
                 return this.Ok(responseWithSkip);
             }
 
             this.logger.LogInformation("Regular user detected - UserId: {UserId}", response.User?.Id);
-            
+
             // Ensure skip flag is false for users requiring verification
             var responseWithVerification = new AuthResponseDto
             {
@@ -559,7 +559,7 @@ public class AuthController : BaseApiController
                 ExpiresIn = response.ExpiresIn,
                 SkipEmailVerification = false
             };
-            
+
             return this.Ok(responseWithVerification);
         }
         catch (Exception ex)

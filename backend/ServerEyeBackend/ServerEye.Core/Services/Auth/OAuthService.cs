@@ -123,7 +123,7 @@ public sealed class OAuthService(
     {
         using var activity = OAuthActivitySource.StartProcessCallbackActivity(request.Provider, ipAddress, userAgent);
         var startTime = DateTime.UtcNow;
-        
+
         var provider = this.ParseProvider(request.Provider);
         this.logger.LogInformation("ProcessCallbackAsync START - Provider: {Provider}", provider);
 
