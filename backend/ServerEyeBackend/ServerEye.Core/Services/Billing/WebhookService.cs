@@ -276,7 +276,7 @@ public class WebhookService : IWebhookService
 
         // Get first price ID from subscription items
         var priceId = StripeWebhookHelper.GetFirstPriceId(data);
-        
+
         if (!string.IsNullOrEmpty(priceId))
         {
             logger.LogInformation("Stripe subscription has price ID: {PriceId}", priceId);

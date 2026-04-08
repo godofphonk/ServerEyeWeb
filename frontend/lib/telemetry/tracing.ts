@@ -1,6 +1,5 @@
 import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
-import type { IResource } from '@opentelemetry/resources';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-web';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -19,7 +18,7 @@ export function initializeTelemetry() {
     return provider;
   }
 
-  const resource = new Resource({
+  const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'servereye-frontend',
     [ATTR_SERVICE_VERSION]: '1.0.0',
     environment: process.env.NODE_ENV || 'development',

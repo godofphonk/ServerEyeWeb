@@ -1,12 +1,12 @@
 #pragma warning disable CA1303 // Localize strings
 
+using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
-using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
