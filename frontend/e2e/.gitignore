@@ -1,0 +1,5 @@
+# Playwright E2E Test Artifacts
+.auth/
+test-results/
+playwright-report/
+*.log
