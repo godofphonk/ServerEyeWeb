@@ -1,4 +1,4 @@
-import { Page, BrowserContext } from '@playwright/test';
+import { Page, BrowserContext, APIRequestContext } from '@playwright/test';
 
 /**
  * Authentication Helpers for E2E Tests
@@ -96,7 +96,7 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
 /**
  * Create new test user via API
  */
-export async function createTestUser(request: any, email: string, password: string): Promise<void> {
+export async function createTestUser(request: APIRequestContext, email: string, password: string): Promise<void> {
   const response = await request.post('/api/auth/register', {
     data: {
       email,
@@ -113,7 +113,7 @@ export async function createTestUser(request: any, email: string, password: stri
 /**
  * Delete test user via API
  */
-export async function deleteTestUser(request: any, email: string): Promise<void> {
+export async function deleteTestUser(request: APIRequestContext, email: string): Promise<void> {
   // This would require admin API or specific cleanup endpoint
   // Implementation depends on your backend API
   console.log(`Cleanup: delete user ${email}`);
