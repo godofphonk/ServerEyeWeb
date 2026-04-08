@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: process.env.CI_E2E === 'true' ? undefined : 'standalone',
   allowedDevOrigins: ['127.0.0.1'],
   images: {
     domains: ['api.servereye.com', 'cdn.servereye.com'],
