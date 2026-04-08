@@ -12,20 +12,20 @@ import { loginAsUser, clearAuth } from './helpers/auth-helper';
  */
 async function mockGoogleOAuth(page: Page, success: boolean = true) {
   // Intercept OAuth challenge request
-  await page.route('**/api/auth/oauth/google/challenge**', async (route) => {
+  await page.route('**/api/auth/oauth/google/challenge**', async route => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         challengeUrl: `https://accounts.google.com/o/oauth2/v2/auth?client_id=test&redirect_uri=http://localhost:3000/api/auth/oauth/callback&state=test_state_google`,
         state: 'test_state_google',
-        provider: 'google'
+        provider: 'google',
       }),
     });
   });
 
   // Intercept OAuth callback
-  await page.route('**/api/auth/oauth/callback**', async (route) => {
+  await page.route('**/api/auth/oauth/callback**', async route => {
     if (success) {
       await route.fulfill({
         status: 200,
@@ -37,9 +37,9 @@ async function mockGoogleOAuth(page: Page, success: boolean = true) {
           user: {
             id: 'google-user-123',
             email: 'googleuser@example.com',
-            username: 'Google User'
+            username: 'Google User',
           },
-          skipEmailVerification: true
+          skipEmailVerification: true,
         }),
       });
     } else {
@@ -48,7 +48,7 @@ async function mockGoogleOAuth(page: Page, success: boolean = true) {
         contentType: 'application/json',
         body: JSON.stringify({
           success: false,
-          message: 'user_already_exists'
+          message: 'user_already_exists',
         }),
       });
     }
@@ -59,14 +59,14 @@ async function mockGoogleOAuth(page: Page, success: boolean = true) {
  * Mock GitHub OAuth flow
  */
 async function mockGitHubOAuth(page: Page, success: boolean = true) {
-  await page.route('**/api/auth/oauth/github/challenge**', async (route) => {
+  await page.route('**/api/auth/oauth/github/challenge**', async route => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         challengeUrl: `https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http://localhost:3000/api/auth/oauth/callback&state=test_state_github`,
         state: 'test_state_github',
-        provider: 'github'
+        provider: 'github',
       }),
     });
   });
@@ -82,8 +82,8 @@ async function mockGitHubOAuth(page: Page, success: boolean = true) {
           user: {
             id: 'github-user-456',
             email: 'githubuser@example.com',
-            username: 'GitHubUser'
-          }
+            username: 'GitHubUser',
+          },
         }),
       });
     } else {
@@ -101,7 +101,7 @@ async function mockGitHubOAuth(page: Page, success: boolean = true) {
  */
 async function mockTelegramOAuth(page: Page, success: boolean = true) {
   // Telegram uses different flow - widget-based
-  await page.route('**/api/auth/oauth/telegram/callback**', async (route) => {
+  await page.route('**/api/auth/oauth/telegram/callback**', async route => {
     if (success) {
       await route.fulfill({
         status: 200,
@@ -112,9 +112,9 @@ async function mockTelegramOAuth(page: Page, success: boolean = true) {
           user: {
             id: 'telegram-user-789',
             username: 'TelegramUser',
-            email: null
+            email: null,
           },
-          skipEmailVerification: true
+          skipEmailVerification: true,
         }),
       });
     } else {
@@ -123,7 +123,7 @@ async function mockTelegramOAuth(page: Page, success: boolean = true) {
         contentType: 'application/json',
         body: JSON.stringify({
           success: false,
-          message: 'user_not_found'
+          message: 'user_not_found',
         }),
       });
     }
@@ -140,8 +140,10 @@ test.describe('OAuth Login Flow', () => {
     await mockGoogleOAuth(page, true);
 
     // Click Google login button
-    const googleButton = page.locator('[data-testid="google-login"], button:has-text("Google")').first();
-    
+    const googleButton = page
+      .locator('[data-testid="google-login"], button:has-text("Google")')
+      .first();
+
     if (await googleButton.isVisible().catch(() => false)) {
       await googleButton.click();
 
@@ -149,9 +151,11 @@ test.describe('OAuth Login Flow', () => {
       await page.waitForTimeout(500);
 
       // Should show loading or redirect state
-      await expect(page.locator('text=/loading|redirect|authenticating/i').or(
-        page.locator('[data-testid="oauth-loading"]')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('text=/loading|redirect|authenticating/i')
+          .or(page.locator('[data-testid="oauth-loading"]')),
+      ).toBeVisible();
     }
   });
 
@@ -163,13 +167,15 @@ test.describe('OAuth Login Flow', () => {
 
     // Should redirect to dashboard on success
     await page.waitForTimeout(1000);
-    
+
     // Check if redirected to dashboard or shows success
     const url = page.url();
     if (url.includes('/dashboard') || url.includes('/success')) {
-      await expect(page.locator('[data-testid="dashboard"], h1:has-text("Dashboard")').or(
-        page.locator('text=/welcome|success/i')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('[data-testid="dashboard"], h1:has-text("Dashboard")')
+          .or(page.locator('text=/welcome|success/i')),
+      ).toBeVisible();
     }
   });
 
@@ -189,16 +195,20 @@ test.describe('OAuth Login Flow', () => {
   test('should initiate GitHub OAuth login', async ({ page }) => {
     await mockGitHubOAuth(page, true);
 
-    const githubButton = page.locator('[data-testid="github-login"], button:has-text("GitHub")').first();
-    
+    const githubButton = page
+      .locator('[data-testid="github-login"], button:has-text("GitHub")')
+      .first();
+
     if (await githubButton.isVisible().catch(() => false)) {
       await githubButton.click();
       await page.waitForTimeout(500);
 
       // Check for challenge initiation
-      await expect(page.locator('text=/redirect|authenticating/i').or(
-        page.locator('[data-testid="oauth-loading"]')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('text=/redirect|authenticating/i')
+          .or(page.locator('[data-testid="oauth-loading"]')),
+      ).toBeVisible();
     }
   });
 
@@ -209,11 +219,12 @@ test.describe('OAuth Login Flow', () => {
     await page.waitForTimeout(1000);
 
     // Should show error message
-    await expect(page.locator('text=/error|failed|Error|Failed/i').or(
-      page.locator('[role="alert"]')
-    ).or(
-      page.locator('[data-testid="oauth-error"]')
-    )).toBeVisible();
+    await expect(
+      page
+        .locator('text=/error|failed|Error|Failed/i')
+        .or(page.locator('[role="alert"]'))
+        .or(page.locator('[data-testid="oauth-error"]')),
+    ).toBeVisible();
   });
 
   test('should handle missing OAuth code in callback', async ({ page }) => {
@@ -221,9 +232,9 @@ test.describe('OAuth Login Flow', () => {
     await page.goto('/oauth/callback?state=test_state&provider=google');
 
     // Should show error
-    await expect(page.locator('text=/missing|error|invalid/i').or(
-      page.locator('[data-testid="oauth-error"]')
-    )).toBeVisible();
+    await expect(
+      page.locator('text=/missing|error|invalid/i').or(page.locator('[data-testid="oauth-error"]')),
+    ).toBeVisible();
   });
 
   test('should handle invalid OAuth state', async ({ page }) => {
@@ -245,14 +256,14 @@ test.describe('OAuth Account Linking', () => {
 
   test('should show linked OAuth accounts in profile', async ({ page }) => {
     // Mock API for linked accounts
-    await page.route('**/api/auth/oauth/providers', async (route) => {
+    await page.route('**/api/auth/oauth/providers', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
           { provider: 'google', linked: true, email: 'user@gmail.com' },
           { provider: 'github', linked: false },
-          { provider: 'telegram', linked: false }
+          { provider: 'telegram', linked: false },
         ]),
       });
     });
@@ -260,9 +271,16 @@ test.describe('OAuth Account Linking', () => {
     await page.goto('/profile');
 
     // Look for connected accounts section
-    const connectedAccounts = page.locator('text=/connected|linked|accounts|oauth/i, [data-testid="connected-accounts"]');
-    
-    if (await connectedAccounts.first().isVisible().catch(() => false)) {
+    const connectedAccounts = page.locator(
+      'text=/connected|linked|accounts|oauth/i, [data-testid="connected-accounts"]',
+    );
+
+    if (
+      await connectedAccounts
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await expect(page.locator('text=/Google|GitHub|Telegram/i').first()).toBeVisible();
     }
   });
@@ -273,8 +291,10 @@ test.describe('OAuth Account Linking', () => {
     await page.goto('/profile');
 
     // Find link account button
-    const linkButton = page.locator('button:has-text("Link"), button:has-text("Connect"), [data-testid="link-google"]').first();
-    
+    const linkButton = page
+      .locator('button:has-text("Link"), button:has-text("Connect"), [data-testid="link-google"]')
+      .first();
+
     if (await linkButton.isVisible().catch(() => false)) {
       await linkButton.click();
 
@@ -282,15 +302,17 @@ test.describe('OAuth Account Linking', () => {
       await page.waitForTimeout(500);
 
       // Check for success or redirect
-      await expect(page.locator('text=/linking|connecting|success/i').or(
-        page.locator('[data-testid="link-success"]')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('text=/linking|connecting|success/i')
+          .or(page.locator('[data-testid="link-success"]')),
+      ).toBeVisible();
     }
   });
 
   test('should unlink OAuth provider', async ({ page }) => {
     // Mock API for unlinking
-    await page.route('**/api/auth/oauth/google**', async (route) => {
+    await page.route('**/api/auth/oauth/google**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -301,13 +323,19 @@ test.describe('OAuth Account Linking', () => {
     await page.goto('/profile');
 
     // Find unlink button for connected account
-    const unlinkButton = page.locator('button:has-text("Unlink"), button:has-text("Disconnect"), [data-testid="unlink-google"]').first();
-    
+    const unlinkButton = page
+      .locator(
+        'button:has-text("Unlink"), button:has-text("Disconnect"), [data-testid="unlink-google"]',
+      )
+      .first();
+
     if (await unlinkButton.isVisible().catch(() => false)) {
       await unlinkButton.click();
 
       // Confirm unlinking
-      const confirmButton = page.locator('button:has-text("Confirm"), button:has-text("Yes")').first();
+      const confirmButton = page
+        .locator('button:has-text("Confirm"), button:has-text("Yes")')
+        .first();
       if (await confirmButton.isVisible().catch(() => false)) {
         await confirmButton.click();
       }
@@ -315,9 +343,11 @@ test.describe('OAuth Account Linking', () => {
       await page.waitForTimeout(500);
 
       // Should show success or updated state
-      await expect(page.locator('text=/unlinked|success|removed/i').or(
-        page.locator('[data-testid="unlink-success"]')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('text=/unlinked|success|removed/i')
+          .or(page.locator('[data-testid="unlink-success"]')),
+      ).toBeVisible();
     }
   });
 
@@ -326,20 +356,20 @@ test.describe('OAuth Account Linking', () => {
 
     // Try to unlink when only one auth method exists
     const unlinkButton = page.locator('button:has-text("Unlink")').first();
-    
+
     if (await unlinkButton.isVisible().catch(() => false)) {
       await unlinkButton.click();
 
       // Should show warning about last auth method
-      await expect(page.locator('text=/cannot|last|at least one|warning/i').or(
-        page.locator('[role="alert"]')
-      )).toBeVisible();
+      await expect(
+        page.locator('text=/cannot|last|at least one|warning/i').or(page.locator('[role="alert"]')),
+      ).toBeVisible();
     }
   });
 
   test('should show already linked error', async ({ page }) => {
     // Mock error for already linked account
-    await page.route('**/api/auth/oauth/link', async (route) => {
+    await page.route('**/api/auth/oauth/link', async route => {
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
@@ -350,16 +380,18 @@ test.describe('OAuth Account Linking', () => {
     await page.goto('/profile');
 
     const linkButton = page.locator('button:has-text("Link Google")').first();
-    
+
     if (await linkButton.isVisible().catch(() => false)) {
       await linkButton.click();
 
       await page.waitForTimeout(500);
 
       // Should show error
-      await expect(page.locator('text=/already linked|another user|error/i').or(
-        page.locator('[role="alert"]')
-      )).toBeVisible();
+      await expect(
+        page
+          .locator('text=/already linked|another user|error/i')
+          .or(page.locator('[role="alert"]')),
+      ).toBeVisible();
     }
   });
 });
@@ -369,11 +401,15 @@ test.describe('Telegram OAuth Special Flow', () => {
     await page.goto('/login');
 
     // Telegram uses widget-based auth
-    const telegramWidget = page.locator('[data-testid="telegram-login"], script[src*="telegram"], .telegram-login').first();
+    const telegramWidget = page
+      .locator('[data-testid="telegram-login"], script[src*="telegram"], .telegram-login')
+      .first();
     const telegramButton = page.locator('button:has-text("Telegram")').first();
 
-    if (await telegramWidget.isVisible().catch(() => false) || 
-        await telegramButton.isVisible().catch(() => false)) {
+    if (
+      (await telegramWidget.isVisible().catch(() => false)) ||
+      (await telegramButton.isVisible().catch(() => false))
+    ) {
       await expect(telegramWidget.or(telegramButton)).toBeVisible();
     }
   });
@@ -383,7 +419,7 @@ test.describe('Telegram OAuth Special Flow', () => {
 
     // Simulate Telegram widget callback
     await page.goto('/telegram-callback');
-    
+
     // Post data as Telegram does
     await page.evaluate(() => {
       // Simulate Telegram auth data
@@ -392,9 +428,9 @@ test.describe('Telegram OAuth Special Flow', () => {
         first_name: 'Test',
         username: 'testuser',
         auth_date: Math.floor(Date.now() / 1000),
-        hash: 'mock_hash'
+        hash: 'mock_hash',
       };
-      
+
       // Trigger callback (implementation depends on frontend)
       (window as any).onTelegramAuth?.(authData);
     });
@@ -413,9 +449,11 @@ test.describe('Telegram OAuth Special Flow', () => {
     await page.waitForTimeout(1000);
 
     // Should prompt for registration or show error
-    await expect(page.locator('text=/user not found|register|create account/i').or(
-      page.locator('[data-testid="telegram-register"]')
-    )).toBeVisible();
+    await expect(
+      page
+        .locator('text=/user not found|register|create account/i')
+        .or(page.locator('[data-testid="telegram-register"]')),
+    ).toBeVisible();
   });
 });
 
@@ -447,12 +485,14 @@ test.describe('OAuth Security', () => {
   test('should require authentication for OAuth linking', async ({ page }) => {
     // Try to access linking endpoint without auth
     await clearAuth(page.context());
-    
+
     await page.goto('/api/auth/oauth/link', { waitUntil: 'networkidle' });
 
     // Should return 401 or redirect to login
-    await expect(page.locator('text=/unauthorized|login required|401/i').or(
-      page.locator('body:has-text("Unauthorized")')
-    )).toBeVisible();
+    await expect(
+      page
+        .locator('text=/unauthorized|login required|401/i')
+        .or(page.locator('body:has-text("Unauthorized")')),
+    ).toBeVisible();
   });
 });
