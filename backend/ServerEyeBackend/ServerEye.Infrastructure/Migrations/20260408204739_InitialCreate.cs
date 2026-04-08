@@ -1,15 +1,34 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ServerEye.Infrastructure.Migrations.BillingDb
+namespace ServerEye.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialBillingSchema : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "OutboxMessages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    MessageType = table.Column<string>(type: "text", nullable: false),
+                    Payload = table.Column<string>(type: "jsonb", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    RetryCount = table.Column<int>(type: "integer", nullable: false),
+                    Error = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OutboxMessages", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "subscriptionplans",
                 columns: table => new
@@ -52,15 +71,17 @@ namespace ServerEye.Infrastructure.Migrations.BillingDb
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Provider = table.Column<string>(type: "text", nullable: false),
                     EventId = table.Column<string>(type: "text", nullable: false),
                     EventType = table.Column<string>(type: "text", nullable: false),
-                    Provider = table.Column<string>(type: "text", nullable: false),
-                    Payload = table.Column<string>(type: "jsonb", nullable: false),
-                    IsProcessed = table.Column<bool>(type: "boolean", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ProcessingAttempts = table.Column<int>(type: "integer", nullable: false),
+                    RawPayload = table.Column<string>(type: "jsonb", nullable: false),
+                    Headers = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
                     ProcessingError = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    ProcessingAttempts = table.Column<int>(type: "integer", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -74,18 +95,18 @@ namespace ServerEye.Infrastructure.Migrations.BillingDb
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     SubscriptionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
-                    Currency = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
                     Provider = table.Column<string>(type: "text", nullable: false),
                     ProviderPaymentId = table.Column<string>(type: "text", nullable: true),
                     ProviderPaymentIntentId = table.Column<string>(type: "text", nullable: true),
-                    InvoiceUrl = table.Column<string>(type: "text", nullable: true),
-                    ReceiptUrl = table.Column<string>(type: "text", nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Currency = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
                     FailureReason = table.Column<string>(type: "text", nullable: true),
-                    RefundedAmount = table.Column<decimal>(type: "numeric", nullable: true),
-                    RefundedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReceiptUrl = table.Column<string>(type: "text", nullable: true),
+                    InvoiceUrl = table.Column<string>(type: "text", nullable: true),
                     Metadata = table.Column<string>(type: "jsonb", nullable: false),
+                    RefundedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    RefundedAmount = table.Column<decimal>(type: "numeric", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -110,15 +131,30 @@ namespace ServerEye.Infrastructure.Migrations.BillingDb
                 table: "WebhookEvents",
                 column: "EventId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebhookEvents_Status",
+                table: "WebhookEvents",
+                column: "Status");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "payments");
-            migrationBuilder.DropTable(name: "WebhookEvents");
-            migrationBuilder.DropTable(name: "subscriptions");
-            migrationBuilder.DropTable(name: "subscriptionplans");
+            migrationBuilder.DropTable(
+                name: "OutboxMessages");
+
+            migrationBuilder.DropTable(
+                name: "payments");
+
+            migrationBuilder.DropTable(
+                name: "subscriptionplans");
+
+            migrationBuilder.DropTable(
+                name: "WebhookEvents");
+
+            migrationBuilder.DropTable(
+                name: "subscriptions");
         }
     }
 }

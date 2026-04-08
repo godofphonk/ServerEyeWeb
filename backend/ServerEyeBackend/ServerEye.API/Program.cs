@@ -17,6 +17,16 @@ builder.Configuration
     .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables(); // Environment variables override JSON settings
 
+// Add Doppler secrets for Production environment (from environment variables injected by doppler run)
+if (builder.Environment.IsProduction())
+{
+    // Create logger manually to avoid BuildServiceProvider anti-pattern
+    using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+    var logger = loggerFactory.CreateLogger<Program>();
+    
+    builder.Configuration.AddDopplerSecretsFromEnvironment(logger);
+}
+
 // Add services to the container
 builder.Services.AddControllers();
 
