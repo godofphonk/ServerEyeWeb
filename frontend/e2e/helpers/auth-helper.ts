@@ -18,19 +18,22 @@ export const DEFAULT_TEST_USER: UserCredentials = {
 /**
  * Login as a user via UI
  */
-export async function loginAsUser(page: Page, credentials: UserCredentials = DEFAULT_TEST_USER): Promise<void> {
+export async function loginAsUser(
+  page: Page,
+  credentials: UserCredentials = DEFAULT_TEST_USER,
+): Promise<void> {
   await page.goto('/login');
-  
+
   // Fill login form
   await page.fill('input[type="email"], input[name="email"]', credentials.email);
   await page.fill('input[type="password"], input[name="password"]', credentials.password);
-  
+
   // Submit form
   await page.click('button[type="submit"]');
-  
+
   // Wait for navigation or stable state
   await page.waitForTimeout(2000);
-  
+
   // Verify we're logged in (not on login page)
   const url = page.url();
   if (url.includes('/login')) {
@@ -41,7 +44,10 @@ export async function loginAsUser(page: Page, credentials: UserCredentials = DEF
 /**
  * Login via API (faster than UI login)
  */
-export async function loginViaAPI(context: BrowserContext, credentials: UserCredentials = DEFAULT_TEST_USER): Promise<void> {
+export async function loginViaAPI(
+  context: BrowserContext,
+  credentials: UserCredentials = DEFAULT_TEST_USER,
+): Promise<void> {
   // Make API call to login endpoint
   const response = await context.request.post('/api/auth/login', {
     data: {
@@ -49,14 +55,14 @@ export async function loginViaAPI(context: BrowserContext, credentials: UserCred
       password: credentials.password,
     },
   });
-  
+
   if (!response.ok()) {
     throw new Error(`API login failed: ${await response.text()}`);
   }
-  
+
   // Get auth token from response
   const data = await response.json();
-  
+
   // Set auth cookie/token in context
   await context.addCookies([
     {
@@ -96,7 +102,11 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
 /**
  * Create new test user via API
  */
-export async function createTestUser(request: APIRequestContext, email: string, password: string): Promise<void> {
+export async function createTestUser(
+  request: APIRequestContext,
+  email: string,
+  password: string,
+): Promise<void> {
   const response = await request.post('/api/auth/register', {
     data: {
       email,
@@ -104,8 +114,9 @@ export async function createTestUser(request: APIRequestContext, email: string, 
       userName: `testuser_${Date.now()}`,
     },
   });
-  
-  if (!response.ok() && response.status() !== 409) { // 409 = user already exists
+
+  if (!response.ok() && response.status() !== 409) {
+    // 409 = user already exists
     throw new Error(`Failed to create test user: ${await response.text()}`);
   }
 }

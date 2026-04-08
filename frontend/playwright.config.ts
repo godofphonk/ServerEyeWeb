@@ -15,7 +15,9 @@ export default defineConfig({
   /* Opt out of parallel tests on CI for stability */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use */
-  reporter: process.env.CI ? [['html'], ['junit', { outputFile: 'playwright-report/results.xml' }]] : 'html',
+  reporter: process.env.CI
+    ? [['html'], ['junit', { outputFile: 'playwright-report/results.xml' }]]
+    : 'html',
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
