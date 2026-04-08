@@ -529,7 +529,7 @@ public class AuthController : BaseApiController
             
             if (isOAuthUser)
             {
-                this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}, Email: '{Email}'", request.Provider, response.User?.Id, response.User?.Email);
+                this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}", request.Provider, response.User?.Id);
                 
                 // Set skip flag directly on response
                 var responseWithSkip = new AuthResponseDto
@@ -546,7 +546,7 @@ public class AuthController : BaseApiController
                 return this.Ok(responseWithSkip);
             }
 
-            this.logger.LogInformation("Regular user detected - UserId: {UserId}, Email: '{Email}'", response.User?.Id, response.User?.Email);
+            this.logger.LogInformation("Regular user detected - UserId: {UserId}", response.User?.Id);
             
             // Ensure skip flag is false for users requiring verification
             var responseWithVerification = new AuthResponseDto
@@ -990,9 +990,8 @@ public class AuthController : BaseApiController
             // Check if OAuth user (Telegram users always have empty email or no email)
             var isOAuthUser = string.IsNullOrEmpty(response.User?.Email);
             this.logger.LogInformation(
-                "Telegram OAuth user check - UserId: {UserId}, Email: '{Email}', IsOAuthUser: {IsOAuthUser}",
+                "Telegram OAuth user check - UserId: {UserId}, IsOAuthUser: {IsOAuthUser}",
                 response.User?.Id,
-                response.User?.Email,
                 isOAuthUser);
 
             // Return tokens in response body for frontend to handle
