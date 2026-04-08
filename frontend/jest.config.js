@@ -14,7 +14,12 @@ const customJestConfig = {
   coverageProvider: 'v8',
   transformIgnorePatterns: ['node_modules/(?!(.*\\.mjs$))'],
   testMatch: ['**/__tests__/**/*.(js|jsx|ts|tsx)', '**/*.(test|spec).(js|jsx|ts|tsx)'],
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/app/api/', '<rootDir>/e2e/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/app/api/',
+    '<rootDir>/e2e/',
+  ],
 };
 
 export default createJestConfig(customJestConfig);
