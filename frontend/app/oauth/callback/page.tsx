@@ -53,7 +53,9 @@ function OAuthCallbackContent() {
             if (!response.ok) {
               // ignore refresh failure, proceed with auth check
             }
-          } catch (apiError) { /* ignore error */ }
+          } catch (apiError) {
+            /* ignore error */
+          }
 
           // Force auth check
           await checkAuth();

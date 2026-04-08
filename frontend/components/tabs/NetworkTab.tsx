@@ -66,7 +66,9 @@ export default function NetworkTab({
         } else {
           // ignore fetch failure
         }
-      } catch (error) { /* ignore error */ }
+      } catch (error) {
+        /* ignore error */
+      }
     };
 
     loadAllNetworkMetrics();
