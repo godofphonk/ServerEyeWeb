@@ -123,14 +123,6 @@ jobs:
             ls -la /opt/servereye/infrastructure/docker-compose.yml
           ENDSSH
 
-      - name: Create .env file
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
-            cd /opt/servereye
-            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env
-            cat .env
-          ENDSSH
-
       - name: Deploy to VPS
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
@@ -161,7 +153,7 @@ jobs:
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
             
             # Start infrastructure containers
-            docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
+            doppler run --config=prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
             
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
@@ -169,7 +161,7 @@ jobs:
             docker ps | grep redis
             
             # Start backend containers
-            docker-compose -f docker-compose.yml up -d --force-recreate
+            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d --force-recreate
             
             # Verify backend containers running
             echo "Verifying backend containers..."
