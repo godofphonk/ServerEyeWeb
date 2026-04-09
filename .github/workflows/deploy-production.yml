@@ -149,97 +149,200 @@ jobs:
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
       - name: Add VPS to known hosts
         run: |
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Create deployment directory
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/servereye/infrastructure"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p /opt/servereye/infrastructure
 
       - name: Copy docker-compose files
-        run: |
-          scp environments/prod/backend/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
-          scp environments/prod/infrastructure/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/infrastructure/
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          source: |
+            environments/prod/backend/docker-compose.yml
+            environments/prod/infrastructure/docker-compose.yml
+            environments/prod/frontend/docker-compose.yml
+          target: /opt/servereye/
+          rm: true
 
       - name: Verify files copied
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             ls -la /opt/servereye/docker-compose.yml
             ls -la /opt/servereye/infrastructure/docker-compose.yml
-          ENDSSH
+            ls -la /opt/servereye/frontend/docker-compose.yml
 
-      - name: Deploy to VPS
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
-            cd /opt/servereye
-            
-            # Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # Pull latest images with SHA tags for uniqueness
+
+      - name: Pull latest images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
 
-            # Verify images pulled
+      - name: Verify images pulled
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             echo "Verifying images pulled..."
             docker images | grep servereyeweb/backend
             docker images | grep servereyeweb/frontend
-            
-            # Tag as latest for docker-compose
+
+      - name: Tag images as latest
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
             docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
-            
-            # Stop existing containers
+
+      - name: Stop existing containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker-compose -f docker-compose.yml down
             docker-compose -f infrastructure/docker-compose.yml down
-            
-            # Remove old images to force fresh start
+
+      - name: Remove old images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
-            
-            # Pull new images to ensure latest version
+
+      - name: Pull new images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
-            
-            # Start infrastructure containers
+
+      - name: Start infrastructure containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
 
-            # Verify infrastructure containers running
+      - name: Verify infrastructure containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             echo "Verifying infrastructure containers..."
             docker ps | grep postgres
             docker ps | grep redis
 
-            # Start backend containers with DOPPLER_TOKEN
+      - name: Start backend containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d --force-recreate
-            
-            # Copy frontend docker-compose.yml to VPS
-            mkdir -p frontend
-            scp environments/prod/frontend/docker-compose.yml frontend/
-            
-            # Start frontend containers
+
+      - name: Start frontend containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker-compose -f frontend/docker-compose.yml up -d --force-recreate
-            
-            # Verify backend containers running
+
+      - name: Verify all containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             echo "Verifying backend containers..."
             docker ps | grep backend
             docker ps | grep frontend
-            
-            # Verify all containers are running with new images
             echo "Verifying deployment..."
             docker ps --filter "name=backend" --format "{{.Image}}"
             docker ps --filter "name=frontend" --format "{{.Image}}"
-            
-            # Cleanup old images
+
+      - name: Cleanup old images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker image prune -f
-          ENDSSH
 
       # Health check disabled temporarily
       # - name: Health check
@@ -254,10 +357,15 @@ jobs:
 
       - name: Rollback on failure
         if: failure()
-        run: |
-          echo "❌ Deployment failed, initiating rollback..."
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "❌ Deployment failed, initiating rollback..."
             cd /opt/servereye
             docker-compose -f docker-compose.yml down
-            # You could implement more sophisticated rollback logic here
-          ENDSSH
+            docker-compose -f infrastructure/docker-compose.yml down
+            docker-compose -f frontend/docker-compose.yml down
