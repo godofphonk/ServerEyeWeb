@@ -72,9 +72,9 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker-compose -f docker-compose.yml down
-            docker-compose -f infrastructure/docker-compose.yml down
-            docker-compose -f frontend/docker-compose.yml down
+            docker-compose -f environments/prod/backend/docker-compose.yml down
+            docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+            docker-compose -f environments/prod/frontend/docker-compose.yml down
 
       - name: Load and rollback to previous deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -120,7 +120,7 @@ jobs:
             cd /opt/servereye
             
             # Start infrastructure containers
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
             
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
@@ -128,10 +128,10 @@ jobs:
             docker ps | grep redis
             
             # Start backend containers
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
             
             # Start frontend containers
-            docker-compose -f frontend/docker-compose.yml up -d
+            docker-compose -f environments/prod/frontend/docker-compose.yml up -d
             
             # Verify all containers running
             echo "Verifying containers..."
