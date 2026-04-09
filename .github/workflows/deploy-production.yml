@@ -156,15 +156,15 @@ jobs:
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
             
             # Start infrastructure containers
-            doppler run --config=prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
-            
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
+
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
             docker ps | grep postgres
             docker ps | grep redis
-            
-            # Start backend containers
-            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d --force-recreate
+
+            # Start backend containers with DOPPLER_TOKEN
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d --force-recreate
             
             # Verify backend containers running
             echo "Verifying backend containers..."
