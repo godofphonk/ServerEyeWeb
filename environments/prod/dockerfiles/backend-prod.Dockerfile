@@ -11,15 +11,15 @@ WORKDIR /src
 # Copy project files first for better caching
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
-COPY ["ServerEye.API/ServerEye.API.csproj", "ServerEye.API/"]
-COPY ["ServerEye.Core/ServerEye.Core.csproj", "ServerEye.Core/"]
-COPY ["ServerEye.Infrastructure/ServerEye.Infrastructure.csproj", "ServerEye.Infrastructure/"]
+COPY ["backend/ServerEyeBackend/ServerEye.API/ServerEye.API.csproj", "ServerEye.API/"]
+COPY ["backend/ServerEyeBackend/ServerEye.Core/ServerEye.Core.csproj", "ServerEye.Core/"]
+COPY ["backend/ServerEyeBackend/ServerEye.Infrastructure/ServerEye.Infrastructure.csproj", "ServerEye.Infrastructure/"]
 
 # Restore dependencies
 RUN dotnet restore "ServerEye.API/ServerEye.API.csproj" --no-cache
 
 # Copy source code after dependencies are restored
-COPY . .
+COPY backend/ServerEyeBackend .
 
 # Build the application
 WORKDIR "/src/ServerEye.API"
