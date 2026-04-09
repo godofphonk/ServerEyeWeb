@@ -153,7 +153,7 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory
+      - name: Setup git repository on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -161,23 +161,19 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            mkdir -p /opt/servereye/infrastructure
+            # Create deployment directory
+            mkdir -p /opt/servereye
+            
+            # Setup git repository if not exists
+            if [ ! -d /opt/servereye/.git ]; then
+              cd /opt/servereye
+              git clone ${{ github.server_url }}/${{ github.repository }}.git .
+              echo "✅ Repository cloned successfully"
+            else
+              echo "✅ Repository already exists, pulling latest changes"
+            fi
 
-      - name: Copy docker-compose files
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          source: |
-            environments/prod/backend/docker-compose.yml
-            environments/prod/infrastructure/docker-compose.yml
-            environments/prod/frontend/docker-compose.yml
-          target: /opt/servereye/
-          rm: true
-
-      - name: Verify files copied
+      - name: Pull latest changes from git
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -185,9 +181,24 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            ls -la /opt/servereye/docker-compose.yml
-            ls -la /opt/servereye/infrastructure/docker-compose.yml
-            ls -la /opt/servereye/frontend/docker-compose.yml
+            cd /opt/servereye
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            echo "✅ Latest changes pulled successfully"
+
+      - name: Verify docker-compose files exist
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            ls -la environments/prod/backend/docker-compose.yml
+            ls -la environments/prod/infrastructure/docker-compose.yml
+            ls -la environments/prod/frontend/docker-compose.yml
 
       - name: Login to GitHub Container Registry
         uses: appleboy/ssh-action@v1.0.3
@@ -273,8 +284,8 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker-compose -f docker-compose.yml down
-            docker-compose -f infrastructure/docker-compose.yml down
+            docker-compose -f environments/prod/backend/docker-compose.yml down
+            docker-compose -f environments/prod/infrastructure/docker-compose.yml down
 
       - name: Remove old images
         uses: appleboy/ssh-action@v1.0.3
@@ -311,7 +322,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
@@ -334,7 +345,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
 
       - name: Start frontend containers
         uses: appleboy/ssh-action@v1.0.3
@@ -345,7 +356,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker-compose -f frontend/docker-compose.yml up -d --force-recreate
+            docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
 
       - name: Verify all containers
         uses: appleboy/ssh-action@v1.0.3
@@ -423,9 +434,9 @@ jobs:
               echo "Previous commit: $CURRENT_COMMIT_SHA"
               
               # Stop current containers
-              docker-compose -f docker-compose.yml down
-              docker-compose -f infrastructure/docker-compose.yml down
-              docker-compose -f frontend/docker-compose.yml down
+              docker-compose -f environments/prod/backend/docker-compose.yml down
+              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+              docker-compose -f environments/prod/frontend/docker-compose.yml down
               
               # Rollback to previous images
               if [ -n "$CURRENT_BACKEND" ]; then
@@ -436,14 +447,14 @@ jobs:
               fi
               
               # Start containers with previous images
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d
-              docker-compose -f frontend/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
+              docker-compose -f environments/prod/frontend/docker-compose.yml up -d
               
               echo "✅ Rollback completed successfully"
             else
               echo "⚠️ No previous deployment info found, stopping containers only"
-              docker-compose -f docker-compose.yml down
-              docker-compose -f infrastructure/docker-compose.yml down
-              docker-compose -f frontend/docker-compose.yml down
+              docker-compose -f environments/prod/backend/docker-compose.yml down
+              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+              docker-compose -f environments/prod/frontend/docker-compose.yml down
             fi
