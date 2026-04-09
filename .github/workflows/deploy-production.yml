@@ -161,16 +161,24 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
+            # Check if git is installed
+            if ! command -v git &> /dev/null; then
+              echo "❌ Git is not installed on VPS"
+              exit 1
+            fi
+            echo "✅ Git is installed: $(git --version)"
+            
             # Create deployment directory
             mkdir -p /opt/servereye
             
             # Setup git repository if not exists
             if [ ! -d /opt/servereye/.git ]; then
               cd /opt/servereye
+              echo "Cloning repository..."
               git clone ${{ github.server_url }}/${{ github.repository }}.git .
               echo "✅ Repository cloned successfully"
             else
-              echo "✅ Repository already exists, pulling latest changes"
+              echo "✅ Repository already exists, will pull latest changes"
             fi
 
       - name: Pull latest changes from git
@@ -186,6 +194,30 @@ jobs:
             git checkout ${{ github.ref_name }}
             git pull origin ${{ github.ref_name }}
             echo "✅ Latest changes pulled successfully"
+
+      - name: Verify git repository structure
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            echo "Current directory structure:"
+            ls -la
+            echo ""
+            echo "Checking environments directory:"
+            if [ -d environments ]; then
+              ls -la environments
+              if [ -d environments/prod ]; then
+                ls -la environments/prod
+              else
+                echo "❌ environments/prod directory does not exist"
+              fi
+            else
+              echo "❌ environments directory does not exist"
+            fi
 
       - name: Verify docker-compose files exist
         uses: appleboy/ssh-action@v1.0.3
