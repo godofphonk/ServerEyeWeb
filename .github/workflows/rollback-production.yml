@@ -128,7 +128,7 @@ jobs:
             docker ps | grep redis
             
             # Start backend containers
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
             
             # Start frontend containers
             docker-compose -f environments/prod/frontend/docker-compose.yml up -d
