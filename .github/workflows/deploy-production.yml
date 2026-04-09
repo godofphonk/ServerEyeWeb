@@ -109,12 +109,19 @@ jobs:
 
       - name: Create deployment directory
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/servereye"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/servereye/infrastructure"
 
       - name: Copy docker-compose files
         run: |
           scp environments/prod/backend/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
-          scp environments/prod/infrastructure/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
+          scp environments/prod/infrastructure/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/infrastructure/
+
+      - name: Create .env file
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+            cd /opt/servereye
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env
+          ENDSSH
 
       - name: Deploy to VPS
         run: |
@@ -134,12 +141,16 @@ jobs:
             
             # Stop existing containers
             docker-compose -f docker-compose.yml down
+            docker-compose -f infrastructure/docker-compose.yml down
             
             # Remove old images to force fresh start
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
             
-            # Start new containers
+            # Start infrastructure containers
+            docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
+            
+            # Start backend containers
             docker-compose -f docker-compose.yml up -d --force-recreate
             
             # Verify containers are running with new images
