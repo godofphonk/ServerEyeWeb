@@ -111,7 +111,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts"
             # Get NEXT_PUBLIC_API_BASE_URL from Doppler prd_frontend config
-            NEXT_PUBLIC_API_BASE_URL=$(doppler secrets get NEXT_PUBLIC_API_BASE_URL --plain --project servereye --config prd_frontend || echo "/api")
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler secrets get NEXT_PUBLIC_API_BASE_URL --plain --project servereye --config prd_frontend || echo "/api"
             echo "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL"
             if docker buildx build \
               --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
@@ -364,7 +364,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd_database -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
@@ -399,10 +399,10 @@ jobs:
           script: |
             cd /opt/servereye
             # Merge secrets from multiple Doppler config projects
-            doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_OAUTH }} doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_STRIPE }} doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
             # Load merged secrets and run docker-compose
             set -a
             source /tmp/doppler-envs
@@ -546,10 +546,10 @@ jobs:
               
               # Start containers with previous images
               # Merge secrets from multiple Doppler config projects
-              doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
-              doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
-              doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
-              doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_OAUTH }} doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_STRIPE }} doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
               # Load merged secrets and run docker-compose
               set -a
               source /tmp/doppler-envs

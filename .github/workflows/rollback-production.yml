@@ -120,10 +120,10 @@ jobs:
             cd /opt/servereye
             
             # Merge secrets from multiple Doppler config projects
-            doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
-            doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_OAUTH }} doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_STRIPE }} doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
             # Load merged secrets and run docker-compose
             set -a
             source /tmp/doppler-envs
