@@ -116,11 +116,19 @@ jobs:
           scp environments/prod/backend/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
           scp environments/prod/infrastructure/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/infrastructure/
 
+      - name: Verify files copied
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+            ls -la /opt/servereye/docker-compose.yml
+            ls -la /opt/servereye/infrastructure/docker-compose.yml
+          ENDSSH
+
       - name: Create .env file
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             cd /opt/servereye
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env
+            cat .env
           ENDSSH
 
       - name: Deploy to VPS
@@ -134,6 +142,11 @@ jobs:
             # Pull latest images with SHA tags for uniqueness
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
+
+            # Verify images pulled
+            echo "Verifying images pulled..."
+            docker images | grep servereyeweb/backend
+            docker images | grep servereyeweb/frontend
             
             # Tag as latest for docker-compose
             docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
@@ -150,10 +163,20 @@ jobs:
             # Start infrastructure containers
             docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
             
+            # Verify infrastructure containers running
+            echo "Verifying infrastructure containers..."
+            docker ps | grep postgres
+            docker ps | grep redis
+            
             # Start backend containers
             docker-compose -f docker-compose.yml up -d --force-recreate
             
-            # Verify containers are running with new images
+            # Verify backend containers running
+            echo "Verifying backend containers..."
+            docker ps | grep backend
+            docker ps | grep frontend
+            
+            # Verify all containers are running with new images
             echo "Verifying deployment..."
             docker ps --filter "name=backend" --format "{{.Image}}"
             docker ps --filter "name=frontend" --format "{{.Image}}"
