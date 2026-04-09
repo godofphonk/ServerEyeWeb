@@ -3,7 +3,7 @@ const nextConfig = {
   output: process.env.CI_E2E === 'true' ? undefined : 'standalone',
   allowedDevOrigins: ['127.0.0.1'],
   images: {
-    domains: ['api.servereye.com', 'cdn.servereye.com'],
+    domains: ['api.servereye.dev', 'cdn.servereye.dev'],
     formats: ['image/webp', 'image/avif'],
   },
   // Enable React Strict Mode for production

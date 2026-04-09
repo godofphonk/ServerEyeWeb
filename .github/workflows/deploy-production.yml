@@ -140,7 +140,7 @@ jobs:
     needs: build-and-push
     environment:
       name: production
-      url: https://servereye.com
+      url: https://servereye.dev
     
     steps:
       - name: Checkout code
