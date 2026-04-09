@@ -152,6 +152,12 @@ jobs:
             # Remove old images to force fresh start
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+            
+            # Pull new images to ensure latest version
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
             
             # Start infrastructure containers
             DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d --force-recreate
