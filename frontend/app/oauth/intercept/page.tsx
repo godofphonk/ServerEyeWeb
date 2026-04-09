@@ -36,7 +36,7 @@ function OAuthInterceptContent() {
           sessionStorage.removeItem('oauth_linking');
 
           // Send to backend callback API with linking parameters
-          const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/api/auth/oauth/callback`;
+          const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/auth/oauth/callback`;
 
           fetch(callbackUrl, {
             method: 'POST',

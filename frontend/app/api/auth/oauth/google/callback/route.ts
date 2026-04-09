@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Forward the callback to the backend as POST (backend expects POST, not GET)
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL!}/api/auth/oauth/callback`;
+    const backendUrl = `${process.env.INTERNAL_API_URL || 'http://backend:8080/api'}/auth/oauth/callback`;
 
     const response = await fetch(backendUrl, {
       method: 'POST',

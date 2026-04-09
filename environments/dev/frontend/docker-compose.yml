@@ -17,6 +17,7 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - NEXT_TELEMETRY_DISABLED=1
       - TURBOPACK=1
+      - INTERNAL_API_URL=http://backend:8080/api
     volumes:
       # Mount source code for hot reload
       - ${PATH_FRONTEND}/package.json:/app/package.json
@@ -26,6 +27,7 @@ services:
       - ${PATH_FRONTEND}/lib:/app/lib
       - ${PATH_FRONTEND}/public:/app/public
       - ${PATH_FRONTEND}/styles:/app/styles
+      - ${PATH_FRONTEND}/middleware.ts:/app/middleware.ts
       - ${PATH_FRONTEND}/next.config.js:/app/next.config.js
       - ${PATH_FRONTEND}/tailwind.config.js:/app/tailwind.config.js
       - /app/node_modules
