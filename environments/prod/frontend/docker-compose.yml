@@ -1,0 +1,27 @@
+# Frontend Service for Production
+# Next.js Application
+
+services:
+  frontend:
+    image: ghcr.io/godofphonk/servereyeweb/frontend:production
+    container_name: ServerEyeWeb-frontend-prod
+    ports:
+      - "5247:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  servereye-network:
+    external: true
+    name: servereye-network
