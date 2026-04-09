@@ -410,7 +410,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN_FRONTEND=${{ secrets.DOPPLER_TOKEN_FRONTEND }} docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
+            docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
 
       - name: Setup nginx and configuration
         uses: appleboy/ssh-action@v1.0.3
@@ -541,7 +541,7 @@ jobs:
               DOPPLER_TOKEN_DATABASE=${{ secrets.DOPPLER_TOKEN_DATABASE }} docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
               docker-compose -f environments/prod/observability/docker-compose.yml up -d
               DOPPLER_TOKEN_BACKEND=${{ secrets.DOPPLER_TOKEN_BACKEND }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
-              DOPPLER_TOKEN_FRONTEND=${{ secrets.DOPPLER_TOKEN_FRONTEND }} docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+              docker-compose -f environments/prod/frontend/docker-compose.yml up -d
               
               echo "✅ Rollback completed successfully"
             else
