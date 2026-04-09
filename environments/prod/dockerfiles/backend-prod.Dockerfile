@@ -33,11 +33,11 @@ RUN dotnet publish "ServerEye.API.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM base AS final
 WORKDIR /app
 
-# Install curl for health checks and Doppler CLI
+# Install curl, gnupg for health checks and Doppler CLI
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
-        'https://cli.doppler.com/install.sh' | sh && \
+    apt-get install -y --no-install-recommends curl gnupg && \
+    (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || \
+     wget -t 3 -qO- https://cli.doppler.com/install.sh) | sh && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy published application
