@@ -222,33 +222,7 @@ jobs:
             
             # Copy frontend docker-compose.yml to VPS
             mkdir -p frontend
-            echo "# Frontend Service for Production" > frontend/docker-compose.yml
-            echo "# Next.js Application" >> frontend/docker-compose.yml
-            echo "" >> frontend/docker-compose.yml
-            echo "services:" >> frontend/docker-compose.yml
-            echo "  frontend:" >> frontend/docker-compose.yml
-            echo "    image: ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production" >> frontend/docker-compose.yml
-            echo "    container_name: ServerEyeWeb-frontend-prod" >> frontend/docker-compose.yml
-            echo "    ports:" >> frontend/docker-compose.yml
-            echo "      - \"5247:3000\"" >> frontend/docker-compose.yml
-            echo "    environment:" >> frontend/docker-compose.yml
-            echo "      - NODE_ENV=production" >> frontend/docker-compose.yml
-            echo "      - PORT=3000" >> frontend/docker-compose.yml
-            echo "      - NEXT_TELEMETRY_DISABLED=1" >> frontend/docker-compose.yml
-            echo "    restart: unless-stopped" >> frontend/docker-compose.yml
-            echo "    networks:" >> frontend/docker-compose.yml
-            echo "      - servereye-network" >> frontend/docker-compose.yml
-            echo "    healthcheck:" >> frontend/docker-compose.yml
-            echo "      test: [\"CMD\", \"wget\", \"--no-verbose\", \"--tries=1\", \"--spider\", \"http://localhost:3000\"]" >> frontend/docker-compose.yml
-            echo "      interval: 30s" >> frontend/docker-compose.yml
-            echo "      timeout: 10s" >> frontend/docker-compose.yml
-            echo "      retries: 3" >> frontend/docker-compose.yml
-            echo "      start_period: 40s" >> frontend/docker-compose.yml
-            echo "" >> frontend/docker-compose.yml
-            echo "networks:" >> frontend/docker-compose.yml
-            echo "  servereye-network:" >> frontend/docker-compose.yml
-            echo "    external: true" >> frontend/docker-compose.yml
-            echo "    name: servereye-network" >> frontend/docker-compose.yml
+            scp environments/prod/frontend/docker-compose.yml frontend/
             
             # Start frontend containers
             docker-compose -f frontend/docker-compose.yml up -d --force-recreate
