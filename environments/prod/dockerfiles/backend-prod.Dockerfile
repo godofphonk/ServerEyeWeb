@@ -9,8 +9,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files first for better caching
-COPY ["Directory.Build.props", "."]
-COPY ["Directory.Packages.props", "."]
+COPY ["backend/ServerEyeBackend/Directory.Build.props", "."]
+COPY ["backend/ServerEyeBackend/Directory.Packages.props", "."]
 COPY ["backend/ServerEyeBackend/ServerEye.API/ServerEye.API.csproj", "ServerEye.API/"]
 COPY ["backend/ServerEyeBackend/ServerEye.Core/ServerEye.Core.csproj", "ServerEye.Core/"]
 COPY ["backend/ServerEyeBackend/ServerEye.Infrastructure/ServerEye.Infrastructure.csproj", "ServerEye.Infrastructure/"]
