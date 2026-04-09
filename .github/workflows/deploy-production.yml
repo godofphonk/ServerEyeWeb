@@ -199,6 +199,35 @@ jobs:
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Save current running images before deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            # Get current running images
+            CURRENT_BACKEND=$(docker ps --filter "name=backend" --format "{{.Image}}")
+            CURRENT_FRONTEND=$(docker ps --filter "name=frontend" --format "{{.Image}}")
+            
+            # Save current deployment info
+            echo "CURRENT_BACKEND=$CURRENT_BACKEND" > /opt/servereye/deployment-info.txt
+            echo "CURRENT_FRONTEND=$CURRENT_FRONTEND" >> /opt/servereye/deployment-info.txt
+            echo "CURRENT_COMMIT_SHA=${{ github.sha }}" >> /opt/servereye/deployment-info.txt
+            echo "DEPLOYMENT_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> /opt/servereye/deployment-info.txt
+            
+            # Tag current images as production-previous if they exist
+            if [ -n "$CURRENT_BACKEND" ]; then
+              docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-previous || true
+            fi
+            if [ -n "$CURRENT_FRONTEND" ]; then
+              docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-previous || true
+            fi
+            
+            echo "Current deployment info saved"
+
       - name: Pull latest images
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -344,16 +373,34 @@ jobs:
             cd /opt/servereye
             docker image prune -f
 
-      # Health check disabled temporarily
-      # - name: Health check
-      #   run: |
-      #     echo "Waiting for services to start..."
-      #     sleep 30
-      #     
-      #     # Check backend health via VPS IP
-      #     ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "curl -f http://localhost:8080/health" || exit 1
-      #     
-      #     echo "✅ Deployment successful!"
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Waiting for services to start..."
+            sleep 30
+            
+            # Check backend health
+            if curl -f http://localhost:8080/health; then
+              echo "✅ Backend health check passed"
+            else
+              echo "❌ Backend health check failed"
+              exit 1
+            fi
+            
+            # Check frontend health
+            if curl -f http://localhost:3000; then
+              echo "✅ Frontend health check passed"
+            else
+              echo "❌ Frontend health check failed"
+              exit 1
+            fi
+            
+            echo "✅ Deployment successful!"
 
       - name: Rollback on failure
         if: failure()
@@ -366,6 +413,37 @@ jobs:
           script: |
             echo "❌ Deployment failed, initiating rollback..."
             cd /opt/servereye
-            docker-compose -f docker-compose.yml down
-            docker-compose -f infrastructure/docker-compose.yml down
-            docker-compose -f frontend/docker-compose.yml down
+            
+            # Load previous deployment info
+            if [ -f /opt/servereye/deployment-info.txt ]; then
+              source /opt/servereye/deployment-info.txt
+              echo "Rolling back to previous deployment:"
+              echo "Previous backend: $CURRENT_BACKEND"
+              echo "Previous frontend: $CURRENT_FRONTEND"
+              echo "Previous commit: $CURRENT_COMMIT_SHA"
+              
+              # Stop current containers
+              docker-compose -f docker-compose.yml down
+              docker-compose -f infrastructure/docker-compose.yml down
+              docker-compose -f frontend/docker-compose.yml down
+              
+              # Rollback to previous images
+              if [ -n "$CURRENT_BACKEND" ]; then
+                docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
+              fi
+              if [ -n "$CURRENT_FRONTEND" ]; then
+                docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+              fi
+              
+              # Start containers with previous images
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d
+              docker-compose -f frontend/docker-compose.yml up -d
+              
+              echo "✅ Rollback completed successfully"
+            else
+              echo "⚠️ No previous deployment info found, stopping containers only"
+              docker-compose -f docker-compose.yml down
+              docker-compose -f infrastructure/docker-compose.yml down
+              docker-compose -f frontend/docker-compose.yml down
+            fi
