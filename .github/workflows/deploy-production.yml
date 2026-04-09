@@ -364,7 +364,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
