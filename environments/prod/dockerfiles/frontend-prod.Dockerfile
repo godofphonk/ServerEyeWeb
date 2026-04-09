@@ -16,8 +16,8 @@ FROM node:20.12.2-alpine AS builder
 RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 COPY package.json package-lock.json* ./
 RUN npm ci --prefer-offline --no-audit
@@ -34,8 +34,8 @@ RUN apk update && apk upgrade --no-cache && \
 
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NODE_ENV=production \
     PORT=3000 \
     NEXT_TELEMETRY_DISABLED=1
