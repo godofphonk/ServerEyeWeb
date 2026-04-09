@@ -20,10 +20,10 @@ export function middleware(request: NextRequest) {
   // Set CSP based on environment
   const isDevelopment = process.env.NODE_ENV === 'development';
   if (isDevelopment) {
-    // Allow localhost connections in development
+    // Allow localhost and backend container connections in development
     response.headers.set(
       'Content-Security-Policy',
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-ancestors 'none';",
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* http://backend:* https: https://telegram.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' https://telegram.org; frame-ancestors 'none';",
     );
   } else {
     // Stricter CSP for production

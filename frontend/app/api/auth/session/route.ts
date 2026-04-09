@@ -1,7 +1,7 @@
 // SESSION ROUTE
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL + '/api'!;
+const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   } catch (error) {
-    return NextResponse.json({ user: null }, { status: 500 });
+    console.error('Session GET error:', error);
+    return NextResponse.json({ user: null, error: String(error) }, { status: 500 });
   }
 }

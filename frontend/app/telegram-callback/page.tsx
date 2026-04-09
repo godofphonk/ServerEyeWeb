@@ -63,7 +63,7 @@ function TelegramCallbackContent() {
             UserId: linkingInfo?.userId || null,
           };
 
-          fetch(`${process.env.NEXT_PUBLIC_API_URL! + '/api'}/api/auth/oauth/telegram/callback`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL!}/auth/oauth/telegram/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -77,35 +77,55 @@ function TelegramCallbackContent() {
               sessionStorage.removeItem('telegram_oauth_action');
 
               if (data.success && (data.token || data.refreshToken)) {
-                // Store tokens
-                if (data.token) {
-                  localStorage.setItem('jwt_token', data.token);
-                  localStorage.setItem('access_token', data.token);
-                  document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
-                }
-                if (data.refreshToken) {
-                  localStorage.setItem('refreshToken', data.refreshToken);
-                  document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
-                }
+                // Set httpOnly cookies via session endpoint
+                fetch('/api/auth/session', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    token: data.token,
+                    refreshToken: data.refreshToken,
+                  }),
+                })
+                  .then(sessionResponse => {
+                    if (sessionResponse.ok) {
+                      // Store tokens in localStorage as fallback
+                      if (data.token) {
+                        localStorage.setItem('jwt_token', data.token);
+                        localStorage.setItem('access_token', data.token);
+                      }
+                      if (data.refreshToken) {
+                        localStorage.setItem('refreshToken', data.refreshToken);
+                      }
 
-                // Set flag for Telegram OAuth completion
-                sessionStorage.setItem('telegram_oauth_completed', 'true');
+                      // Set flag for Telegram OAuth completion
+                      sessionStorage.setItem('telegram_oauth_completed', 'true');
 
-                // If this was a linking attempt, redirect to profile
-                if (linkingInfo) {
-                  window.location.href = '/profile?linking=success';
-                } else {
-                  // Check if email verification is required
-                  if (data.skipEmailVerification === true) {
-                    // OAuth user - skip email verification
-                    console.log('OAuth user - skipping email verification');
-                    window.location.href = '/dashboard';
-                  } else {
-                    // Regular user - require email verification
-                    console.log('Regular user - redirecting to email verification');
-                    window.location.href = '/verify-email';
-                  }
-                }
+                      // If this was a linking attempt, redirect to profile
+                      if (linkingInfo) {
+                        window.location.href = '/profile?linking=success';
+                      } else {
+                        // Check if email verification is required
+                        if (data.skipEmailVerification === true) {
+                          // OAuth user - skip email verification
+                          console.log('OAuth user - skipping email verification');
+                          window.location.href = '/dashboard';
+                        } else {
+                          // Regular user - require email verification
+                          console.log('Regular user - redirecting to email verification');
+                          window.location.href = '/verify-email';
+                        }
+                      }
+                    } else {
+                      console.error('Failed to set session cookies');
+                      window.location.href = '/login?error=session_failed';
+                    }
+                  })
+                  .catch(err => {
+                    console.error('Error setting session:', err);
+                    window.location.href = '/login?error=session_error';
+                  });
               } else {
                 // Check if this is a linking error
                 if (linkingInfo) {

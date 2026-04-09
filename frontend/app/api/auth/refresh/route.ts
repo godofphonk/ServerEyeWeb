@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward refresh request to backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL + '/api'!;
+    const backendUrl = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
     const response = await fetch(`${backendUrl}/auth/refresh`, {
       method: 'POST',

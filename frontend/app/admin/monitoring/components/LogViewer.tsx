@@ -59,7 +59,7 @@ export default function LogViewer() {
       const level = selectedLevel === 'all' ? 'all' : selectedLevel;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/logs?limit=50&level=${level}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/logs?limit=50&level=${level}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
