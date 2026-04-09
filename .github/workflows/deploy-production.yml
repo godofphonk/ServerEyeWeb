@@ -170,6 +170,9 @@ jobs:
             # Start backend containers with DOPPLER_TOKEN
             DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d --force-recreate
             
+            # Start frontend containers
+            docker-compose -f frontend/docker-compose.yml up -d --force-recreate
+            
             # Verify backend containers running
             echo "Verifying backend containers..."
             docker ps | grep backend
