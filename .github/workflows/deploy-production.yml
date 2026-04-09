@@ -61,6 +61,7 @@ jobs:
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
+          no-cache: true
 
       - name: Extract metadata for frontend
         id: meta-frontend
