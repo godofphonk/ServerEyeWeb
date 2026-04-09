@@ -29,7 +29,7 @@ RUN npm run build:production
 FROM node:20.12.2-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache dumb-init curl ca-certificates && \
+    apk add --no-cache dumb-init curl ca-certificates gnupg && \
     curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
         'https://cli.doppler.com/install.sh' \
         -o /tmp/install.sh && \
