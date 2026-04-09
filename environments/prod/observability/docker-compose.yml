@@ -64,7 +64,7 @@ services:
     networks:
       - servereye-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -84,7 +84,7 @@ services:
     networks:
       - servereye-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3200/ready"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -115,7 +115,7 @@ services:
     networks:
       - servereye-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -132,7 +132,7 @@ services:
     networks:
       - servereye-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9187/metrics"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
       interval: 10s
       timeout: 5s
       retries: 3
