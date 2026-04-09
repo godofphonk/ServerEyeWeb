@@ -21,7 +21,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/backend
   IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend
-  DOTNET_VERSION: '8.0.0'
+  DOTNET_VERSION: '10.0.0'
 
 jobs:
   build-and-push:
