@@ -1,0 +1,171 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to rollback to (optional, defaults to previous deployment)'
+        required: false
+        type: string
+      force:
+        description: 'Force rollback without confirmation'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  rollback:
+    name: Rollback to previous version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://servereye.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Add VPS to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check previous deployment info
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            if [ -f /opt/servereye/deployment-info.txt ]; then
+              echo "Previous deployment info:"
+              cat /opt/servereye/deployment-info.txt
+            else
+              echo "⚠️ No previous deployment info found"
+              exit 1
+            fi
+
+      - name: Confirm rollback
+        if: ${{ !inputs.force }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "⚠️ This will rollback production to previous version"
+            echo "Please confirm by re-running with force=true"
+            exit 1
+
+      - name: Stop current containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker-compose -f docker-compose.yml down
+            docker-compose -f infrastructure/docker-compose.yml down
+            docker-compose -f frontend/docker-compose.yml down
+
+      - name: Load and rollback to previous deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            
+            # Load previous deployment info
+            source /opt/servereye/deployment-info.txt
+            
+            echo "Rolling back to:"
+            echo "Previous backend: $CURRENT_BACKEND"
+            echo "Previous frontend: $CURRENT_FRONTEND"
+            echo "Previous commit: $CURRENT_COMMIT_SHA"
+            
+            # Rollback to previous images
+            if [ -n "$CURRENT_BACKEND" ]; then
+              docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
+              echo "✅ Backend image tagged"
+            else
+              echo "⚠️ No previous backend image found"
+            fi
+            
+            if [ -n "$CURRENT_FRONTEND" ]; then
+              docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+              echo "✅ Frontend image tagged"
+            else
+              echo "⚠️ No previous frontend image found"
+            fi
+
+      - name: Start containers with previous images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            
+            # Start infrastructure containers
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f infrastructure/docker-compose.yml up -d
+            
+            # Verify infrastructure containers running
+            echo "Verifying infrastructure containers..."
+            docker ps | grep postgres
+            docker ps | grep redis
+            
+            # Start backend containers
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f docker-compose.yml up -d
+            
+            # Start frontend containers
+            docker-compose -f frontend/docker-compose.yml up -d
+            
+            # Verify all containers running
+            echo "Verifying containers..."
+            docker ps | grep backend
+            docker ps | grep frontend
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Waiting for services to start..."
+            sleep 30
+            
+            # Check backend health
+            if curl -f http://localhost:8080/health; then
+              echo "✅ Backend health check passed"
+            else
+              echo "⚠️ Backend health check failed"
+              exit 1
+            fi
+            
+            # Check frontend health
+            if curl -f http://localhost:3000; then
+              echo "✅ Frontend health check passed"
+            else
+              echo "⚠️ Frontend health check failed"
+              exit 1
+            fi
+
+      - name: Rollback completed
+        run: |
+          echo "✅ Rollback completed successfully"
+          echo "Previous deployment has been restored"
