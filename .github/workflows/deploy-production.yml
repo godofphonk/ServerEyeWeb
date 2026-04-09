@@ -98,6 +98,11 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v5
+        with:
+          version: latest
+
       - name: Build and push frontend image
         shell: bash
         run: |
@@ -105,8 +110,12 @@ jobs:
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts"
+            # Get NEXT_PUBLIC_API_BASE_URL from Doppler
+            NEXT_PUBLIC_API_BASE_URL=$(doppler secrets get NEXT_PUBLIC_API_BASE_URL --plain || echo "/api")
+            echo "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL"
             if docker buildx build \
               --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
+              --build-arg NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
               --iidfile /tmp/frontend-iidfile \
               --tag ${{ env.IMAGE_FRONTEND }}:production \
               --tag ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }} \
