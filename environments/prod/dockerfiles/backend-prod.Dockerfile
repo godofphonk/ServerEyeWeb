@@ -1,11 +1,11 @@
 # Production Dockerfile for Backend (.NET)
 # Optimized for production with multi-stage build
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.105 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.105 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files first for better caching
