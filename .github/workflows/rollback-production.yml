@@ -120,7 +120,7 @@ jobs:
             cd /opt/servereye
             
             # Pass Doppler tokens to docker-compose
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_CONNECTION }} doppler run --project servereye --config prd_connection -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
             
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
