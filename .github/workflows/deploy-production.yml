@@ -56,7 +56,7 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v7
         with:
-          context: ./backend/ServerEyeBackend
+          context: .
           file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
