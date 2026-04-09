@@ -33,11 +33,17 @@ RUN dotnet publish "ServerEye.API.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM base AS final
 WORKDIR /app
 
-# Install curl, gnupg for health checks and Doppler CLI
+# Install curl, gnupg, apt-transport-https, ca-certificates for health checks and Doppler CLI
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl gnupg && \
-    (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || \
-     wget -t 3 -qO- https://cli.doppler.com/install.sh) | sh && \
+    apt-get install -y --no-install-recommends curl gnupg apt-transport-https ca-certificates && \
+    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
+        'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
+        | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] \
+        https://packages.doppler.com/public/cli/deb/debian any-version main" \
+        | tee /etc/apt/sources.list.d/doppler-cli.list && \
+    apt-get update && \
+    apt-get install -y doppler && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy published application
