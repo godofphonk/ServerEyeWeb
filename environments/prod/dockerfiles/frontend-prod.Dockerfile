@@ -29,15 +29,14 @@ RUN npm run build:production
 FROM node:20.12.2-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache dumb-init curl gnupg apt-transport-https ca-certificates && \
+    apk add --no-cache dumb-init curl gnupg ca-certificates && \
     curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
         'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
         | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] \
-        https://packages.doppler.com/public/cli/deb/debian any-version main" \
-        | tee /etc/apt/sources.list.d/doppler-cli.list && \
-    apk update && \
-    apk add --no-cache doppler && \
+    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
+        'https://packages.doppler.com/public/cli/alpine/generic/any-version/x86_64/doppler-cli.apk' \
+        -o /tmp/doppler-cli.apk && \
+    apk add --allow-untrusted /tmp/doppler-cli.apk && \
     rm -rf /var/lib/apk/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
