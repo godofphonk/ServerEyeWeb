@@ -124,15 +124,28 @@ jobs:
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Pull latest images
-            docker pull ghcr.io/${{ github.repository }}/backend:production
-            docker pull ghcr.io/${{ github.repository }}/frontend:production
+            # Pull latest images with SHA tags for uniqueness
+            docker pull ghcr.io/${{ github.repository }}/backend:production-${{ github.sha }}
+            docker pull ghcr.io/${{ github.repository }}/frontend:production-${{ github.sha }}
+            
+            # Tag as latest for docker-compose
+            docker tag ghcr.io/${{ github.repository }}/backend:production-${{ github.sha }} ghcr.io/${{ github.repository }}/backend:production
+            docker tag ghcr.io/${{ github.repository }}/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:production
             
             # Stop existing containers
             docker-compose -f docker-compose.yml down
             
+            # Remove old images to force fresh start
+            docker rmi ghcr.io/${{ github.repository }}/backend:production-${{ github.sha }} || true
+            docker rmi ghcr.io/${{ github.repository }}/frontend:production-${{ github.sha }} || true
+            
             # Start new containers with Doppler
-            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d
+            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d --force-recreate
+            
+            # Verify containers are running with new images
+            echo "Verifying deployment..."
+            docker ps --filter "name=backend" --format "{{.Image}}"
+            docker ps --filter "name=frontend" --format "{{.Image}}"
             
             # Cleanup old images
             docker image prune -f
