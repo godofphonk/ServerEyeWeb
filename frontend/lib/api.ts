@@ -12,7 +12,7 @@ class ApiClient {
 
   constructor() {
     // API base URL must be set via environment variable
-    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+    const baseURL = process.env.NEXT_PUBLIC_API_URL! + '/api';
 
     this.client = axios.create({
       baseURL,

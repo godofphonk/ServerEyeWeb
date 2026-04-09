@@ -36,7 +36,7 @@ function OAuthCallbackContent() {
           sessionStorage.removeItem('oauth_linking');
 
           // Send to backend callback API with linking parameters
-          const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL!.replace('/api', '')}/api/auth/oauth/callback`;
+          const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/api/auth/oauth/callback`;
 
           fetch(callbackUrl, {
             method: 'POST',
@@ -95,7 +95,7 @@ function OAuthCallbackContent() {
     const provider = state.split('_')[0]; // state format: provider_action_randomString
 
     // Send to backend callback API and handle response
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL!.replace('/api', '')}/api/auth/oauth/callback`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/api/auth/oauth/callback`;
 
     fetch(callbackUrl, {
       method: 'POST',

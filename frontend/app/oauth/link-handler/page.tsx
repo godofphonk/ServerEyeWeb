@@ -33,7 +33,7 @@ export default function OAuthLinkHandlerPage() {
         }
 
         // Call backend linking endpoint
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL + '/api'}/auth/oauth/link`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
