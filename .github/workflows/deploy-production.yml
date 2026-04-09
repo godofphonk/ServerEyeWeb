@@ -99,7 +99,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup SSH
-        uses: webfactory/ssh-agent@e1c436b6ac0401c5a9f8c8c9a6d8b5a0c9f8c8c8 # v0.9.0
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
