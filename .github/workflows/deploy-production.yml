@@ -352,8 +352,10 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
+            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
+            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
 
       - name: Start infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
