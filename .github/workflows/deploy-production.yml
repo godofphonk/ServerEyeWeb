@@ -402,6 +402,41 @@ jobs:
             cd /opt/servereye
             docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
 
+      - name: Setup nginx and configuration
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            # Install nginx if not installed
+            if ! command -v nginx &> /dev/null; then
+              apt-get update
+              apt-get install -y nginx
+              systemctl enable nginx
+            fi
+            
+            # Create nginx ssl directory
+            mkdir -p /etc/nginx/ssl
+            
+            # Copy nginx configuration
+            cp /opt/servereye/environments/prod/nginx/servereye.dev.conf /etc/nginx/sites-available/
+            
+            # Create symlink if not exists
+            if [ ! -L /etc/nginx/sites-enabled/servereye.dev.conf ]; then
+              ln -s /etc/nginx/sites-available/servereye.dev.conf /etc/nginx/sites-enabled/
+            fi
+            
+            # Remove default nginx site
+            rm -f /etc/nginx/sites-enabled/default
+            
+            # Test nginx configuration
+            nginx -t
+            
+            # Reload nginx (zero-downtime)
+            systemctl reload nginx
+
       - name: Verify all containers
         uses: appleboy/ssh-action@v1.0.3
         with:
