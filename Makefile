@@ -199,8 +199,8 @@ prod-setup:
 # Full Stack Production
 prod-deploy: prod-infra-up prod-backend-up prod-frontend-up
 	@echo "✅ All production services deployed!"
-	@echo "🌐 Frontend: https://servereye.com"
-	@echo "🔧 Backend:  https://api.servereye.com"
+	@echo "🌐 Frontend: https://servereye.dev"
+	@echo "🔧 Backend:  https://api.servereye.dev"
 
 prod-down: prod-frontend-down prod-backend-down prod-infra-down
 	@echo "✅ All production services stopped!"
