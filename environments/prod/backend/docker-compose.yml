@@ -10,7 +10,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN_BACKEND}
     restart: unless-stopped
     networks:
       - servereye-network
