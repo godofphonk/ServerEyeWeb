@@ -366,7 +366,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd-infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
@@ -401,7 +401,7 @@ jobs:
           script: |
             cd /opt/servereye
             # Inject secrets using doppler run
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd-backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
 
       - name: Start frontend containers
         uses: appleboy/ssh-action@v1.0.3
@@ -412,7 +412,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd-frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
 
       - name: Setup nginx and configuration
         uses: appleboy/ssh-action@v1.0.3
@@ -540,10 +540,10 @@ jobs:
               
               # Start containers with previous images
               # Inject secrets using doppler run
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd-infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
               docker-compose -f environments/prod/observability/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
-              docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd-backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd-frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d
               
               echo "✅ Rollback completed successfully"
             else

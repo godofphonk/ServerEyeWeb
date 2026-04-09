@@ -118,20 +118,20 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            
+
             # Pass Doppler tokens to docker-compose
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
-            
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd-infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
             docker ps | grep postgres
             docker ps | grep redis
-            
+
             # Start backend containers
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
-            
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd-backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
+
             # Start frontend containers
-            docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd-frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d
             
             # Verify all containers running
             echo "Verifying containers..."
