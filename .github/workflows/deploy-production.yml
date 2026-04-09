@@ -364,7 +364,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler run --project servereye --config prd_database docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1.0.3
@@ -398,16 +398,8 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            # Merge secrets from multiple Doppler config projects
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_OAUTH }} doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_STRIPE }} doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
-            # Load merged secrets and run docker-compose
-            set -a
-            source /tmp/doppler-envs
-            set +a
-            docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
+            # Pass DOPPLER_TOKEN_BACKEND to docker-compose
+            DOPPLER_TOKEN_BACKEND=${{ secrets.DOPPLER_TOKEN_BACKEND }} docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
 
       - name: Start frontend containers
         uses: appleboy/ssh-action@v1.0.3
@@ -545,18 +537,10 @@ jobs:
               fi
               
               # Start containers with previous images
-              # Merge secrets from multiple Doppler config projects
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_DATABASE }} doppler secrets download --project servereye --config prd_database --format env > /tmp/doppler-envs
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_OAUTH }} doppler secrets download --project servereye --config prd_oauth --format env >> /tmp/doppler-envs
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler secrets download --project servereye --config prd_backend --format env >> /tmp/doppler-envs
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_STRIPE }} doppler secrets download --project servereye --config prd_stripe --format env >> /tmp/doppler-envs
-              # Load merged secrets and run docker-compose
-              set -a
-              source /tmp/doppler-envs
-              set +a
-              docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+              # Pass Doppler tokens to docker-compose
+              DOPPLER_TOKEN_DATABASE=${{ secrets.DOPPLER_TOKEN_DATABASE }} docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
               docker-compose -f environments/prod/observability/docker-compose.yml up -d
-              docker-compose -f environments/prod/backend/docker-compose.yml up -d
+              DOPPLER_TOKEN_BACKEND=${{ secrets.DOPPLER_TOKEN_BACKEND }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
               docker-compose -f environments/prod/frontend/docker-compose.yml up -d
               
               echo "✅ Rollback completed successfully"
