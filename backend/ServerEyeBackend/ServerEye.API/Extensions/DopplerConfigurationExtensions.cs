@@ -52,7 +52,8 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             var secrets = new Dictionary<string, string>();
             
             // Read all environment variables that start with Doppler secret prefixes
-            var prefixes = new[] { "DATABASE_", "REDIS_", "JWT_", "STRIPE_", "OAUTH_", "EMAIL_" };
+            // OAuth settings are read directly from environment variables in AuthenticationSetup.cs
+            var prefixes = new[] { "DATABASE_", "REDIS_", "JWT_", "STRIPE_", "EMAIL_" };
             
             foreach (var envVar in Environment.GetEnvironmentVariables().Keys)
             {
@@ -103,6 +104,7 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
         }
 
         // Convert environment variable style to configuration sections
+        // OAuth settings are read directly from environment variables in AuthenticationSetup.cs
         var replacements = new Dictionary<string, string>
         {
             ["JWT_"] = "JwtSettings:",
@@ -115,8 +117,7 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             ["RATE_LIMITING_"] = "RateLimiting:",
             ["SECURITY_"] = "Security:",
             ["CACHE_"] = "CacheSettings:",
-            ["STRIPE_"] = "Stripe:",
-            ["OAUTH_"] = "OAuth:"
+            ["STRIPE_"] = "Stripe:"
         };
 
         var key = envVar;
