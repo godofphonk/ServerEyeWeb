@@ -53,21 +53,21 @@ public static class AuthenticationSetup
         var oauthSettings = new OAuthSettings();
 
         // .NET doesn't convert OAUTH_TELEGRAM_BOTID to OAuth__Telegram__Botid properly
-        // Use environment variables directly
-        oauthSettings.Telegram.BotId = configuration["OAUTH_TELEGRAM_BOTID"] ?? string.Empty;
-        oauthSettings.Telegram.BotToken = configuration["OAUTH_TELEGRAM_BOTTOKEN"] ?? string.Empty;
-        oauthSettings.Telegram.RedirectUri = new Uri(configuration["OAuth:Telegram:RedirectUri"] ?? "https://127.0.0.1");
-        oauthSettings.Telegram.Enabled = bool.Parse(configuration["OAuth:Telegram:Enabled"] ?? "true");
+        // Use environment variables directly for all OAuth settings
+        oauthSettings.Telegram.BotId = configuration["OAUTH_TELEGRAM_BOT_ID"] ?? string.Empty;
+        oauthSettings.Telegram.BotToken = configuration["OAUTH_TELEGRAM_BOT_TOKEN"] ?? string.Empty;
+        oauthSettings.Telegram.RedirectUri = new Uri(configuration["OAUTH_TELEGRAM_REDIRECT_URI"] ?? "https://127.0.0.1");
+        oauthSettings.Telegram.Enabled = bool.Parse(configuration["OAUTH_TELEGRAM_ENABLED"] ?? "true");
 
-        oauthSettings.Google.ClientId = configuration["OAuth:Google:ClientId"] ?? string.Empty;
-        oauthSettings.Google.ClientSecret = configuration["OAuth:Google:ClientSecret"] ?? string.Empty;
-        oauthSettings.Google.RedirectUri = new Uri(configuration["OAuth:Google:RedirectUri"] ?? "https://127.0.0.1");
-        oauthSettings.Google.Enabled = bool.Parse(configuration["OAuth:Google:Enabled"] ?? "true");
+        oauthSettings.Google.ClientId = configuration["OAUTH_GOOGLE_CLIENT_ID"] ?? string.Empty;
+        oauthSettings.Google.ClientSecret = configuration["OAUTH_GOOGLE_CLIENT_SECRET"] ?? string.Empty;
+        oauthSettings.Google.RedirectUri = new Uri(configuration["OAUTH_GOOGLE_REDIRECT_URI"] ?? "https://127.0.0.1");
+        oauthSettings.Google.Enabled = bool.Parse(configuration["OAUTH_GOOGLE_ENABLED"] ?? "true");
 
-        oauthSettings.GitHub.ClientId = configuration["OAuth:GitHub:ClientId"] ?? string.Empty;
-        oauthSettings.GitHub.ClientSecret = configuration["OAuth:GitHub:ClientSecret"] ?? string.Empty;
-        oauthSettings.GitHub.RedirectUri = new Uri(configuration["OAuth:GitHub:RedirectUri"] ?? "https://127.0.0.1");
-        oauthSettings.GitHub.Enabled = bool.Parse(configuration["OAuth:GitHub:Enabled"] ?? "true");
+        oauthSettings.GitHub.ClientId = configuration["OAUTH_GITHUB_CLIENT_ID"] ?? string.Empty;
+        oauthSettings.GitHub.ClientSecret = configuration["OAUTH_GITHUB_CLIENT_SECRET"] ?? string.Empty;
+        oauthSettings.GitHub.RedirectUri = new Uri(configuration["OAUTH_GITHUB_REDIRECT_URI"] ?? "https://127.0.0.1");
+        oauthSettings.GitHub.Enabled = bool.Parse(configuration["OAUTH_GITHUB_ENABLED"] ?? "true");
 
         services.AddSingleton(oauthSettings);
 
