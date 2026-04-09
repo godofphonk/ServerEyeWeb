@@ -51,7 +51,7 @@ export const authApi = {
 
   async confirmAccountDeletion(data: ConfirmAccountDeletionRequest) {
     // Use direct axios call to avoid automatic redirect on 401
-    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
@@ -72,7 +72,7 @@ export const authApi = {
     const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
     // Call backend directly since Next.js API routes are not working
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
     const response = await axios.post(
       `${backendUrl}/auth/delete-account-direct`,

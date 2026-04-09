@@ -11,8 +11,8 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    // Use 127.0.0.1 for browser access to Docker container
-    const baseURL = 'http://127.0.0.1:5246/api';
+    // API base URL must be set via environment variable
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
     this.client = axios.create({
       baseURL,
