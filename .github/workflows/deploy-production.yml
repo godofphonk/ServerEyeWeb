@@ -55,6 +55,7 @@ jobs:
 
       - name: Build and push backend image
         uses: docker/build-push-action@v7
+        timeout-minutes: 30
         with:
           context: .
           file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
@@ -75,6 +76,7 @@ jobs:
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v7
+        timeout-minutes: 30
         with:
           context: ./frontend
           file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
