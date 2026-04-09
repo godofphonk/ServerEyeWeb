@@ -54,15 +54,39 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v7
-        timeout-minutes: 30
-        with:
-          context: .
-          file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          no-cache: true
+        shell: bash
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts"
+            if docker buildx build \
+              --file ./environments/prod/dockerfiles/backend-prod.Dockerfile \
+              --iidfile /tmp/backend-iidfile \
+              --tag ${{ env.IMAGE_BACKEND }}:production \
+              --tag ${{ env.IMAGE_BACKEND }}:production-${{ github.sha }} \
+              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+              --label org.opencontainers.image.title=ServerEyeWeb \
+              --label org.opencontainers.image.version=production \
+              --no-cache \
+              --push \
+              .; then
+              echo "Build succeeded on attempt $attempt"
+              exit 0
+            else
+              echo "Build failed on attempt $attempt"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Retrying in 30 seconds..."
+                sleep 30
+                attempt=$((attempt + 1))
+              else
+                echo "Max attempts reached, giving up"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Extract metadata for frontend
         id: meta-frontend
@@ -75,15 +99,39 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v7
-        timeout-minutes: 30
-        with:
-          context: ./frontend
-          file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          no-cache: true
+        shell: bash
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts"
+            if docker buildx build \
+              --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
+              --iidfile /tmp/frontend-iidfile \
+              --tag ${{ env.IMAGE_FRONTEND }}:production \
+              --tag ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }} \
+              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+              --label org.opencontainers.image.title=ServerEyeWeb \
+              --label org.opencontainers.image.version=production \
+              --no-cache \
+              --push \
+              ./frontend; then
+              echo "Build succeeded on attempt $attempt"
+              exit 0
+            else
+              echo "Build failed on attempt $attempt"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Retrying in 30 seconds..."
+                sleep 30
+                attempt=$((attempt + 1))
+              else
+                echo "Max attempts reached, giving up"
+                exit 1
+              fi
+            fi
+          done
 
   deploy:
     name: Deploy to VPS
