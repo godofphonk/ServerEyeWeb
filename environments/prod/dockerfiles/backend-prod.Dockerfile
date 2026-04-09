@@ -27,7 +27,7 @@ RUN dotnet build "ServerEye.API.csproj" -c Release -o /app/build --no-restore
 
 # Publish stage
 FROM build AS publish
-RUN dotnet publish "ServerEye.API.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-build
+RUN dotnet publish "ServerEye.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Production stage
 FROM base AS final
