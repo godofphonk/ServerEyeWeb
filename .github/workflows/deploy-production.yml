@@ -99,7 +99,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v5
+        uses: dopplerhq/cli-action@v3
         with:
           version: latest
 
