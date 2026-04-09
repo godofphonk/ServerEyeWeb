@@ -151,6 +151,7 @@ jobs:
 
       - name: Add VPS to known hosts
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Setup git repository on VPS
