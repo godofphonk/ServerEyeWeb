@@ -98,6 +98,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
