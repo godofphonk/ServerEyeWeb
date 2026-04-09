@@ -11,6 +11,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN_FRONTEND}
     restart: unless-stopped
     networks:
       - servereye-network

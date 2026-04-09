@@ -29,12 +29,22 @@ RUN npm run build:production
 FROM node:20.12.2-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache dumb-init && \
-    rm -rf /var/cache/apk/*
+    apk add --no-cache dumb-init curl gnupg apt-transport-https ca-certificates && \
+    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
+        'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
+        | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] \
+        https://packages.doppler.com/public/cli/deb/debian any-version main" \
+        | tee /etc/apt/sources.list.d/doppler-cli.list && \
+    apk update && \
+    apk add --no-cache doppler && \
+    rm -rf /var/lib/apk/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
-ENV NODE_ENV=production \
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NODE_ENV=production \
     PORT=3000 \
     NEXT_TELEMETRY_DISABLED=1
 
@@ -57,5 +67,5 @@ ENV HOSTNAME="0.0.0.0" \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "doppler", "run", "--"]
 CMD ["node", "server.js"]

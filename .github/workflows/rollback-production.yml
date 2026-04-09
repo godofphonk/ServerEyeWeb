@@ -131,7 +131,7 @@ jobs:
             DOPPLER_TOKEN_BACKEND=${{ secrets.DOPPLER_TOKEN_BACKEND }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
             
             # Start frontend containers
-            docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+            DOPPLER_TOKEN_FRONTEND=${{ secrets.DOPPLER_TOKEN_FRONTEND }} docker-compose -f environments/prod/frontend/docker-compose.yml up -d
             
             # Verify all containers running
             echo "Verifying containers..."
