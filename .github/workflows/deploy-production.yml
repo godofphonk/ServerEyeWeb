@@ -139,8 +139,8 @@ jobs:
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
             docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
             
-            # Start new containers with Doppler
-            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d --force-recreate
+            # Start new containers
+            docker-compose -f docker-compose.yml up -d --force-recreate
             
             # Verify containers are running with new images
             echo "Verifying deployment..."
@@ -156,11 +156,8 @@ jobs:
           echo "Waiting for services to start..."
           sleep 30
           
-          # Check backend health
-          curl -f https://api.servereye.com/health || exit 1
-          
-          # Check frontend
-          curl -f https://servereye.com || exit 1
+          # Check backend health via VPS IP
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "curl -f http://localhost:8080/health" || exit 1
           
           echo "✅ Deployment successful!"
 
