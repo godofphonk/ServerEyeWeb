@@ -1,0 +1,27 @@
+# Backend Service for Production
+# ASP.NET Core Web API
+
+services:
+  backend:
+    image: ghcr.io/godofphonk/servereyeweb/backend:production
+    container_name: ServerEyeWeb-backend-prod
+    ports:
+      - "5246:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  servereye-network:
+    external: true
+    name: servereye-network

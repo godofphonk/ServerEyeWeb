@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-production-${{ github.ref }}
-  cancel-in-progress: true
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -19,8 +19,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BACKEND: ghcr.io/${{ github.repository }}/backend
-  IMAGE_FRONTEND: ghcr.io/${{ github.repository }}/frontend
+  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/backend
+  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend
   DOTNET_VERSION: '10.0.105'
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -54,15 +54,39 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: ./backend/ServerEyeBackend
-          file: ./environments/dockerfiles/backend-prod.Dockerfile
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        shell: bash
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts"
+            if docker buildx build \
+              --file ./environments/prod/dockerfiles/backend-prod.Dockerfile \
+              --iidfile /tmp/backend-iidfile \
+              --tag ${{ env.IMAGE_BACKEND }}:production \
+              --tag ${{ env.IMAGE_BACKEND }}:production-${{ github.sha }} \
+              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+              --label org.opencontainers.image.title=ServerEyeWeb \
+              --label org.opencontainers.image.version=production \
+              --no-cache \
+              --push \
+              .; then
+              echo "Build succeeded on attempt $attempt"
+              exit 0
+            else
+              echo "Build failed on attempt $attempt"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Retrying in 30 seconds..."
+                sleep 30
+                attempt=$((attempt + 1))
+              else
+                echo "Max attempts reached, giving up"
+                exit 1
+              fi
+            fi
+          done
 
       - name: Extract metadata for frontend
         id: meta-frontend
@@ -75,15 +99,39 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: ./frontend
-          file: ./environments/dockerfiles/frontend-prod.Dockerfile
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        shell: bash
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts"
+            if docker buildx build \
+              --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
+              --iidfile /tmp/frontend-iidfile \
+              --tag ${{ env.IMAGE_FRONTEND }}:production \
+              --tag ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }} \
+              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+              --label org.opencontainers.image.title=ServerEyeWeb \
+              --label org.opencontainers.image.version=production \
+              --no-cache \
+              --push \
+              ./frontend; then
+              echo "Build succeeded on attempt $attempt"
+              exit 0
+            else
+              echo "Build failed on attempt $attempt"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Retrying in 30 seconds..."
+                sleep 30
+                attempt=$((attempt + 1))
+              else
+                echo "Max attempts reached, giving up"
+                exit 1
+              fi
+            fi
+          done
 
   deploy:
     name: Deploy to VPS
@@ -96,67 +144,350 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@e1c436b6ac0401c5a9f8c8c9a6d8b5a0c9f8c8c8 # v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
 
       - name: Add VPS to known hosts
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/servereye"
+      - name: Setup git repository on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            # Check if git is installed
+            if ! command -v git &> /dev/null; then
+              echo "❌ Git is not installed on VPS"
+              exit 1
+            fi
+            echo "✅ Git is installed: $(git --version)"
+            
+            # Create deployment directory
+            mkdir -p /opt/servereye
+            
+            # Setup git repository if not exists
+            if [ ! -d /opt/servereye/.git ]; then
+              cd /opt/servereye
+              echo "Cloning repository with branch: ${{ github.ref_name }}"
+              git clone --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }}.git .
+              echo "✅ Repository cloned successfully"
+            else
+              echo "✅ Repository already exists, will pull latest changes"
+            fi
 
-      - name: Copy docker-compose files
-        run: |
-          scp environments/prod/backend/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
-          scp environments/prod/infrastructure/docker-compose.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/servereye/
-
-      - name: Deploy to VPS
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+      - name: Pull latest changes from git
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             cd /opt/servereye
-            
-            # Login to GitHub Container Registry
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            echo "✅ Latest changes pulled successfully"
+
+      - name: Verify git repository structure
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            echo "Current directory structure:"
+            ls -la
+            echo ""
+            echo "Checking environments directory:"
+            if [ -d environments ]; then
+              ls -la environments
+              if [ -d environments/prod ]; then
+                ls -la environments/prod
+              else
+                echo "❌ environments/prod directory does not exist"
+              fi
+            else
+              echo "❌ environments directory does not exist"
+            fi
+
+      - name: Verify docker-compose files exist
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            ls -la environments/prod/backend/docker-compose.yml
+            ls -la environments/prod/infrastructure/docker-compose.yml
+            ls -la environments/prod/frontend/docker-compose.yml
+
+      - name: Login to GitHub Container Registry
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Save current running images before deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            # Get current running images
+            CURRENT_BACKEND=$(docker ps --filter "name=backend" --format "{{.Image}}")
+            CURRENT_FRONTEND=$(docker ps --filter "name=frontend" --format "{{.Image}}")
             
-            # Pull latest images
-            docker pull ghcr.io/${{ github.repository }}/backend:production
-            docker pull ghcr.io/${{ github.repository }}/frontend:production
+            # Save current deployment info
+            echo "CURRENT_BACKEND=$CURRENT_BACKEND" > /opt/servereye/deployment-info.txt
+            echo "CURRENT_FRONTEND=$CURRENT_FRONTEND" >> /opt/servereye/deployment-info.txt
+            echo "CURRENT_COMMIT_SHA=${{ github.sha }}" >> /opt/servereye/deployment-info.txt
+            echo "DEPLOYMENT_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> /opt/servereye/deployment-info.txt
             
-            # Stop existing containers
-            docker-compose -f docker-compose.yml down
+            # Tag current images as production-previous if they exist
+            if [ -n "$CURRENT_BACKEND" ]; then
+              docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-previous || true
+            fi
+            if [ -n "$CURRENT_FRONTEND" ]; then
+              docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-previous || true
+            fi
             
-            # Start new containers with Doppler
-            doppler run --config=prd -- docker-compose -f docker-compose.yml up -d
-            
-            # Cleanup old images
+            echo "Current deployment info saved"
+
+      - name: Pull latest images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
+
+      - name: Verify images pulled
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Verifying images pulled..."
+            docker images | grep servereyeweb/backend
+            docker images | grep servereyeweb/frontend
+
+      - name: Tag images as latest
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
+            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
+
+      - name: Stop existing containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker-compose -f environments/prod/backend/docker-compose.yml down
+            docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+
+      - name: Remove old images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+
+      - name: Pull new images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
+            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+
+      - name: Start infrastructure containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+
+      - name: Verify infrastructure containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Verifying infrastructure containers..."
+            docker ps | grep postgres
+            docker ps | grep redis
+
+      - name: Start backend containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
+
+      - name: Start frontend containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
+            docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
+
+      - name: Verify all containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Verifying backend containers..."
+            docker ps | grep backend
+            docker ps | grep frontend
+            echo "Verifying deployment..."
+            docker ps --filter "name=backend" --format "{{.Image}}"
+            docker ps --filter "name=frontend" --format "{{.Image}}"
+
+      - name: Cleanup old images
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/servereye
             docker image prune -f
-          ENDSSH
 
       - name: Health check
-        run: |
-          echo "Waiting for services to start..."
-          sleep 30
-          
-          # Check backend health
-          curl -f https://api.servereye.com/health || exit 1
-          
-          # Check frontend
-          curl -f https://servereye.com || exit 1
-          
-          echo "✅ Deployment successful!"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "Waiting for services to start..."
+            sleep 30
+            
+            # Check backend health
+            if curl -f http://localhost:8080/health; then
+              echo "✅ Backend health check passed"
+            else
+              echo "❌ Backend health check failed"
+              exit 1
+            fi
+            
+            # Check frontend health
+            if curl -f http://localhost:3000; then
+              echo "✅ Frontend health check passed"
+            else
+              echo "❌ Frontend health check failed"
+              exit 1
+            fi
+            
+            echo "✅ Deployment successful!"
 
       - name: Rollback on failure
         if: failure()
-        run: |
-          echo "❌ Deployment failed, initiating rollback..."
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            echo "❌ Deployment failed, initiating rollback..."
             cd /opt/servereye
-            docker-compose -f docker-compose.yml down
-            # You could implement more sophisticated rollback logic here
-          ENDSSH
+            
+            # Load previous deployment info
+            if [ -f /opt/servereye/deployment-info.txt ]; then
+              source /opt/servereye/deployment-info.txt
+              echo "Rolling back to previous deployment:"
+              echo "Previous backend: $CURRENT_BACKEND"
+              echo "Previous frontend: $CURRENT_FRONTEND"
+              echo "Previous commit: $CURRENT_COMMIT_SHA"
+              
+              # Stop current containers
+              docker-compose -f environments/prod/backend/docker-compose.yml down
+              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+              docker-compose -f environments/prod/frontend/docker-compose.yml down
+              
+              # Rollback to previous images
+              if [ -n "$CURRENT_BACKEND" ]; then
+                docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
+              fi
+              if [ -n "$CURRENT_FRONTEND" ]; then
+                docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
+              fi
+              
+              # Start containers with previous images
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
+              docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+              
+              echo "✅ Rollback completed successfully"
+            else
+              echo "⚠️ No previous deployment info found, stopping containers only"
+              docker-compose -f environments/prod/backend/docker-compose.yml down
+              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
+              docker-compose -f environments/prod/frontend/docker-compose.yml down
+            fi
