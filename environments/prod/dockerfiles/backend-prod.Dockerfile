@@ -62,4 +62,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_ThreadPool_MaxThreads=32
 
 # Start the application with Doppler secrets injection
-ENTRYPOINT ["doppler", "run", "--", "dotnet", "ServerEye.API.dll"]
+ENTRYPOINT ["doppler", "run", "--project", "servereye", "--config", "prd", "--", "dotnet", "ServerEye.API.dll"]
