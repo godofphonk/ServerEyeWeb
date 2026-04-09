@@ -29,12 +29,12 @@ RUN npm run build:production
 FROM node:20.12.2-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache dumb-init curl ca-certificates gnupg && \
-    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
-        'https://cli.doppler.com/install.sh' \
-        -o /tmp/install.sh && \
-    sh /tmp/install.sh && \
-    rm -rf /var/lib/apk/lists/* /tmp/* /var/tmp/*
+    apk add --no-cache dumb-init curl ca-certificates bash && \
+    curl -1sLf 'https://packages.doppler.com/public/cli/rsa.8004D9FF50437357.key' > /etc/apk/keys/cli@doppler-8004D9FF50437357.rsa.pub && \
+    curl -1sLf 'https://packages.doppler.com/public/cli/config.alpine.txt?distro=alpine&codename=v3.19' >> /etc/apk/repositories && \
+    apk update && \
+    apk add --no-cache doppler && \
+    rm -rf /var/lib/apk/lists/* /tmp/*
 
 WORKDIR /app
 
