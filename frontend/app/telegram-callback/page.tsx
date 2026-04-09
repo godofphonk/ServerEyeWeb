@@ -63,7 +63,7 @@ function TelegramCallbackContent() {
             UserId: linkingInfo?.userId || null,
           };
 
-          fetch('http://127.0.0.1:5246/api/auth/oauth/telegram/callback', {
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL!}/api/auth/oauth/telegram/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
