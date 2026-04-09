@@ -120,7 +120,7 @@ jobs:
             cd /opt/servereye
             
             # Pass Doppler tokens to docker-compose
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_CONNECTION }} doppler run --project servereye --config prd_connection -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} doppler run --project servereye --config prd -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
             
             # Verify infrastructure containers running
             echo "Verifying infrastructure containers..."
@@ -128,7 +128,7 @@ jobs:
             docker ps | grep redis
             
             # Start backend containers
-            DOPPLER_TOKEN_BACKEND=${{ secrets.DOPPLER_TOKEN_BACKEND }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN }} docker-compose -f environments/prod/backend/docker-compose.yml up -d
             
             # Start frontend containers
             docker-compose -f environments/prod/frontend/docker-compose.yml up -d
