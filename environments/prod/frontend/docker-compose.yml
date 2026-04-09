@@ -12,6 +12,8 @@ services:
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
       - DOPPLER_TOKEN=${DOPPLER_TOKEN_FRONTEND}
+      - DOPPLER_PROJECT=servereye
+      - DOPPLER_CONFIG=prd_frontend
     restart: unless-stopped
     networks:
       - servereye-network
