@@ -174,8 +174,8 @@ jobs:
             # Setup git repository if not exists
             if [ ! -d /opt/servereye/.git ]; then
               cd /opt/servereye
-              echo "Cloning repository..."
-              git clone ${{ github.server_url }}/${{ github.repository }}.git .
+              echo "Cloning repository with branch: ${{ github.ref_name }}"
+              git clone --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }}.git .
               echo "✅ Repository cloned successfully"
             else
               echo "✅ Repository already exists, will pull latest changes"
