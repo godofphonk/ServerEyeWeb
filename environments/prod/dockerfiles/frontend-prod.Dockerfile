@@ -30,6 +30,7 @@ FROM node:20.12.2-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache dumb-init curl gnupg ca-certificates && \
+    mkdir -p /usr/share/keyrings && \
     curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
         'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
         | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
