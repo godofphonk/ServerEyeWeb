@@ -26,18 +26,10 @@ function OAuthCallbackContent() {
           setStatus('processing');
           setMessage('Setting up authentication...');
 
-          // Store tokens in localStorage
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('jwt_token', token);
-            if (refreshToken) {
-              localStorage.setItem('refresh_token', refreshToken);
-            }
-
-            // Set flag for Telegram OAuth completion to trigger server discovery
-            // Only for Telegram provider
-            if (provider === 'telegram') {
-              sessionStorage.setItem('telegram_oauth_completed', 'true');
-            }
+          // Set flag for Telegram OAuth completion to trigger server discovery
+          // Only for Telegram provider
+          if (typeof window !== 'undefined' && provider === 'telegram') {
+            sessionStorage.setItem('telegram_oauth_completed', 'true');
           }
 
           // Set cookies via API call

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 3600, // 1 hour
     });
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       response.cookies.set('refresh_token', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         path: '/',
         maxAge: 7 * 24 * 60 * 60, // 7 days
       });
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
+      const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
           response.cookies.set('access_token', refreshData.token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             path: '/',
             maxAge: refreshData.expiresIn || 1800,
           });
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
           response.cookies.set('refresh_token', refreshData.refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             path: '/',
             maxAge: 7 * 24 * 60 * 60,
           });
@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   } catch (error) {
-    console.error('Session GET error:', error);
-    return NextResponse.json({ user: null, error: String(error) }, { status: 500 });
+    return NextResponse.json({ user: null }, { status: 500 });
   }
 }

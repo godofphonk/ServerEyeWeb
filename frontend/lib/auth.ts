@@ -16,30 +16,23 @@ export interface LoginResponse {
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>('/users/login', credentials);
-
-  // Save token to localStorage
-  if (typeof window !== 'undefined' && response.token) {
-    localStorage.setItem('jwt_token', response.token);
-  }
-
+  // Token is stored in HttpOnly cookies by the server
   return response;
 }
 
 export async function logout(): Promise<void> {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('jwt_token');
-  }
+  // Cookies are cleared by the server on logout
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
 export function getToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('jwt_token');
-  }
+  // Tokens are now stored in HttpOnly cookies and not accessible from client-side JS
   return null;
 }
 
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  // Authentication is now checked via session API, not client-side token
+  return false;
 }
 
 export function isAdmin(user: any): boolean {

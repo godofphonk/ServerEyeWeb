@@ -17,8 +17,21 @@ function OAuthCallbackContent() {
       return;
     }
 
+    // Validate OAuth parameters
     if (!code || !state) {
       router.push('/login?error=missing_parameters');
+      return;
+    }
+
+    // Validate code length and format (OAuth codes are typically 20-256 chars)
+    if (code.length < 20 || code.length > 256 || !/^[a-zA-Z0-9._-]+$/.test(code)) {
+      router.push('/login?error=invalid_code');
+      return;
+    }
+
+    // Validate state length and format (state should be at least 10 chars)
+    if (state.length < 10 || state.length > 256 || !/^[a-zA-Z0-9._-]+$/.test(state)) {
+      router.push('/login?error=invalid_state');
       return;
     }
 
@@ -53,18 +66,14 @@ function OAuthCallbackContent() {
             }),
           })
             .then(response => response.json())
-            .then(data => {
+            .then(async data => {
               if (data.success && (data.token || data.refreshToken)) {
-                // Store tokens
-                if (data.token) {
-                  localStorage.setItem('jwt_token', data.token);
-                  localStorage.setItem('access_token', data.token);
-                  document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
-                }
-                if (data.refreshToken) {
-                  localStorage.setItem('refreshToken', data.refreshToken);
-                  document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
-                }
+                // Set HttpOnly cookies via session API
+                await fetch('/api/auth/session', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token: data.token, refreshToken: data.refreshToken }),
+                });
 
                 // Redirect to profile for linking success
                 window.location.href = '/profile?linking=success';
@@ -110,18 +119,14 @@ function OAuthCallbackContent() {
       }),
     })
       .then(response => response.json())
-      .then(data => {
+      .then(async data => {
         if (data.success && (data.token || data.refreshToken)) {
-          // Store tokens
-          if (data.token) {
-            localStorage.setItem('jwt_token', data.token);
-            localStorage.setItem('access_token', data.token);
-            document.cookie = `access_token=${data.token}; path=/; max-age=3600; SameSite=Lax`;
-          }
-          if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken);
-            document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
-          }
+          // Set HttpOnly cookies via session API
+          await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: data.token, refreshToken: data.refreshToken }),
+          });
 
           // Redirect to dashboard
           window.location.href = '/dashboard';

@@ -95,76 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.debug('Checking authentication status');
       setLoading(true);
 
-      // First check if we have tokens in sessionStorage (from OAuth callback)
-      if (typeof window !== 'undefined') {
-        const token = sessionStorage.getItem('jwt_token') || sessionStorage.getItem('access_token');
-
-        if (token && !user) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-
-            const userId = payload.sub || payload.nameid || payload.userId || payload.id;
-            const email = payload.email || payload.Email || '';
-            const username =
-              payload.username ||
-              payload.UserName ||
-              payload.name ||
-              payload.unique_name ||
-              email.split('@')[0] ||
-              'user';
-            const role = payload.role || payload.Role || 'user';
-            // OAuth пользователи обычно не имеют email или email пустой
-            const isOAuthUser =
-              !email ||
-              email.trim() === '' ||
-              email.includes('telegram.local') ||
-              email.includes('@oauth.');
-            // Приоритет JWT claim для hasPassword, fallback на логику
-            const hasPasswordFromJwt =
-              payload.has_password === 'FALSE'
-                ? false
-                : (payload.hasPassword ?? payload.HasPassword);
-            const hasPassword =
-              hasPasswordFromJwt !== undefined ? hasPasswordFromJwt : !isOAuthUser;
-
-            console.log('JWT parsing:', {
-              has_password: payload.has_password,
-              hasPasswordFromJwt,
-              hasPassword,
-              isOAuthUser,
-            });
-
-            // Clear OAuth tokens from sessionStorage if user is not actually OAuth user
-            if (email.includes('telegram.local') || email.includes('@oauth.')) {
-              clearAuthData();
-              throw new Error('OAuth token detected, clearing and using session API');
-            }
-
-            if (userId) {
-              const sessionStorageUser: User = {
-                id: userId,
-                email: email,
-                username: username || email.split('@')[0] || 'user',
-                role: role as 'user' | 'admin',
-                createdAt: new Date().toISOString(),
-                // OAuth пользователи считаются верифицированными
-                isEmailVerified: isOAuthUser
-                  ? true
-                  : payload.email_verified === 'TRUE' || payload.email_verified === true,
-                hasPassword: hasPassword,
-              };
-
-              setUserWithLogging(sessionStorageUser);
-              setLoading(false);
-              return;
-            }
-          } catch (decodeError) {
-            /* ignore error */
-          }
-        }
-      }
-
-      // Always try session API as fallback or if no user found
+      // Use session API to check authentication (tokens stored in HttpOnly cookies)
 
       const res = await fetch('/api/auth/session', { credentials: 'include' });
 
@@ -175,21 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const mappedUser = mapBackendUser(data.user);
           setUserWithLogging(mappedUser);
 
-          // Also save token to sessionStorage for apiClient
-          if (typeof window !== 'undefined') {
-            // Get token from session API response
-            try {
-              const tokenResponse = await fetch('/api/auth/token', { credentials: 'include' });
-              if (tokenResponse.ok) {
-                const tokenData = await tokenResponse.json();
-                if (tokenData.token) {
-                  sessionStorage.setItem('jwt_token', tokenData.token);
-                }
-              }
-            } catch (error) {
-              /* ignore error */
-            }
-          }
           return;
         }
       } else {
@@ -241,29 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUserWithLogging(mapBackendUser(data.user));
     checkAuthCalled.current = false; // Сбрасываем флаг после успешного входa
-
-    // Also save token to sessionStorage for apiClient
-    if (typeof window !== 'undefined') {
-      const cookies = document.cookie.split(';');
-      const accessTokenCookie = cookies.find(c => c.trim().startsWith('access_token='));
-      if (accessTokenCookie) {
-        const token = accessTokenCookie.split('=')[1];
-        sessionStorage.setItem('jwt_token', token);
-      }
-    }
   };
 
   const setTokensFromCallback = async (token: string, refreshToken: string) => {
-    // Store tokens in sessionStorage for apiClient
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('jwt_token', token);
-      sessionStorage.setItem('access_token', token);
-      sessionStorage.setItem('refresh_token', refreshToken);
-
-      // Also try to set cookies for backend compatibility
-      document.cookie = `access_token=${token}; path=/; max-age=3600; SameSite=Lax`;
-      document.cookie = `refresh_token=${refreshToken}; path=/; max-age=604800; SameSite=Lax`;
-    }
+    // Set HttpOnly cookies via session API
+    await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, refreshToken }),
+    });
 
     // Decode JWT token to get user info
     try {
@@ -311,7 +213,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // If we get here, both JWT decode and API fallback failed
-    ('AuthContext setTokensFromCallback - both JWT decode and API fallback failed');
     throw new Error('Failed to authenticate user');
   };
 
@@ -338,9 +239,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAuthData = () => {
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('jwt_token');
-      sessionStorage.removeItem('access_token');
-      sessionStorage.removeItem('refresh_token');
       // Clear all cookies with comprehensive path and domain coverage
       document.cookie.split(';').forEach(c => {
         const cookie = c.trim();

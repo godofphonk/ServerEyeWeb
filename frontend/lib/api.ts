@@ -13,9 +13,6 @@ class ApiClient {
   constructor() {
     // API base URL must be set via environment variable
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
-    
-    // Test: Cookie domain for cookies (used for testing automation)
-    const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN!;
 
     this.client = axios.create({
       baseURL,
@@ -43,17 +40,9 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Add JWT token to all requests
+    // Cookies are sent automatically via withCredentials: true
     this.client.interceptors.request.use(
-      config => {
-        if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        }
-        return config;
-      },
+      config => config,
       error => Promise.reject(error),
     );
 
@@ -79,27 +68,16 @@ class ApiClient {
             });
 
             if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.token) {
-                localStorage.setItem('jwt_token', refreshData.token);
-
-                // Retry the original request with new token
-                if (error.config) {
-                  error.config.headers.Authorization = `Bearer ${refreshData.token}`;
-                  return this.client.request(error.config);
-                }
+              // Token is refreshed in HttpOnly cookies, retry the original request
+              if (error.config) {
+                return this.client.request(error.config);
               }
             }
           } catch (refreshError) {
             // Refresh failed, continue with logout
           }
 
-          // If refresh failed, clear tokens and redirect to login
-          localStorage.removeItem('jwt_token');
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-
-          // Clear cookies
+          // If refresh failed, clear cookies and redirect to login
           document.cookie.split(';').forEach(c => {
             document.cookie = c
               .replace(/^ +/, '')
