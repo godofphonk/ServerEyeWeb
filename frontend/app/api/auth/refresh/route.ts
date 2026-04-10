@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    const accessToken = request.cookies.get('access_token')?.value;
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
     console.log('[Refresh POST] Request received', {
+      hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
+      accessTokenLength: accessToken?.length,
       refreshTokenLength: refreshToken?.length,
       backendUrl: process.env.INTERNAL_API_URL || 'http://backend:8080/api',
     });
@@ -13,6 +16,11 @@ export async function POST(request: NextRequest) {
     if (!refreshToken) {
       console.log('[Refresh POST] No refresh token found');
       return NextResponse.json({ error: 'No refresh token found' }, { status: 401 });
+    }
+
+    if (!accessToken) {
+      console.log('[Refresh POST] No access token found');
+      return NextResponse.json({ error: 'No access token found' }, { status: 401 });
     }
 
     // Forward refresh request to backend
@@ -28,7 +36,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ token: accessToken, refreshToken }),
     });
 
     console.log('[Refresh POST] Backend response', {
