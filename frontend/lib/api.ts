@@ -105,6 +105,9 @@ class ApiClient {
               this.refreshSubscribers.forEach(callback => callback('refreshed'));
               this.refreshSubscribers = [];
 
+              // Small delay to ensure cookies are applied
+              await new Promise(resolve => setTimeout(resolve, 100));
+
               // Retry the original request
               if (originalRequest) {
                 return this.client.request(originalRequest);
