@@ -88,6 +88,7 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
+            console.log('[ApiClient] Attempting token refresh...');
             const refreshResponse = await fetch('/api/auth/refresh', {
               method: 'POST',
               credentials: 'include',
@@ -96,7 +97,10 @@ class ApiClient {
               },
             });
 
+            console.log('[ApiClient] Refresh response status:', refreshResponse.status);
+
             if (refreshResponse.ok) {
+              console.log('[ApiClient] Refresh successful, retrying original request');
               // Notify all subscribers
               this.refreshSubscribers.forEach(callback => callback('refreshed'));
               this.refreshSubscribers = [];
@@ -105,8 +109,26 @@ class ApiClient {
               if (originalRequest) {
                 return this.client.request(originalRequest);
               }
+            } else {
+              console.log('[ApiClient] Refresh failed with status:', refreshResponse.status);
+              // Refresh failed, clear cookies and redirect
+              this.refreshSubscribers.forEach(callback => callback('failed'));
+              this.refreshSubscribers = [];
+
+              document.cookie.split(';').forEach(c => {
+                document.cookie = c
+                  .replace(/^ +/, '')
+                  .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+              });
+
+              // Redirect to login only if not already on login page
+              if (window.location.pathname !== '/login') {
+                console.log('[ApiClient] Redirecting to login');
+                window.location.href = '/login';
+              }
             }
           } catch (refreshError) {
+            console.error('[ApiClient] Refresh error:', refreshError);
             // Refresh failed, notify subscribers and clear cookies
             this.refreshSubscribers.forEach(callback => callback('failed'));
             this.refreshSubscribers = [];
@@ -119,6 +141,7 @@ class ApiClient {
 
             // Redirect to login only if not already on login page
             if (window.location.pathname !== '/login') {
+              console.log('[ApiClient] Redirecting to login after error');
               window.location.href = '/login';
             }
           } finally {
