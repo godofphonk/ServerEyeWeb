@@ -111,12 +111,31 @@ jobs:
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts"
-            # Download all secrets from Doppler in docker format and export as environment variables
+            # Get all NEXT_PUBLIC_* secrets from Doppler dynamically
             export DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }}
-            eval $(doppler secrets download --no-file --format docker --project servereye --config prd_frontend 2>/dev/null || echo "")
             
-            # Dynamically generate build-args for all NEXT_PUBLIC_* variables
-            BUILD_ARGS=$(env | grep "^NEXT_PUBLIC_" | sed 's/^/--build-arg /' | tr '\n' ' ')
+            # Download secrets as JSON and extract NEXT_PUBLIC_* variables
+            SECRETS_JSON=$(doppler secrets download --no-file --format json --project servereye --config prd_frontend 2>/dev/null || echo '{}')
+            
+            # Build build-args string from NEXT_PUBLIC_* variables
+            BUILD_ARGS=""
+            if [ -n "$SECRETS_JSON" ] && [ "$SECRETS_JSON" != "{}" ]; then
+              BUILD_ARGS=$(echo "$SECRETS_JSON" | jq -r 'to_entries[] | select(.key | startswith("NEXT_PUBLIC_")) | "--build-arg \(.key)=\(.value)"' | tr '\n' ' ')
+            fi
+            
+            # Fallback to manual extraction if jq fails
+            if [ -z "$BUILD_ARGS" ]; then
+              echo "Falling back to manual secret extraction"
+              NEXT_PUBLIC_API_URL=$(doppler secrets get NEXT_PUBLIC_API_URL --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
+              NEXT_PUBLIC_WS_URL=$(doppler secrets get NEXT_PUBLIC_WS_URL --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
+              NEXT_PUBLIC_COOKIE_DOMAIN=$(doppler secrets get NEXT_PUBLIC_COOKIE_DOMAIN --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
+              
+              BUILD_ARGS=""
+              [ -n "$NEXT_PUBLIC_API_URL" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
+              [ -n "$NEXT_PUBLIC_WS_URL" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL"
+              [ -n "$NEXT_PUBLIC_COOKIE_DOMAIN" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN"
+            fi
+            
             echo "Build args: $BUILD_ARGS"
             
             # Build with secrets as build-args
