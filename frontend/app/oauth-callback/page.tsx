@@ -104,7 +104,7 @@ function OAuthCallbackContent() {
     const provider = state.split('_')[0]; // state format: provider_action_randomString
 
     // Send to backend callback API and handle response
-    const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/api/auth/oauth/callback`;
+    const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/auth/oauth/callback`;
 
     fetch(callbackUrl, {
       method: 'POST',
