@@ -66,6 +66,10 @@ export async function POST(request: NextRequest) {
       refreshToken: data.refreshToken,
     });
 
+    // Delete old cookies first to prevent duplication
+    nextResponse.cookies.delete('access_token');
+    nextResponse.cookies.delete('refresh_token');
+
     if (data.token) {
       nextResponse.cookies.set('access_token', data.token, {
         httpOnly: true,

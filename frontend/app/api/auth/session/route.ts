@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ success: true });
 
+    // Delete old cookies first to prevent duplication
+    response.cookies.delete('access_token');
+    response.cookies.delete('refresh_token');
+
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
