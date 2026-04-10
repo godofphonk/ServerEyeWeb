@@ -4,8 +4,6 @@ const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = `${API_BASE_URL}/users/register`;
-
     const body = await request.json();
 
     const backendResponse = await fetch(`${API_BASE_URL}/users/register`, {

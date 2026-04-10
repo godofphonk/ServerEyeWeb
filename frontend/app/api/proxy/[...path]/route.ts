@@ -37,7 +37,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     if (backendResponse.status === 401) {
       const refreshToken = request.cookies.get('refresh_token')?.value;
       if (refreshToken && accessToken) {
-        const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
+        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: accessToken, refreshToken }),
