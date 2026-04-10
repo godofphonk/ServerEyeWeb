@@ -95,9 +95,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.debug('Checking authentication status');
       setLoading(true);
 
-      // Use session API to check authentication (tokens stored in HttpOnly cookies)
+      // Dev environment: use localStorage
+      if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+        const token = localStorage.getItem('jwt_token');
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const userId = payload.sub || payload.nameid || payload.userId || payload.id;
+            const email = payload.email || payload.Email;
+            const username = payload.username || payload.UserName || payload.name || payload.unique_name;
+            const role = payload.role || payload.Role || 'user';
 
+            if (userId) {
+              const user: User = {
+                id: userId,
+                email: email || '',
+                username: username || 'user',
+                role: role as 'user' | 'admin',
+                createdAt: new Date().toISOString(),
+                isEmailVerified: payload.email_verified === 'TRUE' || payload.email_verified === true,
+                hasPassword: true,
+              };
+              setUserWithLogging(user);
+              return;
+            }
+          } catch (error) {
+            logger.warn('Failed to decode token from localStorage', { error });
+          }
+        }
+        setUserWithLogging(null);
+        return;
+      }
+
+      // Production: Use session API to check authentication (tokens stored in HttpOnly cookies)
       const res = await fetch('/api/auth/session', { credentials: 'include' });
+
+      logger.debug('Session API response status', { status: res.status });
 
       if (res.ok) {
         const data = await res.json();
@@ -124,9 +157,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setUserWithLogging]); // Убираем зависимость user чтобы избежать бесконечного цикла
 
   useEffect(() => {
-    checkAuth();
-    checkAuthCalled.current = true; // Устанавливаем флаг после вызова
-  }, []); // Пустые зависимости - вызывается только при монтировании
+    if (!checkAuthCalled.current) {
+      checkAuth();
+      checkAuthCalled.current = true;
+    }
+  }, []);
 
   const login = async (email: string, password: string) => {
     const loginUrl = '/api/users/login?t=' + Date.now();

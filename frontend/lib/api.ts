@@ -16,12 +16,24 @@ class ApiClient {
 
     this.client = axios.create({
       baseURL,
-      timeout: 30000, // Increased to 30s
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true, // Send cookies for authentication
+      withCredentials: true, // Send cookies for HttpOnly cookie support
     });
+
+    // Request interceptor
+    this.client.interceptors.request.use(
+      (config) => {
+        // Dev environment: use localStorage for token
+        if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+          const token = localStorage.getItem('jwt_token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        }
+        // Production: cookies are sent automatically via withCredentials
+        return config;
+      },
+      (error) => Promise.reject(error),
+    );
 
     this.setupInterceptors();
   }
