@@ -342,7 +342,7 @@ public sealed class OAuthService(
                 CreatedAt = DateTime.UtcNow,
                 IsRevoked = false
             };
-            await this.refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
+            await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
             this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider} with action {Action}", user.Id, provider, LogSanitizer.Sanitize(action) ?? "auto");
 
@@ -461,7 +461,7 @@ public sealed class OAuthService(
             CreatedAt = DateTime.UtcNow,
             IsRevoked = false
         };
-        await this.refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
+        await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
         return new AuthResponseDto
         {
