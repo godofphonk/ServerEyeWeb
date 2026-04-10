@@ -138,10 +138,19 @@ jobs:
             
             echo "Build args: $BUILD_ARGS"
             
-            # Build with secrets as build-args
+            # Generate cache key based on secrets hash to invalidate cache when secrets change
+            SECRETS_HASH=$(echo "$SECRETS_JSON" | md5sum | cut -d' ' -f1)
+            CACHE_FROM=type=gha,mode=max,ref=ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:buildcache
+            CACHE_TO=type=gha,mode=max,ref=ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:buildcache,ignore-error=true
+            
+            # Build with secrets as build-args and cache invalidation
             if docker buildx build \
               --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
               $BUILD_ARGS \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg SECRETS_HASH=$SECRETS_HASH \
+              --cache-from $CACHE_FROM \
+              --cache-to $CACHE_TO \
               --iidfile /tmp/frontend-iidfile \
               --tag ${{ env.IMAGE_FRONTEND }}:production \
               --tag ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }} \
@@ -150,7 +159,6 @@ jobs:
               --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
               --label org.opencontainers.image.title=ServerEyeWeb \
               --label org.opencontainers.image.version=production \
-              --no-cache \
               --push \
               ./frontend; then
               echo "Build succeeded on attempt $attempt"
