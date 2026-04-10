@@ -13,6 +13,9 @@ class ApiClient {
   constructor() {
     // API base URL must be set via environment variable
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
+    
+    // Test: Cookie domain for cookies (used for testing automation)
+    const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN!;
 
     this.client = axios.create({
       baseURL,
