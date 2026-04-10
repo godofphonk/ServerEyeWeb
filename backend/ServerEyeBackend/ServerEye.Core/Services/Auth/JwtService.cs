@@ -190,6 +190,11 @@ public sealed class JwtService : IJwtService
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
+        return ValidateToken(token, validateLifetime: true);
+    }
+
+    public ClaimsPrincipal? ValidateToken(string token, bool validateLifetime)
+    {
         if (string.IsNullOrEmpty(token))
         {
             return null;
@@ -202,7 +207,7 @@ public sealed class JwtService : IJwtService
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidateLifetime = true,
+            ValidateLifetime = validateLifetime,
             ValidateIssuerSigningKey = true,
             ValidIssuer = this.jwtSettings.Issuer,
             ValidAudience = this.jwtSettings.Audience,
