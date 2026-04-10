@@ -17,12 +17,19 @@ RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_WS_URL
+ARG NEXT_PUBLIC_COOKIE_DOMAIN
+ARG SECRETS_HASH
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL} \
+    NEXT_PUBLIC_COOKIE_DOMAIN=${NEXT_PUBLIC_COOKIE_DOMAIN}
 
 COPY package.json package-lock.json* ./
 RUN npm ci --prefer-offline --no-audit
 
 COPY . .
+# Invalidate cache when secrets change by using SECRETS_HASH in a dummy RUN
+RUN echo "Secrets hash: ${SECRETS_HASH}"
 RUN npm run build:production
 
 # Stage 3: Runner
