@@ -112,10 +112,7 @@ jobs:
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts"
             # Download secrets from Doppler
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler secrets download --project servereye --config prd_frontend --format json > /tmp/doppler-secrets.json
-            # Extract secrets
-            NEXT_PUBLIC_API_URL=$(jq -r '.NEXT_PUBLIC_API_URL // ""' /tmp/doppler-secrets.json)
-            NEXT_PUBLIC_WS_URL=$(jq -r '.NEXT_PUBLIC_WS_URL // ""' /tmp/doppler-secrets.json)
+            eval $(DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler secrets download --project servereye --config prd_frontend --format env)
             echo "NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
             echo "NEXT_PUBLIC_WS_URL: $NEXT_PUBLIC_WS_URL"
             # Build with secrets as build-args
