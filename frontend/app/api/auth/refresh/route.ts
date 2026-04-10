@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
+
 export async function POST(request: NextRequest) {
   try {
     const accessToken = request.cookies.get('access_token')?.value;
@@ -11,6 +13,7 @@ export async function POST(request: NextRequest) {
       accessTokenLength: accessToken?.length,
       refreshTokenLength: refreshToken?.length,
       backendUrl: process.env.INTERNAL_API_URL || 'http://backend:8080/api',
+      cookieDomain: COOKIE_DOMAIN,
     });
 
     if (!refreshToken) {
@@ -60,6 +63,16 @@ export async function POST(request: NextRequest) {
       hasRefreshToken: !!data.refreshToken,
     });
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
+    };
+
+    console.log('[Refresh POST] Cookie options', cookieOptions);
+
     // Set new tokens in cookies
     const nextResponse = NextResponse.json({
       token: data.token,
@@ -72,18 +85,14 @@ export async function POST(request: NextRequest) {
 
     if (data.token) {
       nextResponse.cookies.set('access_token', data.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        ...cookieOptions,
         maxAge: 3600, // 1 hour
       });
     }
 
     if (data.refreshToken) {
       nextResponse.cookies.set('refresh_token', data.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        ...cookieOptions,
         maxAge: 604800, // 7 days
       });
     }
