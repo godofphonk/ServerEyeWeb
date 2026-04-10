@@ -113,6 +113,8 @@ jobs:
             echo "Attempt $attempt of $max_attempts"
             # Get all secrets from Doppler
             ALL_SECRETS=$(DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler secrets list --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
+            echo "All secrets from Doppler:"
+            echo "$ALL_SECRETS"
             BUILD_ARGS=""
             while IFS= read -r secret_name; do
               if [ -n "$secret_name" ]; then
