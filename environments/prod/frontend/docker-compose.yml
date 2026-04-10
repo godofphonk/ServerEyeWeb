@@ -1,5 +1,6 @@
 # Frontend Service for Production
 # Next.js Application
+# Secrets are injected via doppler run -- docker-compose up
 
 services:
   frontend:
@@ -11,6 +12,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
+      # Frontend secrets from Doppler
     restart: unless-stopped
     networks:
       - servereye-network
