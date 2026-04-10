@@ -107,10 +107,15 @@ jobs:
         shell: bash
         run: |
           export PATH="$PATH:/home/runner/work/ServerEyeWeb/ServerEyeWeb/bin"
+          echo "PATH: $PATH"
+          which doppler || echo "doppler not found in PATH"
           max_attempts=3
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "Attempt $attempt of $max_attempts"
+            # Test Doppler connection
+            echo "Testing Doppler connection..."
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler secrets download --project servereye --config prd_frontend --format json || echo "Doppler secrets download failed"
             # Use Doppler to inject secrets at build time
             if DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd_frontend -- \
             docker buildx build \
