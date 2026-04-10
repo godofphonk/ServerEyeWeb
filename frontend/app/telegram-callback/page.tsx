@@ -90,15 +90,6 @@ function TelegramCallbackContent() {
                 })
                   .then(sessionResponse => {
                     if (sessionResponse.ok) {
-                      // Store tokens in localStorage as fallback
-                      if (data.token) {
-                        localStorage.setItem('jwt_token', data.token);
-                        localStorage.setItem('access_token', data.token);
-                      }
-                      if (data.refreshToken) {
-                        localStorage.setItem('refreshToken', data.refreshToken);
-                      }
-
                       // Set flag for Telegram OAuth completion
                       sessionStorage.setItem('telegram_oauth_completed', 'true');
 
@@ -109,21 +100,19 @@ function TelegramCallbackContent() {
                         // Check if email verification is required
                         if (data.skipEmailVerification === true) {
                           // OAuth user - skip email verification
-                          console.log('OAuth user - skipping email verification');
                           window.location.href = '/dashboard';
                         } else {
                           // Regular user - require email verification
-                          console.log('Regular user - redirecting to email verification');
                           window.location.href = '/verify-email';
                         }
                       }
                     } else {
-                      console.error('Failed to set session cookies');
+                      logger.error('Failed to set session cookies');
                       window.location.href = '/login?error=session_failed';
                     }
                   })
                   .catch(err => {
-                    console.error('Error setting session:', err);
+                    logger.error('Error setting session', err as Error);
                     window.location.href = '/login?error=session_error';
                   });
               } else {

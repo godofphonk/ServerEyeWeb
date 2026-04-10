@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { apiClient } from '@/lib/api';
 import {
   VerifyEmailRequest,
@@ -50,50 +49,22 @@ export const authApi = {
   },
 
   async confirmAccountDeletion(data: ConfirmAccountDeletionRequest) {
-    // Use direct axios call to avoid automatic redirect on 401
-    const baseURL = process.env.NEXT_PUBLIC_API_URL!;
-
-    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
-
-    const response = await axios.post(`${baseURL}/auth/confirm-account-deletion`, data, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      withCredentials: true,
-      timeout: 30000,
-    });
-
-    return response.data;
+    return apiClient.post('/auth/confirm-account-deletion', data);
   },
 
   // Direct account deletion for OAuth users without email
   async deleteAccountDirect() {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+    const response = await apiClient.post('/auth/delete-account-direct', {});
 
-    // Call backend directly since Next.js API routes are not working
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL!;
-
-    const response = await axios.post(
-      `${backendUrl}/auth/delete-account-direct`,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        withCredentials: true,
-        timeout: 30000,
-      },
-    );
-
-    // Clear local storage on successful deletion
+    // Clear cookies on successful deletion
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('jwt_token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      document.cookie.split(';').forEach(c => {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+      });
     }
 
-    return response.data;
+    return response;
   },
 };
