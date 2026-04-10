@@ -462,26 +462,28 @@ jobs:
               apt-get install -y nginx
               systemctl enable nginx
             fi
-            
+
             # Create nginx ssl directory
             mkdir -p /etc/nginx/ssl
-            
-            # Copy nginx configuration
+
+            # Always copy nginx configuration (ensures latest changes are applied)
             cp /opt/servereye/environments/prod/nginx/servereye.dev.conf /etc/nginx/sites-available/
-            
+
             # Create symlink if not exists
             if [ ! -L /etc/nginx/sites-enabled/servereye.dev.conf ]; then
               ln -s /etc/nginx/sites-available/servereye.dev.conf /etc/nginx/sites-enabled/
             fi
-            
+
             # Remove default nginx site
             rm -f /etc/nginx/sites-enabled/default
-            
-            # Test nginx configuration
+
+            # Test nginx configuration before reload
             nginx -t
-            
-            # Reload nginx (zero-downtime)
+
+            # Reload nginx (zero-downtime) - applies new configuration
             systemctl reload nginx
+
+            echo "✅ Nginx configuration updated and reloaded successfully"
 
       - name: Verify all containers
         uses: appleboy/ssh-action@v1.0.3
