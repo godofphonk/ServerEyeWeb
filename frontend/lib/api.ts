@@ -9,6 +9,8 @@ import {
 
 class ApiClient {
   private client: AxiosInstance;
+  private isRefreshing = false;
+  private refreshSubscribers: ((token: string) => void)[] = [];
 
   constructor() {
     // API base URL must be set via environment variable
@@ -69,7 +71,22 @@ class ApiClient {
 
         // Handle 401 errors (authentication)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-          // Try to refresh token first
+          const originalRequest = error.config;
+
+          // If already refreshing, add to subscribers queue
+          if (this.isRefreshing) {
+            return new Promise((resolve) => {
+              this.refreshSubscribers.push((token) => {
+                if (originalRequest) {
+                  resolve(this.client.request(originalRequest));
+                }
+              });
+            });
+          }
+
+          // Start refresh process
+          this.isRefreshing = true;
+
           try {
             const refreshResponse = await fetch('/api/auth/refresh', {
               method: 'POST',
@@ -80,25 +97,32 @@ class ApiClient {
             });
 
             if (refreshResponse.ok) {
-              // Token is refreshed in HttpOnly cookies, retry the original request
-              if (error.config) {
-                return this.client.request(error.config);
+              // Notify all subscribers
+              this.refreshSubscribers.forEach(callback => callback('refreshed'));
+              this.refreshSubscribers = [];
+
+              // Retry the original request
+              if (originalRequest) {
+                return this.client.request(originalRequest);
               }
             }
           } catch (refreshError) {
-            // Refresh failed, continue with logout
-          }
+            // Refresh failed, notify subscribers and clear cookies
+            this.refreshSubscribers.forEach(callback => callback('failed'));
+            this.refreshSubscribers = [];
 
-          // If refresh failed, clear cookies and redirect to login
-          document.cookie.split(';').forEach(c => {
-            document.cookie = c
-              .replace(/^ +/, '')
-              .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-          });
+            document.cookie.split(';').forEach(c => {
+              document.cookie = c
+                .replace(/^ +/, '')
+                .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+            });
 
-          // Redirect to login only if not already on login page
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+            // Redirect to login only if not already on login page
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+          } finally {
+            this.isRefreshing = false;
           }
         }
 
