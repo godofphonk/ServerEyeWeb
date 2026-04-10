@@ -88,58 +88,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: userData });
     }
 
-    if (backendResponse.status === 401 && refreshToken) {
-      console.log('[Session GET] Access token expired, attempting refresh');
-      const refreshBody = {
-        token: accessToken,
-        refreshToken: refreshToken,
-      };
-
-      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(refreshBody),
-      });
-
-      console.log('[Session GET] Refresh response status:', refreshResponse.status);
-
-      const refreshData = await refreshResponse.json();
-
-      if (refreshResponse.ok) {
-        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${refreshData.token}`,
-          },
-        });
-
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          const response = NextResponse.json({ user: userData });
-
-          const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax' as const,
-            path: '/',
-            maxAge: refreshData.expiresIn || 1800,
-            ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
-          };
-
-          response.cookies.set('access_token', refreshData.token, cookieOptions);
-
-          response.cookies.set('refresh_token', refreshData.refreshToken, {
-            ...cookieOptions,
-            maxAge: 7 * 24 * 60 * 60,
-          });
-
-          console.log('[Session GET] Tokens refreshed successfully');
-          return response;
-        }
-      } else {
-        console.error('[Session GET] Refresh failed:', refreshData);
-      }
+    if (backendResponse.status === 401) {
+      console.log('[Session GET] Access token expired, session invalid');
+      // Don't automatically refresh - let the client handle refresh through axios interceptor
+      // This prevents infinite refresh loops
+      return NextResponse.json({ user: null }, { status: 401 });
     }
 
     console.log('[Session GET] Session invalid, clearing cookies');
