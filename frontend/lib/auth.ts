@@ -16,22 +16,43 @@ export interface LoginResponse {
 
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>('/users/login', credentials);
-  // Token is stored in HttpOnly cookies by the server
+
+  // Dev environment: store token in localStorage
+  if (process.env.NODE_ENV === 'development' && response.token) {
+    localStorage.setItem('jwt_token', response.token);
+  }
+
   return response;
 }
 
 export async function logout(): Promise<void> {
+  // Clear tokens
+  if (process.env.NODE_ENV === 'development') {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('refresh_token');
+  }
+
   // Cookies are cleared by the server on logout
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
 export function getToken(): string | null {
-  // Tokens are now stored in HttpOnly cookies and not accessible from client-side JS
+  // Dev environment: use localStorage
+  if (process.env.NODE_ENV === 'development') {
+    return localStorage.getItem('jwt_token');
+  }
+
+  // Production: tokens are stored in HttpOnly cookies
   return null;
 }
 
 export function isAuthenticated(): boolean {
-  // Authentication is now checked via session API, not client-side token
+  // Dev environment: check localStorage
+  if (process.env.NODE_ENV === 'development') {
+    return !!localStorage.getItem('jwt_token');
+  }
+
+  // Production: authentication is checked via session API
   return false;
 }
 
