@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const accessToken = request.cookies.get('access_token')?.value;
 
     if (accessToken) {
-      await fetch(`${API_BASE_URL}auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

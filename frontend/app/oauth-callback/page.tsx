@@ -106,6 +106,8 @@ function OAuthCallbackContent() {
     // Send to backend callback API and handle response
     const callbackUrl = `${process.env.NEXT_PUBLIC_API_URL!}/auth/oauth/callback`;
 
+    console.log('[OAuth Callback] Requesting:', callbackUrl);
+
     fetch(callbackUrl, {
       method: 'POST',
       headers: {
@@ -118,23 +120,34 @@ function OAuthCallbackContent() {
         codeVerifier: sessionStorage.getItem('oauth_code_verifier'),
       }),
     })
-      .then(response => response.json())
+      .then(response => {
+        console.log('[OAuth Callback] Response status:', response.status);
+        return response.json();
+      })
       .then(async data => {
+        console.log('[OAuth Callback] Response data:', data);
+
         if (data.success && (data.token || data.refreshToken)) {
+          console.log('[OAuth Callback] Setting cookies via session API');
+
           // Set HttpOnly cookies via session API
-          await fetch('/api/auth/session', {
+          const sessionResponse = await fetch('/api/auth/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: data.token, refreshToken: data.refreshToken }),
           });
 
+          console.log('[OAuth Callback] Session API response status:', sessionResponse.status);
+
           // Redirect to dashboard
           window.location.href = '/dashboard';
         } else {
+          console.error('[OAuth Callback] OAuth failed:', data.message);
           window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
         }
       })
       .catch(error => {
+        console.error('[OAuth Callback] Request failed:', error);
         window.location.href = '/login?error=oauth_auth_failed';
       });
   }, [searchParams, router]);
