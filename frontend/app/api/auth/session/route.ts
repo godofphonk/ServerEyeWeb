@@ -2,51 +2,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
+const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { token, refreshToken } = body;
 
-    console.log('[Session API] POST request received');
-    console.log('[Session API] Token provided:', !!token);
-    console.log('[Session API] Refresh token provided:', !!refreshToken);
-    console.log('[Session API] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[Session POST] Setting cookies', {
+      hasToken: !!token,
+      hasRefreshToken: !!refreshToken,
+      cookieDomain: COOKIE_DOMAIN,
+      nodeEnv: process.env.NODE_ENV,
+    });
 
     if (!token) {
-      console.error('[Session API] No token provided');
+      console.error('[Session POST] No token provided');
       return NextResponse.json({ error: 'No token provided' }, { status: 400 });
     }
 
     const response = NextResponse.json({ success: true });
 
-    // Set cookies
-    response.cookies.set('access_token', token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       path: '/',
       maxAge: 3600, // 1 hour
-    });
+      ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
+    };
 
-    console.log('[Session API] access_token cookie set with secure:', process.env.NODE_ENV === 'production');
+    console.log('[Session POST] Cookie options', cookieOptions);
+
+    // Set cookies
+    response.cookies.set('access_token', token, cookieOptions);
 
     if (refreshToken) {
       response.cookies.set('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
+        ...cookieOptions,
         maxAge: 7 * 24 * 60 * 60, // 7 days
       });
-
-      console.log('[Session API] refresh_token cookie set with secure:', process.env.NODE_ENV === 'production');
     }
 
-    console.log('[Session API] Response sent successfully');
+    console.log('[Session POST] Cookies set successfully');
     return response;
   } catch (error) {
-    console.error('[Session API] Error:', error);
+    console.error('[Session POST] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -56,13 +57,14 @@ export async function GET(request: NextRequest) {
     const accessToken = request.cookies.get('access_token')?.value;
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
-    console.log('[Session API] GET request received');
-    console.log('[Session API] access_token cookie present:', !!accessToken);
-    console.log('[Session API] refresh_token cookie present:', !!refreshToken);
-    console.log('[Session API] API_BASE_URL:', API_BASE_URL);
+    console.log('[Session GET] Checking session', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      apiBaseUrl: API_BASE_URL,
+    });
 
     if (!accessToken) {
-      console.log('[Session API] No access_token cookie found');
+      console.log('[Session GET] No access token found');
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
@@ -74,12 +76,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('[Session GET] Backend response status:', backendResponse.status);
+
     if (backendResponse.ok) {
       const userData = await backendResponse.json();
+      console.log('[Session GET] User data retrieved successfully');
       return NextResponse.json({ user: userData });
     }
 
     if (backendResponse.status === 401 && refreshToken) {
+      console.log('[Session GET] Access token expired, attempting refresh');
       const refreshBody = {
         token: accessToken,
         refreshToken: refreshToken,
@@ -90,6 +96,8 @@ export async function GET(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(refreshBody),
       });
+
+      console.log('[Session GET] Refresh response status:', refreshResponse.status);
 
       const refreshData = await refreshResponse.json();
 
@@ -106,32 +114,37 @@ export async function GET(request: NextRequest) {
           const userData = await userResponse.json();
           const response = NextResponse.json({ user: userData });
 
-          response.cookies.set('access_token', refreshData.token, {
+          const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: 'lax' as const,
             path: '/',
             maxAge: refreshData.expiresIn || 1800,
-          });
+            ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
+          };
+
+          response.cookies.set('access_token', refreshData.token, cookieOptions);
 
           response.cookies.set('refresh_token', refreshData.refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
+            ...cookieOptions,
             maxAge: 7 * 24 * 60 * 60,
           });
 
+          console.log('[Session GET] Tokens refreshed successfully');
           return response;
         }
+      } else {
+        console.error('[Session GET] Refresh failed:', refreshData);
       }
     }
 
+    console.log('[Session GET] Session invalid, clearing cookies');
     const response = NextResponse.json({ user: null }, { status: 401 });
     response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   } catch (error) {
+    console.error('[Session GET] Error:', error);
     return NextResponse.json({ user: null }, { status: 500 });
   }
 }
