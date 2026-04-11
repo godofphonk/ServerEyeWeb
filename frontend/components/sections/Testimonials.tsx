@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const testimonials = [
   {

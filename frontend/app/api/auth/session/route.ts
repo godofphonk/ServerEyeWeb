@@ -9,15 +9,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { token, refreshToken } = body;
 
-    console.log('[Session POST] Setting cookies', {
-      hasToken: !!token,
-      hasRefreshToken: !!refreshToken,
-      cookieDomain: COOKIE_DOMAIN,
-      nodeEnv: process.env.NODE_ENV,
-    });
-
     if (!token) {
-      console.error('[Session POST] No token provided');
       return NextResponse.json({ error: 'No token provided' }, { status: 400 });
     }
 
@@ -36,8 +28,6 @@ export async function POST(request: NextRequest) {
       ...(COOKIE_DOMAIN && { domain: COOKIE_DOMAIN }),
     };
 
-    console.log('[Session POST] Cookie options', cookieOptions);
-
     // Set cookies
     response.cookies.set('access_token', token, cookieOptions);
 
@@ -48,10 +38,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('[Session POST] Cookies set successfully');
     return response;
   } catch (error) {
-    console.error('[Session POST] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -59,16 +47,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const accessToken = request.cookies.get('access_token')?.value;
-    const refreshToken = request.cookies.get('refresh_token')?.value;
-
-    console.log('[Session GET] Checking session', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      apiBaseUrl: API_BASE_URL,
-    });
+    const _refreshToken = request.cookies.get('refresh_token')?.value;
 
     if (!accessToken) {
-      console.log('[Session GET] No access token found');
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
@@ -80,28 +61,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log('[Session GET] Backend response status:', backendResponse.status);
-
     if (backendResponse.ok) {
       const userData = await backendResponse.json();
-      console.log('[Session GET] User data retrieved successfully');
       return NextResponse.json({ user: userData });
     }
 
     if (backendResponse.status === 401) {
-      console.log('[Session GET] Access token expired, session invalid');
       // Don't automatically refresh - let the client handle refresh through axios interceptor
       // This prevents infinite refresh loops
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    console.log('[Session GET] Session invalid, clearing cookies');
     const response = NextResponse.json({ user: null }, { status: 401 });
     response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
   } catch (error) {
-    console.error('[Session GET] Error:', error);
     return NextResponse.json({ user: null }, { status: 500 });
   }
 }

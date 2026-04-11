@@ -14,10 +14,10 @@ function hasResponseStatus(error: unknown): error is { response: { status: numbe
     typeof error === 'object' &&
     error !== null &&
     'response' in error &&
-    typeof (error as any).response === 'object' &&
-    (error as any).response !== null &&
-    'status' in (error as any).response &&
-    typeof (error as any).response.status === 'number'
+    typeof (error as { response: unknown }).response === 'object' &&
+    (error as { response: unknown }).response !== null &&
+    'status' in (error as { response: { status?: unknown } }).response &&
+    typeof (error as { response: { status: number } }).response.status === 'number'
   );
 }
 
@@ -26,7 +26,7 @@ function hasErrorCode(error: unknown): error is { code: string } {
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    typeof (error as any).code === 'string'
+    typeof (error as { code: unknown }).code === 'string'
   );
 }
 
@@ -83,7 +83,7 @@ export async function fetchWithRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
@@ -118,11 +118,11 @@ export async function fetchWithRetry<T>(
   throw lastError;
 }
 
-export function isGoApiTemporaryError(error: any): boolean {
+export function isGoApiTemporaryError(error: unknown): boolean {
   return error instanceof GoApiError && error.isTemporary;
 }
 
-export function getRetryDelay(error: any, attempt: number = 0): number {
+export function getRetryDelay(error: unknown, attempt: number = 0): number {
   if (error instanceof GoApiError) {
     switch (error.errorType) {
       case 'Timeout':

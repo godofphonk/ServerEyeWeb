@@ -167,7 +167,7 @@ export interface TemperatureDetails {
   cpu_temperature: number;
   gpu_temperature: number;
   system_temperature: number;
-  storage_temperatures: any[] | null;
+  storage_temperatures: { device: string; temperature: number }[] | null;
   highest_temperature: number;
   temperature_unit: 'celsius' | 'fahrenheit';
 }
@@ -272,9 +272,9 @@ export interface MetricsResponse {
   server_name?: string;
   start_time?: string;
   end_time?: string;
-  data_points?: any[];
+  data_points?: MetricsDataPoint[];
   total_points?: number;
-  status?: any;
+  status?: string;
   cached_at?: string;
 }
 
@@ -319,7 +319,7 @@ export interface DashboardMetrics {
   trends: MetricTrends;
   alerts?: MetricAlert[];
   timestamp?: string;
-  summary?: any;
+  summary?: { totalServers: number; healthyServers: number; offlineServers: number };
 }
 
 // WebSocket types
@@ -374,7 +374,7 @@ export interface ApiResponse<T> {
 export interface ApiError {
   message: string;
   code: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 // Go API Error Types
@@ -397,7 +397,7 @@ export type GoApiErrorCode =
 export interface GoApiErrorDetails {
   error_type: GoApiErrorType;
   is_temporary: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface GoApiErrorResponse {
@@ -522,7 +522,7 @@ export interface SourceInfo {
     source_type: string;
     identifier: string;
     identifier_type: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     created_at: string;
     updated_at: string;
   }>;

@@ -33,9 +33,9 @@ function OAuthCallbackContent() {
         setStatus('success');
         setMessage('Successfully authenticated!');
         setTimeout(() => router.push('/dashboard'), 2000);
-      } catch (error: any) {
+      } catch (error: unknown) {
         setStatus('error');
-        setMessage(error.message || 'Authentication failed');
+        setMessage(error instanceof Error ? error.message : 'Authentication failed');
         setTimeout(() => router.push('/login'), 3000);
       }
     };

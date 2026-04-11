@@ -16,7 +16,6 @@ import {
   XCircle,
   Trash2,
   PlayCircle,
-  PauseCircle,
   RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -189,7 +188,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       );
       onTicketUpdate?.();
       onClose();
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

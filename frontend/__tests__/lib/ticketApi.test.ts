@@ -153,7 +153,7 @@ describe('ticketApi', () => {
       const tickets = [makeTicket({ status: 'Open' })];
       apiClient.get.mockResolvedValue(tickets);
 
-      const result = await ticketApi.getTicketsByStatus('Open' as any);
+      const result = await ticketApi.getTicketsByStatus('Open' as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       expect(apiClient.get).toHaveBeenCalledWith('/tickets/status/Open');
       expect(result).toHaveLength(1);
@@ -166,7 +166,7 @@ describe('ticketApi', () => {
       apiClient.put.mockResolvedValue(updatedTicket);
 
       const result = await ticketApi.updateTicketStatus('ticket-1', {
-        status: 'InProgress' as any,
+        status: 'InProgress' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
 
       expect(apiClient.put).toHaveBeenCalledWith('/tickets/ticket-1/status', {
@@ -179,7 +179,7 @@ describe('ticketApi', () => {
       apiClient.put.mockRejectedValue({ response: { status: 404 } });
 
       await expect(
-        ticketApi.updateTicketStatus('nonexistent', { status: 'Resolved' as any }),
+        ticketApi.updateTicketStatus('nonexistent', { status: 'Resolved' as any }), // eslint-disable-line @typescript-eslint/no-explicit-any
       ).rejects.toMatchObject({ response: { status: 404 } });
     });
   });
@@ -207,7 +207,7 @@ describe('ticketApi', () => {
         isStaffReply: true,
       };
 
-      const result = await ticketApi.addTicketMessage('ticket-1', messageData as any);
+      const result = await ticketApi.addTicketMessage('ticket-1', messageData as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       expect(apiClient.post).toHaveBeenCalledWith('/tickets/ticket-1/messages', messageData);
       expect(result.messages).toHaveLength(1);
@@ -218,7 +218,7 @@ describe('ticketApi', () => {
       apiClient.post.mockRejectedValue({ response: { status: 404 } });
 
       await expect(
-        ticketApi.addTicketMessage('nonexistent', { message: 'test' } as any),
+        ticketApi.addTicketMessage('nonexistent', { message: 'test' } as any), // eslint-disable-line @typescript-eslint/no-explicit-any
       ).rejects.toMatchObject({ response: { status: 404 } });
     });
   });

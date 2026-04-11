@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ExternalLogin, OAuthProvider, OAuthProviderMap } from '@/types';
+import { ExternalLogin, OAuthProvider } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 interface OAuthSettingsProps {
@@ -21,7 +21,7 @@ interface OAuthSettingsProps {
 }
 
 export function OAuthSettings({ className }: OAuthSettingsProps) {
-  const { getExternalLogins, linkExternalAccount, unlinkExternalAccount, getOAuthChallenge, user } =
+  const { getExternalLogins, unlinkExternalAccount, getOAuthChallenge } =
     useAuth();
   const [externalLogins, setExternalLogins] = useState<ExternalLogin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +35,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       const providers = response.externalLogins || [];
 
       setExternalLogins(providers);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', 'Failed to load connected accounts');
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       );
 
       window.location.href = modifiedChallengeUrl;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', `Failed to link ${provider} account: ${error.message}`);
       setIsLinking(null);
     }
@@ -168,7 +168,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       await unlinkExternalAccount(provider);
       toast.success('Success', `${provider} account unlinked successfully`);
       await loadExternalLogins(); // Reload the list
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', `Failed to unlink ${provider} account`);
     } finally {
       setIsUnlinking(null);

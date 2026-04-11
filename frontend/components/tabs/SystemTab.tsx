@@ -22,14 +22,14 @@ const calculateUptime = (lastSeen: string): string => {
 
 interface SystemTabProps {
   dashboardMetrics: DashboardMetrics | null;
-  historicalMetrics: MetricsResponse | null;
-  server: any;
+  historicalMetrics?: MetricsResponse | null;
+  server: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-export default function SystemTab({ dashboardMetrics, historicalMetrics, server }: SystemTabProps) {
+export default function SystemTab({ dashboardMetrics, historicalMetrics: _historicalMetrics, server }: SystemTabProps) {
   // TODO: Get real data from API when available
   const uptime = server?.lastSeen ? calculateUptime(server.lastSeen) : 'N/A';
-  const processes = 'N/A'; // Not available in current API
+  const _processes = 'N/A'; // Not available in current API
 
   return (
     <div className='space-y-6'>

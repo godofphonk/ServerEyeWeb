@@ -12,26 +12,21 @@ import {
   HardDrive,
   MemoryStick,
   Wifi,
-  Monitor,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api';
 import {
   getServerStaticInfoCached,
-  getServerCompleteData,
   getServerKey,
   getCachedMonitoredServers,
-  getCachedMetrics,
   getCachedTieredMetrics,
 } from '@/lib/serverApi';
 import {
   MonitoredServer,
   DashboardMetrics,
   MetricsResponse,
-  MetricAlert,
   ServerStaticInfo,
 } from '@/types';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import ShareServerModal from '@/components/ShareServerModal';
 import MetricsTabs from '@/components/tabs/MetricsTabs';
@@ -47,7 +42,7 @@ export default function ServerDetailPage() {
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
   // Unified historical metrics state - all charts use the same data
   const [historicalMetrics, setHistoricalMetrics] = useState<MetricsResponse | null>(null);
-  const [networkDetails, setNetworkDetails] = useState<any>(null);
+  const networkDetails = useState<any>(null)[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cpu');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -108,7 +103,6 @@ export default function ServerDetailPage() {
 
   // Helper function to get server info (optimized)
   const getServerInfo = async () => {
-    const serverKey = await getServerKey(serverId);
     const servers = await getCachedMonitoredServers();
     const serverData = servers.find(s => s.serverId === serverId);
 
@@ -170,12 +164,12 @@ export default function ServerDetailPage() {
 
   // Функция для заполнения пропущенных данных нулями
   const fillMissingDataPoints = (
-    dataPoints: any[],
+    dataPoints: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
     start: Date,
     end: Date,
     granularityMinutes: number,
-    range: string,
-    expectedPoints: number,
+    _range: string,
+    _expectedPoints: number,
   ) => {
     // Округляем start и end до гранулярности
     const startRounded = roundToGranularity(start, granularityMinutes);
@@ -286,7 +280,6 @@ export default function ServerDetailPage() {
   };
 
   const loadHistoricalMetrics = async (range: '1h' | '6h' | '24h' | '7d' | '30d' = '1h') => {
-    const perfStart = performance.now();
     const now = new Date();
 
     // Round to nearest minute for better alignment with Go API data
@@ -337,12 +330,6 @@ export default function ServerDetailPage() {
 
     // Детальное логирование timestamps для проверки актуальности данных
     if (response.dataPoints && response.dataPoints.length > 0) {
-      const now = new Date();
-      const firstPoint = new Date(response.dataPoints[0].timestamp);
-      const lastPoint = new Date(response.dataPoints[response.dataPoints.length - 1].timestamp);
-      const minutesAgoFirst = Math.floor((now.getTime() - firstPoint.getTime()) / (1000 * 60));
-      const minutesAgoLast = Math.floor((now.getTime() - lastPoint.getTime()) / (1000 * 60));
-
       // Фильтр переустановки агента отключен - показываем все данные
     }
 
@@ -370,7 +357,7 @@ export default function ServerDetailPage() {
     );
 
     // Transform API response - convert flat structure to nested for charts
-    const transformedDataPoints = filledDataPoints.map((point: any) => ({
+    const transformedDataPoints = filledDataPoints.map((point: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
       timestamp: point.timestamp,
       cpu: { avg: point.cpu_avg, max: point.cpu_max, min: point.cpu_min },
       memory: { avg: point.memory_avg, max: point.memory_max, min: point.memory_min },

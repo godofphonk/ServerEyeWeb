@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface TabItem {
@@ -52,11 +51,11 @@ export function TabsNavigation({ tabs, activeTab, onTabChange }: TabsNavigationP
 }
 
 interface TabsContentProps {
-  activeTab: string;
+  activeTab?: string;
   children: React.ReactNode;
 }
 
-export function TabsContent({ activeTab, children }: TabsContentProps) {
+export function TabsContent({ activeTab: _activeTab, children }: TabsContentProps) {
   return <div className='mt-6'>{children}</div>;
 }
 

@@ -32,12 +32,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
       return NextResponse.redirect(new URL(`/login?error=backend_error`, request.url));
     }
 
     // Get response data to check if user was created/updated
-    const responseData = await response.json();
+    await response.json();
 
     // Backend should set httpOnly cookies and return user data
     // Redirect to dashboard on success

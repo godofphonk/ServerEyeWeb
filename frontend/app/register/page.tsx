@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle, Send } from 'lucide-react';
+import { ArrowRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -88,7 +88,7 @@ export default function RegisterPage() {
     try {
       const authURL = await getOAuthURL(provider, 'register');
       window.location.href = authURL;
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }
@@ -119,7 +119,7 @@ export default function RegisterPage() {
       setShowVerificationModal(true);
 
       toast.info('Registration Successful', 'Please verify your email to continue');
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || 'Registration failed');
     } finally {
       setIsLoading(false);

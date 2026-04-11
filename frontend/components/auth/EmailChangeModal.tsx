@@ -58,7 +58,7 @@ export function EmailChangeModal({
       setStep('verify');
 
       toast.success('Verification Code Sent', `A verification code has been sent to ${newEmail}`);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to send verification code';
 
@@ -96,7 +96,7 @@ export function EmailChangeModal({
         onClose();
         resetForm();
       }, 1500);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Verification failed';
 
@@ -113,7 +113,7 @@ export function EmailChangeModal({
       await authApi.changeEmail({ newEmail: newEmail.trim() });
 
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
 

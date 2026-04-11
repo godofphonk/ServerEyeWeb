@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
       return NextResponse.json(
         { success: false, message: 'Backend authentication failed' },
         { status: response.status },

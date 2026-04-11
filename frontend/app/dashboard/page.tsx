@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import {
   getServersWithStaticInfo,
-  getServerMetrics,
   getServerUnifiedData,
   clearServersCache,
   clearMetricsCache,
@@ -14,11 +13,9 @@ import { motion } from 'framer-motion';
 import {
   Activity,
   Cpu,
-  HardDrive,
   Server as ServerIcon,
   Plus,
   RefreshCw,
-  Search,
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -29,7 +26,6 @@ import ServerSourcesBadge from '@/components/ServerSourcesBadge';
 import {
   MonitoredServer,
   DashboardMetrics,
-  HistoricalMetricsResponse,
   ServerStaticInfo,
   GoApiError,
 } from '@/types';
@@ -44,7 +40,6 @@ import { ServerError, ServerErrorInline } from '@/components/ui/ServerError';
 import { TelegramServerDiscoveryModal } from '@/components/TelegramServerDiscoveryModal';
 import { useTelegramServerDiscovery } from '@/hooks/useTelegramServerDiscovery';
 import { useSubscription } from '@/hooks/useSubscription';
-import { SubscriptionBadge } from '@/components/billing/SubscriptionBadge';
 import { logger } from '@/lib/telemetry/logger';
 
 export default function DashboardPage() {
@@ -58,13 +53,12 @@ export default function DashboardPage() {
   } = useAuth();
 
   // Use subscription for status display
-  const { hasPremium, isPro } = useSubscription();
+  useSubscription();
   const router = useRouter();
   const toast = useToast();
 
   // Защита от множественных редиректов
   const redirectAttempted = useRef(false);
-  const effectCalled = useRef(false);
 
   const [servers, setServers] = useState<
     Array<MonitoredServer & { staticInfo?: ServerStaticInfo }>
@@ -82,8 +76,8 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set());
   const [goApiError, setGoApiError] = useState<GoApiError | null>(null);
-  const [serverError, setServerError] = useState<any>(null);
-  const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError | any>>({});
+  const [serverError, setServerError] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [metricsErrors, setMetricsErrors] = useState<Record<string, GoApiError | any>>({}); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   // Telegram Server Discovery integration
   const telegramDiscovery = useTelegramServerDiscovery({
@@ -92,7 +86,6 @@ export default function DashboardPage() {
   });
 
   // Auto-login for development - CORS is fixed!
-  const autoLoginAttempted = useRef(false);
   const loadServersCalled = useRef(false); // Защита от множественных вызовов
 
   const loadServerMetrics = useCallback(
@@ -155,7 +148,7 @@ export default function DashboardPage() {
         };
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
-      } catch (error: any) {
+      } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         // Handle GoApiError specifically
         if (error instanceof GoApiError) {
           // Store error for display
@@ -227,7 +220,7 @@ export default function DashboardPage() {
           await Promise.all(metricsPromises);
         }
       }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // Handle GoApiError specifically
       if (error instanceof GoApiError) {
         // Store error for display
@@ -280,29 +273,6 @@ export default function DashboardPage() {
     },
     [telegramDiscovery, loadServers, toast],
   );
-
-  const handleAddServer = async (serverKey: string) => {
-    try {
-      logger.info('Adding server', { serverKey: serverKey.substring(0, 8) + '...' });
-      const response = await apiClient.post('/api/servers/add', { serverKey });
-      const newServer = (response as any).data;
-      setServers(prev => [...prev, newServer]);
-      // setShowAddServerModal(false);
-      // setAddServerKey('');
-      logger.info('Server added successfully', {
-        serverId: newServer.id,
-        hostname: newServer.hostname,
-      });
-      toast.success('Server added successfully!');
-    } catch (error: any) {
-      logger.error(
-        'Failed to add server',
-        error instanceof Error ? error : new Error(String(error)),
-        { serverKey: serverKey.substring(0, 8) + '...' },
-      );
-      toast.error(error.response?.data?.message || 'Failed to add server');
-    }
-  };
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -436,7 +406,7 @@ export default function DashboardPage() {
       );
 
       setDeleteModal({ isOpen: false, server: null });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       logger.error('Failed to delete server', error, { serverId: deleteModal.server?.id });
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';

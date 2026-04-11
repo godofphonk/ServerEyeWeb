@@ -9,7 +9,6 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const { setTokensFromCallback } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [error, setError] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -103,8 +102,7 @@ function AuthCallbackContent() {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         router.push('/dashboard');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Authentication failed');
+      } catch (_err) {
         setStatus('error');
 
         // Redirect to login after error

@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketMessage, TicketStatus, AddTicketMessageRequest } from '@/types';
+import { Ticket, TicketMessage, TicketStatus } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
@@ -117,7 +116,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
 
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

@@ -6,7 +6,7 @@ import { Card } from './Card';
 import { Button } from './Button';
 
 interface ServerErrorProps {
-  error: any;
+  error: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   onRetry?: () => void;
   showRetryButton?: boolean;
   compact?: boolean;
@@ -154,6 +154,6 @@ export function ServerError({
   );
 }
 
-export function ServerErrorInline({ error, onRetry }: { error: any; onRetry?: () => void }) {
+export function ServerErrorInline({ error, onRetry }: { error: any; onRetry?: () => void }) { // eslint-disable-line @typescript-eslint/no-explicit-any
   return <ServerError error={error} onRetry={onRetry} compact={true} showRetryButton={true} />;
 }

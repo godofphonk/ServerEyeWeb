@@ -76,7 +76,7 @@ export function NotificationDropdown({
       if (unreadCount > 0) {
         toast.success('All Read', `${unreadCount} notifications marked as read`);
       }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

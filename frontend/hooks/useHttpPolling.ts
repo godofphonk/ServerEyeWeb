@@ -3,7 +3,7 @@ import { apiClient } from '@/lib/api';
 
 interface UseMetricsPollingOptions {
   serverId: string;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
   onError?: (error: string) => void;
   enabled?: boolean;
   interval?: number; // в секундах
@@ -14,10 +14,10 @@ export function useHttpPolling({
   onMessage,
   onError,
   enabled = true,
-  interval = 30, // Default 30 seconds to respect rate limiting (100 req/min)
+  interval: _interval = 30, // Default 30 seconds to respect rate limiting (100 req/min)
 }: UseMetricsPollingOptions) {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<any>(null);
+  const [lastMessage, setLastMessage] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [shouldStop, setShouldStop] = useState(false);
@@ -34,6 +34,7 @@ export function useHttpPolling({
       // Use C# backend endpoint for real metrics
       const end = new Date();
       const start = new Date(end.getTime() - 5 * 60 * 1000);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const metrics = await apiClient.get<any>(
         `/servers/by-key/${serverId}/metrics?start=${start.toISOString()}&end=${end.toISOString()}&granularity=1m`,
       );
@@ -75,7 +76,7 @@ export function useHttpPolling({
       setIsConnected(true);
       setError(null);
       onMessage?.(processedData);
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // Handle errors
       if (err.response?.status === 401) {
         setError('Authentication required');

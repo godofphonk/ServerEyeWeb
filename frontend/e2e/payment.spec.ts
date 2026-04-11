@@ -77,7 +77,7 @@ test.describe('Pricing Page', () => {
         .catch(() => false)
     ) {
       // Get initial price
-      const initialPrice = await page
+      const _initialPrice = await page
         .locator('.price')
         .first()
         .textContent()
@@ -88,7 +88,7 @@ test.describe('Pricing Page', () => {
       await page.waitForTimeout(500);
 
       // Price should change
-      const newPrice = await page
+      const _newPrice = await page
         .locator('.price')
         .first()
         .textContent()

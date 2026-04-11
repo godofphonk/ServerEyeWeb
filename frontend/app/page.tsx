@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Hero from '@/components/sections/Hero';
 import Visualization from '@/components/sections/Visualization';
 import PainPoint from '@/components/sections/PainPoint';

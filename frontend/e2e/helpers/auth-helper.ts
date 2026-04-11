@@ -124,8 +124,7 @@ export async function createTestUser(
 /**
  * Delete test user via API
  */
-export async function deleteTestUser(request: APIRequestContext, email: string): Promise<void> {
+export async function deleteTestUser(_request: APIRequestContext, _email: string): Promise<void> {
   // This would require admin API or specific cleanup endpoint
   // Implementation depends on your backend API
-  console.log(`Cleanup: delete user ${email}`);
 }

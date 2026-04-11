@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, AlertTriangle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Trash2, AlertTriangle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { DeleteSourceIdentifiersRequest, SourceInfo } from '@/types';
 import { useToast } from '@/hooks/useToast';

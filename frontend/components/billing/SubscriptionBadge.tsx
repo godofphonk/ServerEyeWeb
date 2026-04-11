@@ -9,7 +9,7 @@ interface SubscriptionBadgeProps {
 }
 
 export function SubscriptionBadge({ className = '' }: SubscriptionBadgeProps) {
-  const { subscription, loading, isPro, hasPremium } = useSubscription();
+  const { subscription, loading, isPro } = useSubscription();
 
   if (loading) {
     return (

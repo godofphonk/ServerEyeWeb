@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, AlertCircle, Send } from 'lucide-react';
+import { ArrowRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/Input';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, getOAuthURL, user, loading } = useAuth();
+  const { login, getOAuthURL, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -54,7 +54,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage = err.message || 'Invalid email or password';
 
       // Проверяем требуется ли верификация email
@@ -83,7 +83,7 @@ export default function LoginPage() {
     try {
       const authURL = await getOAuthURL(provider, 'login');
       window.location.href = authURL;
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }

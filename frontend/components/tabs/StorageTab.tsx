@@ -11,7 +11,7 @@ import { DashboardMetrics, MetricsResponse } from '@/types';
 interface StorageTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null;
-  staticInfo?: any;
+  staticInfo?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
 }
 

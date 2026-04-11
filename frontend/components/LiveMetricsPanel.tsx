@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useHttpPolling } from '@/hooks/useHttpPolling';
@@ -14,7 +14,7 @@ interface LiveMetricsPanelProps {
 }
 
 export default function LiveMetricsPanel({ serverId, enabled = true }: LiveMetricsPanelProps) {
-  const [metricsHistory, setMetricsHistory] = useState<LiveMetrics[]>([]);
+  const [_metricsHistory, setMetricsHistory] = useState<LiveMetrics[]>([]);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const maxHistoryLength = 60; // Keep last 60 data points
 
