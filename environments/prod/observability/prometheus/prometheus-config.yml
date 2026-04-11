@@ -2,8 +2,8 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'servereye-dev'
-    environment: 'development'
+    cluster: 'servereye-prod'
+    environment: 'production'
 
 # Alertmanager configuration (optional for dev)
 alerting:
@@ -31,7 +31,7 @@ scrape_configs:
         labels:
           service: 'postgresql'
           database: 'main'
-          instance: 'servereye-postgres-main-dev'
+          instance: 'servereye-postgres-main-prod'
 
   # Redis Exporter
   - job_name: 'redis'
@@ -39,7 +39,7 @@ scrape_configs:
       - targets: ['redis-exporter:9121']
         labels:
           service: 'redis'
-          instance: 'servereye-redis-dev'
+          instance: 'servereye-redis-prod'
 
   # Backend API metrics
   - job_name: 'backend-api'
