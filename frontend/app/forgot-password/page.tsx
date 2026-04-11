@@ -42,9 +42,10 @@ export default function ForgotPasswordPage() {
         'If an account with this email exists, you will receive a password reset link',
       );
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to send reset link';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Failed to send reset link';
 
       toast.error('Request Failed', errorMessage);
     } finally {

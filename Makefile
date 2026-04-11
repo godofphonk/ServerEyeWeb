@@ -1,7 +1,7 @@
 # ServerEye Web - Environment Management Makefile
 # Enterprise-level environment management with component separation
 
-.PHONY: help dev-up dev-down dev-logs dev-clean prod-setup prod-deploy prod-logs prod-clean build test lint
+.PHONY: help dev-up dev-down dev-logs dev-clean build test lint dev-infra-up dev-observability-up dev-backend-up dev-frontend-up dev-stripe-up dev-infra-down dev-observability-down dev-backend-down dev-frontend-down dev-stripe-down dev-infra-logs dev-observability-logs dev-backend-logs dev-frontend-logs dev-stripe-logs dev-shell
 
 # Default target
 help:
@@ -31,26 +31,9 @@ help:
 	@echo "  dev-backend-logs - Show backend logs"
 	@echo "  dev-frontend-logs - Show frontend logs"
 	@echo ""
-	@echo "🚀 Production - Full Stack:"
-	@echo "  prod-setup       - Setup production environment (Doppler)"
-	@echo "  prod-deploy      - Deploy all production services"
-	@echo "  prod-down        - Stop all production services"
-	@echo "  prod-logs        - Show all production logs"
-	@echo "  prod-clean       - Clean all production services"
-	@echo "  prod-status      - Check production status"
-	@echo ""
-	@echo "🏭 Production - Component-wise:"
-	@echo "  prod-infra-up    - Start production infrastructure"
-	@echo "  prod-backend-up  - Start production backend"
-	@echo "  prod-frontend-up - Start production frontend"
-	@echo "  prod-infra-down  - Stop production infrastructure"
-	@echo "  prod-backend-down - Stop production backend"
-	@echo "  prod-frontend-down - Stop production frontend"
-	@echo ""
-	@echo "🔨 Build & Test:"
-	@echo "  build            - Build all services"
+	@echo "� Build & Test:"
+	@echo "  build            - Build all development services"
 	@echo "  test             - Run all tests (including Docker tests)"
-	@echo "  test-ci          - Run CI/CD tests (Unit + Simple Integration only)"
 	@echo "  test-backend     - Run all backend tests"
 	@echo "  test-backend-ci  - Run backend CI/CD tests (no Docker)"
 	@echo "  test-frontend    - Run frontend tests"
@@ -183,102 +166,13 @@ dev-shell:
 	docker exec -it servereye-backend-dev /bin/sh
 
 # ==============================================================================
-# PRODUCTION ENVIRONMENT
-# ==============================================================================
-
-prod-setup:
-	@echo "⚙️  Setting up production environment..."
-	@if [ ! -f "./environments/prod/setup-doppler.sh" ]; then \
-		echo "❌ Doppler setup script not found!"; \
-		exit 1; \
-	fi
-	chmod +x ./environments/prod/setup-doppler.sh
-	./environments/prod/setup-doppler.sh
-	@echo "✅ Production environment setup completed!"
-
-# Full Stack Production
-prod-deploy: prod-infra-up prod-backend-up prod-frontend-up
-	@echo "✅ All production services deployed!"
-	@echo "🌐 Frontend: https://servereye.dev"
-	@echo "🔧 Backend:  https://api.servereye.dev"
-
-prod-down: prod-frontend-down prod-backend-down prod-infra-down
-	@echo "✅ All production services stopped!"
-
-prod-logs:
-	@echo "📋 Showing all production logs..."
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f & \
-	docker compose -f ./environments/prod/backend/docker-compose.yml logs -f & \
-	docker compose -f ./environments/prod/frontend/docker-compose.yml logs -f
-
-prod-clean: prod-down
-	@echo "🧹 Cleaning production environment..."
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml down -v --remove-orphans
-	docker compose -f ./environments/prod/backend/docker-compose.yml down -v --remove-orphans
-	docker compose -f ./environments/prod/frontend/docker-compose.yml down -v --remove-orphans
-	@echo "✅ Production environment cleaned!"
-
-prod-status:
-	@echo "📊 Checking production status..."
-	@echo "\n🏗️  Infrastructure:"
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml ps
-	@echo "\n🔧 Backend:"
-	docker compose -f ./environments/prod/backend/docker-compose.yml ps
-	@echo "\n🌐 Frontend:"
-	docker compose -f ./environments/prod/frontend/docker-compose.yml ps
-
-# Component-wise Production Commands
-prod-infra-up:
-	@echo "🏗️  Starting production infrastructure..."
-	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	doppler run --project servereye --config prd -- docker compose -f ./environments/prod/infrastructure/docker-compose.yml up -d
-	@echo "✅ Infrastructure started!"
-
-prod-backend-up:
-	@echo "🔧 Starting production backend..."
-	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	doppler run --project servereye --config prd -- docker compose -f ./environments/prod/backend/docker-compose.yml up -d --build
-	@echo "✅ Backend started!"
-
-prod-frontend-up:
-	@echo "🌐 Starting production frontend..."
-	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	docker compose -f ./environments/prod/frontend/docker-compose.yml up -d --build
-	@echo "✅ Frontend started!"
-
-prod-infra-down:
-	@echo "🛑 Stopping production infrastructure..."
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml down
-
-prod-backend-down:
-	@echo "🛑 Stopping production backend..."
-	docker compose -f ./environments/prod/backend/docker-compose.yml down
-
-prod-frontend-down:
-	@echo "🛑 Stopping production frontend..."
-	docker compose -f ./environments/prod/frontend/docker-compose.yml down
-
-prod-infra-logs:
-	@echo "📋 Production infrastructure logs..."
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f
-
-prod-backend-logs:
-	@echo "📋 Production backend logs..."
-	docker compose -f ./environments/prod/backend/docker-compose.yml logs -f
-
-prod-frontend-logs:
-	@echo "📋 Production frontend logs..."
-	docker compose -f ./environments/prod/frontend/docker-compose.yml logs -f
-
-# ==============================================================================
 # BUILD COMMANDS
 # ==============================================================================
 
 build:
-	@echo "🔨 Building all services..."
+	@echo "� Building all development services..."
 	make build-dev
-	make build-prod
-	@echo "✅ All services built!"
+	@echo "✅ All development services built!"
 
 build-dev:
 	@echo "🔨 Building development services..."
@@ -286,12 +180,6 @@ build-dev:
 	docker compose -f ./environments/dev/backend/docker-compose.yml build --no-cache
 	docker compose -f ./environments/dev/frontend/docker-compose.yml build --no-cache
 	@echo "✅ Development services built!"
-
-build-prod:
-	@echo "🔨 Building production services..."
-	docker build -f ./environments/dockerfiles/backend-prod.Dockerfile -t servereye-backend:prod ./backend/ServerEyeBackend/
-	docker build -f ./environments/dockerfiles/frontend-prod.Dockerfile -t servereye-frontend:prod ./frontend/
-	@echo "✅ Production services built!"
 
 # ==============================================================================
 # TEST COMMANDS
@@ -302,11 +190,6 @@ test:
 	make test-backend
 	make test-frontend
 	@echo "✅ All tests completed!"
-
-test-ci:
-	@echo "🚀 Running CI/CD tests (reliable only)..."
-	./ci-tests.sh
-	@echo "✅ CI/CD tests completed!"
 
 test-backend:
 	@echo "🧪 Running backend tests..."
@@ -354,12 +237,11 @@ lint-frontend:
 clean:
 	@echo "🧹 Cleaning all environments..."
 	make dev-clean
-	make prod-clean
 	docker system prune -af --volumes
 	@echo "✅ All environments cleaned!"
 
 status:
-	@echo "📊 Status of all environments..."
+	@echo "📊 Status of all development environments..."
 	@echo ""
 	@echo "🔧 Development:"
 	@echo "Infrastructure:"
@@ -372,18 +254,10 @@ status:
 	@docker compose -f ./environments/dev/backend/docker-compose.yml ps 2>/dev/null || echo "Backend not running"
 	@echo "Frontend:"
 	@docker compose -f ./environments/dev/frontend/docker-compose.yml ps 2>/dev/null || echo "Frontend not running"
-	@echo ""
-	@echo "🚀 Production:"
-	@if command -v doppler &> /dev/null; then \
-		doppler run --config=production -- docker compose -f ./environments/prod/docker-compose.yml ps 2>/dev/null || echo "Production environment not running"; \
-	else \
-		echo "Doppler CLI not installed - run 'make prod-setup'"; \
-	fi
 
 backup:
 	@echo "💾 Creating database backups..."
 	@mkdir -p ./backups/dev
-	@mkdir -p ./backups/prod
 	@echo "Backing up development databases..."
 	docker exec servereyeWeb-postgres pg_dump -U postgres ServerEyeWeb_Dev > ./backups/dev/main_db_$(shell date +%Y%m%d_%H%M%S).sql
 	docker exec servereyeWeb-ticket-postgres pg_dump -U postgres ServerEyeWeb_Dev_Ticket > ./backups/dev/ticket_db_$(shell date +%Y%m%d_%H%M%S).sql

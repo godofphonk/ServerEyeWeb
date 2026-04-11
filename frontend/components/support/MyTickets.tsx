@@ -127,7 +127,6 @@ export function MyTickets() {
         }
       }
     } catch (_err: unknown) {
-       
       setError('Failed to load tickets');
       setTickets([]);
     } finally {
@@ -157,7 +156,6 @@ export function MyTickets() {
       // Reload tickets after creating
       loadTickets();
     } catch (_err: unknown) {
-
       /* ignore error */
     }
   };

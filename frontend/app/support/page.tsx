@@ -112,7 +112,6 @@ export default function SupportPage() {
         setTimeout(() => setActiveTab('tickets'), 100);
       }
     } catch (error: unknown) {
-
       setSubmitStatus('error');
       const errorMessage =
         (error as AxiosApiError)?.response?.data?.message ||

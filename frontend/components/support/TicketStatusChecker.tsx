@@ -72,8 +72,11 @@ export function TicketStatusChecker() {
       const result = await ticketApi.getTicketByNumber(ticketNumber.trim());
       setTicket(result);
     } catch (_err: unknown) {
-
-      setError((_err as AxiosApiError).response?.status === 404 ? 'Ticket not found' : 'Failed to fetch ticket');
+      setError(
+        (_err as AxiosApiError).response?.status === 404
+          ? 'Ticket not found'
+          : 'Failed to fetch ticket',
+      );
     } finally {
       setIsLoading(false);
     }

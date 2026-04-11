@@ -77,9 +77,10 @@ export function NotificationDropdown({
         toast.success('All Read', `${unreadCount} notifications marked as read`);
       }
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Unknown error occurred';
 
       toast.error('Action Failed', `Failed to mark notifications as read: ${errorMessage}`);
     } finally {

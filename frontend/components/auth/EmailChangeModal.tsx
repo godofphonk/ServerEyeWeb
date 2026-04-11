@@ -60,9 +60,10 @@ export function EmailChangeModal({
 
       toast.success('Verification Code Sent', `A verification code has been sent to ${newEmail}`);
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to send verification code';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Failed to send verification code';
 
       toast.error('Request Failed', errorMessage);
     } finally {
@@ -99,9 +100,10 @@ export function EmailChangeModal({
         resetForm();
       }, 1500);
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Verification failed';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Verification failed';
 
       toast.error('Verification Failed', errorMessage);
     } finally {
@@ -117,9 +119,10 @@ export function EmailChangeModal({
 
       toast.success('Code Resent', 'A new verification code has been sent to your email');
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to resend code';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Failed to resend code';
 
       toast.error('Resend Failed', errorMessage);
     } finally {

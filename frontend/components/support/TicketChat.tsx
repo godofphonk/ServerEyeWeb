@@ -117,9 +117,10 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Unknown error occurred';
 
       toast.error('Send Failed', `Failed to send message: ${errorMessage}`);
 

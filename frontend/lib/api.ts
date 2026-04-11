@@ -131,7 +131,6 @@ class ApiClient {
               }
             }
           } catch (refreshError) {
-             
             console.error('[ApiClient] Refresh error:', refreshError);
             // Refresh failed, notify subscribers and clear cookies
             this.refreshSubscribers.forEach(callback => callback('failed'));

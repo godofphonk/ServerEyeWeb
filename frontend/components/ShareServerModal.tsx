@@ -79,8 +79,10 @@ export default function ShareServerModal({
       setAccessLevel('Viewer');
       await loadSharedUsers();
     } catch (err: unknown) {
-
-      setError((err as AxiosApiError)?.response?.data?.message || 'Failed to share server. Please try again.');
+      setError(
+        (err as AxiosApiError)?.response?.data?.message ||
+          'Failed to share server. Please try again.',
+      );
     } finally {
       setIsSharing(false);
     }

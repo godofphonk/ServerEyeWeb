@@ -90,7 +90,6 @@ export default function RegisterPage() {
       const authURL = await getOAuthURL(provider, 'register');
       window.location.href = authURL;
     } catch (err: unknown) {
-
       setError((err as AxiosApiError)?.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }
@@ -122,7 +121,6 @@ export default function RegisterPage() {
 
       toast.info('Registration Successful', 'Please verify your email to continue');
     } catch (err: unknown) {
-
       setError((err as AxiosApiError)?.message || 'Registration failed');
     } finally {
       setIsLoading(false);

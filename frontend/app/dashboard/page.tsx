@@ -16,7 +16,13 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import { hasUserAccess } from '@/lib/authUtils';
 import ServerSourcesBadge from '@/components/ServerSourcesBadge';
-import { MonitoredServer, DashboardMetrics, ServerStaticInfo, GoApiError, AxiosApiError } from '@/types';
+import {
+  MonitoredServer,
+  DashboardMetrics,
+  ServerStaticInfo,
+  GoApiError,
+  AxiosApiError,
+} from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
@@ -137,7 +143,6 @@ export default function DashboardPage() {
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
       } catch (error: unknown) {
-
         // Handle GoApiError specifically
         if (error instanceof GoApiError) {
           // Store error for display
@@ -160,9 +165,14 @@ export default function DashboardPage() {
         }
         // Handle other errors
         setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
-        if ((error as AxiosApiError).response?.status !== 404 && (error as AxiosApiError).message !== 'canceled') {
+        if (
+          (error as AxiosApiError).response?.status !== 404 &&
+          (error as AxiosApiError).message !== 'canceled'
+        ) {
           const errorMessage =
-            (error as AxiosApiError).response?.data?.message || (error as AxiosApiError).message || 'Unknown error occurred';
+            (error as AxiosApiError).response?.data?.message ||
+            (error as AxiosApiError).message ||
+            'Unknown error occurred';
           toast.error('Failed to load server metrics', errorMessage);
         }
       } finally {
@@ -211,7 +221,6 @@ export default function DashboardPage() {
         }
       }
     } catch (error: unknown) {
-
       // Handle GoApiError specifically
       if (error instanceof GoApiError) {
         // Store error for display
@@ -236,7 +245,9 @@ export default function DashboardPage() {
       setServerError(error);
       if ((error as AxiosApiError).response?.status !== 404) {
         const errorMessage =
-          (error as AxiosApiError).response?.data?.message || (error as AxiosApiError).message || 'Unknown error occurred';
+          (error as AxiosApiError).response?.data?.message ||
+          (error as AxiosApiError).message ||
+          'Unknown error occurred';
         toast.error('Failed to load servers', errorMessage);
       }
     } finally {
@@ -398,10 +409,11 @@ export default function DashboardPage() {
 
       setDeleteModal({ isOpen: false, server: null });
     } catch (error: unknown) {
-
       logger.error('Failed to delete server', error as Error, { serverId: deleteModal.server?.id });
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Unknown error occurred';
 
       toast.error('Delete Failed', `Failed to delete server: ${errorMessage}`);
     } finally {
