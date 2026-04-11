@@ -121,20 +121,36 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
         };
 
         var key = envVar;
+        string section = "";
         foreach (var replacement in replacements)
         {
             if (key.StartsWith(replacement.Key))
             {
-                key = replacement.Value + key.Substring(replacement.Key.Length);
+                section = replacement.Value;
+                key = key.Substring(replacement.Key.Length);
                 break;
             }
         }
 
-        // Convert snake_case to PascalCase for configuration sections
-        key = string.Join("", key.Split('_', ':').Select(part =>
-            char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant()));
+        // Convert snake_case to camelCase for property names
+        var parts = key.Split('_');
+        var propertyName = string.Join("", parts.Select((part, index) =>
+        {
+            if (string.IsNullOrEmpty(part))
+            {
+                return "";
+            }
 
-        return key;
+            // First part: lowercase, subsequent parts: PascalCase
+            if (index == 0)
+            {
+                return part.ToLowerInvariant();
+            }
+
+            return char.ToUpperInvariant(part[0]) + part.Substring(1).ToLowerInvariant();
+        }));
+
+        return section + propertyName;
     }
 }
 
