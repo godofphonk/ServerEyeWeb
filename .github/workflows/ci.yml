@@ -31,10 +31,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v6.0.2
 
       - name: Check for changes
-        uses: dorny/paths-filter@de90cc6df1ac6151082e259807a416c904f3b1f7 # v3.0.0
+        uses: dorny/paths-filter@v3.0.0
         id: filter
         with:
           filters: |
@@ -83,17 +83,17 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v6.0.2
 
       - name: Check markdown links
-        uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368 # v1.0.15
+        uses: gaurav-nelson/github-action-markdown-link-check@v1.0.15
         with:
           use-quiet-mode: 'yes'
           use-verbose-mode: 'yes'
           config-file: '.github/markdown-link-check-config.json'
 
       - name: Lint markdown files
-        uses: nosborn/github-action-markdown-cli@9b5e871c11cc0649c5ac2526af22e23525fa344d # v3.3.0
+        uses: nosborn/github-action-markdown-cli@v3.3.0
         with:
           files: .
           config_file: '.markdownlint.json'
