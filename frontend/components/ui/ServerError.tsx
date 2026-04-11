@@ -154,6 +154,7 @@ export function ServerError({
   );
 }
 
-export function ServerErrorInline({ error, onRetry }: { error: any; onRetry?: () => void }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function ServerErrorInline({ error, onRetry }: { error: any; onRetry?: () => void }) {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   return <ServerError error={error} onRetry={onRetry} compact={true} showRetryButton={true} />;
 }

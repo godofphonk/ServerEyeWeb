@@ -21,8 +21,7 @@ interface OAuthSettingsProps {
 }
 
 export function OAuthSettings({ className }: OAuthSettingsProps) {
-  const { getExternalLogins, unlinkExternalAccount, getOAuthChallenge } =
-    useAuth();
+  const { getExternalLogins, unlinkExternalAccount, getOAuthChallenge } = useAuth();
   const [externalLogins, setExternalLogins] = useState<ExternalLogin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLinking, setIsLinking] = useState<string | null>(null);
@@ -35,7 +34,8 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       const providers = response.externalLogins || [];
 
       setExternalLogins(providers);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', 'Failed to load connected accounts');
     } finally {
       setIsLoading(false);
@@ -151,7 +151,8 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       );
 
       window.location.href = modifiedChallengeUrl;
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', `Failed to link ${provider} account: ${error.message}`);
       setIsLinking(null);
     }
@@ -168,7 +169,8 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       await unlinkExternalAccount(provider);
       toast.success('Success', `${provider} account unlinked successfully`);
       await loadExternalLogins(); // Reload the list
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       toast.error('Error', `Failed to unlink ${provider} account`);
     } finally {
       setIsUnlinking(null);

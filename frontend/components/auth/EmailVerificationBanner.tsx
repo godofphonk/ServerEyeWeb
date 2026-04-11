@@ -36,7 +36,8 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
     try {
       await authApi.resendVerification({ email });
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
 

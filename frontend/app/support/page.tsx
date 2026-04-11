@@ -111,7 +111,8 @@ export default function SupportPage() {
         setActiveTab('create');
         setTimeout(() => setActiveTab('tickets'), 100);
       }
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setSubmitStatus('error');
       const errorMessage =
         error.response?.data?.message ||

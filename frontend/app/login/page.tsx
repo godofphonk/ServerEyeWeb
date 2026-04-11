@@ -54,7 +54,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage = err.message || 'Invalid email or password';
 
       // Проверяем требуется ли верификация email
@@ -83,7 +84,8 @@ export default function LoginPage() {
     try {
       const authURL = await getOAuthURL(provider, 'login');
       window.location.href = authURL;
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }

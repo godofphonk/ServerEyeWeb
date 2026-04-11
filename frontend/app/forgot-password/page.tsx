@@ -40,7 +40,8 @@ export default function ForgotPasswordPage() {
         'Reset Link Sent',
         'If an account with this email exists, you will receive a password reset link',
       );
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to send reset link';
 

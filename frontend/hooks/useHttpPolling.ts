@@ -76,7 +76,8 @@ export function useHttpPolling({
       setIsConnected(true);
       setError(null);
       onMessage?.(processedData);
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       // Handle errors
       if (err.response?.status === 401) {
         setError('Authentication required');

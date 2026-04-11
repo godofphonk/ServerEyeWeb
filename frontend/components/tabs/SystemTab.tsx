@@ -26,7 +26,11 @@ interface SystemTabProps {
   server: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-export default function SystemTab({ dashboardMetrics, historicalMetrics: _historicalMetrics, server }: SystemTabProps) {
+export default function SystemTab({
+  dashboardMetrics,
+  historicalMetrics: _historicalMetrics,
+  server,
+}: SystemTabProps) {
   // TODO: Get real data from API when available
   const uptime = server?.lastSeen ? calculateUptime(server.lastSeen) : 'N/A';
   const _processes = 'N/A'; // Not available in current API

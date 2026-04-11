@@ -20,7 +20,7 @@ const nextConfig = {
   // Security headers
   async headers() {
     const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     return [
       {
         source: '/(.*)',

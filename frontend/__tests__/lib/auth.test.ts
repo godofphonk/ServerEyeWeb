@@ -74,26 +74,26 @@ describe('isAdmin', () => {
   });
 
   it('returns true for user with admin role (lowercase)', () => {
-    expect(isAdmin({ role: 'admin' })).toBe(true);
+    expect(isAdmin({ id: '1', email: 'admin@example.com', role: 'admin' })).toBe(true);
   });
 
   it('returns true for user with Admin role (capitalized)', () => {
-    expect(isAdmin({ role: 'Admin' })).toBe(true);
+    expect(isAdmin({ id: '1', email: 'admin@example.com', role: 'Admin' })).toBe(true);
   });
 
   it('returns true for user with ADMIN role (uppercase)', () => {
-    expect(isAdmin({ role: 'ADMIN' })).toBe(true);
+    expect(isAdmin({ id: '1', email: 'admin@example.com', role: 'ADMIN' })).toBe(true);
   });
 
   it('returns false for user with user role', () => {
-    expect(isAdmin({ role: 'user' })).toBe(false);
+    expect(isAdmin({ id: '1', email: 'user@example.com', role: 'user' })).toBe(false);
   });
 
   it('returns false for user with no role', () => {
-    expect(isAdmin({})).toBe(false);
+    expect(isAdmin({ id: '1', email: 'user@example.com' })).toBe(false);
   });
 
   it('returns false for user with empty role', () => {
-    expect(isAdmin({ role: '' })).toBe(false);
+    expect(isAdmin({ id: '1', email: 'user@example.com', role: '' })).toBe(false);
   });
 });

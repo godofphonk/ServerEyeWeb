@@ -188,7 +188,8 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       );
       onTicketUpdate?.();
       onClose();
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';
 

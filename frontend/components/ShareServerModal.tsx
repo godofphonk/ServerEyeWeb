@@ -78,7 +78,8 @@ export default function ShareServerModal({
       setEmail('');
       setAccessLevel('Viewer');
       await loadSharedUsers();
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err?.response?.data?.message || 'Failed to share server. Please try again.');
     } finally {
       setIsSharing(false);

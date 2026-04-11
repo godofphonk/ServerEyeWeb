@@ -102,11 +102,12 @@ export async function getServersWithStaticInfo(): Promise<
 
           return {
             ...server,
-          /* eslint-disable @typescript-eslint/no-explicit-any */
+            /* eslint-disable @typescript-eslint/no-explicit-any */
             staticInfo,
-          /* eslint-enable @typescript-eslint/no-explicit-any */
+            /* eslint-enable @typescript-eslint/no-explicit-any */
           };
-        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+          // eslint-disable-line @typescript-eslint/no-explicit-any
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
           if (error.response?.status >= 500) {
             throw error;
@@ -254,7 +255,8 @@ export async function getCachedTieredMetrics(
   startTime?: string,
   endTime?: string,
   granularity?: string,
-): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -294,7 +296,8 @@ export async function getCachedMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
@@ -333,7 +336,8 @@ export async function getServerMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   const params = new URLSearchParams({
     start: startTime,
     end: endTime,

@@ -20,12 +20,7 @@ import {
   getCachedMonitoredServers,
   getCachedTieredMetrics,
 } from '@/lib/serverApi';
-import {
-  MonitoredServer,
-  DashboardMetrics,
-  MetricsResponse,
-  ServerStaticInfo,
-} from '@/types';
+import { MonitoredServer, DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import ShareServerModal from '@/components/ShareServerModal';
@@ -357,7 +352,8 @@ export default function ServerDetailPage() {
     );
 
     // Transform API response - convert flat structure to nested for charts
-    const transformedDataPoints = filledDataPoints.map((point: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+    const transformedDataPoints = filledDataPoints.map((point: any) => ({
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       timestamp: point.timestamp,
       cpu: { avg: point.cpu_avg, max: point.cpu_max, min: point.cpu_min },
       memory: { avg: point.memory_avg, max: point.memory_max, min: point.memory_min },

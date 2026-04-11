@@ -126,7 +126,8 @@ export function MyTickets() {
           setTickets([]);
         }
       }
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError('Failed to load tickets');
       setTickets([]);
     } finally {
@@ -155,7 +156,8 @@ export function MyTickets() {
 
       // Reload tickets after creating
       loadTickets();
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       /* ignore error */
     }
   };

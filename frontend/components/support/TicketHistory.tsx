@@ -38,7 +38,8 @@ export function TicketHistory() {
       if (result.length === 0) {
         setError('No tickets found for this email');
       }
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError('Failed to fetch tickets');
     } finally {
       setIsLoading(false);

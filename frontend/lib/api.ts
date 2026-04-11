@@ -23,11 +23,11 @@ class ApiClient {
 
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
+      config => {
         // Cookies are handled by the Next.js proxy server-side
         return config;
       },
-      (error) => Promise.reject(error),
+      error => Promise.reject(error),
     );
 
     this.setupInterceptors();
@@ -70,8 +70,8 @@ class ApiClient {
 
           // If already refreshing, add to subscribers queue
           if (this.isRefreshing) {
-            return new Promise((resolve) => {
-              this.refreshSubscribers.push((_token) => {
+            return new Promise(resolve => {
+              this.refreshSubscribers.push(_token => {
                 if (originalRequest) {
                   resolve(this.client.request(originalRequest));
                 }
@@ -130,8 +130,8 @@ class ApiClient {
                 window.location.href = '/login';
               }
             }
-          } // eslint-disable-next-line no-console
-            catch (refreshError) {
+          } catch (refreshError) {
+            // eslint-disable-next-line no-console
             console.error('[ApiClient] Refresh error:', refreshError);
             // Refresh failed, notify subscribers and clear cookies
             this.refreshSubscribers.forEach(callback => callback('failed'));
