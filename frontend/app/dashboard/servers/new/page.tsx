@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 import { clearServersCache, clearMetricsCache } from '@/lib/serverApi';
 import { useToast } from '@/hooks/useToast';
+import { AxiosApiError } from '@/types';
 
 export default function AddServerPage() {
   const router = useRouter();
@@ -51,11 +52,11 @@ export default function AddServerPage() {
       toast.success('Server Added', `Server "${serverName.trim()}" has been successfully added`);
 
       router.push('/dashboard');
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
         'Failed to add server. Please check your API key.';
 
       setError(errorMessage);

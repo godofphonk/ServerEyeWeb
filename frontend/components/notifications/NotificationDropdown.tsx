@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Notification } from '@/types';
+import { Notification, AxiosApiError } from '@/types';
 import { notificationApi } from '@/lib/notificationApi';
 import { NotificationItem } from './NotificationItem';
 import { Loader2, CheckCheck, Inbox } from 'lucide-react';
@@ -37,7 +37,7 @@ export function NotificationDropdown({
       setIsLoading(true);
       const response = await notificationApi.getNotifications(1, 50);
       setNotifications(response.notifications || []);
-    } catch (error) {
+    } catch (_error) {
       // ignore error
     } finally {
       setIsLoading(false);
@@ -59,7 +59,7 @@ export function NotificationDropdown({
         onClose();
         router.push(`/admin/tickets?ticketId=${notification.ticketId}`);
       }
-    } catch (error) {
+    } catch (_error) {
       /* ignore error */
     }
   };
@@ -76,10 +76,10 @@ export function NotificationDropdown({
       if (unreadCount > 0) {
         toast.success('All Read', `${unreadCount} notifications marked as read`);
       }
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
 
       toast.error('Action Failed', `Failed to mark notifications as read: ${errorMessage}`);
     } finally {

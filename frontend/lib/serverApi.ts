@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api';
 import { fetchWithRetry } from './retryUtils';
-import { ServerStaticInfo, MonitoredServer } from '@/types';
+import { ServerStaticInfo, MonitoredServer, AxiosApiError, MetricsResponse } from '@/types';
 
 // Cache for monitored servers
 let cachedServers: MonitoredServer[] | null = null;
@@ -58,7 +58,7 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
       throw error;
     }
 
-    throw new Error(`Failed to load server static info: ${error.message}`);
+    throw new Error(`Failed to load server static info: ${error.message}`, { cause: error });
   }
 }
 
@@ -102,25 +102,27 @@ export async function getServersWithStaticInfo(): Promise<
 
           return {
             ...server,
-            /* eslint-disable @typescript-eslint/no-explicit-any */
+             
             staticInfo,
-            /* eslint-enable @typescript-eslint/no-explicit-any */
+             
           };
-        } catch (error: any) {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
+        } catch (error: unknown) {
+
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
-          if (error.response?.status >= 500) {
+          const responseStatus = (error as AxiosApiError).response?.status;
+          if (responseStatus && responseStatus >= 500) {
             throw error;
           }
 
           // For wrapped errors, check if they contain server error info
-          if (error.message?.includes('Request failed with status code 5')) {
+          const errorMessage = (error as AxiosApiError).message;
+          if (errorMessage && errorMessage.includes('Request failed with status code 5')) {
             // Extract the original error if it's wrapped
-            const statusMatch = error.message.match(/status code (\d{3})/);
+            const statusMatch = errorMessage.match(/status code (\d{3})/);
             const statusCode = statusMatch ? parseInt(statusMatch[1]) : 0;
             if (statusCode >= 500) {
               // Create a mock error with response status for retry mechanism
-              const mockError = new Error(error.message);
+              const mockError = new Error(errorMessage);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (mockError as any).response = { status: statusCode };
               throw mockError;
@@ -255,8 +257,8 @@ export async function getCachedTieredMetrics(
   startTime?: string,
   endTime?: string,
   granularity?: string,
-): Promise<any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<unknown> {
+   
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -296,8 +298,8 @@ export async function getCachedMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<MetricsResponse> {
+   
   const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
@@ -336,15 +338,15 @@ export async function getServerMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+): Promise<MetricsResponse> {
+   
   const params = new URLSearchParams({
     start: startTime,
     end: endTime,
     granularity: granularity,
   });
 
-  const response = await apiClient.get<any>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  const response = await apiClient.get<MetricsResponse>(
     `/servers/by-key/${serverKey}/metrics?${params.toString()}`,
   );
   return response;

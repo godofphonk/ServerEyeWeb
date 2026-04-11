@@ -21,6 +21,30 @@ import {
   getCachedTieredMetrics,
 } from '@/lib/serverApi';
 import { MonitoredServer, DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
+
+interface FlatMetricsDataPoint {
+  timestamp: string;
+  cpu_avg?: number;
+  cpu_max?: number;
+  cpu_min?: number;
+  memory_avg?: number;
+  memory_max?: number;
+  memory_min?: number;
+  disk_avg?: number;
+  disk_max?: number;
+  disk_min?: number;
+  network_avg?: number;
+  network_max?: number;
+  network_min?: number;
+  temp_avg?: number;
+  temp_max?: number;
+  temp_min?: number;
+  load_avg?: number;
+  load_max?: number;
+  load_min?: number;
+  sample_count?: number;
+}
+
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import ShareServerModal from '@/components/ShareServerModal';
@@ -82,7 +106,7 @@ export default function ServerDetailPage() {
 
           // Set historical metrics for all charts from single response
           setHistoricalMetrics(historicalMetrics);
-        } catch (error) {
+        } catch (_error) {
           // ignore error
         } finally {
           // Only hide loading for initial load
@@ -120,20 +144,20 @@ export default function ServerDetailPage() {
       startTime.toISOString(),
       end.toISOString(),
       'minute', // Use minute granularity for dashboard
-    );
+    ) as MetricsResponse;
 
     // Transform API response to expected format
-    const lastDataPoint = response.dataPoints?.[response.dataPoints.length - 1];
+    const lastDataPoint = response.data?.[response.data.length - 1];
 
     const result: DashboardMetrics = {
       current: {
-        cpu: response.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
-        memory: response.summary?.avgMemory || lastDataPoint?.memory_avg || 0,
-        disk: response.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
-        network: lastDataPoint?.network_avg || 0,
-        load: lastDataPoint?.load_avg || 0,
-        temperature: response.temperatureDetails?.cpu_temperature || lastDataPoint?.temp_avg || 0,
-        gpu_temperature: response.temperatureDetails?.gpu_temperature || 0,
+        cpu: response.summary?.avgCpu || lastDataPoint?.cpu.avg || 0,
+        memory: response.summary?.avgMemory || lastDataPoint?.memory.avg || 0,
+        disk: response.summary?.avgDisk || lastDataPoint?.disk.avg || 0,
+        network: lastDataPoint?.network.avg || 0,
+        load: lastDataPoint?.loadAverage.avg || 0,
+        temperature: response.summary?.avgTemperature || lastDataPoint?.temperature.avg || 0,
+        gpu_temperature: 0,
       },
       trends: {
         cpu: response.summary?.avgCpu || 0,
@@ -143,7 +167,7 @@ export default function ServerDetailPage() {
         load: 0,
         temperature: 0,
       },
-      timestamp: response.endTime || new Date().toISOString(),
+      timestamp: response.timeRange.end || new Date().toISOString(),
       alerts: [],
     };
 
@@ -321,21 +345,21 @@ export default function ServerDetailPage() {
       start.toISOString(),
       end.toISOString(),
       granularity,
-    );
+    ) as MetricsResponse;
 
     // Детальное логирование timestamps для проверки актуальности данных
-    if (response.dataPoints && response.dataPoints.length > 0) {
+    if (response.data && response.data.length > 0) {
       // Фильтр переустановки агента отключен - показываем все данные
     }
 
     // Детальное логирование первых и последних точек данных
-    if (response.dataPoints && response.dataPoints.length > 0) {
+    if (response.data && response.data.length > 0) {
       // data points available for logging
     }
 
-    if (response.dataPoints?.length > 0) {
+    if (response.data?.length > 0) {
       // Проверяем если данных меньше ожидаемых
-      if (response.dataPoints.length < expectedPoints * 0.1) {
+      if (response.data.length < expectedPoints * 0.1) {
         // Меньше 10% от ожидаемых
         // Ограниченные данные
       }
@@ -343,7 +367,7 @@ export default function ServerDetailPage() {
 
     // Заполняем пропущенные данные нулями
     const filledDataPoints = fillMissingDataPoints(
-      response.dataPoints || [],
+      response.data || [],
       start,
       end,
       config.minutes,
@@ -352,28 +376,27 @@ export default function ServerDetailPage() {
     );
 
     // Transform API response - convert flat structure to nested for charts
-    const transformedDataPoints = filledDataPoints.map((point: any) => ({
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    const transformedDataPoints = filledDataPoints.map((point: FlatMetricsDataPoint) => ({
       timestamp: point.timestamp,
-      cpu: { avg: point.cpu_avg, max: point.cpu_max, min: point.cpu_min },
-      memory: { avg: point.memory_avg, max: point.memory_max, min: point.memory_min },
-      disk: { avg: point.disk_avg, max: point.disk_max, min: point.disk_min },
+      cpu: { avg: point.cpu_avg || 0, max: point.cpu_max || 0, min: point.cpu_min || 0 },
+      memory: { avg: point.memory_avg || 0, max: point.memory_max || 0, min: point.memory_min || 0 },
+      disk: { avg: point.disk_avg || 0, max: point.disk_max || 0, min: point.disk_min || 0 },
       network: {
-        avg: point.network_avg,
-        max: point.network_max,
-        min: point.network_min || point.network_avg,
+        avg: point.network_avg || 0,
+        max: point.network_max || 0,
+        min: point.network_min || point.network_avg || 0,
       },
       temperature: {
-        avg: point.temp_avg,
-        max: point.temp_max,
-        min: point.temp_min || point.temp_avg,
+        avg: point.temp_avg || 0,
+        max: point.temp_max || 0,
+        min: point.temp_min || point.temp_avg || 0,
       },
       loadAverage: {
-        avg: point.load_avg,
-        max: point.load_max,
-        min: point.load_min || point.load_avg,
+        avg: point.load_avg || 0,
+        max: point.load_max || 0,
+        min: point.load_min || point.load_avg || 0,
       },
-      sampleCount: point.sample_count,
+      sampleCount: point.sample_count || 0,
     }));
 
     const result: MetricsResponse = {

@@ -9,6 +9,7 @@ import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { AxiosApiError } from '@/types';
 
 type DeleteAccountStep =
   | 'initial'
@@ -88,10 +89,9 @@ export function DeleteAccountModal({
         'Deletion Code Sent',
         `A confirmation code has been sent to ${email || 'your email'}. Check your inbox and spam folder.`,
       );
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to send deletion code';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to send deletion code';
 
       if (errorMessage.includes('password')) {
         toast.error('Invalid Password', 'The password you entered is incorrect');
@@ -132,15 +132,15 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       // Check if this is expected error after successful deletion
       // 401/403 = Account deleted, token is now invalid
       // 500 = Server error but account might be deleted
-      const isAuthError = error?.response?.status === 401 || error?.response?.status === 403;
-      const isServerError = error?.response?.status === 500;
+      const isAuthError = (error as AxiosApiError)?.response?.status === 401 || (error as AxiosApiError)?.response?.status === 403;
+      const isServerError = (error as AxiosApiError)?.response?.status === 500;
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to delete account';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to delete account';
 
       // For 500 errors or auth errors, always verify if account was actually deleted
       if (isAuthError || isServerError) {
@@ -161,7 +161,7 @@ export function DeleteAccountModal({
             }
 
             // If we get here, account is deleted (no user in session or 401)
-          } catch (sessionError) {
+          } catch (_sessionError) {
             /* ignore error */
           }
 
@@ -215,10 +215,10 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to delete account';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to delete account';
       toast.error('Deletion Failed', errorMessage);
       setStep('direct-confirm');
     } finally {
@@ -237,10 +237,10 @@ export function DeleteAccountModal({
       setCodeResendTimer(60); // Reset resend timer
 
       toast.warning('Code Resent', 'A new confirmation code has been sent to your email');
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to resend code';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to resend code';
       toast.error('Resend Failed', errorMessage);
     } finally {
       setIsLoading(false);

@@ -68,7 +68,7 @@ export default function LogViewer() {
       const result = await response.json();
 
       setLogs(result.data?.logs || []);
-    } catch (error) {
+    } catch (_error) {
       // ignore error
     } finally {
       setLoading(false);

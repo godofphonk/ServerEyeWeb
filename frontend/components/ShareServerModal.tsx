@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { apiClient } from '@/lib/api';
-import { AccessLevel } from '@/types';
+import { AccessLevel, AxiosApiError } from '@/types';
 
 interface SharedUser {
   userId: string;
@@ -48,7 +48,7 @@ export default function ShareServerModal({
       // TODO: Implement API endpoint to get shared users
       // const users = await apiClient.get<SharedUser[]>(`/monitoredservers/${serverId}/users`);
       // setSharedUsers(users);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load shared users');
     } finally {
       setLoadingUsers(false);
@@ -78,9 +78,9 @@ export default function ShareServerModal({
       setEmail('');
       setAccessLevel('Viewer');
       await loadSharedUsers();
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      setError(err?.response?.data?.message || 'Failed to share server. Please try again.');
+    } catch (err: unknown) {
+
+      setError((err as AxiosApiError)?.response?.data?.message || 'Failed to share server. Please try again.');
     } finally {
       setIsSharing(false);
     }
@@ -94,7 +94,7 @@ export default function ShareServerModal({
     try {
       await apiClient.delete(`/monitoredservers/${serverId}/users/${userId}`);
       await loadSharedUsers();
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to remove user');
       alert('Failed to remove user access. Please try again.');
     }

@@ -771,3 +771,25 @@ export interface LinkOAuthRequest {
   code: string;
   state: string;
 }
+
+// Axios Error interface for API responses
+export interface AxiosApiError {
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+      errors?: string[];
+    };
+  };
+  message?: string;
+}
+
+// Chart tooltip payload interface
+export interface ChartTooltipPayload {
+  payload: {
+    time: string;
+    max?: number;
+    min?: number;
+  };
+  value: number;
+}

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { AxiosApiError } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -54,15 +55,15 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      const errorMessage = err.message || 'Invalid email or password';
+    } catch (err: unknown) {
+
+      const errorMessage = (err as AxiosApiError)?.message || 'Invalid email or password';
 
       // Проверяем требуется ли верификация email
       if (
         errorMessage.includes('Email verification required') ||
         errorMessage.includes('verification') ||
-        err.response?.status === 401
+        (err as AxiosApiError)?.response?.status === 401
       ) {
         // Сохраняем email для страницы верификации
         if (typeof window !== 'undefined') {
@@ -84,9 +85,9 @@ export default function LoginPage() {
     try {
       const authURL = await getOAuthURL(provider, 'login');
       window.location.href = authURL;
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      setError(err.message || `Failed to authenticate with ${provider}`);
+    } catch (err: unknown) {
+
+      setError((err as AxiosApiError)?.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }
   };

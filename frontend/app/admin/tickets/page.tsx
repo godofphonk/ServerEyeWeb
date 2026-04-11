@@ -143,7 +143,7 @@ export default function AdminTicketsPage() {
           const adminTickets = await ticketApi.getTicketsByUserId(user.id, 1, 50);
           const adminTicketsArray = Array.isArray(adminTickets) ? adminTickets : [];
           setTickets(adminTicketsArray);
-        } catch (fallbackErr) {
+        } catch (_fallbackErr) {
           setTickets(ticketsArray);
         }
       } else {
@@ -152,7 +152,7 @@ export default function AdminTicketsPage() {
 
       // Update stats after tickets are loaded
       await loadStats();
-    } catch (error: unknown) {
+    } catch (_error) {
       setTickets([]);
     }
   };
@@ -178,7 +178,7 @@ export default function AdminTicketsPage() {
       };
 
       setStats(mappedStats);
-    } catch (error: unknown) {
+    } catch (_error) {
       // Fallback: calculate stats from tickets if API fails
       if (tickets.length > 0) {
         const fallbackStats = {

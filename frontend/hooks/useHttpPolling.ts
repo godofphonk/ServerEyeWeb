@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
+import { AxiosApiError } from '@/types';
 
 interface UseMetricsPollingOptions {
   serverId: string;
@@ -76,15 +77,15 @@ export function useHttpPolling({
       setIsConnected(true);
       setError(null);
       onMessage?.(processedData);
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: unknown) {
+
       // Handle errors
-      if (err.response?.status === 401) {
+      if ((err as AxiosApiError).response?.status === 401) {
         setError('Authentication required');
         onError?.('Authentication required');
       } else {
         setError('Failed to fetch metrics');
-        onError?.(err.message);
+        onError?.((err as AxiosApiError).message || 'Unknown error');
       }
     } finally {
       setIsLoading(false);

@@ -19,7 +19,7 @@ export function adminAuthMiddleware(request: NextRequest) {
 
     // Admin authorized
     return NextResponse.next();
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 }

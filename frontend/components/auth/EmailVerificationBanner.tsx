@@ -8,6 +8,7 @@ import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
 import { EmailVerificationModal } from './EmailVerificationModal';
 import { EmailChangeModal } from './EmailChangeModal';
+import { AxiosApiError } from '@/types';
 
 interface EmailVerificationBannerProps {
   email: string;
@@ -36,10 +37,10 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
     try {
       await authApi.resendVerification({ email });
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to resend code';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to resend code';
 
       toast.error('Resend Failed', errorMessage);
     } finally {

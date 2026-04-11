@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ExternalLogin, OAuthProvider } from '@/types';
+import { ExternalLogin, OAuthProvider, AxiosApiError } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 interface OAuthSettingsProps {
@@ -34,8 +34,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       const providers = response.externalLogins || [];
 
       setExternalLogins(providers);
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (_error) {
       toast.error('Error', 'Failed to load connected accounts');
     } finally {
       setIsLoading(false);
@@ -73,7 +72,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
               window.location.href = '/oauth/link-handler';
               return;
             }
-          } catch (err) {
+          } catch (_err) {
             sessionStorage.removeItem('oauth_linking');
           }
         }
@@ -151,9 +150,9 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       );
 
       window.location.href = modifiedChallengeUrl;
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      toast.error('Error', `Failed to link ${provider} account: ${error.message}`);
+    } catch (error: unknown) {
+
+      toast.error('Error', `Failed to link ${provider} account: ${(error as AxiosApiError)?.message || 'Unknown error'}`);
       setIsLinking(null);
     }
   };
@@ -169,8 +168,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
       await unlinkExternalAccount(provider);
       toast.success('Success', `${provider} account unlinked successfully`);
       await loadExternalLogins(); // Reload the list
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (_error) {
       toast.error('Error', `Failed to unlink ${provider} account`);
     } finally {
       setIsUnlinking(null);

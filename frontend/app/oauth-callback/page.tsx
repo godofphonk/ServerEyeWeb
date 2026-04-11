@@ -93,7 +93,7 @@ function OAuthCallbackContent() {
         } else {
           sessionStorage.removeItem('oauth_linking');
         }
-      } catch (err) {
+      } catch (_err) {
         sessionStorage.removeItem('oauth_linking');
       }
     }

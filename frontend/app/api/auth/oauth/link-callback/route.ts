@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Backend should set httpOnly cookies and return user data
     // Redirect to return URL on success
     return NextResponse.redirect(new URL(returnUrl, request.url));
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.redirect(new URL(`${returnUrl}?error=callback_exception`, request.url));
   }
 }

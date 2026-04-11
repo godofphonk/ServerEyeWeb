@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
+import { AxiosApiError } from '@/types';
 
 interface EmailChangeModalProps {
   isOpen: boolean;
@@ -58,10 +59,10 @@ export function EmailChangeModal({
       setStep('verify');
 
       toast.success('Verification Code Sent', `A verification code has been sent to ${newEmail}`);
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to send verification code';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to send verification code';
 
       toast.error('Request Failed', errorMessage);
     } finally {
@@ -97,10 +98,10 @@ export function EmailChangeModal({
         onClose();
         resetForm();
       }, 1500);
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Verification failed';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Verification failed';
 
       toast.error('Verification Failed', errorMessage);
     } finally {
@@ -115,10 +116,10 @@ export function EmailChangeModal({
       await authApi.changeEmail({ newEmail: newEmail.trim() });
 
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to resend code';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to resend code';
 
       toast.error('Resend Failed', errorMessage);
     } finally {

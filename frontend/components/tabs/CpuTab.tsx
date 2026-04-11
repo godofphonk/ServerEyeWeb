@@ -78,7 +78,7 @@ export default function CpuTab({
         } else {
           // ignore fetch failure
         }
-      } catch (error) {
+      } catch (_error) {
         /* ignore error */
       }
     };
