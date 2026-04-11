@@ -54,7 +54,7 @@ function AuthCallbackContent() {
 
             // Call backend linking endpoint
             const response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`,
+              `${process.env.NEXT_PUBLIC_API_URL}/auth/oauth/link`,
               {
                 method: 'POST',
                 headers: {

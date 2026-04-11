@@ -9,19 +9,26 @@ import {
 
 class ApiClient {
   private client: AxiosInstance;
+  private isRefreshing = false;
+  private refreshSubscribers: ((token: string) => void)[] = [];
 
   constructor() {
-    // Use 127.0.0.1 for browser access to Docker container
-    const baseURL = 'http://127.0.0.1:5246/api';
+    // API base URL must be set via environment variable
+    const baseURL = process.env.NEXT_PUBLIC_API_URL!;
 
     this.client = axios.create({
       baseURL,
-      timeout: 30000, // Increased to 30s
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true, // Send cookies for authentication
+      withCredentials: true, // Send cookies for HttpOnly cookie support
     });
+
+    // Request interceptor
+    this.client.interceptors.request.use(
+      (config) => {
+        // Cookies are handled by the Next.js proxy server-side
+        return config;
+      },
+      (error) => Promise.reject(error),
+    );
 
     this.setupInterceptors();
   }
@@ -40,17 +47,9 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // Add JWT token to all requests
+    // Cookies are sent automatically via withCredentials: true
     this.client.interceptors.request.use(
-      config => {
-        if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('jwt_token') || localStorage.getItem('access_token');
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        }
-        return config;
-      },
+      config => config,
       error => Promise.reject(error),
     );
 
@@ -65,8 +64,24 @@ class ApiClient {
 
         // Handle 401 errors (authentication)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-          // Try to refresh token first
+          const originalRequest = error.config;
+
+          // If already refreshing, add to subscribers queue
+          if (this.isRefreshing) {
+            return new Promise((resolve) => {
+              this.refreshSubscribers.push((token) => {
+                if (originalRequest) {
+                  resolve(this.client.request(originalRequest));
+                }
+              });
+            });
+          }
+
+          // Start refresh process
+          this.isRefreshing = true;
+
           try {
+            console.log('[ApiClient] Attempting token refresh...');
             const refreshResponse = await fetch('/api/auth/refresh', {
               method: 'POST',
               credentials: 'include',
@@ -75,37 +90,58 @@ class ApiClient {
               },
             });
 
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.token) {
-                localStorage.setItem('jwt_token', refreshData.token);
+            console.log('[ApiClient] Refresh response status:', refreshResponse.status);
 
-                // Retry the original request with new token
-                if (error.config) {
-                  error.config.headers.Authorization = `Bearer ${refreshData.token}`;
-                  return this.client.request(error.config);
-                }
+            if (refreshResponse.ok) {
+              console.log('[ApiClient] Refresh successful, retrying original request');
+              // Notify all subscribers
+              this.refreshSubscribers.forEach(callback => callback('refreshed'));
+              this.refreshSubscribers = [];
+
+              // Small delay to ensure cookies are applied
+              await new Promise(resolve => setTimeout(resolve, 100));
+
+              // Retry the original request
+              if (originalRequest) {
+                return this.client.request(originalRequest);
+              }
+            } else {
+              console.log('[ApiClient] Refresh failed with status:', refreshResponse.status);
+              // Refresh failed, clear cookies and redirect
+              this.refreshSubscribers.forEach(callback => callback('failed'));
+              this.refreshSubscribers = [];
+
+              document.cookie.split(';').forEach(c => {
+                document.cookie = c
+                  .replace(/^ +/, '')
+                  .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+              });
+
+              // Redirect to login only if not already on login page
+              if (window.location.pathname !== '/login') {
+                console.log('[ApiClient] Redirecting to login');
+                window.location.href = '/login';
               }
             }
           } catch (refreshError) {
-            // Refresh failed, continue with logout
-          }
+            console.error('[ApiClient] Refresh error:', refreshError);
+            // Refresh failed, notify subscribers and clear cookies
+            this.refreshSubscribers.forEach(callback => callback('failed'));
+            this.refreshSubscribers = [];
 
-          // If refresh failed, clear tokens and redirect to login
-          localStorage.removeItem('jwt_token');
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+            document.cookie.split(';').forEach(c => {
+              document.cookie = c
+                .replace(/^ +/, '')
+                .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+            });
 
-          // Clear cookies
-          document.cookie.split(';').forEach(c => {
-            document.cookie = c
-              .replace(/^ +/, '')
-              .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-          });
-
-          // Redirect to login only if not already on login page
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+            // Redirect to login only if not already on login page
+            if (window.location.pathname !== '/login') {
+              console.log('[ApiClient] Redirecting to login after error');
+              window.location.href = '/login';
+            }
+          } finally {
+            this.isRefreshing = false;
           }
         }
 

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
+const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
 export async function POST(request: NextRequest) {
   try {
     const accessToken = request.cookies.get('access_token')?.value;
 
     if (accessToken) {
-      await fetch(`${API_BASE_URL}auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

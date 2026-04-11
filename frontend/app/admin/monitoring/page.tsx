@@ -82,7 +82,7 @@ export default function SystemMonitoringPage() {
       /*
       const token = localStorage.getItem('jwt_token');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

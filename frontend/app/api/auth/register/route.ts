@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
+const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = `${API_BASE_URL}/users/register`;
-
     const body = await request.json();
 
     const backendResponse = await fetch(`${API_BASE_URL}/users/register`, {

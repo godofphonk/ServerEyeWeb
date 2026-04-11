@@ -25,20 +25,13 @@ export default function OAuthLinkHandlerPage() {
           throw new Error('Invalid linking information');
         }
 
-        // Get JWT token
-        const jwtToken = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
-
-        if (!jwtToken) {
-          throw new Error('No authentication token found. Please log in first.');
-        }
-
-        // Call backend linking endpoint
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/link`, {
+        // Call backend linking endpoint via proxy (cookies sent automatically)
+        const response = await fetch('/api/proxy/auth/oauth/link', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${jwtToken}`,
           },
+          credentials: 'include',
           body: JSON.stringify({
             provider: provider,
             code: code,
@@ -53,10 +46,13 @@ export default function OAuthLinkHandlerPage() {
 
         const linkData = await response.json();
 
-        // Update tokens from linking response
+        // Update HttpOnly cookies from linking response
         if (linkData.token && linkData.refreshToken) {
-          localStorage.setItem('jwt_token', linkData.token);
-          localStorage.setItem('refresh_token', linkData.refreshToken);
+          await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: linkData.token, refreshToken: linkData.refreshToken }),
+          });
         }
 
         // Clear linking sessionStorage

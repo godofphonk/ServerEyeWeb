@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:5246/api';
+const API_BASE_URL = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
 async function proxyRequest(request: NextRequest, method: string) {
   try {
@@ -8,7 +8,17 @@ async function proxyRequest(request: NextRequest, method: string) {
     const url = new URL(request.url);
     const path = url.pathname.replace('/api/proxy/', '');
     const search = url.search;
-    const targetUrl = `${API_BASE_URL}${path}${search}`;
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const targetUrl = `${baseUrl}/${path}${search}`;
+
+    console.log('[Proxy]', {
+      method,
+      path,
+      search,
+      targetUrl,
+      hasAccessToken: !!accessToken,
+      apiBaseUrl: API_BASE_URL,
+    });
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -37,7 +47,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     if (backendResponse.status === 401) {
       const refreshToken = request.cookies.get('refresh_token')?.value;
       if (refreshToken && accessToken) {
-        const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
+        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: accessToken, refreshToken }),

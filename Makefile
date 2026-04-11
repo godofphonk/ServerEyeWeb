@@ -199,8 +199,8 @@ prod-setup:
 # Full Stack Production
 prod-deploy: prod-infra-up prod-backend-up prod-frontend-up
 	@echo "✅ All production services deployed!"
-	@echo "🌐 Frontend: https://servereye.com"
-	@echo "🔧 Backend:  https://api.servereye.com"
+	@echo "🌐 Frontend: https://servereye.dev"
+	@echo "🔧 Backend:  https://api.servereye.dev"
 
 prod-down: prod-frontend-down prod-backend-down prod-infra-down
 	@echo "✅ All production services stopped!"
@@ -231,13 +231,13 @@ prod-status:
 prod-infra-up:
 	@echo "🏗️  Starting production infrastructure..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	docker compose -f ./environments/prod/infrastructure/docker-compose.yml up -d
+	doppler run --project servereye --config prd -- docker compose -f ./environments/prod/infrastructure/docker-compose.yml up -d
 	@echo "✅ Infrastructure started!"
 
 prod-backend-up:
 	@echo "🔧 Starting production backend..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	docker compose -f ./environments/prod/backend/docker-compose.yml up -d --build
+	doppler run --project servereye --config prd -- docker compose -f ./environments/prod/backend/docker-compose.yml up -d --build
 	@echo "✅ Backend started!"
 
 prod-frontend-up:

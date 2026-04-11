@@ -59,48 +59,43 @@ public class AuthController : BaseApiController
                 request.Token.Length,
                 request.RefreshToken.Length);
 
-            // Validate the access token (even if expired, we can extract user info)
-            var principal = this.jwtService.ValidateToken(request.Token);
-            if (principal == null)
-            {
-                this.logger.LogWarning("Token validation failed for refresh request");
-                return this.BadRequest(new { message = "Invalid token" });
-            }
-
-            var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            {
-                return this.BadRequest(new { message = "Invalid user identifier in token" });
-            }
-
-            // Get refresh token from database
+            // Get refresh token from database first
             var refreshTokenEntity = await this.refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
             if (refreshTokenEntity == null)
             {
-                this.logger.LogWarning("Refresh token not found in database for user {UserId}", userId);
-                return this.BadRequest(new { message = "Invalid or expired refresh token" });
-            }
-
-            if (refreshTokenEntity.UserId != userId)
-            {
-                this.logger.LogWarning("Refresh token user mismatch. Expected: {ExpectedUserId}, Actual: {ActualUserId}", userId, refreshTokenEntity.UserId);
+                this.logger.LogWarning("Refresh token not found in database");
                 return this.BadRequest(new { message = "Invalid or expired refresh token" });
             }
 
             if (refreshTokenEntity.IsRevoked)
             {
-                this.logger.LogWarning("Refresh token is revoked for user {UserId}", userId);
+                this.logger.LogWarning("Refresh token is revoked for user {UserId}", refreshTokenEntity.UserId);
                 return this.BadRequest(new { message = "Invalid or expired refresh token" });
             }
 
-            // Get user (we need user entity to generate new tokens)
-            // This is a simplified approach - in production, you might want to cache user data
-            var user = new User
+            var userId = refreshTokenEntity.UserId;
+
+            // Try to get user info from access token if available (even if expired)
+            string email = string.Empty;
+            string userName = string.Empty;
+
+            if (!string.IsNullOrEmpty(request.Token))
             {
-                Id = userId,
-                Email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty,
-                UserName = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? string.Empty
-            };
+                var principal = this.jwtService.ValidateToken(request.Token, validateLifetime: false);
+                if (principal != null)
+                {
+                    email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;
+                    userName = principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? string.Empty;
+                }
+            }
+
+            // Get user from database
+            var user = await this.userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                this.logger.LogWarning("User not found: {UserId}", userId);
+                return this.BadRequest(new { message = "User not found" });
+            }
 
             // Revoke old refresh token
             await this.refreshTokenRepository.RevokeTokenAsync(refreshTokenEntity.Id);
@@ -131,8 +126,8 @@ public class AuthController : BaseApiController
                 User = new AuthUserDto
                 {
                     Id = user.Id,
-                    Email = user.Email,
-                    UserName = user.UserName,
+                    Email = user.Email ?? string.Empty,
+                    UserName = user.UserName ?? string.Empty,
                     ServerId = Guid.Empty, // Default value for now
                     IsEmailVerified = user.IsEmailVerified,
                     RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
@@ -748,7 +743,7 @@ public class AuthController : BaseApiController
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Always use secure cookies for JWT tokens
+                Secure = this.Request.IsHttps, // Use secure only for HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
 
@@ -759,7 +754,7 @@ public class AuthController : BaseApiController
             var refreshTokenOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Always use secure cookies for JWT tokens
+                Secure = this.Request.IsHttps, // Use secure only for HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
 

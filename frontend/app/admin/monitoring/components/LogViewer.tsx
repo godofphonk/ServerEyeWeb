@@ -55,15 +55,12 @@ export default function LogViewer() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem('jwt_token');
       const level = selectedLevel === 'all' ? 'all' : selectedLevel;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/logs?limit=50&level=${level}`,
+        `/api/proxy/admin/logs?limit=50&level=${level}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
         },
       );
 

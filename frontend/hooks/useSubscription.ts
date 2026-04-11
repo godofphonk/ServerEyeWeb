@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { billingApi, Subscription } from '@/lib/billingApi';
 import { useAuth } from '@/context/AuthContext';
 import { logger } from '@/lib/telemetry/logger';
@@ -8,11 +9,12 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
   const [hasPremium, setHasPremium] = useState(false);
   const { isAuthenticated } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
     const loadSubscription = async () => {
-      // Don't try to load subscription if user is not authenticated
-      if (!isAuthenticated) {
+      // Don't try to load subscription if user is not authenticated or on auth pages
+      if (!isAuthenticated || pathname === '/login' || pathname === '/register') {
         setSubscription(null);
         setHasPremium(false);
         setLoading(false);
@@ -48,7 +50,13 @@ export function useSubscription() {
           logger.debug('No active subscription found');
         }
       } catch (error) {
-        logger.error('Failed to load subscription', error as Error);
+        // 401 is normal for subscription endpoint (user may not have subscription or token expired)
+        const isAuthError = (error as any)?.response?.status === 401;
+        if (isAuthError) {
+          logger.debug('Subscription endpoint returned 401 (user may not have subscription)');
+        } else {
+          logger.error('Failed to load subscription', error as Error);
+        }
         setSubscription(null);
         setHasPremium(false);
       } finally {
@@ -57,7 +65,7 @@ export function useSubscription() {
     };
 
     loadSubscription();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pathname]);
 
   return {
     subscription,

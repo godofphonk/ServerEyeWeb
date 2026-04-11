@@ -20,6 +20,7 @@ using ServerEye.Core.Services.OAuth.Factory;
 public sealed class OAuthService(
     IUserRepository userRepository,
     IUserExternalLoginRepository externalLoginRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IJwtService jwtService,
     IOAuthProviderFactory providerFactory,
     IDistributedCache cache,
@@ -29,6 +30,7 @@ public sealed class OAuthService(
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserExternalLoginRepository externalLoginRepository = externalLoginRepository;
+    private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
     private readonly IJwtService jwtService = jwtService;
     private readonly IOAuthProviderFactory providerFactory = providerFactory;
     private readonly IDistributedCache cache = cache;
@@ -328,7 +330,19 @@ public sealed class OAuthService(
 
             // Generate JWT tokens
             var token = this.jwtService.GenerateAccessToken(user);
-            var refreshToken = await Task.FromResult(this.jwtService.GenerateRefreshToken(user));
+            var refreshToken = this.jwtService.GenerateRefreshToken(user);
+
+            // Save refresh token to database
+            var refreshTokenEntity = new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Token = refreshToken,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow,
+                IsRevoked = false
+            };
+            await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
             this.logger.LogInformation("User {UserId} authenticated via OAuth provider {Provider} with action {Action}", user.Id, provider, LogSanitizer.Sanitize(action) ?? "auto");
 
@@ -435,7 +449,19 @@ public sealed class OAuthService(
         var user = await this.userRepository.GetByIdAsync(userId)
                ?? throw new InvalidOperationException("User not found");
         var token = this.jwtService.GenerateAccessToken(user);
-        var refreshToken = await Task.FromResult(this.jwtService.GenerateRefreshToken(user));
+        var refreshToken = this.jwtService.GenerateRefreshToken(user);
+
+        // Save refresh token to database
+        var refreshTokenEntity = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+        await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
         return new AuthResponseDto
         {

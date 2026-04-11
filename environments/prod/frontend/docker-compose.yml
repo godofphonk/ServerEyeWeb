@@ -1,5 +1,6 @@
 # Frontend Service for Production
 # Next.js Application
+# Secrets are injected via doppler run -- docker-compose up
 
 services:
   frontend:
@@ -11,11 +12,15 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
+      - INTERNAL_API_URL
+      - NEXT_PUBLIC_API_URL
+      - NEXT_PUBLIC_COOKIE_DOMAIN
+      # Frontend secrets from Doppler
     restart: unless-stopped
     networks:
       - servereye-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 30s
       timeout: 10s
       retries: 3

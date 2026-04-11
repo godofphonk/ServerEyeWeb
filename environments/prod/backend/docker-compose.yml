@@ -1,5 +1,6 @@
 # Backend Service for Production
 # ASP.NET Core Web API
+# Secrets are injected via doppler run -- docker-compose up
 
 services:
   backend:
@@ -10,7 +11,30 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - DOPPLER_TOKEN=${DOPPLER_TOKEN}
+      # Database Connection Strings
+      - DATABASE_CONNECTION_STRING
+      - TICKET_DB_CONNECTION_STRING
+      - BILLING_DB_CONNECTION_STRING
+      # Redis Configuration
+      - REDIS_CONNECTION_STRING
+      # JWT Settings
+      - JWT_SECRET_KEY
+      # Encryption Settings
+      - ENCRYPTION_KEY
+      # GoApi Settings
+      - GO_API_BASE_URL
+      - GO_API_API_KEY
+      # OAuth Settings
+      - OAUTH_GOOGLE_CLIENT_ID
+      - OAUTH_GOOGLE_CLIENT_SECRET
+      - OAUTH_GOOGLE_REDIRECT_URI
+      - OAUTH_TELEGRAM_BOT_ID
+      - OAUTH_TELEGRAM_BOT_TOKEN
+      - OAUTH_TELEGRAM_REDIRECT_URI
+      # Stripe Settings
+      - STRIPE_SECRET_KEY
+      - STRIPE_WEBHOOK_SECRET
+      - STRIPE_PUBLISHABLE_KEY
     restart: unless-stopped
     networks:
       - servereye-network

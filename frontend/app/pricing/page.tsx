@@ -59,6 +59,14 @@ export default function PricingPage() {
   };
 
   const getButtonText = (plan: SubscriptionPlan) => {
+    // For non-authenticated users, always show Get Started for Free plan
+    if (!isAuthenticated) {
+      if (plan.planType === PlanType.Free) {
+        return 'Get Started';
+      }
+      return 'Subscribe Now';
+    }
+
     // For Free plan, check if user has no active subscription
     if (plan.planType === PlanType.Free) {
       if (!subscription || subscription.planType === PlanType.Free) {
@@ -80,6 +88,11 @@ export default function PricingPage() {
   };
 
   const isCurrentPlan = (plan: SubscriptionPlan) => {
+    // For non-authenticated users, no plan is current
+    if (!isAuthenticated) {
+      return false;
+    }
+
     // Free plan is current if user has no subscription or has Free plan
     if (plan.planType === PlanType.Free) {
       return !subscription || subscription.planType === PlanType.Free;
