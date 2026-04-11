@@ -501,7 +501,7 @@ public class AuthController : BaseApiController
     [HttpPost("oauth/callback")]
     public async Task<ActionResult<AuthResponseDto>> OAuthCallback([FromBody] OAuthCallbackRequestDto request)
     {
-        this.logger.LogInformation("OAuthCallback START - Provider: {Provider}", request.Provider);
+        this.logger.LogInformation("OAuthCallback START - Provider: {Provider}", LogSanitizer.Sanitize(request.Provider) ?? "null");
         var startTime = DateTime.UtcNow;
 
         try
@@ -524,7 +524,7 @@ public class AuthController : BaseApiController
 
             if (isOAuthUser)
             {
-                this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}", request.Provider, response.User?.Id);
+                this.logger.LogInformation("OAuth user detected - Provider: {Provider}, UserId: {UserId}", LogSanitizer.Sanitize(request.Provider) ?? "null", response.User?.Id);
 
                 // Set skip flag directly on response
                 var responseWithSkip = new AuthResponseDto
@@ -563,7 +563,7 @@ public class AuthController : BaseApiController
             this.metrics.RecordError(request.Provider, "controller_callback", ex.GetType().Name, ex.Message);
             this.metrics.RecordTokenExchange(request.Provider, false);
             this.metrics.RecordTokenExchangeDuration(request.Provider, duration, false);
-            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", request.Provider);
+            this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", LogSanitizer.Sanitize(request.Provider) ?? "null");
             return this.StatusCode(500, new { message = "Internal server error" });
         }
     }
