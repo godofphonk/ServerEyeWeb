@@ -14,9 +14,11 @@ services:
       POSTGRES_DB: ServerEyeWeb_Dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MAIN_DB_PASSWORD: ${MAIN_DB_PASSWORD}
     command: postgres -c ssl=off
     volumes:
       - postgres_main_dev_data:/var/lib/postgresql/data
+      - ../prod/infrastructure/init-db.sh:/docker-entrypoint-initdb.d/01-init-users.sh
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -38,9 +40,11 @@ services:
       POSTGRES_DB: ServerEyeWeb_Dev_Ticket
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TICKET_DB_PASSWORD: ${TICKET_DB_PASSWORD}
     command: postgres -c ssl=off
     volumes:
       - postgres_ticket_dev_data:/var/lib/postgresql/data
+      - ../prod/infrastructure/init-db.sh:/docker-entrypoint-initdb.d/01-init-users.sh
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -62,9 +66,11 @@ services:
       POSTGRES_DB: ServerEyeWeb_Dev_Billing
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BILLING_DB_PASSWORD: ${BILLING_DB_PASSWORD}
     command: postgres -c ssl=off
     volumes:
       - postgres_billing_dev_data:/var/lib/postgresql/data
+      - ../prod/infrastructure/init-db.sh:/docker-entrypoint-initdb.d/01-init-users.sh
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]

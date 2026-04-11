@@ -141,6 +141,7 @@ services:
     container_name: ServerEyeWeb-redis-exporter-prod
     environment:
       - REDIS_ADDR=ServerEyeWeb-redis-prod:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     restart: unless-stopped
     networks:
       - servereye-network
