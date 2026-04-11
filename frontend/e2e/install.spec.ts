@@ -64,7 +64,9 @@ test.describe('Install/Setup Page', () => {
 
       // Check for admin fields
       await expect(
-        page.locator('input[name="email"], input[name="adminEmail"], input[placeholder*="email" i]'),
+        page.locator(
+          'input[name="email"], input[name="adminEmail"], input[placeholder*="email" i]',
+        ),
       ).toBeVisible();
       await expect(
         page.locator('input[name="password"], input[name="adminPassword"], input[type="password"]'),
@@ -85,7 +87,9 @@ test.describe('Install/Setup Page', () => {
 
       // Check for app name field
       await expect(
-        page.locator('input[name="appName"], input[name="applicationName"], input[placeholder*="name" i]'),
+        page.locator(
+          'input[name="appName"], input[name="applicationName"], input[placeholder*="name" i]',
+        ),
       ).toBeVisible();
     }
   });
@@ -94,7 +98,9 @@ test.describe('Install/Setup Page', () => {
     await page.goto('/install');
 
     // Try to proceed without filling required fields
-    const nextButton = page.locator('button:has-text("Next"), button:has-text("Continue"), button[type="submit"]').first();
+    const nextButton = page
+      .locator('button:has-text("Next"), button:has-text("Continue"), button[type="submit"]')
+      .first();
 
     if (await nextButton.isVisible().catch(() => false)) {
       await nextButton.click();
@@ -103,7 +109,9 @@ test.describe('Install/Setup Page', () => {
 
       // Should show validation errors
       await expect(
-        page.locator('text=/required|Required|error|Error/i').or(page.locator('.error, [role="alert"]')),
+        page
+          .locator('text=/required|Required|error|Error/i')
+          .or(page.locator('.error, [role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -150,7 +158,9 @@ test.describe('Install/Setup Page', () => {
     // Fill all forms and submit
     // (This would require filling all steps, simplified for E2E)
 
-    const finishButton = page.locator('button:has-text("Finish"), button:has-text("Install"), button:has-text("Complete")').first();
+    const finishButton = page
+      .locator('button:has-text("Finish"), button:has-text("Install"), button:has-text("Complete")')
+      .first();
 
     if (await finishButton.isVisible().catch(() => false)) {
       await finishButton.click();
@@ -159,7 +169,9 @@ test.describe('Install/Setup Page', () => {
 
       // Should show progress indicator
       await expect(
-        page.locator('[data-testid="progress"], .progress, .loading, text=/installing|Installing|progress/i'),
+        page.locator(
+          '[data-testid="progress"], .progress, .loading, text=/installing|Installing|progress/i',
+        ),
       ).toBeVisible();
     }
   });
@@ -180,7 +192,9 @@ test.describe('Install/Setup Page', () => {
     });
 
     // Navigate to final step and submit
-    const finishButton = page.locator('button:has-text("Finish"), button:has-text("Install")').first();
+    const finishButton = page
+      .locator('button:has-text("Finish"), button:has-text("Install")')
+      .first();
 
     if (await finishButton.isVisible().catch(() => false)) {
       await finishButton.click();
@@ -188,9 +202,9 @@ test.describe('Install/Setup Page', () => {
 
       // Should show success message
       await expect(
-        page.locator('text=/success|Success|completed|Completed|installed|Installed/i').or(
-          page.locator('[data-testid="success-message"]'),
-        ),
+        page
+          .locator('text=/success|Success|completed|Completed|installed|Installed/i')
+          .or(page.locator('[data-testid="success-message"]')),
       ).toBeVisible();
     }
   });
@@ -206,14 +220,18 @@ test.describe('Install/Setup Page', () => {
 
     await page.goto('/install');
 
-    const finishButton = page.locator('button:has-text("Finish"), button:has-text("Install")').first();
+    const finishButton = page
+      .locator('button:has-text("Finish"), button:has-text("Install")')
+      .first();
 
     if (await finishButton.isVisible().catch(() => false)) {
       await finishButton.click();
       await page.waitForTimeout(3000);
 
       // Look for login link/button
-      const loginButton = page.locator('a[href="/login"], button:has-text("Login"), button:has-text("Go to Login")');
+      const loginButton = page.locator(
+        'a[href="/login"], button:has-text("Login"), button:has-text("Go to Login")',
+      );
 
       if (await loginButton.isVisible().catch(() => false)) {
         await loginButton.click();
@@ -246,9 +264,11 @@ test.describe('Installation Security', () => {
       await expect(page.locator('h1, h2')).toContainText(/Login/i);
     } else {
       await expect(
-        page.locator('text=/already installed|Already installed|system configured|System configured/i').or(
-          page.locator('[data-testid="info-message"]'),
-        ),
+        page
+          .locator(
+            'text=/already installed|Already installed|system configured|System configured/i',
+          )
+          .or(page.locator('[data-testid="info-message"]')),
       ).toBeVisible();
     }
   });
@@ -261,7 +281,9 @@ test.describe('Installation Security', () => {
     if (await passwordInput.isVisible().catch(() => false)) {
       await passwordInput.fill('123');
 
-      const nextButton = page.locator('button:has-text("Next"), button:has-text("Continue")').first();
+      const nextButton = page
+        .locator('button:has-text("Next"), button:has-text("Continue")')
+        .first();
 
       if (await nextButton.isVisible().catch(() => false)) {
         await nextButton.click();
@@ -269,7 +291,9 @@ test.describe('Installation Security', () => {
 
         // Should show password strength error
         await expect(
-          page.locator('text=/weak|Weak|short|Short|complexity|Complexity/i').or(page.locator('.error, [role="alert"]')),
+          page
+            .locator('text=/weak|Weak|short|Short|complexity|Complexity/i')
+            .or(page.locator('.error, [role="alert"]')),
         ).toBeVisible();
       }
     }
@@ -279,13 +303,20 @@ test.describe('Installation Security', () => {
     await page.goto('/install');
 
     const emailInput = page.locator('input[name="email"], input[name="adminEmail"]');
-    const confirmEmailInput = page.locator('input[name="confirmEmail"], input[name="emailConfirmation"]');
+    const confirmEmailInput = page.locator(
+      'input[name="confirmEmail"], input[name="emailConfirmation"]',
+    );
 
-    if (await emailInput.isVisible().catch(() => false) && (await confirmEmailInput.isVisible().catch(() => false))) {
+    if (
+      (await emailInput.isVisible().catch(() => false)) &&
+      (await confirmEmailInput.isVisible().catch(() => false))
+    ) {
       await emailInput.fill('admin@example.com');
       await confirmEmailInput.fill('different@example.com');
 
-      const nextButton = page.locator('button:has-text("Next"), button:has-text("Continue")').first();
+      const nextButton = page
+        .locator('button:has-text("Next"), button:has-text("Continue")')
+        .first();
 
       if (await nextButton.isVisible().catch(() => false)) {
         await nextButton.click();
@@ -293,7 +324,9 @@ test.describe('Installation Security', () => {
 
         // Should show mismatch error
         await expect(
-          page.locator('text=/match|Match|confirm|Confirm/i').or(page.locator('.error, [role="alert"]')),
+          page
+            .locator('text=/match|Match|confirm|Confirm/i')
+            .or(page.locator('.error, [role="alert"]')),
         ).toBeVisible();
       }
     }
@@ -318,7 +351,9 @@ test.describe('Installation Error Handling', () => {
     await page.goto('/install');
 
     // Fill database config
-    const testButton = page.locator('button:has-text("Test Connection"), button:has-text("Test")').first();
+    const testButton = page
+      .locator('button:has-text("Test Connection"), button:has-text("Test")')
+      .first();
 
     if (await testButton.isVisible().catch(() => false)) {
       await testButton.click();
@@ -326,7 +361,9 @@ test.describe('Installation Error Handling', () => {
 
       // Should show error message
       await expect(
-        page.locator('text=/connection failed|Connection failed|error|Error/i').or(page.locator('[role="alert"]')),
+        page
+          .locator('text=/connection failed|Connection failed|error|Error/i')
+          .or(page.locator('[role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -343,7 +380,9 @@ test.describe('Installation Error Handling', () => {
 
     await page.goto('/install');
 
-    const finishButton = page.locator('button:has-text("Finish"), button:has-text("Install")').first();
+    const finishButton = page
+      .locator('button:has-text("Finish"), button:has-text("Install")')
+      .first();
 
     if (await finishButton.isVisible().catch(() => false)) {
       await finishButton.click();
@@ -383,21 +422,27 @@ test.describe('Installation Error Handling', () => {
 
     await page.goto('/install');
 
-    const finishButton = page.locator('button:has-text("Finish"), button:has-text("Install")').first();
+    const finishButton = page
+      .locator('button:has-text("Finish"), button:has-text("Install")')
+      .first();
 
     if (await finishButton.isVisible().catch(() => false)) {
       await finishButton.click();
       await page.waitForTimeout(2000);
 
       // Click retry
-      const retryButton = page.locator('button:has-text("Retry"), button:has-text("Try Again")').first();
+      const retryButton = page
+        .locator('button:has-text("Retry"), button:has-text("Try Again")')
+        .first();
       if (await retryButton.isVisible().catch(() => false)) {
         await retryButton.click();
         await page.waitForTimeout(3000);
 
         // Should succeed on retry
         await expect(
-          page.locator('text=/success|Success|completed|Completed/i').or(page.locator('[data-testid="success-message"]')),
+          page
+            .locator('text=/success|Success|completed|Completed/i')
+            .or(page.locator('[data-testid="success-message"]')),
         ).toBeVisible();
       }
     }
@@ -426,7 +471,9 @@ test.describe('Installation UX', () => {
     await page.goto('/install');
 
     // Look for help links
-    const helpLink = page.locator('a[href*="docs"], a[href*="help"], a[href*="documentation"]').first();
+    const helpLink = page
+      .locator('a[href*="docs"], a[href*="help"], a[href*="documentation"]')
+      .first();
 
     if (await helpLink.isVisible().catch(() => false)) {
       await expect(helpLink).toBeVisible();
@@ -437,7 +484,9 @@ test.describe('Installation UX', () => {
     await page.goto('/install');
 
     // Look for estimated time
-    const timeEstimate = page.locator('text=/minutes|Minutes|estimate|Estimated time/i, [data-testid="estimate"]');
+    const timeEstimate = page.locator(
+      'text=/minutes|Minutes|estimate|Estimated time/i, [data-testid="estimate"]',
+    );
 
     if (await timeEstimate.isVisible().catch(() => false)) {
       await expect(timeEstimate).toBeVisible();
@@ -448,7 +497,9 @@ test.describe('Installation UX', () => {
     await page.goto('/install');
 
     // Look for skip button
-    const skipButton = page.locator('button:has-text("Skip"), button:has-text("Do this later")').first();
+    const skipButton = page
+      .locator('button:has-text("Skip"), button:has-text("Do this later")')
+      .first();
 
     if (await skipButton.isVisible().catch(() => false)) {
       await expect(skipButton).toBeVisible();

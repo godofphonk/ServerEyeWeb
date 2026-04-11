@@ -49,7 +49,9 @@ test.describe('Forgot Password Flow', () => {
 
     // Should show validation error
     await expect(
-      page.locator('text=/invalid|Invalid|format|Format/i').or(page.locator('.error, [role="alert"]')),
+      page
+        .locator('text=/invalid|Invalid|format|Format/i')
+        .or(page.locator('.error, [role="alert"]')),
     ).toBeVisible();
   });
 
@@ -66,7 +68,9 @@ test.describe('Forgot Password Flow', () => {
 
     // Should show success message
     await expect(
-      page.locator('text=/sent|Sent|email|Email|check|Check/i').or(page.locator('[data-testid="success-message"]')),
+      page
+        .locator('text=/sent|Sent|email|Email|check|Check/i')
+        .or(page.locator('[data-testid="success-message"]')),
     ).toBeVisible();
   });
 
@@ -83,7 +87,9 @@ test.describe('Forgot Password Flow', () => {
 
     // Should show same message as for existing email (security best practice)
     await expect(
-      page.locator('text=/sent|Sent|email|Email|check|Check/i').or(page.locator('[data-testid="success-message"]')),
+      page
+        .locator('text=/sent|Sent|email|Email|check|Check/i')
+        .or(page.locator('[data-testid="success-message"]')),
     ).toBeVisible();
   });
 
@@ -91,7 +97,9 @@ test.describe('Forgot Password Flow', () => {
     await page.goto('/forgot-password');
 
     // Look for back to login link
-    const loginLink = page.locator('a[href="/login"], a:has-text("Back to login"), a:has-text("Login")');
+    const loginLink = page.locator(
+      'a[href="/login"], a:has-text("Back to login"), a:has-text("Login")',
+    );
 
     if (await loginLink.isVisible().catch(() => false)) {
       await loginLink.click();
@@ -131,7 +139,9 @@ test.describe('Password Reset with Token', () => {
     } else {
       // Shows error on page
       await expect(
-        page.locator('text=/invalid|Invalid|token|Token|expired|Expired/i').or(page.locator('[role="alert"]')),
+        page
+          .locator('text=/invalid|Invalid|token|Token|expired|Expired/i')
+          .or(page.locator('[role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -147,7 +157,9 @@ test.describe('Password Reset with Token', () => {
 
     // Should show validation error
     await expect(
-      page.locator('text=/weak|Weak|short|Short|complexity|Complexity/i').or(page.locator('.error, [role="alert"]')),
+      page
+        .locator('text=/weak|Weak|short|Short|complexity|Complexity/i')
+        .or(page.locator('.error, [role="alert"]')),
     ).toBeVisible();
   });
 
@@ -161,7 +173,9 @@ test.describe('Password Reset with Token', () => {
 
     // Should show mismatch error
     await expect(
-      page.locator('text=/match|Match|confirm|Confirm/i').or(page.locator('.error, [role="alert"]')),
+      page
+        .locator('text=/match|Match|confirm|Confirm/i')
+        .or(page.locator('.error, [role="alert"]')),
     ).toBeVisible();
   });
 
@@ -186,7 +200,9 @@ test.describe('Password Reset with Token', () => {
 
     // Should show success message
     await expect(
-      page.locator('text=/success|Success|reset|Reset/i').or(page.locator('[data-testid="success-message"]')),
+      page
+        .locator('text=/success|Success|reset|Reset/i')
+        .or(page.locator('[data-testid="success-message"]')),
     ).toBeVisible();
 
     // Should have link to login
@@ -217,7 +233,9 @@ test.describe('Password Reset with Token', () => {
 
     // Should show error
     await expect(
-      page.locator('text=/invalid|Invalid|expired|Expired|token|Token/i').or(page.locator('[role="alert"]')),
+      page
+        .locator('text=/invalid|Invalid|expired|Expired|token|Token/i')
+        .or(page.locator('[role="alert"]')),
     ).toBeVisible();
   });
 
@@ -285,7 +303,9 @@ test.describe('Password Reset Security', () => {
 
     // Should show rate limit message
     await expect(
-      page.locator('text=/too many|rate limit|try again later/i').or(page.locator('[role="alert"]')),
+      page
+        .locator('text=/too many|rate limit|try again later/i')
+        .or(page.locator('[role="alert"]')),
     ).toBeVisible();
   });
 
@@ -313,7 +333,9 @@ test.describe('Password Reset Security', () => {
 
     // Should show rate limit or token invalidated message
     await expect(
-      page.locator('text=/too many|rate limit|invalidated|Invalidated/i').or(page.locator('[role="alert"]')),
+      page
+        .locator('text=/too many|rate limit|invalidated|Invalidated/i')
+        .or(page.locator('[role="alert"]')),
     ).toBeVisible();
   });
 
@@ -374,7 +396,9 @@ test.describe('Password Reset Security', () => {
       await expect(page.locator('h1, h2')).toContainText(/Profile/i);
     } else {
       await expect(
-        page.locator('text=/already logged in|logged in|logout first/i').or(page.locator('[data-testid="info-message"]')),
+        page
+          .locator('text=/already logged in|logged in|logout first/i')
+          .or(page.locator('[data-testid="info-message"]')),
       ).toBeVisible();
     }
   });
@@ -394,9 +418,7 @@ test.describe('Password Reset UX', () => {
     await page.waitForTimeout(2000);
 
     // Should show masked email (e.g., t***@example.com)
-    await expect(
-      page.locator('text=/@/.email, [data-testid="email-display"]'),
-    ).toBeVisible();
+    await expect(page.locator('text=/@/.email, [data-testid="email-display"]')).toBeVisible();
   });
 
   test('should have countdown for resend on forgot password', async ({ page }) => {
@@ -408,14 +430,15 @@ test.describe('Password Reset UX', () => {
     await page.waitForTimeout(2000);
 
     // Look for resend button with countdown
-    const resendButton = page.locator(
-      'button:has-text("Resend"), [data-testid="resend-link"]',
-    );
+    const resendButton = page.locator('button:has-text("Resend"), [data-testid="resend-link"]');
 
     if (await resendButton.isVisible().catch(() => false)) {
       // Should be disabled or show countdown
       const isDisabled = await resendButton.isDisabled();
-      const countdown = await page.locator('text=/seconds|Seconds|wait|Wait/i').isVisible().catch(() => false);
+      const countdown = await page
+        .locator('text=/seconds|Seconds|wait|Wait/i')
+        .isVisible()
+        .catch(() => false);
 
       expect(isDisabled || countdown).toBeTruthy();
     }
@@ -438,9 +461,9 @@ test.describe('Password Reset UX', () => {
     await page.goto('/reset-password?token=mock_token');
 
     const passwordInput = page.locator('input[name="password"], input[type="password"]').first();
-    const toggleButton = page.locator(
-      'button:has-text("Show"), button:has-text("Hide"), [data-testid="toggle-password"]',
-    ).first();
+    const toggleButton = page
+      .locator('button:has-text("Show"), button:has-text("Hide"), [data-testid="toggle-password"]')
+      .first();
 
     if (await toggleButton.isVisible().catch(() => false)) {
       const initialType = await passwordInput.getAttribute('type');
