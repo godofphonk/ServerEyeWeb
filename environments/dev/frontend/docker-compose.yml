@@ -10,8 +10,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ../secrets/frontend.docker.env
-      - ../secrets/shared.env
+      - ../secrets/frontend.env
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
