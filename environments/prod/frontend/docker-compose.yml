@@ -13,6 +13,8 @@ services:
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
       - INTERNAL_API_URL
+      - NEXT_PUBLIC_API_URL
+      - NEXT_PUBLIC_COOKIE_DOMAIN
       # Frontend secrets from Doppler
     restart: unless-stopped
     networks:
