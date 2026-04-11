@@ -19,6 +19,8 @@ services:
       - REDIS_CONNECTION_STRING
       # JWT Settings
       - JWT_SECRET_KEY
+      # Encryption Settings
+      - ENCRYPTION_KEY
       # OAuth Settings
       - OAUTH_GOOGLE_CLIENT_ID
       - OAUTH_GOOGLE_CLIENT_SECRET
