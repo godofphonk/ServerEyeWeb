@@ -16,6 +16,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   rollback:
     name: Rollback to previous version
@@ -129,6 +132,9 @@ jobs:
             echo "Verifying infrastructure containers..."
             docker ps | grep postgres
             docker ps | grep redis
+
+            # Start observability stack
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d
 
             # Start backend containers
             DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd_backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d

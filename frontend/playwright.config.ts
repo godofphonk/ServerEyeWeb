@@ -43,10 +43,10 @@ export default defineConfig({
   /* Run local dev server before starting the tests */
   webServer: process.env.CI
     ? {
-        command: 'npm run build:next && npm run start:next',
+        command: 'npm run start:next',
         url: 'http://localhost:3000',
         reuseExistingServer: false,
-        timeout: 120 * 1000,
+        timeout: 60 * 1000,
         env: {
           CI_E2E: 'true',
         },

@@ -17,6 +17,7 @@ permissions:
 env:
   NODE_VERSION: '25.x'
   PNPM_VERSION: '8'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   code-quality:
@@ -135,7 +136,7 @@ jobs:
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     needs: code-quality
     
     strategy:
