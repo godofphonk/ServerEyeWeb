@@ -142,3 +142,11 @@ appsettings.Development.json
 # Documentation
 docs/
 *.md
+
+# CodeQL
+codeql/
+codeql-*.tar.gz
+codeql-db/
+codeql-results.bqrs
+codeql-results.csv
+security-scan-results.csv
