@@ -150,3 +150,6 @@ codeql-db/
 codeql-results.bqrs
 codeql-results.csv
 security-scan-results.csv
+
+# MemoryLens MCP fork
+memorylens-mcp/

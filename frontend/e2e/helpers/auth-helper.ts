@@ -53,6 +53,19 @@ export async function loginAsUser(
 }
 
 /**
+ * Login as an unverified user (email not verified) for CI E2E tests.
+ * Sets up auth mocks with isEmailVerified: false so verify-email page renders.
+ */
+export async function loginAsUnverifiedUser(page: Page): Promise<void> {
+  if (process.env.CI) {
+    await setupAuthMocks(page, true, { isEmailVerified: false });
+    await setAuthCookies(page);
+    return;
+  }
+  throw new Error('loginAsUnverifiedUser is only available in CI mode');
+}
+
+/**
  * Login via API (faster than UI login)
  */
 export async function loginViaAPI(
