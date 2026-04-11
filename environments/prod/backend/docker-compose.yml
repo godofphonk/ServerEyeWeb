@@ -35,9 +35,6 @@ services:
       - STRIPE_SECRET_KEY
       - STRIPE_WEBHOOK_SECRET
       - STRIPE_PUBLISHABLE_KEY
-      # ServerEye API Configuration
-      - SERVEREYE_API_URL
-      - SERVEREYE_DB_URL
     restart: unless-stopped
     networks:
       - servereye-network
