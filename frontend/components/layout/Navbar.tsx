@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, User, LogOut, AlertTriangle, Mail, Crown } from 'lucide-react';
+import { Menu, X, User, LogOut, AlertTriangle, Crown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { isAdmin } from '@/lib/auth';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useSubscription } from '@/hooks/useSubscription';
 
 const publicLinks = [

@@ -1,4 +1,4 @@
-import { test, expect, Page, Request } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { loginAsUser, clearAuth } from './helpers/auth-helper';
 
 /**
@@ -71,7 +71,7 @@ async function mockGitHubOAuth(page: Page, success: boolean = true) {
     });
   });
 
-  await page.route('**/api/auth/oauth/callback**', async (route, request) => {
+  await page.route('**/api/auth/oauth/callback**', async (route, _request) => {
     if (success) {
       await route.fulfill({
         status: 200,
@@ -432,6 +432,7 @@ test.describe('Telegram OAuth Special Flow', () => {
       };
 
       // Trigger callback (implementation depends on frontend)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).onTelegramAuth?.(authData);
     });
 

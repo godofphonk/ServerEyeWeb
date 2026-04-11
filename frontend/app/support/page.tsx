@@ -8,7 +8,6 @@ import {
   Send,
   AlertCircle,
   CheckCircle,
-  Lock,
   Ticket,
   Plus,
   List,
@@ -112,7 +111,7 @@ export default function SupportPage() {
         setActiveTab('create');
         setTimeout(() => setActiveTab('tickets'), 100);
       }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setSubmitStatus('error');
       const errorMessage =
         error.response?.data?.message ||

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, Lock, Mail, Clock, RefreshCw, Trash2, CheckCircle } from 'lucide-react';
+import { AlertTriangle, X, Mail, Clock, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { authApi } from '@/lib/authApi';
@@ -31,7 +31,7 @@ export function DeleteAccountModal({
   email,
   hasPassword,
 }: DeleteAccountModalProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const toast = useToast();
   const { clearAuthData } = useAuth();
   const [step, setStep] = useState<DeleteAccountStep>('initial');
@@ -88,7 +88,7 @@ export function DeleteAccountModal({
         'Deletion Code Sent',
         `A confirmation code has been sent to ${email || 'your email'}. Check your inbox and spam folder.`,
       );
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to send deletion code';
 
@@ -131,7 +131,7 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // Check if this is expected error after successful deletion
       // 401/403 = Account deleted, token is now invalid
       // 500 = Server error but account might be deleted
@@ -213,7 +213,7 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to delete account';
       toast.error('Deletion Failed', errorMessage);
@@ -234,7 +234,7 @@ export function DeleteAccountModal({
       setCodeResendTimer(60); // Reset resend timer
 
       toast.warning('Code Resent', 'A new confirmation code has been sent to your email');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
       toast.error('Resend Failed', errorMessage);

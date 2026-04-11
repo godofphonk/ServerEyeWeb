@@ -35,7 +35,7 @@ export default function ShareServerModal({
   const [accessLevel, setAccessLevel] = useState<'Admin' | 'Viewer'>('Viewer');
   const [isSharing, setIsSharing] = useState(false);
   const [error, setError] = useState('');
-  const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
+  const [sharedUsers, _setSharedUsers] = useState<SharedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   const canShare = currentAccessLevel === 'Owner';
@@ -78,7 +78,7 @@ export default function ShareServerModal({
       setEmail('');
       setAccessLevel('Viewer');
       await loadSharedUsers();
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err?.response?.data?.message || 'Failed to share server. Please try again.');
     } finally {
       setIsSharing(false);

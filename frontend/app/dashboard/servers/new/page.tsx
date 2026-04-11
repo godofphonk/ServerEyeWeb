@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { ArrowLeft, CheckCircle, Server as ServerIcon, AlertCircle, Download } from 'lucide-react';
+import { ArrowLeft, Server as ServerIcon, AlertCircle, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 import { clearServersCache, clearMetricsCache } from '@/lib/serverApi';
@@ -51,7 +51,7 @@ export default function AddServerPage() {
       toast.success('Server Added', `Server "${serverName.trim()}" has been successfully added`);
 
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||

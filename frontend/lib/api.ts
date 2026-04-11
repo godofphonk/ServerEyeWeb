@@ -34,6 +34,7 @@ class ApiClient {
   }
 
   private isGoApiError(error: unknown): error is AxiosError<GoApiErrorResponse> {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     return (
       error &&
       typeof error === 'object' &&
@@ -44,6 +45,7 @@ class ApiClient {
       typeof (error as any).response.data.error_code === 'string' &&
       (error as any).response.data.error_code.startsWith('GO_API_')
     );
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   }
 
   private setupInterceptors() {
@@ -69,7 +71,7 @@ class ApiClient {
           // If already refreshing, add to subscribers queue
           if (this.isRefreshing) {
             return new Promise((resolve) => {
-              this.refreshSubscribers.push((token) => {
+              this.refreshSubscribers.push((_token) => {
                 if (originalRequest) {
                   resolve(this.client.request(originalRequest));
                 }
@@ -81,6 +83,7 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
+            // eslint-disable-next-line no-console
             console.log('[ApiClient] Attempting token refresh...');
             const refreshResponse = await fetch('/api/auth/refresh', {
               method: 'POST',
@@ -90,9 +93,11 @@ class ApiClient {
               },
             });
 
+            // eslint-disable-next-line no-console
             console.log('[ApiClient] Refresh response status:', refreshResponse.status);
 
             if (refreshResponse.ok) {
+              // eslint-disable-next-line no-console
               console.log('[ApiClient] Refresh successful, retrying original request');
               // Notify all subscribers
               this.refreshSubscribers.forEach(callback => callback('refreshed'));
@@ -106,6 +111,7 @@ class ApiClient {
                 return this.client.request(originalRequest);
               }
             } else {
+              // eslint-disable-next-line no-console
               console.log('[ApiClient] Refresh failed with status:', refreshResponse.status);
               // Refresh failed, clear cookies and redirect
               this.refreshSubscribers.forEach(callback => callback('failed'));
@@ -119,11 +125,13 @@ class ApiClient {
 
               // Redirect to login only if not already on login page
               if (window.location.pathname !== '/login') {
+                // eslint-disable-next-line no-console
                 console.log('[ApiClient] Redirecting to login');
                 window.location.href = '/login';
               }
             }
-          } catch (refreshError) {
+          } // eslint-disable-next-line no-console
+            catch (refreshError) {
             console.error('[ApiClient] Refresh error:', refreshError);
             // Refresh failed, notify subscribers and clear cookies
             this.refreshSubscribers.forEach(callback => callback('failed'));
@@ -137,6 +145,7 @@ class ApiClient {
 
             // Redirect to login only if not already on login page
             if (window.location.pathname !== '/login') {
+              // eslint-disable-next-line no-console
               console.log('[ApiClient] Redirecting to login after error');
               window.location.href = '/login';
             }

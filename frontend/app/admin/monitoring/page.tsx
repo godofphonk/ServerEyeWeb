@@ -7,7 +7,6 @@ import { logger } from '@/lib/telemetry/logger';
 import { Card } from '@/components/ui/Card';
 import {
   Activity,
-  Database,
   Server,
   Users,
   TrendingUp,

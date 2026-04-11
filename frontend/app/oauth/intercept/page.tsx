@@ -41,7 +41,7 @@ function OAuthInterceptContent() {
 
     if (linkingInfo) {
       try {
-        const { action, provider, userId, state: expectedState } = JSON.parse(linkingInfo);
+        const { provider, userId, state: expectedState } = JSON.parse(linkingInfo);
 
         // Verify state matches (state might have github_ prefix)
         if (state.includes(expectedState) || state === `github_${expectedState}`) {
@@ -86,7 +86,7 @@ function OAuthInterceptContent() {
                 }
               }
             })
-            .catch(error => {
+            .catch(() => {
               window.location.href = '/profile?error=linking_failed';
             });
           return;
@@ -134,7 +134,7 @@ function OAuthInterceptContent() {
           window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
         }
       })
-      .catch(error => {
+      .catch(() => {
         window.location.href = '/login?error=oauth_auth_failed';
       });
   }, [searchParams, router]);

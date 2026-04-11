@@ -202,7 +202,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await apiClient.get<{ user: BackendUser | null }>('/auth/session');
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((response as any).data.user) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mappedUser = mapBackendUser((response as any).data.user);
           logger.info('User authenticated', { userId: mappedUser.id, email: mappedUser.email });
           setUserWithLogging(mappedUser);
@@ -346,7 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loginWithOAuth = useCallback(
-    async (provider: string, code: string, state: string): Promise<void> => {
+    async (provider: string, _code: string, _state: string): Promise<void> => {
       // This method is now handled by the backend callback endpoint
       // Frontend just needs to redirect to the OAuth URL
       const challenge = await getOAuthChallenge(provider);

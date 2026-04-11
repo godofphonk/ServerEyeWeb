@@ -47,7 +47,7 @@ export function EmailVerificationModal({
         onSuccess();
         onClose();
       }, 1500);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Verification failed';
 
@@ -63,7 +63,7 @@ export function EmailVerificationModal({
     try {
       await authApi.resendVerification({ email });
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
 

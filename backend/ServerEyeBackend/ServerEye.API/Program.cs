@@ -23,7 +23,7 @@ if (builder.Environment.IsProduction())
     // Create logger manually to avoid BuildServiceProvider anti-pattern
     using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
     var logger = loggerFactory.CreateLogger<Program>();
-    
+
     builder.Configuration.AddDopplerSecretsFromEnvironment(logger);
 }
 

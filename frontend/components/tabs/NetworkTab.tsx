@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Wifi, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
@@ -25,54 +25,25 @@ export default function NetworkTab({
   const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
     '1h',
   );
-  const [networkTxTimeRange, setNetworkTxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
-    '1h',
-  );
 
   // State for independently loaded metrics
   const [networkRxMetrics, setNetworkRxMetrics] = useState<MetricsResponse | null>(null);
-  const [networkTxMetrics, setNetworkTxMetrics] = useState<MetricsResponse | null>(null);
 
-  // Memoize time ranges to prevent unnecessary effect triggers
-  const timeRanges = useMemo(
-    () => ({
-      networkRx: networkRxTimeRange,
-      networkTx: networkTxTimeRange,
-    }),
-    [networkRxTimeRange, networkTxTimeRange],
-  );
-
-  // Load all network metrics in parallel when any time range changes
+  // Load network metrics when time range changes
   useEffect(() => {
     if (!loadHistoricalMetrics) return;
 
-    const loadAllNetworkMetrics = async () => {
+    const loadNetworkMetrics = async () => {
       try {
-        // Load both RX and TX metrics in parallel for optimal performance
-        const [rxResult, txResult] = await Promise.allSettled([
-          loadHistoricalMetrics(networkRxTimeRange),
-          loadHistoricalMetrics(networkTxTimeRange),
-        ]);
-
-        // Handle results individually to prevent one failure from affecting the other
-        if (rxResult.status === 'fulfilled') {
-          setNetworkRxMetrics(rxResult.value);
-        } else {
-          // ignore fetch failure
-        }
-
-        if (txResult.status === 'fulfilled') {
-          setNetworkTxMetrics(txResult.value);
-        } else {
-          // ignore fetch failure
-        }
+        const rxResult = await loadHistoricalMetrics(networkRxTimeRange);
+        setNetworkRxMetrics(rxResult);
       } catch (error) {
         /* ignore error */
       }
     };
 
-    loadAllNetworkMetrics();
-  }, [timeRanges, loadHistoricalMetrics]);
+    loadNetworkMetrics();
+  }, [networkRxTimeRange, loadHistoricalMetrics]);
 
   return (
     <div className='space-y-6'>

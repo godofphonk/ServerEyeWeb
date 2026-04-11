@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Loader2, AlertCircle, FileText, Clock } from 'lucide-react';
+import { Mail, AlertCircle, FileText, Clock } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -38,7 +38,7 @@ export function TicketHistory() {
       if (result.length === 0) {
         setError('No tickets found for this email');
       }
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError('Failed to fetch tickets');
     } finally {
       setIsLoading(false);

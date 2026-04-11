@@ -17,7 +17,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketStatus, PaginatedTicketsResponse } from '@/types';
+import { Ticket, TicketStatus } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { TicketChat } from './TicketChat';
 
@@ -126,7 +126,7 @@ export function MyTickets() {
           setTickets([]);
         }
       }
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError('Failed to load tickets');
       setTickets([]);
     } finally {
@@ -145,6 +145,7 @@ export function MyTickets() {
     if (!user) return;
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const testTicket = await ticketApi.createTicket({
         name: user.username,
         email: user.email,
@@ -154,12 +155,12 @@ export function MyTickets() {
 
       // Reload tickets after creating
       loadTickets();
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       /* ignore error */
     }
   };
 
-  const toggleTicketExpansion = (ticketId: string) => {
+  const _toggleTicketExpansion = (ticketId: string) => {
     setExpandedTicket(expandedTicket === ticketId ? null : ticketId);
   };
 

@@ -21,7 +21,7 @@ function TelegramCallbackContent() {
 
     // Handle direct Telegram callback with tgAuthResult in hash
     const urlHash = typeof window !== 'undefined' ? window.location.hash : '';
-    const fullUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const _fullUrl = typeof window !== 'undefined' ? window.location.href : '';
 
     if (urlHash && urlHash.includes('tgAuthResult=')) {
       const hashParams = new URLSearchParams(urlHash.substring(1));
@@ -138,10 +138,10 @@ function TelegramCallbackContent() {
                 }
               }
             })
-            .catch(error => {
+            .catch(_error => {
               window.location.href = '/login?error=telegram_auth_failed';
             });
-        } catch (error) {
+        } catch (_error) {
           window.location.href = '/login?error=invalid_telegram_data';
         }
       } else {

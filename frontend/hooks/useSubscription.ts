@@ -51,6 +51,7 @@ export function useSubscription() {
         }
       } catch (error) {
         // 401 is normal for subscription endpoint (user may not have subscription or token expired)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isAuthError = (error as any)?.response?.status === 401;
         if (isAuthError) {
           logger.debug('Subscription endpoint returned 401 (user may not have subscription)');

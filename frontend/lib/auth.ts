@@ -7,6 +7,7 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
@@ -22,7 +23,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     await fetch('/api/auth/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: response.token, refreshToken: (response as any).refreshToken }),
+      body: JSON.stringify({ token: response.token, refreshToken: response.refreshToken }),
     });
   }
 
@@ -44,7 +45,14 @@ export function isAuthenticated(): boolean {
   return false;
 }
 
-export function isAdmin(user: any): boolean {
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+}
+
+export function isAdmin(user: User | null | undefined): boolean {
   if (!user) return false;
 
   return String(user.role).toLowerCase() === 'admin';

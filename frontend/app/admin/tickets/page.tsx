@@ -19,7 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketStatus, TicketStatsResponse, TicketStatsDisplay } from '@/types';
+import { Ticket, TicketStatus, TicketStatsDisplay } from '@/types';
 import { AdminTicketChat } from '@/components/admin/AdminTicketChat';
 import { isAdmin } from '@/lib/auth';
 
@@ -97,7 +97,7 @@ export default function AdminTicketsPage() {
 
         // Handle paginated response {tickets: [...], pagination: {...}}
         if (response && typeof response === 'object' && 'tickets' in response) {
-          const paginatedResponse = response as { tickets: Ticket[]; pagination: any };
+          const paginatedResponse = response as { tickets: Ticket[]; pagination: { total: number; page: number; pageSize: number } };
           data = paginatedResponse.tickets;
         } else if (Array.isArray(response)) {
           data = response;
@@ -149,7 +149,7 @@ export default function AdminTicketsPage() {
 
       // Update stats after tickets are loaded
       await loadStats();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setTickets([]);
     }
   };
@@ -160,7 +160,7 @@ export default function AdminTicketsPage() {
 
       // Log each status count individually
       if (statsData.statusCounts) {
-        Object.entries(statsData.statusCounts).forEach(([key, value]) => {});
+        Object.entries(statsData.statusCounts).forEach(() => {});
       }
 
       // Map backend response to frontend format
@@ -175,7 +175,7 @@ export default function AdminTicketsPage() {
       };
 
       setStats(mappedStats);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fallback: calculate stats from tickets if API fails
       if (tickets.length > 0) {
         const fallbackStats = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Cpu, Activity, Thermometer, Zap, Gauge } from 'lucide-react';
+import { Cpu, Activity, Thermometer, Zap } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';

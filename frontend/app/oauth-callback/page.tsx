@@ -41,7 +41,7 @@ function OAuthCallbackContent() {
 
     if (linkingInfo) {
       try {
-        const { action, provider, userId, state: expectedState } = JSON.parse(linkingInfo);
+        const { provider, userId, state: expectedState } = JSON.parse(linkingInfo);
 
         // Verify state matches
         if (state.includes(expectedState)) {
@@ -86,7 +86,7 @@ function OAuthCallbackContent() {
                 }
               }
             })
-            .catch(error => {
+            .catch(() => {
               window.location.href = '/profile?error=linking_failed';
             });
           return;
@@ -134,7 +134,7 @@ function OAuthCallbackContent() {
           window.location.href = `/login?error=${encodeURIComponent(data.message || 'oauth_auth_failed')}`;
         }
       })
-      .catch(error => {
+      .catch(() => {
         window.location.href = '/login?error=oauth_auth_failed';
       });
   }, [searchParams, router]);

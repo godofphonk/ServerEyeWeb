@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GitBranch, Download, ExternalLink, Code, Terminal, Globe } from 'lucide-react';
+import { GitBranch, ExternalLink, Code, Terminal, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 

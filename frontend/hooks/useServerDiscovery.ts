@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { serverDiscoveryApi } from '@/lib/serverDiscoveryApi';
-import { DiscoveredServersResponse, ImportServersResponse } from '@/types';
+import { DiscoveredServersResponse } from '@/types';
 
 export function useServerDiscovery() {
   const [discovered, setDiscovered] = useState<DiscoveredServersResponse | null>(null);
@@ -15,7 +15,7 @@ export function useServerDiscovery() {
       const result = await serverDiscoveryApi.findTelegramServers();
       setDiscovered(result);
       return result;
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         err.response?.data?.message || err.message || 'Failed to check for servers';
       setError(errorMessage);
@@ -37,7 +37,7 @@ export function useServerDiscovery() {
       }
 
       return result;
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
       setError(errorMessage);
       throw err;

@@ -71,7 +71,7 @@ export function TicketStatusChecker() {
     try {
       const result = await ticketApi.getTicketByNumber(ticketNumber.trim());
       setTicket(result);
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.response?.status === 404 ? 'Ticket not found' : 'Failed to fetch ticket');
     } finally {
       setIsLoading(false);

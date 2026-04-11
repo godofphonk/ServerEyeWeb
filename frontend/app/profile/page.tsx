@@ -162,10 +162,15 @@ export default function ProfilePage() {
       // Try different endpoints
       try {
         await apiClient.put('/users/me', updateData);
-      } catch (error: any) {
-        if (error.response?.status === 400 && user?.id) {
-          // Try by user ID as fallback
-          await apiClient.put(`/users/${user.id}`, updateData);
+      } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { status?: number } };
+          if (axiosError.response?.status === 400 && user?.id) {
+            // Try by user ID as fallback
+            await apiClient.put(`/users/${user.id}`, updateData);
+          } else {
+            throw error;
+          }
         } else {
           throw error;
         }
@@ -176,13 +181,19 @@ export default function ProfilePage() {
 
       // Refresh user data to get updated info
       window.location.reload();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Show specific validation errors if available
-      const errorMessage = error.response?.data?.errors
-        ? Object.values(error.response.data.errors).flat().join(', ')
-        : error.response?.data?.message ||
-          error.response?.data?.error ||
-          'Failed to update profile';
+      let errorMessage = 'Failed to update profile';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { errors?: Record<string, string[]>; message?: string; error?: string } } };
+        if (axiosError.response?.data?.errors) {
+          errorMessage = Object.values(axiosError.response.data.errors).flat().join(', ');
+        } else if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        } else if (axiosError.response?.data?.error) {
+          errorMessage = axiosError.response.data.error;
+        }
+      }
 
       setMessage({
         type: 'error',
@@ -218,10 +229,17 @@ export default function ProfilePage() {
 
       setMessage({ type: 'success', text: 'Password changed successfully' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to change password';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        }
+      }
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'Failed to change password',
+        text: errorMessage,
       });
     } finally {
       setIsSaving(false);

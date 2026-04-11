@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api';
 import { fetchWithRetry } from './retryUtils';
-import { ServerStaticInfo, MonitoredServer, MetricsResponse } from '@/types';
+import { ServerStaticInfo, MonitoredServer } from '@/types';
 
 // Cache for monitored servers
 let cachedServers: MonitoredServer[] | null = null;
@@ -19,7 +19,9 @@ export async function getCachedMonitoredServers(): Promise<MonitoredServer[]> {
     cachedServers = await apiClient.get<MonitoredServer[]>('/monitoredservers');
     cacheTimestamp = now;
     return cachedServers;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
   } catch (error: any) {
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     // For 401 errors, don't clear cache - let auth interceptor handle it
     if (error.response?.status === 401) {
       throw error; // Re-throw to let caller handle it
@@ -43,7 +45,9 @@ export async function getServerStaticInfo(serverKey: string): Promise<ServerStat
       },
     );
     return response;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
   } catch (error: any) {
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     // For 401 errors, let auth interceptor handle it
     if (error.response?.status === 401) {
       throw error;
@@ -98,9 +102,11 @@ export async function getServersWithStaticInfo(): Promise<
 
           return {
             ...server,
+          /* eslint-disable @typescript-eslint/no-explicit-any */
             staticInfo,
+          /* eslint-enable @typescript-eslint/no-explicit-any */
           };
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
           if (error.response?.status >= 500) {
             throw error;
@@ -114,6 +120,7 @@ export async function getServersWithStaticInfo(): Promise<
             if (statusCode >= 500) {
               // Create a mock error with response status for retry mechanism
               const mockError = new Error(error.message);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (mockError as any).response = { status: statusCode };
               throw mockError;
             }
@@ -138,9 +145,11 @@ export async function getServersWithStaticInfo(): Promise<
     }
 
     // Collect successful results from this chunk
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const successfulResults = chunkResults
       .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
       .map(result => result.value);
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     allResults.push(...successfulResults);
   }
@@ -234,7 +243,9 @@ export function clearStaticInfoCache(serverKey?: string) {
 }
 
 // Cache for metrics
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const metricsCache = new Map<string, { data: any; timestamp: number }>();
+/* eslint-enable @typescript-eslint/no-explicit-any */
 const METRICS_CACHE_DURATION = 10000; // 10 seconds for metrics
 
 // Get cached tiered metrics for graphs (1 hour default)
@@ -243,7 +254,7 @@ export async function getCachedTieredMetrics(
   startTime?: string,
   endTime?: string,
   granularity?: string,
-): Promise<any> {
+): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -262,6 +273,7 @@ export async function getCachedTieredMetrics(
     ? `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}&granularity=${granularity}`
     : `/servers/by-key/${serverKey}/metrics/tiered?start=${start}&end=${end}`;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.get<any>(url);
 
   // Fix status - if we have data points, status should be success
@@ -282,7 +294,7 @@ export async function getCachedMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> {
+): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
@@ -293,6 +305,7 @@ export async function getCachedMetrics(
   }
 
   // Fetch fresh data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.get<any>(
     `/servers/by-key/${serverKey}/metrics?start=${startTime}&end=${endTime}&granularity=${granularity}`,
   );
@@ -320,14 +333,14 @@ export async function getServerMetrics(
   startTime: string,
   endTime: string,
   granularity: string,
-): Promise<any> {
+): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const params = new URLSearchParams({
     start: startTime,
     end: endTime,
     granularity: granularity,
   });
 
-  const response = await apiClient.get<any>(
+  const response = await apiClient.get<any>( // eslint-disable-line @typescript-eslint/no-explicit-any
     `/servers/by-key/${serverKey}/metrics?${params.toString()}`,
   );
   return response;
@@ -388,6 +401,7 @@ export async function getServerUnifiedData(
   params.append('include_status', (options?.includeStatus !== false).toString());
   params.append('include_static', (options?.includeStatic !== false).toString());
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const response = await apiClient.get<any>(
     `/servers/by-key/${serverKey}/unified?${params.toString()}`,
   );

@@ -2,16 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  Server,
   CheckCircle2,
   AlertCircle,
   Download,
-  ExternalLink,
   Loader2,
   Bot,
   Clock,
   Shield,
-  Zap,
   RefreshCw,
   Link,
   MessageCircle,
@@ -48,7 +45,7 @@ export function TelegramServerDiscoveryModal({
   onRetry,
   onDiscoverServers,
 }: TelegramServerDiscoveryModalProps) {
-  const { getExternalLogins, linkExternalAccount, getOAuthChallenge } = useAuth();
+  const { getExternalLogins, getOAuthChallenge } = useAuth();
   const [selectedServers, setSelectedServers] = useState<Set<string>>(new Set());
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     importing: false,

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsUser, clearAuth } from './helpers/auth-helper';
+import { clearAuth } from './helpers/auth-helper';
 
 /**
  * Authentication E2E Tests
@@ -66,7 +66,7 @@ test.describe('Authentication Flow', () => {
     }
   });
 
-  test('should redirect to dashboard after successful login', async ({ page, context }) => {
+  test('should redirect to dashboard after successful login', async ({ page }) => {
     // This test requires a test user to exist
     // In real implementation, you'd create a test user via API or use test seeds
     await page.goto('/login');

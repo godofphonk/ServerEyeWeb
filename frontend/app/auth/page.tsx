@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
@@ -8,12 +8,8 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-
     // Temporarily disable auth error page - always redirect to login
     router.push('/login');
 
@@ -52,7 +48,7 @@ function AuthContent() {
           {/* Error Message */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             <h1 className='text-2xl font-bold mb-3'>Authentication Failed</h1>
-            <p className='text-gray-400 mb-6'>{message}</p>
+            <p className='text-gray-400 mb-6'>Redirecting to login...</p>
 
             {/* Back to Login Button */}
             <motion.button

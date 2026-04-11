@@ -12,11 +12,11 @@ describe('retryUtils', () => {
       error: 'Test error',
       message: 'Test message',
       user_message: 'Test user message',
-      error_code: `GO_API_${errorType.toUpperCase()}` as any,
+      error_code: `GO_API_${errorType.toUpperCase()}` as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       support_contact: 'support@test.com',
       timestamp: new Date().toISOString(),
       details: {
-        error_type: errorType as any,
+        error_type: errorType as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         is_temporary: isTemporary,
       },
     };

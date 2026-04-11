@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, AlertTriangle, X, CheckCircle, RefreshCw } from 'lucide-react';
+import { Mail, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
@@ -36,7 +36,7 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
     try {
       await authApi.resendVerification({ email });
       toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
 
@@ -51,7 +51,7 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
     setIsDismissed(true);
   };
 
-  const handleEmailChangeSuccess = (newEmail: string) => {
+  const handleEmailChangeSuccess = (_newEmail: string) => {
     onVerified();
     setIsDismissed(true);
   };

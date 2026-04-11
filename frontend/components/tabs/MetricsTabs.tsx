@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Cpu, HardDrive, Database, Wifi, Monitor } from 'lucide-react';
 import { TabsNavigation, TabsContent, TabPanel } from '@/components/ui/Tabs';
 import CpuTab from './CpuTab';
@@ -14,8 +13,8 @@ interface MetricsTabsProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics: MetricsResponse | null; // Unified metrics for all charts
   staticInfo: ServerStaticInfo | null;
-  server: any;
-  networkDetails?: any;
+  server: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  networkDetails?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;

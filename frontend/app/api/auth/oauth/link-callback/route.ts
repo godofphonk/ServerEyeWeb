@@ -55,12 +55,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      const errorText = await backendResponse.text();
       return NextResponse.redirect(new URL(`${returnUrl}?error=backend_error`, request.url));
     }
 
     // Get response data to check if account was linked
-    const responseData = await backendResponse.json();
+    await backendResponse.json();
 
     // Backend should set httpOnly cookies and return user data
     // Redirect to return URL on success
