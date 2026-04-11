@@ -16,6 +16,14 @@ using ServerEye.Core.Services.OAuth;
 [Route("api/[controller]")]
 public class AuthController : BaseApiController
 {
+    private static readonly HashSet<string> AllowedActions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "link",
+        "unlink",
+        "login",
+        "register"
+    };
+
     private readonly IJwtService jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository;
     private readonly IAuthService authService;
@@ -573,6 +581,13 @@ public class AuthController : BaseApiController
     {
         try
         {
+            // SECURITY: Validate action parameter to prevent user-controlled bypass
+            if (!string.IsNullOrEmpty(action) && !AllowedActions.Contains(action))
+            {
+                this.logger.LogWarning("Invalid action parameter provided: {Action}", LogSanitizer.Sanitize(action));
+                return this.BadRequest(new { message = "Invalid action parameter" });
+            }
+
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = this.HttpContext.Request.Headers.UserAgent.ToString();
 
