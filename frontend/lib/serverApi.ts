@@ -102,12 +102,10 @@ export async function getServersWithStaticInfo(): Promise<
 
           return {
             ...server,
-             
+
             staticInfo,
-             
           };
         } catch (error: unknown) {
-
           // For server errors (500, 502, 503, 504), rethrow to trigger retry at higher level
           const responseStatus = (error as AxiosApiError).response?.status;
           if (responseStatus && responseStatus >= 500) {
@@ -258,7 +256,6 @@ export async function getCachedTieredMetrics(
   endTime?: string,
   granularity?: string,
 ): Promise<unknown> {
-   
   // Default to last 1 hour if not provided
   const end = endTime || new Date().toISOString();
   const start = startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -299,7 +296,6 @@ export async function getCachedMetrics(
   endTime: string,
   granularity: string,
 ): Promise<MetricsResponse> {
-   
   const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
   const cached = metricsCache.get(cacheKey);
   const now = Date.now();
@@ -339,7 +335,6 @@ export async function getServerMetrics(
   endTime: string,
   granularity: string,
 ): Promise<MetricsResponse> {
-   
   const params = new URLSearchParams({
     start: startTime,
     end: endTime,

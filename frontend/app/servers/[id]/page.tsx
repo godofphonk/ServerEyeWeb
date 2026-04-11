@@ -139,12 +139,12 @@ export default function ServerDetailPage() {
     const startTime = new Date(end.getTime() - 5 * 60 * 1000);
 
     // Use tiered endpoint for consistency with historical metrics
-    const response = await getCachedTieredMetrics(
+    const response = (await getCachedTieredMetrics(
       serverKey,
       startTime.toISOString(),
       end.toISOString(),
       'minute', // Use minute granularity for dashboard
-    ) as MetricsResponse;
+    )) as MetricsResponse;
 
     // Transform API response to expected format
     const lastDataPoint = response.data?.[response.data.length - 1];
@@ -340,12 +340,12 @@ export default function ServerDetailPage() {
     const { granularity, expectedPoints } = config;
 
     // Use tiered endpoint for all ranges with optimized granularity
-    const response = await getCachedTieredMetrics(
+    const response = (await getCachedTieredMetrics(
       serverKey,
       start.toISOString(),
       end.toISOString(),
       granularity,
-    ) as MetricsResponse;
+    )) as MetricsResponse;
 
     // Детальное логирование timestamps для проверки актуальности данных
     if (response.data && response.data.length > 0) {
@@ -379,7 +379,11 @@ export default function ServerDetailPage() {
     const transformedDataPoints = filledDataPoints.map((point: FlatMetricsDataPoint) => ({
       timestamp: point.timestamp,
       cpu: { avg: point.cpu_avg || 0, max: point.cpu_max || 0, min: point.cpu_min || 0 },
-      memory: { avg: point.memory_avg || 0, max: point.memory_max || 0, min: point.memory_min || 0 },
+      memory: {
+        avg: point.memory_avg || 0,
+        max: point.memory_max || 0,
+        min: point.memory_min || 0,
+      },
       disk: { avg: point.disk_avg || 0, max: point.disk_max || 0, min: point.disk_min || 0 },
       network: {
         avg: point.network_avg || 0,

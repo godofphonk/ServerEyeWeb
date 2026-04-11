@@ -56,7 +56,6 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/dashboard');
     } catch (err: unknown) {
-
       const errorMessage = (err as AxiosApiError)?.message || 'Invalid email or password';
 
       // Проверяем требуется ли верификация email
@@ -86,7 +85,6 @@ export default function LoginPage() {
       const authURL = await getOAuthURL(provider, 'login');
       window.location.href = authURL;
     } catch (err: unknown) {
-
       setError((err as AxiosApiError)?.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }

@@ -155,6 +155,5 @@ export function ServerError({
 }
 
 export function ServerErrorInline({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
-   
   return <ServerError error={error} onRetry={onRetry} compact={true} showRetryButton={true} />;
 }

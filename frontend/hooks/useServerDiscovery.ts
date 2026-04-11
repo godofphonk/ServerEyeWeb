@@ -16,9 +16,10 @@ export function useServerDiscovery() {
       setDiscovered(result);
       return result;
     } catch (err: unknown) {
-
       const errorMessage =
-        (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to check for servers';
+        (err as AxiosApiError).response?.data?.message ||
+        (err as AxiosApiError).message ||
+        'Failed to check for servers';
       setError(errorMessage);
       return null;
     } finally {
@@ -39,8 +40,10 @@ export function useServerDiscovery() {
 
       return result;
     } catch (err: unknown) {
-
-      const errorMessage = (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to import servers';
+      const errorMessage =
+        (err as AxiosApiError).response?.data?.message ||
+        (err as AxiosApiError).message ||
+        'Failed to import servers';
       setError(errorMessage);
       throw err;
     } finally {

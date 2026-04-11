@@ -151,8 +151,10 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
 
       window.location.href = modifiedChallengeUrl;
     } catch (error: unknown) {
-
-      toast.error('Error', `Failed to link ${provider} account: ${(error as AxiosApiError)?.message || 'Unknown error'}`);
+      toast.error(
+        'Error',
+        `Failed to link ${provider} account: ${(error as AxiosApiError)?.message || 'Unknown error'}`,
+      );
       setIsLinking(null);
     }
   };

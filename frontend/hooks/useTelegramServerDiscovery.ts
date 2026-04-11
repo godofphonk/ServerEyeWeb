@@ -49,7 +49,6 @@ export function useTelegramServerDiscovery({
   }, []);
 
   const setDiscoveryState = useCallback((state: unknown) => {
-     
     if (typeof window === 'undefined') return;
 
     try {
@@ -139,9 +138,10 @@ export function useTelegramServerDiscovery({
 
       return result;
     } catch (err: unknown) {
-
       const errorMessage =
-        (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to discover Telegram servers';
+        (err as AxiosApiError).response?.data?.message ||
+        (err as AxiosApiError).message ||
+        'Failed to discover Telegram servers';
       setError(errorMessage);
       logger.error('Telegram server discovery failed', err as Error, { errorMessage });
 
@@ -194,12 +194,17 @@ export function useTelegramServerDiscovery({
 
         return result;
       } catch (err: unknown) {
-
-        let errorMessage = (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to import servers';
+        let errorMessage =
+          (err as AxiosApiError).response?.data?.message ||
+          (err as AxiosApiError).message ||
+          'Failed to import servers';
 
         // TODO: FIX - Improve error handling for production
         // Handle specific case where servers are already imported
-        if ((err as AxiosApiError).response?.status === 400 && (err as AxiosApiError).response?.data?.errors) {
+        if (
+          (err as AxiosApiError).response?.status === 400 &&
+          (err as AxiosApiError).response?.data?.errors
+        ) {
           const errors = (err as AxiosApiError).response?.data?.errors;
           if (errors && errors.every((error: string) => error.includes('already added'))) {
             errorMessage = 'Selected servers are already added to your account';

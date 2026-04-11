@@ -53,7 +53,6 @@ export default function AddServerPage() {
 
       router.push('/dashboard');
     } catch (error: unknown) {
-
       const errorMessage =
         (error as AxiosApiError)?.response?.data?.message ||
         (error as AxiosApiError)?.message ||

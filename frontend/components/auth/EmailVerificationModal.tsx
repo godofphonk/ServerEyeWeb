@@ -49,9 +49,10 @@ export function EmailVerificationModal({
         onClose();
       }, 1500);
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Verification failed';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Verification failed';
 
       toast.error('Verification Failed', errorMessage);
     } finally {
@@ -66,9 +67,10 @@ export function EmailVerificationModal({
       await authApi.resendVerification({ email });
       toast.success('Code Resent', 'A new verification code has been sent to your email');
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to resend code';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Failed to resend code';
 
       toast.error('Resend Failed', errorMessage);
     } finally {

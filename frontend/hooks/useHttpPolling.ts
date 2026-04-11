@@ -78,7 +78,6 @@ export function useHttpPolling({
       setError(null);
       onMessage?.(processedData);
     } catch (err: unknown) {
-
       // Handle errors
       if ((err as AxiosApiError).response?.status === 401) {
         setError('Authentication required');

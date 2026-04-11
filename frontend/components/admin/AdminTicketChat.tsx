@@ -189,9 +189,10 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       onTicketUpdate?.();
       onClose();
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Unknown error occurred';
 
       if (errorMessage.includes('Only administrators')) {
         toast.error('Permission Denied', 'You do not have permission to delete tickets');

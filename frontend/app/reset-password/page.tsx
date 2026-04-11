@@ -65,9 +65,10 @@ function ResetPasswordForm() {
         router.push('/login');
       }, 2000);
     } catch (error: unknown) {
-
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to reset password';
+        (error as AxiosApiError)?.response?.data?.message ||
+        (error as AxiosApiError)?.message ||
+        'Failed to reset password';
       setError(errorMessage);
 
       toast.error('Reset Failed', errorMessage);

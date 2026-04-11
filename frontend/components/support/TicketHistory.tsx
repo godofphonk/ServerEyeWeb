@@ -39,7 +39,6 @@ export function TicketHistory() {
         setError('No tickets found for this email');
       }
     } catch (_err: unknown) {
-
       setError('Failed to fetch tickets');
     } finally {
       setIsLoading(false);
