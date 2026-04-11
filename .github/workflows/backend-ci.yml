@@ -276,8 +276,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
-    if: false  # Disabled - no Dockerfile in project yet
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -288,8 +287,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
-          context: ./backend/ServerEyeBackend
-          file: ./backend/ServerEyeBackend/Dockerfile.Production
+          context: .
+          file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
           push: false
           load: true
           tags: servereye-backend:${{ github.sha }}
