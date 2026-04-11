@@ -19,6 +19,8 @@ services:
       # Mount appsettings for hot reload
       - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.json:/app/appsettings.json:ro
       - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
+    external_links:
+      - ServerEyeWeb-redis-dev:redis
     restart: unless-stopped
     networks:
       - servereye-network
