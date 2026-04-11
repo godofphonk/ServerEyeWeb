@@ -21,6 +21,9 @@ services:
       - JWT_SECRET_KEY
       # Encryption Settings
       - ENCRYPTION_KEY
+      # GoApi Settings
+      - GO_API_BASE_URL
+      - GO_API_API_KEY
       # OAuth Settings
       - OAUTH_GOOGLE_CLIENT_ID
       - OAUTH_GOOGLE_CLIENT_SECRET
