@@ -113,7 +113,7 @@ public class TicketsController : ControllerBase
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error getting ticket {TicketNumber}", ticketNumber);
+            this.logger.LogError(ex, "Error getting ticket {TicketNumber}", LogSanitizer.Sanitize(ticketNumber));
             return this.StatusCode(500, new { message = "Failed to retrieve ticket" });
         }
     }

@@ -92,7 +92,7 @@ public sealed class OAuthService(
 
             var challengeResponse = await providerInstance.CreateChallengeAsync(stateWithAction, codeChallenge ?? string.Empty, returnUrl);
 
-            this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, (challengeResponse.ChallengeUrl?.ToString() ?? string.Empty)[..Math.Min(challengeResponse.ChallengeUrl?.ToString()?.Length ?? 0, 100)] + "...");
+            this.logger.LogInformation("Created challenge URL for provider {Provider}: {ChallengeUrl}", provider, LogSanitizer.Sanitize(challengeResponse.ChallengeUrl?.ToString() ?? string.Empty)[..Math.Min(challengeResponse.ChallengeUrl?.ToString()?.Length ?? 0, 100)] + "...");
 
             // Record metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;

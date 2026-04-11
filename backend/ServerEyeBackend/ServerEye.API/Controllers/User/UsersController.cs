@@ -60,11 +60,11 @@ public class UsersController(IUserService userService, IAuthService authService,
     {
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
-        // Log incoming request for debugging
+        // Log incoming request for debugging (sanitized)
         this.logger.LogInformation(
             "Registration request - UserName: {UserName}, Email: {Email}, Password length: {PasswordLength}",
-            userRegisterDto.UserName,
-            userRegisterDto.Email,
+            LogSanitizer.Sanitize(userRegisterDto.UserName),
+            LogSanitizer.MaskEmail(userRegisterDto.Email),
             userRegisterDto.Password?.Length ?? 0);
 
         var validationResult = await this.registerValidator.ValidateAsync(userRegisterDto);

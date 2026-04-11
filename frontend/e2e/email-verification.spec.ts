@@ -11,7 +11,10 @@ test.describe('Email Verification After Registration', () => {
     // Register new user
     await page.goto('/register');
 
-    await page.fill('input[type="email"], input[name="email"]', `testuser${Date.now()}@example.com`);
+    await page.fill(
+      'input[type="email"], input[name="email"]',
+      `testuser${Date.now()}@example.com`,
+    );
     await page.fill('input[type="password"], input[name="password"]', 'testpassword123');
     await page.fill('input[name="username"], input[name="displayName"]', 'Test User');
 
@@ -23,7 +26,9 @@ test.describe('Email Verification After Registration', () => {
     const url = page.url();
     if (url.includes('/verify-email') || url.includes('/dashboard')) {
       await expect(
-        page.locator('text=/verify|Verify|email|Email/i').or(page.locator('[data-testid="verify-email-message"]')),
+        page
+          .locator('text=/verify|Verify|email|Email/i')
+          .or(page.locator('[data-testid="verify-email-message"]')),
       ).toBeVisible();
     }
   });
@@ -36,12 +41,16 @@ test.describe('Email Verification After Registration', () => {
 
     // Check for verification code input
     await expect(
-      page.locator('input[name="code"], input[name="verificationCode"], [data-testid="verification-code"]'),
+      page.locator(
+        'input[name="code"], input[name="verificationCode"], [data-testid="verification-code"]',
+      ),
     ).toBeVisible();
 
     // Check for resend button
     await expect(
-      page.locator('button:has-text("Resend"), button:has-text("Send Again"), [data-testid="resend-code"]'),
+      page.locator(
+        'button:has-text("Resend"), button:has-text("Send Again"), [data-testid="resend-code"]',
+      ),
     ).toBeVisible();
   });
 
@@ -53,7 +62,9 @@ test.describe('Email Verification After Registration', () => {
 
     // Should show validation error
     await expect(
-      page.locator('text=/required|Required|invalid|Invalid/i').or(page.locator('.error, [role="alert"]')),
+      page
+        .locator('text=/required|Required|invalid|Invalid/i')
+        .or(page.locator('.error, [role="alert"]')),
     ).toBeVisible();
   });
 
@@ -67,7 +78,9 @@ test.describe('Email Verification After Registration', () => {
     await page.click('button[type="submit"], button:has-text("Verify"), button:has-text("Submit")');
 
     await expect(
-      page.locator('text=/invalid|Invalid|length|Length/i').or(page.locator('.error, [role="alert"]')),
+      page
+        .locator('text=/invalid|Invalid|length|Length/i')
+        .or(page.locator('.error, [role="alert"]')),
     ).toBeVisible();
   });
 
@@ -84,7 +97,9 @@ test.describe('Email Verification After Registration', () => {
 
     // Should show error
     await expect(
-      page.locator('text=/invalid|Invalid|wrong|Wrong|expired|Expired/i').or(page.locator('[role="alert"]')),
+      page
+        .locator('text=/invalid|Invalid|wrong|Wrong|expired|Expired/i')
+        .or(page.locator('[role="alert"]')),
     ).toBeVisible();
   });
 
@@ -106,7 +121,9 @@ test.describe('Email Verification After Registration', () => {
       await expect(page.locator('h1, h2')).toContainText(/Dashboard/i);
     } else {
       await expect(
-        page.locator('text=/success|Success|verified|Verified/i').or(page.locator('[data-testid="success-message"]')),
+        page
+          .locator('text=/success|Success|verified|Verified/i')
+          .or(page.locator('[data-testid="success-message"]')),
       ).toBeVisible();
     }
   });
@@ -131,7 +148,9 @@ test.describe('Resend Verification Code', () => {
 
       // Should show success message
       await expect(
-        page.locator('text=/sent|Sent|code|Code/i').or(page.locator('[data-testid="success-message"]')),
+        page
+          .locator('text=/sent|Sent|code|Code/i')
+          .or(page.locator('[data-testid="success-message"]')),
       ).toBeVisible();
     }
   });
@@ -186,9 +205,9 @@ test.describe('Email Verification from Profile', () => {
     if (await verifyPrompt.isVisible().catch(() => false)) {
       await expect(verifyPrompt).toBeVisible();
 
-      const verifyButton = page.locator(
-        'button:has-text("Verify"), a:has-text("Verify"), [data-testid="verify-button"]',
-      ).first();
+      const verifyButton = page
+        .locator('button:has-text("Verify"), a:has-text("Verify"), [data-testid="verify-button"]')
+        .first();
 
       if (await verifyButton.isVisible().catch(() => false)) {
         await verifyButton.click();
@@ -303,7 +322,9 @@ test.describe('Email Verification Security', () => {
 
     // Should show rate limit message
     await expect(
-      page.locator('text=/too many|rate limit|try again later/i').or(page.locator('[role="alert"]')),
+      page
+        .locator('text=/too many|rate limit|try again later/i')
+        .or(page.locator('[role="alert"]')),
     ).toBeVisible();
   });
 });

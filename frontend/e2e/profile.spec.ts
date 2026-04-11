@@ -19,7 +19,9 @@ test.describe('Profile Page', () => {
 
     // Check for user information display
     await expect(
-      page.locator('input[name="email"], input[name="username"], [data-testid="user-email"], [data-testid="user-username"]'),
+      page.locator(
+        'input[name="email"], input[name="username"], [data-testid="user-email"], [data-testid="user-username"]',
+      ),
     ).toBeVisible();
   });
 
@@ -27,7 +29,9 @@ test.describe('Profile Page', () => {
     await page.goto('/profile');
 
     // Look for edit button
-    const editButton = page.locator('button:has-text("Edit"), button:has-text("Update"), [data-testid="edit-profile"]').first();
+    const editButton = page
+      .locator('button:has-text("Edit"), button:has-text("Update"), [data-testid="edit-profile"]')
+      .first();
 
     if (await editButton.isVisible().catch(() => false)) {
       await editButton.click();
@@ -86,9 +90,11 @@ test.describe('Email Change Flow', () => {
     await page.goto('/profile');
 
     // Find email change button
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -102,9 +108,11 @@ test.describe('Email Change Flow', () => {
     await page.goto('/profile');
 
     // Navigate to email change form
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -117,7 +125,9 @@ test.describe('Email Change Flow', () => {
 
       // Should show validation error
       await expect(
-        page.locator('text=/invalid|Invalid|format|Format/i').or(page.locator('.error, [role="alert"]')),
+        page
+          .locator('text=/invalid|Invalid|format|Format/i')
+          .or(page.locator('.error, [role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -125,9 +135,11 @@ test.describe('Email Change Flow', () => {
   test('should require password for email change', async ({ page }) => {
     await page.goto('/profile');
 
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -140,7 +152,9 @@ test.describe('Email Change Flow', () => {
 
       // Should require password
       await expect(
-        page.locator('text=/password|Password|required|Required/i').or(page.locator('.error, [role="alert"]')),
+        page
+          .locator('text=/password|Password|required|Required/i')
+          .or(page.locator('.error, [role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -148,9 +162,11 @@ test.describe('Email Change Flow', () => {
   test('should send verification code for email change', async ({ page }) => {
     await page.goto('/profile');
 
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -166,7 +182,9 @@ test.describe('Email Change Flow', () => {
 
       // Should show verification code input
       await expect(
-        page.locator('input[name="code"], input[name="verificationCode"], [data-testid="verification-code"]'),
+        page.locator(
+          'input[name="code"], input[name="verificationCode"], [data-testid="verification-code"]',
+        ),
       ).toBeVisible();
     }
   });
@@ -174,9 +192,11 @@ test.describe('Email Change Flow', () => {
   test('should confirm email change with verification code', async ({ page }) => {
     await page.goto('/profile');
 
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -202,7 +222,9 @@ test.describe('Email Change Flow', () => {
 
         // Should show success message
         await expect(
-          page.locator('text=/success|Success|email changed|Email changed/i').or(page.locator('[data-testid="success-message"]')),
+          page
+            .locator('text=/success|Success|email changed|Email changed/i')
+            .or(page.locator('[data-testid="success-message"]')),
         ).toBeVisible();
       }
     }
@@ -211,9 +233,11 @@ test.describe('Email Change Flow', () => {
   test('should handle email change with wrong verification code', async ({ page }) => {
     await page.goto('/profile');
 
-    const emailChangeButton = page.locator(
-      'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
-    ).first();
+    const emailChangeButton = page
+      .locator(
+        'button:has-text("Change Email"), button:has-text("Update Email"), [data-testid="change-email"]',
+      )
+      .first();
 
     if (await emailChangeButton.isVisible().catch(() => false)) {
       await emailChangeButton.click();
@@ -235,7 +259,9 @@ test.describe('Email Change Flow', () => {
 
         // Should show error
         await expect(
-          page.locator('text=/invalid|Invalid|wrong|Wrong|expired|Expired/i').or(page.locator('[role="alert"]')),
+          page
+            .locator('text=/invalid|Invalid|wrong|Wrong|expired|Expired/i')
+            .or(page.locator('[role="alert"]')),
         ).toBeVisible();
       }
     }
@@ -251,15 +277,19 @@ test.describe('Password Change Flow', () => {
     await page.goto('/profile');
 
     // Find password change button
-    const passwordChangeButton = page.locator(
-      'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
-    ).first();
+    const passwordChangeButton = page
+      .locator(
+        'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
+      )
+      .first();
 
     if (await passwordChangeButton.isVisible().catch(() => false)) {
       await passwordChangeButton.click();
 
       // Should show password change form
-      await expect(page.locator('input[name="currentPassword"], input[name="oldPassword"]')).toBeVisible();
+      await expect(
+        page.locator('input[name="currentPassword"], input[name="oldPassword"]'),
+      ).toBeVisible();
       await expect(page.locator('input[name="newPassword"], input[name="password"]')).toBeVisible();
       await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();
     }
@@ -268,9 +298,11 @@ test.describe('Password Change Flow', () => {
   test('should require current password for password change', async ({ page }) => {
     await page.goto('/profile');
 
-    const passwordChangeButton = page.locator(
-      'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
-    ).first();
+    const passwordChangeButton = page
+      .locator(
+        'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
+      )
+      .first();
 
     if (await passwordChangeButton.isVisible().catch(() => false)) {
       await passwordChangeButton.click();
@@ -280,11 +312,15 @@ test.describe('Password Change Flow', () => {
       await page.fill('input[name="confirmPassword"]', 'newpassword123');
 
       // Submit
-      await page.click('button[type="submit"], button:has-text("Update"), button:has-text("Change")');
+      await page.click(
+        'button[type="submit"], button:has-text("Update"), button:has-text("Change")',
+      );
 
       // Should require current password
       await expect(
-        page.locator('text=/current|Current|required|Required/i').or(page.locator('.error, [role="alert"]')),
+        page
+          .locator('text=/current|Current|required|Required/i')
+          .or(page.locator('.error, [role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -292,22 +328,31 @@ test.describe('Password Change Flow', () => {
   test('should validate password confirmation', async ({ page }) => {
     await page.goto('/profile');
 
-    const passwordChangeButton = page.locator(
-      'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
-    ).first();
+    const passwordChangeButton = page
+      .locator(
+        'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
+      )
+      .first();
 
     if (await passwordChangeButton.isVisible().catch(() => false)) {
       await passwordChangeButton.click();
 
-      await page.fill('input[name="currentPassword"], input[name="oldPassword"]', 'testpassword123');
+      await page.fill(
+        'input[name="currentPassword"], input[name="oldPassword"]',
+        'testpassword123',
+      );
       await page.fill('input[name="newPassword"], input[name="password"]', 'newpassword123');
       await page.fill('input[name="confirmPassword"]', 'differentpassword');
 
-      await page.click('button[type="submit"], button:has-text("Update"), button:has-text("Change")');
+      await page.click(
+        'button[type="submit"], button:has-text("Update"), button:has-text("Change")',
+      );
 
       // Should show mismatch error
       await expect(
-        page.locator('text=/match|Match|confirm|Confirm/i').or(page.locator('.error, [role="alert"]')),
+        page
+          .locator('text=/match|Match|confirm|Confirm/i')
+          .or(page.locator('.error, [role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -315,24 +360,33 @@ test.describe('Password Change Flow', () => {
   test('should change password successfully', async ({ page }) => {
     await page.goto('/profile');
 
-    const passwordChangeButton = page.locator(
-      'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
-    ).first();
+    const passwordChangeButton = page
+      .locator(
+        'button:has-text("Change Password"), button:has-text("Update Password"), [data-testid="change-password"]',
+      )
+      .first();
 
     if (await passwordChangeButton.isVisible().catch(() => false)) {
       await passwordChangeButton.click();
 
-      await page.fill('input[name="currentPassword"], input[name="oldPassword"]', 'testpassword123');
+      await page.fill(
+        'input[name="currentPassword"], input[name="oldPassword"]',
+        'testpassword123',
+      );
       await page.fill('input[name="newPassword"], input[name="password"]', 'newpassword123');
       await page.fill('input[name="confirmPassword"]', 'newpassword123');
 
-      await page.click('button[type="submit"], button:has-text("Update"), button:has-text("Change")');
+      await page.click(
+        'button[type="submit"], button:has-text("Update"), button:has-text("Change")',
+      );
 
       await page.waitForTimeout(2000);
 
       // Should show success message
       await expect(
-        page.locator('text=/success|Success|password changed|Password changed/i').or(page.locator('[data-testid="success-message"]')),
+        page
+          .locator('text=/success|Success|password changed|Password changed/i')
+          .or(page.locator('[data-testid="success-message"]')),
       ).toBeVisible();
     }
   });
@@ -347,16 +401,20 @@ test.describe('Account Deletion Flow', () => {
     await page.goto('/profile');
 
     // Find account deletion button
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
 
       // Should show confirmation dialog or form
       await expect(
-        page.locator('text=/delete|Delete|confirm|Confirm/i').or(page.locator('[role="dialog"], [data-testid="delete-modal"]')),
+        page
+          .locator('text=/delete|Delete|confirm|Confirm/i')
+          .or(page.locator('[role="dialog"], [data-testid="delete-modal"]')),
       ).toBeVisible();
     }
   });
@@ -364,9 +422,11 @@ test.describe('Account Deletion Flow', () => {
   test('should require password for account deletion', async ({ page }) => {
     await page.goto('/profile');
 
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
@@ -379,16 +439,20 @@ test.describe('Account Deletion Flow', () => {
   test('should show warning about account deletion consequences', async ({ page }) => {
     await page.goto('/profile');
 
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
 
       // Should show warning message
       await expect(
-        page.locator('text=/warning|Warning|irreversible|cannot be undone|all data will be lost/i').or(page.locator('[role="alert"]')),
+        page
+          .locator('text=/warning|Warning|irreversible|cannot be undone|all data will be lost/i')
+          .or(page.locator('[role="alert"]')),
       ).toBeVisible();
     }
   });
@@ -396,16 +460,22 @@ test.describe('Account Deletion Flow', () => {
   test('should require confirmation before account deletion', async ({ page }) => {
     await page.goto('/profile');
 
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
 
       // Should have confirm checkbox or second confirmation button
-      const confirmCheckbox = page.locator('input[type="checkbox"], [data-testid="confirm-checkbox"]');
-      const confirmButton = page.locator('button:has-text("Confirm"), button:has-text("Yes, Delete")');
+      const confirmCheckbox = page.locator(
+        'input[type="checkbox"], [data-testid="confirm-checkbox"]',
+      );
+      const confirmButton = page.locator(
+        'button:has-text("Confirm"), button:has-text("Yes, Delete")',
+      );
 
       const hasCheckbox = await confirmCheckbox.isVisible().catch(() => false);
       const hasButton = await confirmButton.isVisible().catch(() => false);
@@ -417,9 +487,11 @@ test.describe('Account Deletion Flow', () => {
   test('should handle account deletion with verification code', async ({ page }) => {
     await page.goto('/profile');
 
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
@@ -455,7 +527,9 @@ test.describe('Account Deletion Flow', () => {
           await expect(page.locator('h1, h2')).toContainText(/Login|Sign In/i);
         } else {
           await expect(
-            page.locator('text=/success|Success|account deleted|Account deleted/i').or(page.locator('[data-testid="success-message"]')),
+            page
+              .locator('text=/success|Success|account deleted|Account deleted/i')
+              .or(page.locator('[data-testid="success-message"]')),
           ).toBeVisible();
         }
       }
@@ -465,15 +539,19 @@ test.describe('Account Deletion Flow', () => {
   test('should cancel account deletion', async ({ page }) => {
     await page.goto('/profile');
 
-    const deleteButton = page.locator(
-      'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
-    ).first();
+    const deleteButton = page
+      .locator(
+        'button:has-text("Delete Account"), button:has-text("Delete"), [data-testid="delete-account"]',
+      )
+      .first();
 
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
 
       // Click cancel button
-      const cancelButton = page.locator('button:has-text("Cancel"), button:has-text("No"), [data-testid="cancel-delete"]');
+      const cancelButton = page.locator(
+        'button:has-text("Cancel"), button:has-text("No"), [data-testid="cancel-delete"]',
+      );
 
       if (await cancelButton.isVisible().catch(() => false)) {
         await cancelButton.click();

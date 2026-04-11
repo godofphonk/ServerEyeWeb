@@ -445,7 +445,7 @@ public class AuthController : BaseApiController
                 "OAuth challenge created successfully - Provider: {OAuthProvider}, Action: {Action}, ChallengeUrl: {ChallengeUrl}",
                 oauthProvider,
                 LogSanitizer.Sanitize(action) ?? "auto",
-                challenge.ChallengeUrl.ToString()[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
+                LogSanitizer.Sanitize(challenge.ChallengeUrl.ToString())[..Math.Min(challenge.ChallengeUrl.ToString().Length, 100)] + "...");
 
             // Record controller-level metrics
             var duration = (DateTime.UtcNow - startTime).TotalSeconds;
@@ -633,7 +633,7 @@ public class AuthController : BaseApiController
             // If this is a linking request from state, use LinkExternalLoginAsync
             if (isLinking && !string.IsNullOrEmpty(linkingProvider) && !string.IsNullOrEmpty(linkingUserId))
             {
-                this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", linkingProvider, linkingUserId);
+                this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", LogSanitizer.Sanitize(linkingProvider), LogSanitizer.MaskToken(linkingUserId, 8));
 
                 if (Guid.TryParse(linkingUserId, out var userGuid))
                 {
@@ -660,7 +660,7 @@ public class AuthController : BaseApiController
                     }
                     catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
                     {
-                        this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
+                        this.logger.LogWarning("OAuth linking failed - account already linked");
                         return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
                     }
                     catch (Exception ex)
@@ -671,7 +671,7 @@ public class AuthController : BaseApiController
                 }
                 else
                 {
-                    this.logger.LogWarning("Invalid user ID in linking state: {UserId}", linkingUserId);
+                    this.logger.LogWarning("Invalid user ID in linking state");
                     return this.BadRequest(new { message = "Invalid user ID in linking state" });
                 }
             }
@@ -737,7 +737,7 @@ public class AuthController : BaseApiController
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("already linked to", StringComparison.OrdinalIgnoreCase))
                 {
-                    this.logger.LogWarning("OAuth linking failed - account already linked: {Message}", ex.Message);
+                    this.logger.LogWarning("OAuth linking failed - account already linked");
                     return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=already_linked");
                 }
                 catch (Exception ex)
@@ -746,73 +746,74 @@ public class AuthController : BaseApiController
                     return this.Redirect($"{this.frontendSettings.BaseUrl}profile?error=linking_failed");
                 }
             }
-
-            var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
-
-            this.logger.LogInformation(
-            "OAuth callback processed successfully - User: {UserId}, Token: {Token}",
-            response.User?.Id,
-            response.Token.Length > 20 ? $"{response.Token[..20]}..." : response.Token);
-
-            // Set JWT tokens in cookies with correct domain for frontend
-            var cookieOptions = new CookieOptions
+            else
             {
-                HttpOnly = true,
-                Secure = this.Request.IsHttps, // Use secure only for HTTPS
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTime.UtcNow.AddHours(1),
+                var response = await this.oauthService.ProcessCallbackAsync(request, ipAddress, userAgent);
 
-                // Domain removed - browser will set it for current host
-                Path = "/"
-            };
+                this.logger.LogInformation(
+                    "OAuth callback processed successfully - User: {UserId}",
+                    response.User?.Id);
 
-            var refreshTokenOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = this.Request.IsHttps, // Use secure only for HTTPS
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTime.UtcNow.AddDays(7),
+                // Set JWT tokens in cookies with correct domain for frontend
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = this.Request.IsHttps, // Use secure only for HTTPS
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(1),
 
-                // Domain removed - browser will set it for current host
-                Path = "/"
-            };
+                    // Domain removed - browser will set it for current host
+                    Path = "/"
+                };
 
-            this.Response.Cookies.Append("access_token", response.Token, cookieOptions);
-            this.Response.Cookies.Append("refresh_token", response.RefreshToken ?? string.Empty, refreshTokenOptions);
+                var refreshTokenOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = this.Request.IsHttps, // Use secure only for HTTPS
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddDays(7),
 
-            this.logger.LogInformation(
-            "JWT cookies set for OAuth callback - Access token expires: {Expires}, Refresh token expires: {RefreshExpires}",
-            cookieOptions.Expires,
-            refreshTokenOptions.Expires);
+                    // Domain removed - browser will set it for current host
+                    Path = "/"
+                };
 
-            // Validate and construct secure callback URL
-            string? baseUrl = this.frontendSettings.BaseUrl;
-            if (string.IsNullOrEmpty(baseUrl))
-            {
-                this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", "null");
-                return this.BadRequest("Invalid callback configuration");
+                this.Response.Cookies.Append("access_token", response.Token, cookieOptions);
+                this.Response.Cookies.Append("refresh_token", response.RefreshToken ?? string.Empty, refreshTokenOptions);
+
+                this.logger.LogInformation(
+                    "JWT cookies set for OAuth callback - Access token expires: {Expires}, Refresh token expires: {RefreshExpires}",
+                    cookieOptions.Expires,
+                    refreshTokenOptions.Expires);
+
+                // Validate and construct secure callback URL
+                string? baseUrl = this.frontendSettings.BaseUrl;
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", "null");
+                    return this.BadRequest("Invalid callback configuration");
+                }
+
+                if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
+                {
+                    this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", baseUrl);
+                    return this.BadRequest("Invalid callback configuration");
+                }
+
+                var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
+                             this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
+                if (validatedBaseUri.Scheme != "https" && !isLocal)
+                {
+                    this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
+                    return this.BadRequest("HTTPS required for non-local requests");
+                }
+
+                var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+                if (!string.IsNullOrEmpty(response.RefreshToken))
+                {
+                    callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
+                }
+                return this.Redirect(callbackUrl);
             }
-
-            if (!UriHelper.TryCreateAbsoluteUri(baseUrl, out var validatedBaseUri) || validatedBaseUri == null)
-            {
-                this.logger.LogWarning("Invalid frontend BaseUrl: {BaseUrl}", baseUrl);
-                return this.BadRequest("Invalid callback configuration");
-            }
-
-            var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
-                         this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-            if (validatedBaseUri.Scheme != "https" && !isLocal)
-            {
-                this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
-                return this.BadRequest("HTTPS required for non-local requests");
-            }
-
-            var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
-            if (!string.IsNullOrEmpty(response.RefreshToken))
-            {
-                callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
-            }
-            return this.Redirect(callbackUrl);
         }
         catch (Exception ex)
         {
