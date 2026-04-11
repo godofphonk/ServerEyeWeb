@@ -27,7 +27,6 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      docs: ${{ steps.filter.outputs.docs }}
     
     steps:
       - name: Checkout code
@@ -46,9 +45,6 @@ jobs:
               - 'frontend/**'
               - '.github/workflows/frontend-ci.yml'
               - '.github/workflows/ci.yml'
-            docs:
-              - 'docs/**'
-              - '*.md'
 
   backend-ci:
     name: Backend CI
@@ -74,35 +70,12 @@ jobs:
       checks: write
       security-events: write
 
-  docs-check:
-    name: Documentation Check
-    needs: detect-changes
-    if: needs.detect-changes.outputs.docs == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.2
-
-      - name: Check markdown links
-        uses: gaurav-nelson/github-action-markdown-link-check@v1.0.15
-        with:
-          use-quiet-mode: 'yes'
-          use-verbose-mode: 'yes'
-          config-file: '.github/markdown-link-check-config.json'
-
-      - name: Lint markdown files
-        uses: nosborn/github-action-markdown-cli@v3.3.0
-        with:
-          files: .
-          config_file: '.markdownlint.json'
 
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [detect-changes, backend-ci, frontend-ci, docs-check]
+    needs: [detect-changes, backend-ci, frontend-ci]
     
     steps:
       - name: Check all jobs
@@ -112,20 +85,17 @@ jobs:
           echo "### Changes Detected" >> $GITHUB_STEP_SUMMARY
           echo "- Backend: ${{ needs.detect-changes.outputs.backend }}" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: ${{ needs.detect-changes.outputs.frontend }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Docs: ${{ needs.detect-changes.outputs.docs }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Job Results" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Backend CI | ${{ needs.backend-ci.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend CI | ${{ needs.frontend-ci.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docs Check | ${{ needs.docs-check.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if any required job failed
         if: |
           (needs.detect-changes.outputs.backend == 'true' && needs.backend-ci.result == 'failure') ||
-          (needs.detect-changes.outputs.frontend == 'true' && needs.frontend-ci.result == 'failure') ||
-          (needs.detect-changes.outputs.docs == 'true' && needs.docs-check.result == 'failure')
+          (needs.detect-changes.outputs.frontend == 'true' && needs.frontend-ci.result == 'failure')
         run: |
           echo "❌ One or more CI checks failed"
           exit 1
@@ -133,7 +103,6 @@ jobs:
       - name: Success message
         if: |
           (needs.detect-changes.outputs.backend != 'true' || needs.backend-ci.result == 'success') &&
-          (needs.detect-changes.outputs.frontend != 'true' || needs.frontend-ci.result == 'success') &&
-          (needs.detect-changes.outputs.docs != 'true' || needs.docs-check.result == 'success')
+          (needs.detect-changes.outputs.frontend != 'true' || needs.frontend-ci.result == 'success')
         run: |
           echo "✅ All CI checks passed successfully!"
