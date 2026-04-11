@@ -17,42 +17,30 @@ export interface LoginResponse {
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>('/users/login', credentials);
 
-  // Dev environment: store token in localStorage
-  if (process.env.NODE_ENV === 'development' && response.token) {
-    localStorage.setItem('jwt_token', response.token);
+  // Store tokens in HttpOnly cookies via session API
+  if (response.token) {
+    await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: response.token, refreshToken: (response as any).refreshToken }),
+    });
   }
 
   return response;
 }
 
 export async function logout(): Promise<void> {
-  // Clear tokens
-  if (process.env.NODE_ENV === 'development') {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('refresh_token');
-  }
-
   // Cookies are cleared by the server on logout
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
 export function getToken(): string | null {
-  // Dev environment: use localStorage
-  if (process.env.NODE_ENV === 'development') {
-    return localStorage.getItem('jwt_token');
-  }
-
-  // Production: tokens are stored in HttpOnly cookies
+  // Tokens are stored in HttpOnly cookies, managed server-side
   return null;
 }
 
 export function isAuthenticated(): boolean {
-  // Dev environment: check localStorage
-  if (process.env.NODE_ENV === 'development') {
-    return !!localStorage.getItem('jwt_token');
-  }
-
-  // Production: authentication is checked via session API
+  // Authentication is checked via session API
   return false;
 }
 

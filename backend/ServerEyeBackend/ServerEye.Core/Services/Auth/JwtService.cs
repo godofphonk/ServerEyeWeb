@@ -2,12 +2,14 @@
 
 namespace ServerEye.Core.Services;
 
+using System.Diagnostics;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Interfaces.Services;
@@ -25,16 +27,24 @@ public class JwtSettings
 
 public sealed class JwtService : IJwtService
 {
+    private static ILogger<JwtService>? staticLogger;
     private readonly JwtSettings jwtSettings;
     private readonly RSA rsaPublicKey;
     private readonly RSA rsaPrivateKey;
+    private readonly ILogger<JwtService>? logger;
 
-    public JwtService(JwtSettings jwtSettings, IConfiguration configuration)
+    public JwtService(JwtSettings jwtSettings, IConfiguration configuration, ILogger<JwtService>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(jwtSettings);
         ArgumentNullException.ThrowIfNull(configuration);
 
         this.jwtSettings = jwtSettings;
+        this.logger = logger;
+        staticLogger = logger;
+
+        // Check if JWT_DEV_PRIVATE_KEY is set
+        var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
+        logger?.LogInformation("JWT_DEV_PRIVATE_KEY is {Status}", string.IsNullOrEmpty(devPrivateKey) ? "NOT SET" : "SET");
 
         // Load RSA keys from Doppler or use static key for development
         if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
@@ -42,12 +52,14 @@ public sealed class JwtService : IJwtService
             // Production: Load keys from Doppler
             this.rsaPrivateKey = LoadRsaKeyFromBase64(jwtSettings.PrivateKeyBase64);
             this.rsaPublicKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
+            logger?.LogInformation("Loaded RSA keys from JwtSettings (Production)");
         }
         else
         {
             // Development: Use static key
             this.rsaPrivateKey = StaticRsaKey;
             this.rsaPublicKey = StaticRsaKey;
+            logger?.LogInformation("Loaded RSA static key (Development)");
         }
     }
 
@@ -55,6 +67,7 @@ public sealed class JwtService : IJwtService
 
     private static RSA StaticRsaKey { get; } = CreateStaticRsaKey();
 
+#pragma warning disable CA1303
     private static RSA CreateStaticRsaKey()
     {
         // For development, load RSA key from environment variable
@@ -65,6 +78,7 @@ public sealed class JwtService : IJwtService
         if (string.IsNullOrEmpty(devPrivateKey))
         {
             // Fallback: generate dynamic key if environment variable not set
+            Console.WriteLine("[JwtService] JWT_DEV_PRIVATE_KEY not set, generating dynamic RSA key");
             return RSA.Create(2048);
         }
 
@@ -74,14 +88,17 @@ public sealed class JwtService : IJwtService
             var formattedKey = devPrivateKey.Replace("\\n", "\n", StringComparison.Ordinal);
             var rsa = RSA.Create();
             rsa.ImportFromPem(formattedKey);
+            Console.WriteLine("[JwtService] Successfully loaded RSA key from JWT_DEV_PRIVATE_KEY");
             return rsa;
         }
-        catch
+        catch (Exception ex)
         {
             // Fallback to dynamic key if key import fails
+            Console.WriteLine($"[JwtService] Failed to load RSA key from JWT_DEV_PRIVATE_KEY: {ex.Message}, generating dynamic RSA key");
             return RSA.Create(2048);
         }
     }
+#pragma warning restore CA1303
 
     private static RSA LoadRsaKeyFromBase64(string base64Key)
     {
@@ -128,6 +145,9 @@ public sealed class JwtService : IJwtService
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 
+        var now = DateTime.UtcNow;
+        var expires = now.Add(this.jwtSettings.AccessTokenExpiration);
+
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -144,14 +164,23 @@ public sealed class JwtService : IJwtService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.Add(this.jwtSettings.AccessTokenExpiration),
+            Expires = expires,
             SigningCredentials = credentials,
             Issuer = this.jwtSettings.Issuer,
             Audience = this.jwtSettings.Audience
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        var tokenString = tokenHandler.WriteToken(token);
+
+        // Log token generation details
+        this.logger?.LogInformation(
+            "Generated access token - Now: {Now}, Expires: {Expires}, Expiration: {Expiration}",
+            now.ToString("yyyy-MM-dd HH:mm:ss"),
+            expires.ToString("yyyy-MM-dd HH:mm:ss"),
+            this.jwtSettings.AccessTokenExpiration);
+
+        return tokenString;
     }
 
     public string GenerateRefreshToken(User user)

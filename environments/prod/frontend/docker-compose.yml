@@ -12,6 +12,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
+      - INTERNAL_API_URL
       # Frontend secrets from Doppler
     restart: unless-stopped
     networks:

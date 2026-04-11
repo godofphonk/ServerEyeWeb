@@ -137,7 +137,8 @@ public static class DependencyInjectionSetup
             var jwtSettings = provider.GetRequiredService<IConfiguration>()
                 .GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var configuration = provider.GetRequiredService<IConfiguration>();
-            return new JwtService(jwtSettings, configuration);
+            var logger = provider.GetService<ILogger<JwtService>>();
+            return new JwtService(jwtSettings, configuration, logger);
         });
     }
 

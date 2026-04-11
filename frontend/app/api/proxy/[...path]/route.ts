@@ -8,7 +8,8 @@ async function proxyRequest(request: NextRequest, method: string) {
     const url = new URL(request.url);
     const path = url.pathname.replace('/api/proxy/', '');
     const search = url.search;
-    const targetUrl = `${API_BASE_URL}${path}${search}`;
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const targetUrl = `${baseUrl}/${path}${search}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

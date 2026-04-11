@@ -24,14 +24,7 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        // Dev environment: use localStorage for token
-        if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-          const token = localStorage.getItem('jwt_token');
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        }
-        // Production: cookies are sent automatically via withCredentials
+        // Cookies are handled by the Next.js proxy server-side
         return config;
       },
       (error) => Promise.reject(error),
