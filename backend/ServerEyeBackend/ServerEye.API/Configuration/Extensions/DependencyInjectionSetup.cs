@@ -45,7 +45,8 @@ public static class DependencyInjectionSetup
         RegisterInfrastructureServices(services);
 
         // Register Go API services
-        RegisterGoApiServices(services, configuration);
+        var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        RegisterGoApiServices(services, configuration, logger);
 
         // Register validators
         services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
@@ -137,7 +138,8 @@ public static class DependencyInjectionSetup
             var jwtSettings = provider.GetRequiredService<IConfiguration>()
                 .GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var configuration = provider.GetRequiredService<IConfiguration>();
-            return new JwtService(jwtSettings, configuration);
+            var logger = provider.GetService<ILogger<JwtService>>();
+            return new JwtService(jwtSettings, configuration, logger);
         });
     }
 
@@ -224,16 +226,19 @@ public static class DependencyInjectionSetup
 #pragma warning restore IDE0060
     }
 
-    private static void RegisterGoApiServices(IServiceCollection services, IConfiguration configuration)
+    private static void RegisterGoApiServices(IServiceCollection services, IConfiguration configuration, ILogger logger)
     {
         var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>()
             ?? new GoApiSettings();
+
+        logger.LogInformation("GoApiSettings loaded - BaseUrl: {BaseUrl}, ProductionUrl: {ProductionUrl}", goApiSettings.BaseUrl, goApiSettings.ProductionUrl);
 
         // Register Go API HttpClient
         services.AddHttpClient<GoApiHttpHandler>(client =>
         {
             client.BaseAddress = goApiSettings.BaseUrl;
             client.Timeout = TimeSpan.FromSeconds(goApiSettings.TimeoutSeconds);
+            logger.LogInformation("GoApiHttpClient configured with BaseAddress: {BaseAddress}", client.BaseAddress);
         });
 
         // Register Go API dependencies

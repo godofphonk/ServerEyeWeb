@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to backend with Authorization header
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://backend:80'}/api/auth/oauth/link`;
+    const backendUrl = `${process.env.INTERNAL_API_URL || 'http://backend:8080/api'}/auth/oauth/link`;
 
     const response = await fetch(backendUrl, {
       method: 'POST',

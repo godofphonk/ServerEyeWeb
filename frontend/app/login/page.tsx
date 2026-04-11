@@ -18,37 +18,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
 
-  // Clear any OAuth tokens when on login page ONLY if not coming from OAuth callback
-  useEffect(() => {
-    const debugResult = localStorage.getItem('telegram_debug_result');
-
-    if (!debugResult) {
-      localStorage.removeItem('jwt_token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-    }
-  }, []);
-
-  // Redirect logic is handled by middleware
-  // useEffect(() => {
-  //   if (!loading && user) {
-  //     window.location.href = '/dashboard';
-  //     return;
-  //   }
-  // }, [user, loading, router]);
-
   // Handle OAuth callback errors
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const oauthError = urlParams.get('error');
-
-    // Log debug info from Telegram OAuth
-    const debugResult = localStorage.getItem('telegram_debug_result');
-    const debugStatus = localStorage.getItem('telegram_debug_status');
-    const debugResponse = localStorage.getItem('telegram_debug_response');
-    const debugSuccess = localStorage.getItem('telegram_debug_success');
-    const debugHasToken = localStorage.getItem('telegram_debug_has_token');
-    const debugError = localStorage.getItem('telegram_debug_error');
 
     if (oauthError) {
       switch (oauthError) {

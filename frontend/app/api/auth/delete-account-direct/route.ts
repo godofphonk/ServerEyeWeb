@@ -14,9 +14,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Forward the request to the backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://backend:80';
+    const backendUrl = process.env.INTERNAL_API_URL || 'http://backend:8080/api';
 
-    const response = await fetch(`${backendUrl}/api/auth/delete-account-direct`, {
+    const response = await fetch(`${backendUrl}/auth/delete-account-direct`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

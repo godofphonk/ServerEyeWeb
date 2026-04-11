@@ -12,15 +12,15 @@ services:
       - "5247:443"
     env_file:
       - ../secrets/backend.env
-      - ../secrets/shared.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://+:8080
     volumes:
       # Mount appsettings for hot reload
-      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.json:ro
-      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.Development.json:ro
+      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.json:/app/appsettings.json:ro
       - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
+    external_links:
+      - ServerEyeWeb-redis-dev:redis
     restart: unless-stopped
     networks:
       - servereye-network

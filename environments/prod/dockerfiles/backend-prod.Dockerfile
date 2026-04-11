@@ -1,5 +1,6 @@
 # Production Dockerfile for Backend (.NET)
 # Optimized for production with multi-stage build
+# Secrets are injected via doppler run from host (Option 2)
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
@@ -33,17 +34,9 @@ RUN dotnet publish "ServerEye.API.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM base AS final
 WORKDIR /app
 
-# Install curl, gnupg, apt-transport-https, ca-certificates for health checks and Doppler CLI
+# Install curl for health checks
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl gnupg apt-transport-https ca-certificates && \
-    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
-        'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
-        | gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] \
-        https://packages.doppler.com/public/cli/deb/debian any-version main" \
-        | tee /etc/apt/sources.list.d/doppler-cli.list && \
-    apt-get update && \
-    apt-get install -y doppler && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy published application
@@ -61,5 +54,5 @@ ENV ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_ThreadPool_MinThreads=4 \
     DOTNET_ThreadPool_MaxThreads=32
 
-# Start the application with Doppler secrets injection
-ENTRYPOINT ["doppler", "run", "--", "dotnet", "ServerEye.API.dll"]
+# Start the application directly (secrets injected via doppler run from host)
+ENTRYPOINT ["dotnet", "ServerEye.API.dll"]
