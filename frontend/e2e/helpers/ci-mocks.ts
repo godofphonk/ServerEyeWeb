@@ -46,8 +46,8 @@ export function createMockJWT(): string {
  * Call this BEFORE navigating to any page that requires authentication.
  * Route handlers persist across navigations within the same page object.
  */
-export async function setupAuthMocks(page: Page): Promise<void> {
-  let authenticated = false;
+export async function setupAuthMocks(page: Page, preAuthenticated = false): Promise<void> {
+  let authenticated = preAuthenticated;
 
   // Mock login endpoint — returns mock user on form submit
   await page.route('**/api/auth/login**', async route => {

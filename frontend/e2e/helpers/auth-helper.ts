@@ -23,11 +23,16 @@ export async function loginAsUser(
   page: Page,
   credentials: UserCredentials = DEFAULT_TEST_USER,
 ): Promise<void> {
-  // In CI, set up API mocks before navigating (backend is not available)
+  // In CI, set up API mocks with preAuthenticated=true and set cookies before navigation
+  // Each test will call page.goto() on its target page, AuthContext will call GET /api/auth/session
+  // which will return the mock user, setting isAuthenticated = true
   if (process.env.CI) {
-    await setupAuthMocks(page);
+    await setupAuthMocks(page, true);
+    await setAuthCookies(page);
+    return;
   }
 
+  // Non-CI: use real login flow
   await page.goto('/login');
 
   // Fill login form
@@ -37,13 +42,8 @@ export async function loginAsUser(
   // Submit form
   await page.click('button[type="submit"]');
 
-  // Wait for navigation or stable state
-  await page.waitForTimeout(2000);
-
-  // In CI, set auth cookies for server-side middleware checks on subsequent navigations
-  if (process.env.CI) {
-    await setAuthCookies(page);
-  }
+  // Wait for navigation away from login page (more reliable than fixed timeout)
+  await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 10000 });
 
   // Verify we're logged in (not on login page)
   const url = page.url();
