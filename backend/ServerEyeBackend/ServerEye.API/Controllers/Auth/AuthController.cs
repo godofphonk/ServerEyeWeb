@@ -743,7 +743,7 @@ public class AuthController : BaseApiController
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Always use secure cookies for JWT tokens
+                Secure = this.Request.IsHttps, // Use secure only for HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1),
 
@@ -754,7 +754,7 @@ public class AuthController : BaseApiController
             var refreshTokenOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Always use secure cookies for JWT tokens
+                Secure = this.Request.IsHttps, // Use secure only for HTTPS
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7),
 
