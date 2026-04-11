@@ -46,7 +46,12 @@ export function createMockJWT(): string {
  * Call this BEFORE navigating to any page that requires authentication.
  * Route handlers persist across navigations within the same page object.
  */
-export async function setupAuthMocks(page: Page, preAuthenticated = false): Promise<void> {
+export async function setupAuthMocks(
+  page: Page,
+  preAuthenticated = false,
+  userOverrides?: Partial<typeof MOCK_USER>,
+): Promise<void> {
+  const mockUser = userOverrides ? { ...MOCK_USER, ...userOverrides } : MOCK_USER;
   let authenticated = preAuthenticated;
 
   // Mock login endpoint — returns mock user on form submit
@@ -56,7 +61,20 @@ export async function setupAuthMocks(page: Page, preAuthenticated = false): Prom
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        user: MOCK_USER,
+        user: mockUser,
+        expiresIn: 1800,
+      }),
+    });
+  });
+
+  // Mock register endpoint — returns user with isEmailVerified: false
+  await page.route('**/api/auth/register**', async route => {
+    authenticated = true;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: { ...mockUser, isEmailVerified: false },
         expiresIn: 1800,
       }),
     });
@@ -70,7 +88,7 @@ export async function setupAuthMocks(page: Page, preAuthenticated = false): Prom
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ user: MOCK_USER }),
+          body: JSON.stringify({ user: mockUser }),
         });
       } else {
         await route.fulfill({
@@ -121,7 +139,47 @@ export async function setupAuthMocks(page: Page, preAuthenticated = false): Prom
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_USER),
+        body: JSON.stringify(mockUser),
+      });
+      return;
+    }
+
+    // Email verification endpoint
+    if (url.includes('/users/verify-email')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Email verified successfully' }),
+      });
+      return;
+    }
+
+    // Resend verification endpoint
+    if (url.includes('/resend-verification')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Verification code sent' }),
+      });
+      return;
+    }
+
+    // Forgot password endpoint
+    if (url.includes('/forgot-password')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Password reset email sent' }),
+      });
+      return;
+    }
+
+    // Reset password endpoint
+    if (url.includes('/reset-password')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Password reset successfully' }),
       });
       return;
     }
