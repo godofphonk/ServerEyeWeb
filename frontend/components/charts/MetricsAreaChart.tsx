@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useMemo } from 'react';
-import { MetricsDataPoint } from '@/types';
+import { MetricsDataPoint, ChartTooltipPayload } from '@/types';
 import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
 interface MetricsAreaChartProps {
@@ -59,8 +59,8 @@ export default function MetricsAreaChart({
 
   // Memoize CustomTooltip to prevent recreation on every render
   const CustomTooltip = useMemo(() => {
-    const CustomTooltipComponent = ({ active, payload }: any) => {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    const CustomTooltipComponent = ({ active, payload }: { active?: boolean; payload?: ChartTooltipPayload[] }) => {
+       
       if (active && payload && payload.length) {
         return (
           <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>

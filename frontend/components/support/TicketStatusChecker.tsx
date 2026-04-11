@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketStatus } from '@/types';
+import { Ticket, TicketStatus, AxiosApiError } from '@/types';
 
 const statusConfig = {
   [TicketStatus.New]: {
@@ -71,9 +71,9 @@ export function TicketStatusChecker() {
     try {
       const result = await ticketApi.getTicketByNumber(ticketNumber.trim());
       setTicket(result);
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      setError(err.response?.status === 404 ? 'Ticket not found' : 'Failed to fetch ticket');
+    } catch (_err: unknown) {
+
+      setError((_err as AxiosApiError).response?.status === 404 ? 'Ticket not found' : 'Failed to fetch ticket');
     } finally {
       setIsLoading(false);
     }

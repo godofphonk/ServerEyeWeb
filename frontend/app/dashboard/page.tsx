@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import { hasUserAccess } from '@/lib/authUtils';
 import ServerSourcesBadge from '@/components/ServerSourcesBadge';
-import { MonitoredServer, DashboardMetrics, ServerStaticInfo, GoApiError } from '@/types';
+import { MonitoredServer, DashboardMetrics, ServerStaticInfo, GoApiError, AxiosApiError } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
@@ -136,8 +136,8 @@ export default function DashboardPage() {
         };
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
-      } catch (error: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+      } catch (error: unknown) {
+
         // Handle GoApiError specifically
         if (error instanceof GoApiError) {
           // Store error for display
@@ -146,22 +146,23 @@ export default function DashboardPage() {
           return;
         }
         // Handle server errors (500, 502, 503, 504)
-        if (error.response?.status >= 500) {
+        const responseStatus = (error as AxiosApiError).response?.status;
+        if (responseStatus && responseStatus >= 500) {
           // Store error for display
           setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
           // Don't show toast for server errors - they're displayed inline
           return;
         }
         // Handle 401 errors specifically
-        if (error.response?.status === 401) {
+        if (responseStatus === 401) {
           // Don't set error for 401 - let auth interceptor handle redirect
           return;
         }
-        // For other errors, store error and show toast
+        // Handle other errors
         setMetricsErrors(prev => ({ ...prev, [serverKey]: error }));
-        if (error.message !== 'canceled') {
+        if ((error as AxiosApiError).response?.status !== 404 && (error as AxiosApiError).message !== 'canceled') {
           const errorMessage =
-            error.response?.data?.message || error.message || 'Unknown error occurred';
+            (error as AxiosApiError).response?.data?.message || (error as AxiosApiError).message || 'Unknown error occurred';
           toast.error('Failed to load server metrics', errorMessage);
         }
       } finally {
@@ -209,8 +210,8 @@ export default function DashboardPage() {
           await Promise.all(metricsPromises);
         }
       }
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       // Handle GoApiError specifically
       if (error instanceof GoApiError) {
         // Store error for display
@@ -219,23 +220,23 @@ export default function DashboardPage() {
         return;
       }
       // Handle server errors (500, 502, 503, 504)
-      if (error.response?.status >= 500) {
+      const responseStatus = (error as AxiosApiError).response?.status;
+      if (responseStatus && responseStatus >= 500) {
         // Store error for display
         setServerError(error);
         // Don't show toast for server errors - they're displayed with full UI
         return;
       }
       // Handle 401 errors specifically
-      if (error.response?.status === 401) {
+      if (responseStatus === 401) {
         // Don't set empty servers array, let auth interceptor handle redirect
         return;
       }
-      // For other errors, set empty servers
-      setServers([]);
-      // Show error toast to user
-      if (error.message !== 'canceled') {
+      // Handle other errors
+      setServerError(error);
+      if ((error as AxiosApiError).response?.status !== 404) {
         const errorMessage =
-          error.response?.data?.message || error.message || 'Unknown error occurred';
+          (error as AxiosApiError).response?.data?.message || (error as AxiosApiError).message || 'Unknown error occurred';
         toast.error('Failed to load servers', errorMessage);
       }
     } finally {
@@ -254,8 +255,8 @@ export default function DashboardPage() {
           'Import Successful',
           `Successfully imported ${serverIds.length} server(s) from Telegram bot`,
         );
-      } catch (error) {
-        logger.error('Failed to import Telegram servers', error as Error, {
+      } catch (_error) {
+        logger.error('Failed to import Telegram servers', _error as Error, {
           serverCount: serverIds.length,
         });
         toast.error('Import Failed', 'Failed to import some servers. Please try again.');
@@ -396,11 +397,11 @@ export default function DashboardPage() {
       );
 
       setDeleteModal({ isOpen: false, server: null });
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      logger.error('Failed to delete server', error, { serverId: deleteModal.server?.id });
+    } catch (error: unknown) {
+
+      logger.error('Failed to delete server', error as Error, { serverId: deleteModal.server?.id });
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
 
       toast.error('Delete Failed', `Failed to delete server: ${errorMessage}`);
     } finally {
@@ -506,7 +507,7 @@ export default function DashboardPage() {
               onVerified={async () => {
                 try {
                   await refreshUserData();
-                } catch (error) {
+                } catch (_error) {
                   // Fallback to page reload
                   window.location.reload();
                 }

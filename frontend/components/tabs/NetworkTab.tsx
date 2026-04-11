@@ -37,7 +37,7 @@ export default function NetworkTab({
       try {
         const rxResult = await loadHistoricalMetrics(networkRxTimeRange);
         setNetworkRxMetrics(rxResult);
-      } catch (error) {
+      } catch (_error) {
         /* ignore error */
       }
     };

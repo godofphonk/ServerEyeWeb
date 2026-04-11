@@ -18,7 +18,7 @@ export function NotificationBell() {
     try {
       const response = await notificationApi.getUnreadCount();
       setUnreadCount(response.count);
-    } catch (error) {
+    } catch (_error) {
       /* ignore error */
     }
   };

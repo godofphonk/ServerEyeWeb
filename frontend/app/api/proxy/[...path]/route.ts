@@ -91,7 +91,7 @@ async function proxyRequest(request: NextRequest, method: string) {
         'Content-Type': backendResponse.headers.get('Content-Type') || 'application/json',
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

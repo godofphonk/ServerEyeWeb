@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest) {
     cookieStore.delete('refresh_token');
 
     return NextResponse.json(data, { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

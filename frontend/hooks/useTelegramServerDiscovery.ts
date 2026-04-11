@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { serverDiscoveryApi } from '@/lib/serverDiscoveryApi';
-import { DiscoveredServersResponse, ImportServersResponse } from '@/types';
+import { DiscoveredServersResponse, ImportServersResponse, AxiosApiError } from '@/types';
 import { logger } from '@/lib/telemetry/logger';
 
 interface UseTelegramServerDiscoveryOptions {
@@ -48,8 +48,8 @@ export function useTelegramServerDiscovery({
     }
   }, []);
 
-  const setDiscoveryState = useCallback((state: any) => {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+  const setDiscoveryState = useCallback((state: unknown) => {
+     
     if (typeof window === 'undefined') return;
 
     try {
@@ -138,12 +138,12 @@ export function useTelegramServerDiscovery({
       });
 
       return result;
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: unknown) {
+
       const errorMessage =
-        err.response?.data?.message || err.message || 'Failed to discover Telegram servers';
+        (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to discover Telegram servers';
       setError(errorMessage);
-      logger.error('Telegram server discovery failed', err, { errorMessage });
+      logger.error('Telegram server discovery failed', err as Error, { errorMessage });
 
       // Graceful fallback - don't show modal on error
       setShouldShowModal(false);
@@ -193,15 +193,15 @@ export function useTelegramServerDiscovery({
         }, 1000); // Wait 1 second for backend to process
 
         return result;
-      } catch (err: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
-        let errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
+      } catch (err: unknown) {
+
+        let errorMessage = (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to import servers';
 
         // TODO: FIX - Improve error handling for production
         // Handle specific case where servers are already imported
-        if (err.response?.status === 400 && err.response?.data?.errors) {
-          const errors = err.response.data.errors;
-          if (errors.every((error: string) => error.includes('already added'))) {
+        if ((err as AxiosApiError).response?.status === 400 && (err as AxiosApiError).response?.data?.errors) {
+          const errors = (err as AxiosApiError).response?.data?.errors;
+          if (errors && errors.every((error: string) => error.includes('already added'))) {
             errorMessage = 'Selected servers are already added to your account';
             // Refresh discovery data to show correct state
             setTimeout(() => {
@@ -211,7 +211,7 @@ export function useTelegramServerDiscovery({
         }
 
         setError(errorMessage);
-        logger.error('Telegram server import failed', err, {
+        logger.error('Telegram server import failed', err as Error, {
           errorMessage,
           serverCount: serverIds.length,
         });

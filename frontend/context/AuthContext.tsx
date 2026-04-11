@@ -197,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // no token in JWT payload, fall through to error handling
       }
-    } catch (error) {
+    } catch (_error) {
       // Fallback: try to get user data from API
       try {
         const response = await apiClient.get<{ user: BackendUser | null }>('/auth/session');
@@ -212,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logger.debug('No active session found');
           setUserWithLogging(null);
         }
-      } catch (fallbackError) {
+      } catch (_fallbackError) {
         /* ignore fallback error */
       }
     }

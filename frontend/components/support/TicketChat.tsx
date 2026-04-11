@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketMessage, TicketStatus } from '@/types';
+import { Ticket, TicketMessage, TicketStatus, AxiosApiError } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
@@ -69,7 +69,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
       // Load fresh ticket data with messages from backend
       const updatedTicket = await ticketApi.getTicketById(ticket.id);
       setMessages(updatedTicket.messages || []);
-    } catch (error) {
+    } catch (_error) {
       // Fallback to ticket object messages
       setMessages(ticket.messages || []);
     } finally {
@@ -116,10 +116,10 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
 
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
 
       toast.error('Send Failed', `Failed to send message: ${errorMessage}`);
 

@@ -15,7 +15,7 @@ async function globalSetup(_config: FullConfig) {
   // 4. Start mock services
 
   // Test user configuration (for future use)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const _testUser = {
     email: process.env.TEST_USER_EMAIL || 'test@example.com',
     password: process.env.TEST_USER_PASSWORD || 'testpassword123',

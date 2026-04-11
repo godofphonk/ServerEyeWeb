@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ticketApi } from '@/lib/ticketApi';
-import { Ticket, TicketMessage, TicketStatus } from '@/types';
+import { Ticket, TicketMessage, TicketStatus, AxiosApiError } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
@@ -100,7 +100,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       const updatedTicket = await ticketApi.getTicketById(ticket.id);
       setCurrentTicket(updatedTicket);
       setMessages(updatedTicket.messages || []);
-    } catch (error) {
+    } catch (_error) {
       setMessages(ticket.messages || []);
     } finally {
       setIsLoading(false);
@@ -144,7 +144,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
 
       // Notify parent to refresh ticket list
       onTicketUpdate?.();
-    } catch (error) {
+    } catch (_error) {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     } finally {
@@ -163,7 +163,7 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
 
       // Notify parent
       onTicketUpdate?.();
-    } catch (error) {
+    } catch (_error) {
       // ignore error
     } finally {
       setIsUpdatingStatus(false);
@@ -188,10 +188,10 @@ export function AdminTicketChat({ ticket, isOpen, onClose, onTicketUpdate }: Adm
       );
       onTicketUpdate?.();
       onClose();
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Unknown error occurred';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Unknown error occurred';
 
       if (errorMessage.includes('Only administrators')) {
         toast.error('Permission Denied', 'You do not have permission to delete tickets');

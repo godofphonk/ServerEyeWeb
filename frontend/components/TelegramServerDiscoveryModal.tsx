@@ -82,7 +82,7 @@ export function TelegramServerDiscoveryModal({
         if (isLinked && onDiscoverServers && !discovered && !isLoading) {
           onDiscoverServers();
         }
-      } catch (error) {
+      } catch (_error) {
         /* ignore error */
       }
     };
@@ -111,7 +111,7 @@ export function TelegramServerDiscoveryModal({
 
       // Redirect to Telegram OAuth
       window.location.href = challenge.challengeUrl.toString();
-    } catch (error) {
+    } catch (_error) {
       setIsLinkingTelegram(false);
     }
   };
@@ -168,7 +168,7 @@ export function TelegramServerDiscoveryModal({
         setShowSuccess(false);
         onDismiss();
       }, 2000);
-    } catch (err) {
+    } catch (_err) {
       setImportProgress(prev => ({
         ...prev,
         importing: false,

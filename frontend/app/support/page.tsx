@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { MyTickets } from '@/components/support/MyTickets';
 import { ticketApi } from '@/lib/ticketApi';
-import { CreateTicketRequest } from '@/types';
+import { CreateTicketRequest, AxiosApiError } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/useToast';
 
@@ -111,11 +111,11 @@ export default function SupportPage() {
         setActiveTab('create');
         setTimeout(() => setActiveTab('tickets'), 100);
       }
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       setSubmitStatus('error');
       const errorMessage =
-        error.response?.data?.message ||
+        (error as AxiosApiError)?.response?.data?.message ||
         'Failed to create ticket. Please try again or contact support@servereye.dev';
       setErrorMessage(errorMessage);
 

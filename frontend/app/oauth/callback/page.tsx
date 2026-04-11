@@ -45,7 +45,7 @@ function OAuthCallbackContent() {
             if (!response.ok) {
               // ignore refresh failure, proceed with auth check
             }
-          } catch (apiError) {
+          } catch (_apiError) {
             /* ignore error */
           }
 
@@ -88,7 +88,7 @@ function OAuthCallbackContent() {
             router.push('/login');
           }, 5000);
         }
-      } catch (error) {
+      } catch (_error) {
         setStatus('error');
         setMessage('An error occurred during authentication');
         setTimeout(() => {

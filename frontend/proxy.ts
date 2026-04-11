@@ -88,7 +88,7 @@ export function proxy(request: NextRequest) {
         // Не-admin пользователи не могут получить доступ к admin роутам
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
-    } catch (error) {
+    } catch (_error) {
       // For non-admin routes, continue without admin check
       if (!request.nextUrl.pathname.startsWith('/admin')) {
         return response;

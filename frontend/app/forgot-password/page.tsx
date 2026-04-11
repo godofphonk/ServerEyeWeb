@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
+import { AxiosApiError } from '@/types';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -40,10 +41,10 @@ export default function ForgotPasswordPage() {
         'Reset Link Sent',
         'If an account with this email exists, you will receive a password reset link',
       );
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
+
       const errorMessage =
-        error?.response?.data?.message || error?.message || 'Failed to send reset link';
+        (error as AxiosApiError)?.response?.data?.message || (error as AxiosApiError)?.message || 'Failed to send reset link';
 
       toast.error('Request Failed', errorMessage);
     } finally {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { serverDiscoveryApi } from '@/lib/serverDiscoveryApi';
-import { DiscoveredServersResponse } from '@/types';
+import { DiscoveredServersResponse, AxiosApiError } from '@/types';
 
 export function useServerDiscovery() {
   const [discovered, setDiscovered] = useState<DiscoveredServersResponse | null>(null);
@@ -15,10 +15,10 @@ export function useServerDiscovery() {
       const result = await serverDiscoveryApi.findTelegramServers();
       setDiscovered(result);
       return result;
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: unknown) {
+
       const errorMessage =
-        err.response?.data?.message || err.message || 'Failed to check for servers';
+        (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to check for servers';
       setError(errorMessage);
       return null;
     } finally {
@@ -38,9 +38,9 @@ export function useServerDiscovery() {
       }
 
       return result;
-    } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
+    } catch (err: unknown) {
+
+      const errorMessage = (err as AxiosApiError).response?.data?.message || (err as AxiosApiError).message || 'Failed to import servers';
       setError(errorMessage);
       throw err;
     } finally {

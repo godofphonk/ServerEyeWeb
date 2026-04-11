@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (_error) {
     const response = NextResponse.json({ success: true });
     response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });

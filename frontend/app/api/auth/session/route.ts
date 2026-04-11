@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     return response;
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set('access_token', '', { path: '/', maxAge: 0 });
     response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
     return response;
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ user: null }, { status: 500 });
   }
 }
