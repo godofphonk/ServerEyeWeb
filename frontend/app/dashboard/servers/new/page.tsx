@@ -51,7 +51,8 @@ export default function AddServerPage() {
       toast.success('Server Added', `Server "${serverName.trim()}" has been successfully added`);
 
       router.push('/dashboard');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||

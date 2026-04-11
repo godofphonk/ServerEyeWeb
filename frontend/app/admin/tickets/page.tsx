@@ -97,7 +97,10 @@ export default function AdminTicketsPage() {
 
         // Handle paginated response {tickets: [...], pagination: {...}}
         if (response && typeof response === 'object' && 'tickets' in response) {
-          const paginatedResponse = response as { tickets: Ticket[]; pagination: { total: number; page: number; pageSize: number } };
+          const paginatedResponse = response as {
+            tickets: Ticket[];
+            pagination: { total: number; page: number; pageSize: number };
+          };
           data = paginatedResponse.tickets;
         } else if (Array.isArray(response)) {
           data = response;

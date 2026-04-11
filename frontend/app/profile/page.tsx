@@ -185,7 +185,11 @@ export default function ProfilePage() {
       // Show specific validation errors if available
       let errorMessage = 'Failed to update profile';
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { data?: { errors?: Record<string, string[]>; message?: string; error?: string } } };
+        const axiosError = error as {
+          response?: {
+            data?: { errors?: Record<string, string[]>; message?: string; error?: string };
+          };
+        };
         if (axiosError.response?.data?.errors) {
           errorMessage = Object.values(axiosError.response.data.errors).flat().join(', ');
         } else if (axiosError.response?.data?.message) {

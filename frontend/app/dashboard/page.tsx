@@ -10,25 +10,13 @@ import {
 } from '@/lib/serverApi';
 import { fetchWithRetry } from '@/lib/retryUtils';
 import { motion } from 'framer-motion';
-import {
-  Activity,
-  Cpu,
-  Server as ServerIcon,
-  Plus,
-  RefreshCw,
-  Trash2,
-} from 'lucide-react';
+import { Activity, Cpu, Server as ServerIcon, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import { hasUserAccess } from '@/lib/authUtils';
 import ServerSourcesBadge from '@/components/ServerSourcesBadge';
-import {
-  MonitoredServer,
-  DashboardMetrics,
-  ServerStaticInfo,
-  GoApiError,
-} from '@/types';
+import { MonitoredServer, DashboardMetrics, ServerStaticInfo, GoApiError } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmailVerificationBanner } from '@/components/auth/EmailVerificationBanner';
@@ -148,7 +136,8 @@ export default function DashboardPage() {
         };
 
         setMetrics(prev => ({ ...prev, [serverKey]: dashboardMetrics }));
-      } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        // eslint-disable-line @typescript-eslint/no-explicit-any
         // Handle GoApiError specifically
         if (error instanceof GoApiError) {
           // Store error for display
@@ -220,7 +209,8 @@ export default function DashboardPage() {
           await Promise.all(metricsPromises);
         }
       }
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       // Handle GoApiError specifically
       if (error instanceof GoApiError) {
         // Store error for display
@@ -406,7 +396,8 @@ export default function DashboardPage() {
       );
 
       setDeleteModal({ isOpen: false, server: null });
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       logger.error('Failed to delete server', error, { serverId: deleteModal.server?.id });
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Unknown error occurred';

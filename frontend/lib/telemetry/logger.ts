@@ -59,7 +59,6 @@ class StructuredLogger {
       return;
     }
 
-    
     // Send to Loki via Alloy (OTLP HTTP endpoint)
     if (process.env.NEXT_PUBLIC_OTEL_EXPORTER_OTLP_ENDPOINT) {
       const otlpLog = {

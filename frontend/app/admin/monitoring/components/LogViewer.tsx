@@ -57,12 +57,9 @@ export default function LogViewer() {
 
       const level = selectedLevel === 'all' ? 'all' : selectedLevel;
 
-      const response = await fetch(
-        `/api/proxy/admin/logs?limit=50&level=${level}`,
-        {
-          credentials: 'include',
-        },
-      );
+      const response = await fetch(`/api/proxy/admin/logs?limit=50&level=${level}`, {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch logs');

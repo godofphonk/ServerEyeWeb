@@ -88,7 +88,8 @@ export default function RegisterPage() {
     try {
       const authURL = await getOAuthURL(provider, 'register');
       window.location.href = authURL;
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || `Failed to authenticate with ${provider}`);
       setIsOAuthLoading(null);
     }
@@ -119,7 +120,8 @@ export default function RegisterPage() {
       setShowVerificationModal(true);
 
       toast.info('Registration Successful', 'Please verify your email to continue');
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       setError(err.message || 'Registration failed');
     } finally {
       setIsLoading(false);

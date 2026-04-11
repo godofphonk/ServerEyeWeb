@@ -88,7 +88,8 @@ export function DeleteAccountModal({
         'Deletion Code Sent',
         `A confirmation code has been sent to ${email || 'your email'}. Check your inbox and spam folder.`,
       );
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to send deletion code';
 
@@ -131,7 +132,8 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       // Check if this is expected error after successful deletion
       // 401/403 = Account deleted, token is now invalid
       // 500 = Server error but account might be deleted
@@ -213,7 +215,8 @@ export function DeleteAccountModal({
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to delete account';
       toast.error('Deletion Failed', errorMessage);
@@ -234,7 +237,8 @@ export function DeleteAccountModal({
       setCodeResendTimer(60); // Reset resend timer
 
       toast.warning('Code Resent', 'A new confirmation code has been sent to your email');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         error?.response?.data?.message || error?.message || 'Failed to resend code';
       toast.error('Resend Failed', errorMessage);

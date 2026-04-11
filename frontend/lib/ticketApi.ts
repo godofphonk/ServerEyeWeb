@@ -58,7 +58,9 @@ export class TicketApi {
   async getAllTickets(
     page: number = 1,
     pageSize: number = 50,
-  ): Promise<Ticket[] | { tickets: Ticket[]; pagination: { page: number; pageSize: number; total: number } }> {
+  ): Promise<
+    Ticket[] | { tickets: Ticket[]; pagination: { page: number; pageSize: number; total: number } }
+  > {
     return apiClient.get(`${this.baseUrl}?page=${page}&pageSize=${pageSize}`);
   }
 

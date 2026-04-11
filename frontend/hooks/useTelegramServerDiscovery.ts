@@ -48,7 +48,8 @@ export function useTelegramServerDiscovery({
     }
   }, []);
 
-  const setDiscoveryState = useCallback((state: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const setDiscoveryState = useCallback((state: any) => {
+    // eslint-disable-line @typescript-eslint/no-explicit-any
     if (typeof window === 'undefined') return;
 
     try {
@@ -137,7 +138,8 @@ export function useTelegramServerDiscovery({
       });
 
       return result;
-    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
         err.response?.data?.message || err.message || 'Failed to discover Telegram servers';
       setError(errorMessage);
@@ -191,7 +193,8 @@ export function useTelegramServerDiscovery({
         }, 1000); // Wait 1 second for backend to process
 
         return result;
-      } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        // eslint-disable-line @typescript-eslint/no-explicit-any
         let errorMessage = err.response?.data?.message || err.message || 'Failed to import servers';
 
         // TODO: FIX - Improve error handling for production

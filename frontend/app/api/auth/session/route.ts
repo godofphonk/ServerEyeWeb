@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-      const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
+    const backendResponse = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

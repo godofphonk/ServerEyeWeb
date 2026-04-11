@@ -52,21 +52,18 @@ function AuthCallbackContent() {
             }
 
             // Call backend linking endpoint
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/auth/oauth/link`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${jwtToken}`,
-                },
-                body: JSON.stringify({
-                  provider: linkProvider,
-                  code: oauthCode,
-                  state: oauthState,
-                }),
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/oauth/link`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwtToken}`,
               },
-            );
+              body: JSON.stringify({
+                provider: linkProvider,
+                code: oauthCode,
+                state: oauthState,
+              }),
+            });
 
             if (!response.ok) {
               const errorData = await response.json();
