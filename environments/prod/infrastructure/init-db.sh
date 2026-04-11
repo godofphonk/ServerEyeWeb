@@ -5,6 +5,13 @@ set -e
 # Creates a separate user with least privilege for the current database
 # This MUST be a .sh file (not .sql) so environment variables are substituted by bash
 # Each container passes only its own password via environment variable
+#
+# Permissions rationale:
+#   CONNECT   — connect to the database
+#   USAGE     — access objects in public schema
+#   CREATE    — required for EF Core migrations (CREATE TABLE, ALTER TABLE)
+#   The user becomes OWNER of tables it creates via migrations,
+#   so no additional GRANT ALL ON TABLES is needed.
 
 create_user() {
     local username="$1"
@@ -27,8 +34,6 @@ create_user() {
         GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO $username;
         GRANT USAGE ON SCHEMA public TO $username;
         GRANT CREATE ON SCHEMA public TO $username;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $username;
-        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $username;
 EOSQL
 
     echo "✅ User $username created for database $POSTGRES_DB"
