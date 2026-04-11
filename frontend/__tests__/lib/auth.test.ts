@@ -6,61 +6,37 @@ jest.mock('../../lib/api', () => ({
   },
 }));
 
+global.fetch = jest.fn();
+
 describe('getToken', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('returns null when no token is stored', () => {
-    expect(getToken()).toBeNull();
-  });
-
-  it('returns the stored token', () => {
-    localStorage.setItem('jwt_token', 'my-test-token');
-    expect(getToken()).toBe('my-test-token');
-  });
-
-  it('returns null after token is removed', () => {
-    localStorage.setItem('jwt_token', 'my-test-token');
-    localStorage.removeItem('jwt_token');
+  it('returns null (tokens are stored in HttpOnly cookies)', () => {
     expect(getToken()).toBeNull();
   });
 });
 
 describe('isAuthenticated', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('returns false when no token is stored', () => {
-    expect(isAuthenticated()).toBe(false);
-  });
-
-  it('returns true when a token is stored', () => {
-    localStorage.setItem('jwt_token', 'my-test-token');
-    expect(isAuthenticated()).toBe(true);
-  });
-
-  it('returns false after logout', () => {
-    localStorage.setItem('jwt_token', 'my-test-token');
-    localStorage.removeItem('jwt_token');
+  it('returns false (authentication is checked via session API)', () => {
     expect(isAuthenticated()).toBe(false);
   });
 });
 
 describe('logout', () => {
   beforeEach(() => {
-    localStorage.clear();
+    (global.fetch as jest.Mock).mockClear();
   });
 
-  it('removes the token from localStorage', async () => {
-    localStorage.setItem('jwt_token', 'my-test-token');
+  it('calls logout API endpoint', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
     await logout();
-    expect(localStorage.getItem('jwt_token')).toBeNull();
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
   });
 
-  it('does not throw when no token exists', async () => {
-    await expect(logout()).resolves.toBeUndefined();
+  it('handles API call errors gracefully', async () => {
+    (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+    await expect(logout()).rejects.toThrow('Network error');
   });
 });
 
