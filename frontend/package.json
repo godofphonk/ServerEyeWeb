@@ -41,6 +41,7 @@
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-trace-web": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.27.0",
+    "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -75,8 +76,8 @@
     "jest-environment-jsdom": "^30.3.0",
     "postcss": "^8",
     "prettier": "^3.0.0",
-    "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3"
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2"
   },
   "engines": {
     "node": "25",
