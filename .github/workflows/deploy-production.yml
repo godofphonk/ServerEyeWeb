@@ -22,6 +22,7 @@ env:
   IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/backend
   IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend
   DOTNET_VERSION: '10.0.0'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-push:
@@ -423,7 +424,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker-compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate
 
       - name: Start backend containers
         uses: appleboy/ssh-action@v1.0.3
