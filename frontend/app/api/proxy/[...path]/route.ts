@@ -11,6 +11,15 @@ async function proxyRequest(request: NextRequest, method: string) {
     const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const targetUrl = `${baseUrl}/${path}${search}`;
 
+    console.log('[Proxy]', {
+      method,
+      path,
+      search,
+      targetUrl,
+      hasAccessToken: !!accessToken,
+      apiBaseUrl: API_BASE_URL,
+    });
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
