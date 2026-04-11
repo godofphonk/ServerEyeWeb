@@ -2,7 +2,7 @@
 # Multi-stage build for optimized production image
 
 # Stage 1: Dependencies
-FROM node:20.12.2-alpine AS deps
+FROM node:25-alpine AS deps
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && apk add --no-cache libc6-compat
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Stage 2: Builder
-FROM node:20.12.2-alpine AS builder
+FROM node:25-alpine AS builder
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache
 WORKDIR /app
@@ -33,7 +33,7 @@ RUN echo "Secrets hash: ${SECRETS_HASH}"
 RUN npm run build:production
 
 # Stage 3: Runner
-FROM node:20.12.2-alpine AS runner
+FROM node:25-alpine AS runner
 # Update packages for security fixes
 RUN apk update && apk upgrade --no-cache && \
     apk add --no-cache dumb-init && \

@@ -3,7 +3,16 @@ const nextConfig = {
   output: process.env.CI_E2E === 'true' ? undefined : 'standalone',
   allowedDevOrigins: ['127.0.0.1'],
   images: {
-    domains: ['api.servereye.dev', 'cdn.servereye.dev'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.servereye.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.servereye.dev',
+      },
+    ],
     formats: ['image/webp', 'image/avif'],
   },
   // Enable React Strict Mode for production
@@ -56,7 +65,6 @@ const nextConfig = {
   compress: true,
   // Development optimizations
   ...(process.env.NODE_ENV === 'development' && {
-    swcMinify: false,
     compiler: {
       removeConsole: false,
     },

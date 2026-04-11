@@ -1,7 +1,7 @@
 # Development Dockerfile for Frontend (Next.js)
 # Optimized for development with hot reload
 
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 
 # Install dependencies
