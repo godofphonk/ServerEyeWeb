@@ -10,7 +10,7 @@ public class TicketDbContextFactory : IDesignTimeDbContextFactory<TicketDbContex
         var optionsBuilder = new DbContextOptionsBuilder<TicketDbContext>();
 
         // Use default connection string for migrations
-        var connectionString = "Host=localhost;Port=5434;Database=ServerEyeWeb_Dev_Ticket;Username=postgres;Password=postgres";
+        var connectionString = "Host=localhost;Port=5434;Database=ServerEyeWeb_Dev_Ticket;Username=servereye_ticket;Password=postgres";
 
         optionsBuilder.UseNpgsql(connectionString);
 

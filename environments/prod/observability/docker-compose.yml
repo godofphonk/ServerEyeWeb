@@ -124,8 +124,6 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: ServerEyeWeb-postgres-exporter-prod
-    ports:
-      - "9187:9187"
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD}@ServerEyeWeb-postgres-main-prod:5432/ServerEyeWeb_Prod?sslmode=disable
     restart: unless-stopped
@@ -141,8 +139,6 @@ services:
   redis-exporter:
     image: oliver006/redis_exporter:latest
     container_name: ServerEyeWeb-redis-exporter-prod
-    ports:
-      - "9121:9121"
     environment:
       - REDIS_ADDR=ServerEyeWeb-redis-prod:6379
     restart: unless-stopped

@@ -9,7 +9,7 @@ public class BillingDesignTimeDbContextFactory : IDesignTimeDbContextFactory<Bil
     {
         var optionsBuilder = new DbContextOptionsBuilder<BillingDbContext>();
 
-        optionsBuilder.UseNpgsql("Host=127.0.0.1;Port=5436;Database=ServerEyeWeb_Dev_Billing;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql("Host=127.0.0.1;Port=5436;Database=ServerEyeWeb_Dev_Billing;Username=servereye_billing;Password=postgres");
 
         return new BillingDbContext(optionsBuilder.Options);
     }
