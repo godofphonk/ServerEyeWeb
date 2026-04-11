@@ -15,7 +15,7 @@ permissions:
   security-events: write
 
 env:
-  NODE_VERSION: '20.x'
+  NODE_VERSION: '25.x'
   PNPM_VERSION: '8'
 
 jobs:
@@ -370,7 +370,7 @@ jobs:
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile.Production
+          file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
           push: false
           load: true
           tags: servereye-frontend:${{ github.sha }}
