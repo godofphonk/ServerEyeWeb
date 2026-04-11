@@ -21,6 +21,13 @@ public static class DatabaseSetup
         var ticketConnectionString = GetTicketConnectionString(configuration);
         var billingConnectionString = GetBillingConnectionString(configuration);
 
+        // If connection strings are missing (testing environment), skip registration
+        // TestApplicationFactory will override with in-memory databases
+        if (serverEyeConnectionString == null || ticketConnectionString == null || billingConnectionString == null)
+        {
+            return services;
+        }
+
         // Register DbContexts
         services.AddDbContext<ServerEyeDbContext>(options =>
             options.UseNpgsql(serverEyeConnectionString));
@@ -81,27 +88,24 @@ public static class DatabaseSetup
         }
     }
 
-    private static string GetServerEyeConnectionString(IConfiguration configuration)
+    private static string? GetServerEyeConnectionString(IConfiguration configuration)
     {
         return configuration["DATABASE_CONNECTION_STRING"]
             ?? configuration.GetConnectionString("ServerEyeDbContext")
-            ?? configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("ServerEye database connection string not found");
+            ?? configuration.GetConnectionString("DefaultConnection");
     }
 
-    private static string GetTicketConnectionString(IConfiguration configuration)
+    private static string? GetTicketConnectionString(IConfiguration configuration)
     {
         return configuration["TICKET_DB_CONNECTION_STRING"]
             ?? configuration.GetConnectionString("TicketDbContext")
-            ?? configuration.GetConnectionString("TicketConnection")
-            ?? throw new InvalidOperationException("Ticket database connection string not found");
+            ?? configuration.GetConnectionString("TicketConnection");
     }
 
-    private static string GetBillingConnectionString(IConfiguration configuration)
+    private static string? GetBillingConnectionString(IConfiguration configuration)
     {
         return configuration["BILLING_DB_CONNECTION_STRING"]
             ?? configuration.GetConnectionString("BillingDbContext")
-            ?? configuration.GetConnectionString("BillingConnection")
-            ?? throw new InvalidOperationException("Billing database connection string not found");
+            ?? configuration.GetConnectionString("BillingConnection");
     }
 }
