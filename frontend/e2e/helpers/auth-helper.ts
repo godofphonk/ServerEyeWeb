@@ -1,4 +1,5 @@
 import { Page, BrowserContext, APIRequestContext } from '@playwright/test';
+import { setupAuthMocks, setAuthCookies } from './ci-mocks';
 
 /**
  * Authentication Helpers for E2E Tests
@@ -22,6 +23,11 @@ export async function loginAsUser(
   page: Page,
   credentials: UserCredentials = DEFAULT_TEST_USER,
 ): Promise<void> {
+  // In CI, set up API mocks before navigating (backend is not available)
+  if (process.env.CI) {
+    await setupAuthMocks(page);
+  }
+
   await page.goto('/login');
 
   // Fill login form
@@ -33,6 +39,11 @@ export async function loginAsUser(
 
   // Wait for navigation or stable state
   await page.waitForTimeout(2000);
+
+  // In CI, set auth cookies for server-side middleware checks on subsequent navigations
+  if (process.env.CI) {
+    await setAuthCookies(page);
+  }
 
   // Verify we're logged in (not on login page)
   const url = page.url();
