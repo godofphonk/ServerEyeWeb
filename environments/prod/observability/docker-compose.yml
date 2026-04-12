@@ -2,9 +2,30 @@
 # LGTM + Alloy Stack: Loki, Grafana, Tempo, Metrics (Prometheus), Alloy
 
 services:
+  # Docker Socket Proxy - Restricts Alloy's access to the Docker API
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.2.0
+    container_name: ServerEyeWeb-docker-socket-proxy-prod
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - EVENTS=1
+      - PING=1
+    restart: unless-stopped
+    networks:
+      - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /run
+
   # Grafana Alloy - Unified Collector
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.5.0
     container_name: ServerEyeWeb-alloy-prod
     ports:
       - "5248:12345"  # Alloy UI
@@ -12,7 +33,7 @@ services:
       - "4318:4318"    # OTLP HTTP
     volumes:
       - ./alloy/alloy-config.yaml:/etc/alloy/config.yaml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -22,15 +43,23 @@ services:
       - ALLOY_LOG_LEVEL=info
     restart: unless-stopped
     depends_on:
+      - docker-socket-proxy
       - loki
       - prometheus
       - tempo
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
 
   # Loki - Log Aggregation
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.3.2
     container_name: ServerEyeWeb-loki-prod
     ports:
       - "5249:3100"
@@ -41,10 +70,17 @@ services:
     restart: unless-stopped
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
 
   # Prometheus - Metrics Storage
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.1.0
     container_name: ServerEyeWeb-prometheus-prod
     ports:
       - "5250:9090"
@@ -63,6 +99,13 @@ services:
     restart: unless-stopped
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 10s
@@ -83,6 +126,13 @@ services:
     restart: unless-stopped
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
       interval: 10s
@@ -91,7 +141,7 @@ services:
 
   # Grafana - Visualization Platform
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.5.2
     container_name: ServerEyeWeb-grafana-prod
     ports:
       - "5252:3000"
@@ -114,6 +164,14 @@ services:
       - tempo
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 10s
@@ -122,13 +180,20 @@ services:
 
   # PostgreSQL Exporter for monitoring databases
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter:v0.16.0
     container_name: ServerEyeWeb-postgres-exporter-prod
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD}@ServerEyeWeb-postgres-main-prod:5432/ServerEyeWeb_Prod?sslmode=disable
     restart: unless-stopped
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
       interval: 10s
@@ -137,7 +202,7 @@ services:
 
   # Redis Exporter for monitoring cache
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: oliver006/redis_exporter:v1.67.0
     container_name: ServerEyeWeb-redis-exporter-prod
     environment:
       - REDIS_ADDR=ServerEyeWeb-redis-prod:6379
@@ -145,6 +210,13 @@ services:
     restart: unless-stopped
     networks:
       - servereye-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
 
 networks:
   servereye-network:
@@ -152,6 +224,9 @@ networks:
     name: servereye-network
 
 volumes:
+  alloy_data:
+    driver: local
+    name: ServerEyeWeb_alloy_prod
   loki_data:
     driver: local
     name: ServerEyeWeb_loki_prod
