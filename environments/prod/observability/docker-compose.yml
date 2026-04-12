@@ -192,6 +192,8 @@ services:
     cap_drop:
       - ALL
     read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
       interval: 10s
@@ -213,6 +215,8 @@ services:
     cap_drop:
       - ALL
     read_only: true
+    tmpfs:
+      - /tmp
 
 networks:
   servereye-network:
