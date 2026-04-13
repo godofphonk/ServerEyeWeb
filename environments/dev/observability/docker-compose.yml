@@ -14,7 +14,7 @@ services:
       - PING=1
     restart: unless-stopped
     networks:
-      - servereye-network
+      - docker-proxy-network
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -22,6 +22,7 @@ services:
     read_only: true
     tmpfs:
       - /run
+      - /tmp
 
   # Grafana Alloy - Unified Collector
   alloy:
@@ -49,6 +50,7 @@ services:
       - tempo
     networks:
       - servereye-network
+      - docker-proxy-network
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -227,6 +229,9 @@ networks:
   servereye-network:
     external: true
     name: servereye-network
+  docker-proxy-network:
+    internal: true
+    name: ServerEyeWeb_docker_proxy_dev
 
 volumes:
   alloy_data:
