@@ -3,13 +3,13 @@ logging {
 }
 
 loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
+  host       = "tcp://docker-socket-proxy:2375"
   targets    = discovery.docker.containers.targets
   forward_to = [loki.write.default.receiver]
 }
 
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host = "tcp://docker-socket-proxy:2375"
 }
 
 loki.write "default" {
