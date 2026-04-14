@@ -4,7 +4,7 @@
 services:
   # Docker Socket Proxy - Restricts Alloy's access to the Docker API
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:0.2.0
+    image: tecnativa/docker-socket-proxy:v0.4.1
     container_name: ServerEyeWeb-docker-socket-proxy-prod
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -26,7 +26,7 @@ services:
 
   # Grafana Alloy - Unified Collector
   alloy:
-    image: grafana/alloy:v1.5.0
+    image: grafana/alloy:v1.15.0
     container_name: ServerEyeWeb-alloy-prod
     ports:
       - "5248:12345"  # Alloy UI
@@ -61,7 +61,7 @@ services:
 
   # Loki - Log Aggregation
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.6.10
     container_name: ServerEyeWeb-loki-prod
     ports:
       - "5249:3100"
@@ -82,7 +82,7 @@ services:
 
   # Prometheus - Metrics Storage
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.11.2
     container_name: ServerEyeWeb-prometheus-prod
     ports:
       - "5250:9090"
@@ -116,7 +116,7 @@ services:
 
   # Tempo - Distributed Tracing
   tempo:
-    image: grafana/tempo:2.3.0
+    image: grafana/tempo:2.10.4
     container_name: ServerEyeWeb-tempo-prod
     ports:
       - "5251:3200"   # Tempo HTTP
@@ -143,7 +143,7 @@ services:
 
   # Grafana - Visualization Platform
   grafana:
-    image: grafana/grafana:11.5.2
+    image: grafana/grafana:13.0
     container_name: ServerEyeWeb-grafana-prod
     ports:
       - "5252:3000"
@@ -182,7 +182,7 @@ services:
 
   # PostgreSQL Exporter for monitoring databases
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.16.0
+    image: prometheuscommunity/postgres-exporter:v0.19.1
     container_name: ServerEyeWeb-postgres-exporter-prod
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:${POSTGRES_PASSWORD}@ServerEyeWeb-postgres-main-prod:5432/ServerEyeWeb_Prod?sslmode=disable
@@ -204,7 +204,7 @@ services:
 
   # Redis Exporter for monitoring cache
   redis-exporter:
-    image: oliver006/redis_exporter:v1.67.0
+    image: oliver006/redis_exporter:v1.82.0
     container_name: ServerEyeWeb-redis-exporter-prod
     environment:
       - REDIS_ADDR=ServerEyeWeb-redis-prod:6379
