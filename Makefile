@@ -88,7 +88,7 @@ dev-restart: dev-down dev-up
 dev-infra-up:
 	@echo "🏗️  Starting development infrastructure..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./infrastructure/docker-compose.yml --env-file .env up -d
+	cd ./environments/dev && docker compose -f ./infrastructure/docker-compose.yml up -d
 	@echo "✅ Infrastructure started!"
 
 dev-observability-up:
@@ -105,7 +105,7 @@ dev-observability-up:
 dev-backend-up:
 	@echo "🔧 Starting development backend..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./backend/docker-compose.yml --env-file .env up -d --build
+	cd ./environments/dev && docker compose -f ./backend/docker-compose.yml up -d --build
 	@echo "✅ Backend started!"
 
 dev-frontend-up:
@@ -117,7 +117,7 @@ dev-frontend-up:
 dev-stripe-up:
 	@echo "Starting Stripe CLI for webhook forwarding..."
 	@docker network create servereye-network 2>/dev/null || echo "Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./stripe/docker-compose.yml --env-file .env up -d
+	cd ./environments/dev && docker compose -f ./stripe/docker-compose.yml up -d
 	@echo "Stripe CLI started!"
 	@echo "Webhooks forwarding to: http://servereye-backend-dev:8080/api/webhooks/stripe"
 
