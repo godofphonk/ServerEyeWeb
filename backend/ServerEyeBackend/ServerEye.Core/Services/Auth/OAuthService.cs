@@ -597,7 +597,8 @@ public sealed class OAuthService(
                 EmailVerifiedAt = isEmailVerified ? DateTime.UtcNow : null,
                 Password = string.Empty, // OAuth users don't have passwords
                 HasPassword = false,
-                ServerId = Guid.NewGuid()
+                ServerId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
             };
 
             await this.userRepository.AddAsync(user);
@@ -686,7 +687,8 @@ public sealed class OAuthService(
             EmailVerifiedAt = DateTime.UtcNow, // Set verification time for OAuth users
             Password = string.Empty, // OAuth users don't have passwords
             HasPassword = false,
-            ServerId = Guid.NewGuid()
+            ServerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
         };
 
         await this.userRepository.AddAsync(newUser);

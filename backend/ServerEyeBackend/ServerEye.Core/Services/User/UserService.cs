@@ -100,6 +100,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             Email = userRegisterDto.Email ?? string.Empty,
             UserName = userRegisterDto.UserName ?? string.Empty,
             Password = hashedPassword,
+            CreatedAt = DateTime.UtcNow,
         };
 
         await this.userRepository.AddAsync(user);
