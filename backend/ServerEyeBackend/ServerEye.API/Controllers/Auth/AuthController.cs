@@ -265,7 +265,7 @@ public class AuthController : BaseApiController
             var user = await this.userRepository.GetByEmailAsync(request.Email) ?? throw new ArgumentException("User not found");
 
             await this.authService.SendVerificationCodeAsync(user.Id);
-            // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
+            // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
             this.logger.LogInformation("Verification code resent to user {Email}", LogSanitizer.MaskEmail(request.Email));
             return this.Ok(new { message = "Verification code sent" });
         }
@@ -640,6 +640,7 @@ public class AuthController : BaseApiController
             // If this is a linking request from state, use LinkExternalLoginAsync
             if (isLinking && !string.IsNullOrEmpty(linkingProvider) && !string.IsNullOrEmpty(linkingUserId))
             {
+                // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: provider is sanitized and userId is masked
                 this.logger.LogInformation("Processing OAuth linking from state - Provider: {Provider}, UserId: {UserId}", LogSanitizer.Sanitize(linkingProvider), LogSanitizer.MaskToken(linkingUserId, 8));
 
                 if (Guid.TryParse(linkingUserId, out var userGuid))
@@ -825,6 +826,7 @@ public class AuthController : BaseApiController
         }
         catch (Exception ex)
         {
+            // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: provider is validated against allowed providers
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
 
             // Handle specific OAuth errors with secure redirects

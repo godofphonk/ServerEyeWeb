@@ -267,7 +267,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
-        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
+        // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}, RememberMe: {RememberMe}", LogSanitizer.MaskEmail(user.Email), user.Id, userLoginDto.RememberMe);
 
         return new AuthResponseDto
@@ -294,7 +294,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         ArgumentNullException.ThrowIfNull(email);
         ArgumentNullException.ThrowIfNull(code);
 
-        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
+        // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation("2FA attempt for email: {Email}", LogSanitizer.MaskEmail(email));
 
         var user = await this.userRepository.GetByEmailAsync(email);
@@ -304,7 +304,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         var result = await this.authService.VerifyEmailAsync(user.Id, code);
         if (!result)
         {
-            // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
+            // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
             this.logger.LogWarning("Failed 2FA attempt for email: {Email} - invalid code", LogSanitizer.MaskEmail(email));
             throw new UnauthorizedAccessException("Invalid or expired verification code");
         }
@@ -326,7 +326,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
-        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
+        // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}, RememberMe: {RememberMe}", LogSanitizer.MaskEmail(user.Email), user.Id, rememberMe);
 
         return new AuthResponseDto
