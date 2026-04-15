@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: backendUser.email,
       username: backendUser.userName,
       role: role,
-      createdAt: new Date().toISOString(),
+      createdAt: backendUser.createdAt || new Date().toISOString(),
       isEmailVerified: isOAuthUser ? true : Boolean(backendUser.isEmailVerified),
       hasPassword: hasPassword,
     };
