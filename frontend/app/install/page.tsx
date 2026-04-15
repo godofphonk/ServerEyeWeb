@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 const installCommands = {
-  linux: `curl -fsSL https://get.servereye.io/install.sh | sudo bash`,
+  linux: `wget -qO- https://raw.githubusercontent.com/godofphonk/ServerEye/master/scripts/install-agent.sh | sudo bash`,
   macos: `curl -fsSL https://get.servereye.io/install.sh | bash`,
   windows: `powershell -c "irm https://get.servereye.io/install.ps1 | iex"`,
 };
