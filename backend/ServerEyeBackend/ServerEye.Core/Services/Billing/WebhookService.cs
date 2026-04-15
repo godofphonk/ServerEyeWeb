@@ -2,6 +2,7 @@ using System.Diagnostics;
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
@@ -270,9 +271,9 @@ public class WebhookService : IWebhookService
 
     private Guid DeterminePlanIdFromStripeSubscription(object data)
     {
-        // Known plan IDs from database
-        var freePlanId = Guid.Parse("f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c");
-        var proPlanId = Guid.Parse("841bb3db-424c-46e5-a752-04641391c993");
+        // Known plan IDs from code definitions
+        var freePlanId = SubscriptionPlanDefinitions.Free.Id;
+        var proPlanId = SubscriptionPlanDefinitions.Pro.Id;
 
         // Get first price ID from subscription items
         var priceId = StripeWebhookHelper.GetFirstPriceId(data);
