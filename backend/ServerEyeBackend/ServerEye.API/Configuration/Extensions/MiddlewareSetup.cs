@@ -96,14 +96,14 @@ public static class MiddlewareSetup
     {
         app.UseResponseCompression();
         app.UseCors("AllowFrontend");
-        
+
         // Only use RateLimiter if it was registered
         var securitySettings = app.ApplicationServices.GetService<ServerEye.API.Configuration.SecuritySettings>();
         if (securitySettings?.EnableRateLimiting == true)
         {
             app.UseRateLimiter();
         }
-        
+
         app.UseExceptionHandler();
 
         return app;
