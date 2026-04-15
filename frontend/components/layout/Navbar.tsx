@@ -40,11 +40,6 @@ export function Navbar() {
     window.location.reload();
   };
 
-  // Hide navbar on auth pages
-  if (pathname === '/login' || pathname === '/register' || pathname === '/verify-email') {
-    return null;
-  }
-
   // Don't show premium styling if loading or not authenticated
   const showPremium = isAuthenticated && hasPremium && !loading;
 
