@@ -118,8 +118,9 @@ public class AuthController : BaseApiController
             this.logger.LogInformation("Generated new access token for user {UserId}. Token length: {TokenLength}", userId, newAccessToken.Length);
 
             // Calculate new expiry based on old token duration (preserve remember me preference)
+            // OAuth users (without password) always get 30 days
             var oldTokenDuration = (refreshTokenEntity.ExpiresAt - refreshTokenEntity.CreatedAt).TotalDays;
-            var newExpiryDays = oldTokenDuration >= 25 ? 30 : 7; // If old was ~30 days, keep 30; otherwise 7 days
+            var newExpiryDays = !user.HasPassword ? 30 : (oldTokenDuration >= 25 ? 30 : 7); // OAuth users: 30 days; others: preserve preference
 
             // Save new refresh token
             var newRefreshTokenEntity = new RefreshToken
@@ -781,7 +782,7 @@ public class AuthController : BaseApiController
                     HttpOnly = true,
                     Secure = cookieSecure,
                     SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.UtcNow.AddDays(7),
+                    Expires = DateTime.UtcNow.AddDays(30),
 
                     // Domain removed - browser will set it for current host
                     Path = "/"
