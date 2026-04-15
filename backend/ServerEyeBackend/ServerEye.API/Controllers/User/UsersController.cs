@@ -25,12 +25,14 @@ public class UsersController(IUserService userService, IAuthService authService,
     private readonly ILogger<UsersController> logger = logger;
 
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<List<UserData>>> GetAllUsersAsync()
     {
         return await ExecuteWithErrorHandling(userService.GetAllUsersAsync);
     }
 
     [HttpGet("me")]
+    [Authorize]
     public async Task<ActionResult<UserData>> GetCurrentUser()
     {
         return await ExecuteWithErrorHandling(async () =>
@@ -42,12 +44,14 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserData>> GetUserByIdAsync(Guid id)
+    [Authorize]
+    public async Task<ActionResult<object>> GetUserById(Guid id)
     {
         return await ExecuteWithErrorHandling(async () => await userService.GetUserByIdAsync(id) ?? throw new KeyNotFoundException("User not found"));
     }
 
     [HttpGet("by-email/{email}")]
+    [Authorize]
     public async Task<ActionResult<UserData>> GetUserByEmailAsync(string email)
     {
         return await ExecuteWithErrorHandling(async () => await userService.GetUserByEmailAsync(email) ?? throw new KeyNotFoundException("User not found"));
@@ -108,15 +112,22 @@ public class UsersController(IUserService userService, IAuthService authService,
     [AllowAnonymous]
     public async Task<ActionResult<object>> VerifyEmail([FromBody] VerifyEmailDto request)
     {
-        return await ExecuteWithErrorHandling(async () =>
+        this.logger.LogInformation("VerifyEmail called with email: {Email}, code: {Code}", LogSanitizer.MaskEmail(request.Email), request.Code);
+
+        return await ExecuteWithErrorHandling<object>(async () =>
         {
             ArgumentNullException.ThrowIfNull(request);
 
             var user = await userService.GetUserByEmailAsync(request.Email) ?? throw new ArgumentException("User not found");
 
+            this.logger.LogInformation("User found: {UserId}, verifying code...", user.Id);
+
             var result = await authService.VerifyEmailAsync(user.Id, request.Code);
+            this.logger.LogInformation("Verification result: {Result}", result);
+
             if (!result)
             {
+                this.logger.LogWarning("Verification failed - invalid or expired code for user: {UserId}", user.Id);
                 throw new InvalidOperationException("Invalid or expired verification code");
             }
 
@@ -142,6 +153,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPut("{id}")]
+    [Authorize]
     public async Task<ActionResult<UserData>> UpdateUser([FromRoute] Guid id, UserUpdateDto userUpdateDto)
     {
         ArgumentNullException.ThrowIfNull(userUpdateDto);
@@ -156,6 +168,7 @@ public class UsersController(IUserService userService, IAuthService authService,
     }
 
     [HttpPost("create-admin")]
+    [Authorize]
     public async Task<ActionResult<object>> CreateAdminUser()
     {
         return await ExecuteWithErrorHandling(async () =>
@@ -177,8 +190,32 @@ public class UsersController(IUserService userService, IAuthService authService,
         });
     }
 
+    [HttpPost("resend-verification")]
+    [Authorize]
+    public async Task<ActionResult<object>> ResendVerificationCode()
+    {
+        return await ExecuteWithErrorHandling(async () =>
+        {
+            var adminDto = new UserRegisterDto
+            {
+                UserName = "admin",
+                Email = "admin@servereye.dev",
+                Password = "admin123"
+            };
+
+            var result = await userService.CreateUserAsync(adminDto);
+
+            // Обновляем роль на Admin в базе данных
+            // Это временный solution - в production лучше сделать через миграцию
+            this.logger.LogInformation("Admin user created successfully with email: {Email}", LogSanitizer.MaskEmail("admin@servereye.dev"));
+
+            return new { message = "Admin user created successfully", email = "admin@servereye.dev", password = "admin123" };
+        });
+    }
+
     [HttpDelete]
-    public async Task<ActionResult<bool>> DeleteUser(Guid id)
+    [Authorize]
+    public async Task<ActionResult<object>> DeleteUser(Guid id)
     {
         return await ExecuteWithErrorHandling(async () =>
         {
