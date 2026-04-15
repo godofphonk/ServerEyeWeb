@@ -1,23 +1,44 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { EmailVerificationModal } from '@/components/auth/EmailVerificationModal';
 import { motion } from 'framer-motion';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { isOAuthUser } from '@/lib/authUtils';
+import { authApi } from '@/lib/authApi';
+import { useToast } from '@/hooks/useToast';
 
 export default function VerifyEmailPage() {
-  const { user, isEmailVerified, logout } = useAuth();
+  const { user, isEmailVerified, logout, loading, login } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const redirectAttempted = useRef(false);
+  const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Ждем загрузки auth данных
+    if (loading) {
+      return;
+    }
+
+    setIsChecking(false);
+
     // OAuth пользователи не должны попадать на страницу верификации
     if (user && isOAuthUser(user)) {
+      router.push('/dashboard');
+      return;
+    }
+
+    // Если email уже верифицирован - редирект на дашборд
+    if (isEmailVerified) {
       router.push('/dashboard');
       return;
     }
@@ -33,29 +54,70 @@ export default function VerifyEmailPage() {
       }
     }
 
-    // Очищаем sessionStorage только когда pendingEmail уже установлен
-    if (pendingEmail && typeof window !== 'undefined') {
-      const storedEmail = sessionStorage.getItem('pending_verification_email');
-      if (storedEmail) {
-        sessionStorage.removeItem('pending_verification_email');
+    // НЕ очищаем sessionStorage - пусть остается для сохранения email при обновлении страницы
+    // НЕ редиректим на login автоматически - пользователь может остаться на странице для ввода кода
+  }, [user, isEmailVerified, pendingEmail, router, loading]);
+
+  // Таймер cooldown для ресенда
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      resendTimerRef.current = setTimeout(() => {
+        setResendCooldown(prev => prev - 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (resendTimerRef.current) {
+        clearTimeout(resendTimerRef.current);
       }
-    }
+    };
+  }, [resendCooldown]);
 
-    // Если пользователь не залогинен и нет pending email - редирект на логин
-    if (!user && !pendingEmail) {
+  const handleSendCode = async () => {
+    if (!displayEmail) return;
+
+    setIsSendingCode(true);
+
+    try {
+      await authApi.resendVerificationWithoutAuth({ email: displayEmail });
+      toast.success('Code Sent', 'A verification code has been sent to your email');
+      setResendCooldown(60); // 1 минута cooldown
+      setShowVerificationModal(true);
+    } catch (error: unknown) {
+      const errorMessage =
+        (error as any)?.response?.data?.message || (error as any)?.message || 'Failed to send code';
+      toast.error('Send Failed', errorMessage);
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerificationSuccess = async (code: string) => {
+    // После успешной верификации пытаемся автоматически залогиниться с сохраненными креденциалами
+    const savedEmail =
+      displayEmail ||
+      (typeof window !== 'undefined' ? sessionStorage.getItem('pending_verification_email') : null);
+    const savedPassword =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('pending_verification_password')
+        : null;
+
+    if (savedEmail && savedPassword) {
+      try {
+        await login(savedEmail, savedPassword);
+        // Очищаем сохраненные креденциалы
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('pending_verification_password');
+        }
+        router.push('/dashboard');
+      } catch (error) {
+        // Если автоматический логин не удался, перенаправляем на login
+        router.push('/login');
+      }
+    } else {
+      // Если нет сохраненных креденциалов, перенаправляем на login
       router.push('/login');
-      return;
     }
-
-    // Если email уже верифицирован - редирект на дашборд
-    if (isEmailVerified) {
-      router.push('/dashboard');
-      return;
-    }
-  }, [user, isEmailVerified, pendingEmail, router]);
-
-  const handleVerificationSuccess = () => {
-    router.push('/dashboard');
   };
 
   const handleLogout = async () => {
@@ -66,7 +128,18 @@ export default function VerifyEmailPage() {
   // Определяем email для отображения
   const displayEmail = pendingEmail || user?.email;
 
-  if ((!user && !pendingEmail) || isEmailVerified || !displayEmail) {
+  // Показываем loader во время проверки
+  if (isChecking || loading) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center'>
+        <div className='text-white'>
+          <div className='inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white'></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmailVerified || !displayEmail) {
     return null;
   }
 
@@ -100,17 +173,23 @@ export default function VerifyEmailPage() {
           <div className='space-y-3'>
             <Button
               fullWidth
-              onClick={() => setShowVerificationModal(true)}
+              onClick={handleSendCode}
+              isLoading={isSendingCode}
+              disabled={isSendingCode || resendCooldown > 0}
               className='bg-yellow-500 hover:bg-yellow-600 text-black'
             >
               <Mail className='w-4 h-4 mr-2' />
-              Enter Verification Code
+              {isSendingCode
+                ? 'Sending Code...'
+                : resendCooldown > 0
+                  ? `Wait ${resendCooldown}s`
+                  : 'Send Verification Code'}
             </Button>
 
             <Button
               fullWidth
               variant='ghost'
-              onClick={handleLogout}
+              onClick={() => router.push('/login')}
               className='text-gray-400 hover:text-white'
             >
               <ArrowLeft className='w-4 h-4 mr-2' />
@@ -121,8 +200,8 @@ export default function VerifyEmailPage() {
           {/* Help text */}
           <div className='mt-6 text-center'>
             <p className='text-xs text-gray-400'>
-              Didn't receive the code? Check your spam folder or click "Resend Code" in the
-              verification modal.
+              Check your email for the verification code. You can resend the code after{' '}
+              {resendCooldown > 0 ? `${resendCooldown} seconds` : 'immediately'}.
             </p>
           </div>
         </div>
@@ -134,6 +213,8 @@ export default function VerifyEmailPage() {
         onClose={() => setShowVerificationModal(false)}
         email={displayEmail}
         onSuccess={handleVerificationSuccess}
+        resendCooldown={resendCooldown}
+        onResend={handleSendCode}
       />
     </main>
   );

@@ -356,9 +356,12 @@ export default function DashboardPage() {
       if (!userHasAccess) {
         redirectAttempted.current = true;
         setIsLoadingServers(false);
+        // Устанавливаем флаг для предотвращения цикла редиректа
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('redirect_from_dashboard', 'true');
+        }
         router.push('/verify-email');
       } else if (!loadServersCalled.current) {
-        redirectAttempted.current = false;
         loadServersCalled.current = true;
         loadServers();
       }
