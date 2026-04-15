@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
+using ServerEye.Core.Services.Billing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,11 @@ var environment = app.Environment;
 if (!environment.IsEnvironment("Testing"))
 {
     await ServerEye.API.Configuration.DatabaseInitializer.InitializeAsync(app.Services);
+
+    // Seed subscription plans from code definitions
+    using var scope = app.Services.CreateScope();
+    var planSeeder = scope.ServiceProvider.GetRequiredService<SubscriptionPlanSeeder>();
+    await planSeeder.SeedAsync();
 }
 await app.RunAsync();
 

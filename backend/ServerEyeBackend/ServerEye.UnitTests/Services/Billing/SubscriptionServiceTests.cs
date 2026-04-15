@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
@@ -42,7 +43,7 @@ public class SubscriptionServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var proPlanId = new Guid("841bb3db-424c-46e5-a752-04641391c993");
+        var proPlanId = SubscriptionPlanDefinitions.Pro.Id;
         var subscription = new Subscription
         {
             Id = Guid.NewGuid(),
@@ -91,7 +92,7 @@ public class SubscriptionServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var freePlanId = new Guid("f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c");
+        var freePlanId = SubscriptionPlanDefinitions.Free.Id;
         var subscription = new Subscription
         {
             Id = Guid.NewGuid(),
@@ -217,8 +218,9 @@ public class SubscriptionServiceTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Should().HaveCount(3);
+        result.Should().HaveCount(4);
         result.Should().Contain(p => p.PlanType == SubscriptionPlan.Free);
+        result.Should().Contain(p => p.PlanType == SubscriptionPlan.Lite);
         result.Should().Contain(p => p.PlanType == SubscriptionPlan.Pro);
         result.Should().Contain(p => p.PlanType == SubscriptionPlan.Enterprise);
     }
@@ -399,7 +401,7 @@ public class SubscriptionServiceTests
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            PlanId = Guid.NewGuid(),
+            PlanId = SubscriptionPlanDefinitions.Free.Id,
             Status = SubscriptionStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
@@ -415,12 +417,62 @@ public class SubscriptionServiceTests
         result.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task CanAccessFeatureAsync_WithAlertsFeatureOnFreePlan_ShouldReturnFalse()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var subscription = new Subscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PlanId = SubscriptionPlanDefinitions.Free.Id,
+            Status = SubscriptionStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.mockSubscriptionRepository
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(subscription);
+
+        // Act
+        var result = await this.subscriptionService.CanAccessFeatureAsync(userId, "ALERTS");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanAccessFeatureAsync_WithAlertsFeatureOnProPlan_ShouldReturnTrue()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var subscription = new Subscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PlanId = SubscriptionPlanDefinitions.Pro.Id,
+            Status = SubscriptionStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.mockSubscriptionRepository
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(subscription);
+
+        // Act
+        var result = await this.subscriptionService.CanAccessFeatureAsync(userId, "ALERTS");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
     #endregion
 
     #region GetMaxServersForUserAsync Tests
 
     [Fact]
-    public async Task GetMaxServersForUserAsync_WithNoSubscription_ShouldReturn1()
+    public async Task GetMaxServersForUserAsync_WithNoSubscription_ShouldReturnFreePlanLimit()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -433,11 +485,11 @@ public class SubscriptionServiceTests
         var result = await this.subscriptionService.GetMaxServersForUserAsync(userId);
 
         // Assert
-        result.Should().Be(1);
+        result.Should().Be(SubscriptionPlanDefinitions.Free.MaxServers);
     }
 
     [Fact]
-    public async Task GetMaxServersForUserAsync_WithInactiveSubscription_ShouldReturn1()
+    public async Task GetMaxServersForUserAsync_WithInactiveSubscription_ShouldReturnFreePlanLimit()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -458,11 +510,11 @@ public class SubscriptionServiceTests
         var result = await this.subscriptionService.GetMaxServersForUserAsync(userId);
 
         // Assert
-        result.Should().Be(1);
+        result.Should().Be(SubscriptionPlanDefinitions.Free.MaxServers);
     }
 
     [Fact]
-    public async Task GetMaxServersForUserAsync_WithActiveSubscription_ShouldReturn1()
+    public async Task GetMaxServersForUserAsync_WithFreePlan_ShouldReturn1()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -470,7 +522,7 @@ public class SubscriptionServiceTests
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            PlanId = Guid.NewGuid(),
+            PlanId = SubscriptionPlanDefinitions.Free.Id,
             Status = SubscriptionStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
@@ -483,7 +535,32 @@ public class SubscriptionServiceTests
         var result = await this.subscriptionService.GetMaxServersForUserAsync(userId);
 
         // Assert
-        result.Should().Be(1);
+        result.Should().Be(SubscriptionPlanDefinitions.Free.MaxServers);
+    }
+
+    [Fact]
+    public async Task GetMaxServersForUserAsync_WithProPlan_ShouldReturn10()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var subscription = new Subscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PlanId = SubscriptionPlanDefinitions.Pro.Id,
+            Status = SubscriptionStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.mockSubscriptionRepository
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(subscription);
+
+        // Act
+        var result = await this.subscriptionService.GetMaxServersForUserAsync(userId);
+
+        // Assert
+        result.Should().Be(SubscriptionPlanDefinitions.Pro.MaxServers);
     }
 
     #endregion
