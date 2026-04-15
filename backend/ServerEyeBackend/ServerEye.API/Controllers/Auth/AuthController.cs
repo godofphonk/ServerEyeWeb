@@ -1159,7 +1159,7 @@ public class AuthController : BaseApiController
         // Ensure the redirect is to the same base domain
         if (fullUri.Host != validatedBaseUri.Host || fullUri.Scheme != validatedBaseUri.Scheme)
         {
-            this.logger.LogWarning("Redirect URL points to different domain: {Url}", fullPath);
+            this.logger.LogWarning("Redirect URL points to different domain: {Url}", LogSanitizer.Sanitize(fullPath));
             return this.BadRequest("Cross-domain redirects not allowed");
         }
 
