@@ -38,6 +38,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             ServerId = user.ServerId,
             IsEmailVerified = user.IsEmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
+            CreatedAt = user.CreatedAt,
         };
     }
 
@@ -57,6 +58,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             ServerId = user.ServerId,
             IsEmailVerified = user.IsEmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
+            CreatedAt = user.CreatedAt,
         };
     }
 
@@ -73,6 +75,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             ServerId = user.ServerId,
             IsEmailVerified = user.IsEmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
+            CreatedAt = user.CreatedAt,
         }).ToList();
     }
 
@@ -141,7 +144,8 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
                 UserName = user.UserName ?? string.Empty,
                 ServerId = user.ServerId,
                 IsEmailVerified = user.IsEmailVerified,
-                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email),
+                CreatedAt = user.CreatedAt
             },
             Token = accessToken,
             RefreshToken = refreshToken,
@@ -183,6 +187,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             ServerId = existingUser.ServerId,
             IsEmailVerified = existingUser.IsEmailVerified,
             EmailVerifiedAt = existingUser.EmailVerifiedAt,
+            CreatedAt = existingUser.CreatedAt,
         };
     }
 
@@ -249,20 +254,20 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         var accessToken = this.jwtService.GenerateAccessToken(user);
         var refreshToken = this.jwtService.GenerateRefreshToken(user);
 
-        // Save refresh token
+        // Save refresh token - 30 days if rememberMe, else 7 days
         var refreshTokenEntity = new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
             Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days
+            ExpiresAt = userLoginDto.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow,
             IsRevoked = false
         };
 
         await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
 
-        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}", LogSanitizer.MaskEmail(user.Email), user.Id);
+        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}, RememberMe: {RememberMe}", LogSanitizer.MaskEmail(user.Email), user.Id, userLoginDto.RememberMe);
 
         return new AuthResponseDto
         {
@@ -273,11 +278,69 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
                 UserName = user.UserName,
                 ServerId = user.ServerId,
                 IsEmailVerified = user.IsEmailVerified,
-                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email),
+                CreatedAt = user.CreatedAt
             },
             Token = accessToken,
             RefreshToken = refreshToken,
-            ExpiresIn = 1800 // 30 minutes
+            ExpiresIn = 1800, // 30 minutes
+            RememberMe = userLoginDto.RememberMe
+        };
+    }
+
+    public async Task<AuthResponseDto> LoginWithTwoFactorAsync(string email, string code, bool rememberMe = false)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(code);
+
+        this.logger.LogInformation("2FA attempt for email: {Email}", LogSanitizer.MaskEmail(email));
+
+        var user = await this.userRepository.GetByEmailAsync(email);
+        ArgumentNullException.ThrowIfNull(user, "User not found");
+
+        // Проверяем код
+        var result = await this.authService.VerifyEmailAsync(user.Id, code);
+        if (!result)
+        {
+            this.logger.LogWarning("Failed 2FA attempt for email: {Email} - invalid code", LogSanitizer.MaskEmail(email));
+            throw new UnauthorizedAccessException("Invalid or expired verification code");
+        }
+
+        // Generate tokens
+        var accessToken = this.jwtService.GenerateAccessToken(user);
+        var refreshToken = this.jwtService.GenerateRefreshToken(user);
+
+        // Save refresh token - 30 days if rememberMe, else 7 days
+        var refreshTokenEntity = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = rememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+
+        await this.refreshTokenRepository.AddAsync(refreshTokenEntity);
+
+        this.logger.LogInformation("Login successful for user: {Email}, UserId: {UserId}, RememberMe: {RememberMe}", LogSanitizer.MaskEmail(user.Email), user.Id, rememberMe);
+
+        return new AuthResponseDto
+        {
+            User = new AuthUserDto
+            {
+                Id = user.Id,
+                Email = user.Email ?? string.Empty,
+                UserName = user.UserName,
+                ServerId = user.ServerId,
+                IsEmailVerified = user.IsEmailVerified,
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email),
+                CreatedAt = user.CreatedAt
+            },
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresIn = 1800, // 30 minutes
+            RememberMe = rememberMe
         };
     }
 }

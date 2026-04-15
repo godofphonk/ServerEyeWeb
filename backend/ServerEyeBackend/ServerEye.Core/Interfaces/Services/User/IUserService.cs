@@ -13,5 +13,6 @@ public interface IUserService
     public Task<UserData> UpdateUserAsync(Guid id, UserUpdateDto updateDto);
     public Task DeleteUserAsync(Guid id);
     public Task<AuthResponseDto> LoginUserAsync(UserLoginDto userLoginDto);
+    public Task<AuthResponseDto> LoginWithTwoFactorAsync(string email, string code, bool rememberMe = false);
     public Task<bool> CanUserAccessProtectedResourcesAsync(Guid userId);
 }
