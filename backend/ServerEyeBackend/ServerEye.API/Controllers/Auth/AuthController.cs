@@ -117,20 +117,24 @@ public class AuthController : BaseApiController
 
             this.logger.LogInformation("Generated new access token for user {UserId}. Token length: {TokenLength}", userId, newAccessToken.Length);
 
+            // Calculate new expiry based on old token duration (preserve remember me preference)
+            var oldTokenDuration = (refreshTokenEntity.ExpiresAt - refreshTokenEntity.CreatedAt).TotalDays;
+            var newExpiryDays = oldTokenDuration >= 25 ? 30 : 7; // If old was ~30 days, keep 30; otherwise 7 days
+
             // Save new refresh token
             var newRefreshTokenEntity = new RefreshToken
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Token = newRefreshToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                ExpiresAt = DateTime.UtcNow.AddDays(newExpiryDays),
                 CreatedAt = DateTime.UtcNow,
                 IsRevoked = false
             };
 
             await this.refreshTokenRepository.AddAsync(newRefreshTokenEntity);
 
-            this.logger.LogInformation("Token refreshed for user {UserId}", userId);
+            this.logger.LogInformation("Token refreshed for user {UserId}, ExpiryDays: {ExpiryDays}", userId, newExpiryDays);
 
             return this.Ok(new AuthResponseDto
             {
@@ -145,7 +149,8 @@ public class AuthController : BaseApiController
                 },
                 Token = newAccessToken,
                 RefreshToken = newRefreshToken,
-                ExpiresIn = 1800 // 30 minutes
+                ExpiresIn = 1800, // 30 minutes
+                RememberMe = newExpiryDays >= 25 // If expiry is ~30 days, rememberMe is true
             });
         }
         catch (Exception ex)
@@ -250,19 +255,17 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("resend-verification")]
-    [Authorize]
-    public async Task<ActionResult> ResendVerification()
+    [AllowAnonymous]
+    public async Task<ActionResult> ResendVerification([FromBody] ResendVerificationDto request)
     {
         try
         {
-            var userIdClaim = this.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            {
-                return this.BadRequest(new { message = "Invalid user identifier" });
-            }
+            ArgumentNullException.ThrowIfNull(request);
 
-            await this.authService.SendVerificationCodeAsync(userId);
-            this.logger.LogInformation("Verification code resent to user {UserId}", userId);
+            var user = await this.userRepository.GetByEmailAsync(request.Email) ?? throw new ArgumentException("User not found");
+
+            await this.authService.SendVerificationCodeAsync(user.Id);
+            this.logger.LogInformation("Verification code resent to user {Email}", LogSanitizer.MaskEmail(request.Email));
             return this.Ok(new { message = "Verification code sent" });
         }
         catch (InvalidOperationException ex)

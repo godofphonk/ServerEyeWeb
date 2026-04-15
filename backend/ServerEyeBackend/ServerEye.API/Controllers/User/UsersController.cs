@@ -99,11 +99,20 @@ public class UsersController(IUserService userService, IAuthService authService,
 
         var result = await ExecuteWithErrorHandling(() => userService.LoginUserAsync(userLoginDto));
 
+        // После успешного логина отправляем код на email для 2FA
+        var user = await userService.GetUserByEmailAsync(userLoginDto.Email);
+        if (user != null)
+        {
+            await authService.SendVerificationCodeAsync(user.Id);
+            this.logger.LogInformation("Verification code sent for 2FA: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
+        }
+
         this.logger.LogInformation("Login successful for user: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
         return result;
     }
 
     [HttpPost("verify-email")]
+    [AllowAnonymous]
     public async Task<ActionResult<object>> VerifyEmail([FromBody] VerifyEmailDto request)
     {
         return await ExecuteWithErrorHandling(async () =>
@@ -121,6 +130,20 @@ public class UsersController(IUserService userService, IAuthService authService,
             this.logger.LogInformation("Email verified for user: {Email}", LogSanitizer.MaskEmail(request.Email));
             return new { message = "Email verified successfully" };
         });
+    }
+
+    [HttpPost("login-2fa")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> LoginWithTwoFactor([FromBody] VerifyEmailDto request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        this.logger.LogInformation("2FA login attempt for email: {Email}", LogSanitizer.MaskEmail(request.Email));
+
+        var result = await ExecuteWithErrorHandling(() => userService.LoginWithTwoFactorAsync(request.Email, request.Code, request.RememberMe));
+
+        this.logger.LogInformation("2FA login successful for user: {Email}", LogSanitizer.MaskEmail(request.Email));
+        return result;
     }
 
     [HttpPut("{id}")]
