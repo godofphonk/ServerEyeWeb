@@ -93,29 +93,21 @@ export default function VerifyEmailPage() {
   };
 
   const handleVerificationSuccess = async (code: string) => {
-    // После успешной верификации пытаемся автоматически залогиниться с сохраненными креденциалами
+    // После успешной верификации перенаправляем на login для ввода пароля
+    // (пароль не хранится в открытом виде для безопасности)
     const savedEmail =
       displayEmail ||
       (typeof window !== 'undefined' ? sessionStorage.getItem('pending_verification_email') : null);
-    const savedPassword =
-      typeof window !== 'undefined'
-        ? sessionStorage.getItem('pending_verification_password')
-        : null;
 
-    if (savedEmail && savedPassword) {
-      try {
-        await login(savedEmail, savedPassword);
-        // Очищаем сохраненные креденциалы
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('pending_verification_password');
-        }
-        router.push('/dashboard');
-      } catch (error) {
-        // Если автоматический логин не удался, перенаправляем на login
-        router.push('/login');
-      }
+    // Очищаем сохраненный email
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('pending_verification_email');
+    }
+
+    // Перенаправляем на login с предзаполненным email
+    if (savedEmail) {
+      router.push(`/login?email=${encodeURIComponent(savedEmail)}`);
     } else {
-      // Если нет сохраненных креденциалов, перенаправляем на login
       router.push('/login');
     }
   };

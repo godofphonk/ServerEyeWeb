@@ -101,10 +101,9 @@ export default function LoginPage() {
         errorMessage.includes('verification') ||
         (err as AxiosApiError)?.response?.status === 401
       ) {
-        // Сохраняем email и пароль для страницы верификации
+        // Сохраняем только email для страницы верификации (пароль не храним в открытом виде)
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('pending_verification_email', email);
-          sessionStorage.setItem('pending_verification_password', password);
         }
         router.push('/verify-email');
       } else {
