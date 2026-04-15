@@ -742,5 +742,295 @@ public class UserServiceTests
             async () => await this.userService.LoginUserAsync(null!));
     }
 
+    [Fact]
+    public async Task LoginUserAsync_WithRememberMeTrue_ShouldSet30DayRefreshTokenExpiry()
+    {
+        // Arrange
+        var userLoginDto = new UserLoginDto
+        {
+            Email = "test@example.com",
+            Password = "Password123!",
+            RememberMe = true
+        };
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = userLoginDto.Email,
+            UserName = "testuser",
+            Password = "hashed-password",
+            HasPassword = true,
+            IsEmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        const string accessToken = "access-token";
+        const string refreshToken = "refresh-token";
+
+        this.mockUserRepository
+            .Setup(x => x.GetByEmailAsync(userLoginDto.Email))
+            .ReturnsAsync(user);
+
+        this.mockPasswordHasher
+            .Setup(x => x.VerifyPassword(userLoginDto.Password, user.Password))
+            .Returns(true);
+
+        this.mockUserRepository
+            .Setup(x => x.GetByIdAsync(user.Id))
+            .ReturnsAsync(user);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateAccessToken(user))
+            .Returns(accessToken);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateRefreshToken(user))
+            .Returns(refreshToken);
+
+        this.mockRefreshTokenRepository
+            .Setup(x => x.AddAsync(It.IsAny<RefreshToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await this.userService.LoginUserAsync(userLoginDto);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.RememberMe.Should().BeTrue();
+        result.Token.Should().Be(accessToken);
+        result.RefreshToken.Should().Be(refreshToken);
+
+        this.mockRefreshTokenRepository.Verify(x => x.AddAsync(It.Is<RefreshToken>(rt =>
+            rt.UserId == user.Id &&
+            rt.ExpiresAt >= DateTime.UtcNow.AddDays(29) && // Allow some margin
+            rt.ExpiresAt <= DateTime.UtcNow.AddDays(31))), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginUserAsync_WithRememberMeFalse_ShouldSet7DayRefreshTokenExpiry()
+    {
+        // Arrange
+        var userLoginDto = new UserLoginDto
+        {
+            Email = "test@example.com",
+            Password = "Password123!",
+            RememberMe = false
+        };
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = userLoginDto.Email,
+            UserName = "testuser",
+            Password = "hashed-password",
+            HasPassword = true,
+            IsEmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        const string accessToken = "access-token";
+        const string refreshToken = "refresh-token";
+
+        this.mockUserRepository
+            .Setup(x => x.GetByEmailAsync(userLoginDto.Email))
+            .ReturnsAsync(user);
+
+        this.mockPasswordHasher
+            .Setup(x => x.VerifyPassword(userLoginDto.Password, user.Password))
+            .Returns(true);
+
+        this.mockUserRepository
+            .Setup(x => x.GetByIdAsync(user.Id))
+            .ReturnsAsync(user);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateAccessToken(user))
+            .Returns(accessToken);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateRefreshToken(user))
+            .Returns(refreshToken);
+
+        this.mockRefreshTokenRepository
+            .Setup(x => x.AddAsync(It.IsAny<RefreshToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await this.userService.LoginUserAsync(userLoginDto);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.RememberMe.Should().BeFalse();
+        result.Token.Should().Be(accessToken);
+        result.RefreshToken.Should().Be(refreshToken);
+
+        this.mockRefreshTokenRepository.Verify(x => x.AddAsync(It.Is<RefreshToken>(rt =>
+            rt.UserId == user.Id &&
+            rt.ExpiresAt >= DateTime.UtcNow.AddDays(6) && // Allow some margin
+            rt.ExpiresAt <= DateTime.UtcNow.AddDays(8))), Times.Once);
+    }
+
+    #endregion
+
+    #region LoginWithTwoFactorAsync Tests
+
+    [Fact]
+    public async Task LoginWithTwoFactorAsync_WithRememberMeTrue_ShouldSet30DayRefreshTokenExpiry()
+    {
+        // Arrange
+        const string email = "test@example.com";
+        const string code = "123456";
+        const bool rememberMe = true;
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            UserName = "testuser",
+            HasPassword = true,
+            IsEmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        const string accessToken = "access-token";
+        const string refreshToken = "refresh-token";
+
+        this.mockUserRepository
+            .Setup(x => x.GetByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        this.mockAuthService
+            .Setup(x => x.VerifyEmailAsync(user.Id, code))
+            .ReturnsAsync(true);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateAccessToken(user))
+            .Returns(accessToken);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateRefreshToken(user))
+            .Returns(refreshToken);
+
+        this.mockRefreshTokenRepository
+            .Setup(x => x.AddAsync(It.IsAny<RefreshToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await this.userService.LoginWithTwoFactorAsync(email, code, rememberMe);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.RememberMe.Should().BeTrue();
+        result.Token.Should().Be(accessToken);
+        result.RefreshToken.Should().Be(refreshToken);
+
+        this.mockRefreshTokenRepository.Verify(x => x.AddAsync(It.Is<RefreshToken>(rt =>
+            rt.UserId == user.Id &&
+            rt.ExpiresAt >= DateTime.UtcNow.AddDays(29) && // Allow some margin
+            rt.ExpiresAt <= DateTime.UtcNow.AddDays(31))), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginWithTwoFactorAsync_WithRememberMeFalse_ShouldSet7DayRefreshTokenExpiry()
+    {
+        // Arrange
+        const string email = "test@example.com";
+        const string code = "123456";
+        const bool rememberMe = false;
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            UserName = "testuser",
+            HasPassword = true,
+            IsEmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        const string accessToken = "access-token";
+        const string refreshToken = "refresh-token";
+
+        this.mockUserRepository
+            .Setup(x => x.GetByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        this.mockAuthService
+            .Setup(x => x.VerifyEmailAsync(user.Id, code))
+            .ReturnsAsync(true);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateAccessToken(user))
+            .Returns(accessToken);
+
+        this.mockJwtService
+            .Setup(x => x.GenerateRefreshToken(user))
+            .Returns(refreshToken);
+
+        this.mockRefreshTokenRepository
+            .Setup(x => x.AddAsync(It.IsAny<RefreshToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await this.userService.LoginWithTwoFactorAsync(email, code, rememberMe);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.RememberMe.Should().BeFalse();
+        result.Token.Should().Be(accessToken);
+        result.RefreshToken.Should().Be(refreshToken);
+
+        this.mockRefreshTokenRepository.Verify(x => x.AddAsync(It.Is<RefreshToken>(rt =>
+            rt.UserId == user.Id &&
+            rt.ExpiresAt >= DateTime.UtcNow.AddDays(6) && // Allow some margin
+            rt.ExpiresAt <= DateTime.UtcNow.AddDays(8))), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginWithTwoFactorAsync_WithInvalidCode_ShouldThrowUnauthorizedAccessException()
+    {
+        // Arrange
+        const string email = "test@example.com";
+        const string code = "invalid-code";
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            UserName = "testuser",
+            HasPassword = true,
+            IsEmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.mockUserRepository
+            .Setup(x => x.GetByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        this.mockAuthService
+            .Setup(x => x.VerifyEmailAsync(user.Id, code))
+            .ReturnsAsync(false);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            async () => await this.userService.LoginWithTwoFactorAsync(email, code));
+    }
+
+    [Fact]
+    public async Task LoginWithTwoFactorAsync_WithNullEmail_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await this.userService.LoginWithTwoFactorAsync(null!, "123456"));
+    }
+
+    [Fact]
+    public async Task LoginWithTwoFactorAsync_WithNullCode_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await this.userService.LoginWithTwoFactorAsync("test@example.com", null!));
+    }
+
     #endregion
 }
