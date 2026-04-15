@@ -18,11 +18,43 @@ export const authApi = {
 
   // Email verification without authorization (for registration)
   async verifyEmailWithoutAuth(data: VerifyEmailRequest) {
-    return apiClient.post('/users/verify-email', data);
+    // Используем отдельный API route без авторизации
+    const response = await fetch('/api/users/verify-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to verify email' }));
+      throw new Error(errorData.message || 'Failed to verify email');
+    }
+
+    return response.json();
   },
 
   async resendVerification(data: ResendVerificationRequest) {
     return apiClient.post('/auth/resend-verification', data);
+  },
+
+  async resendVerificationWithoutAuth(data: ResendVerificationRequest) {
+    // Используем отдельный API route без авторизации
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Failed to resend code' }));
+      throw new Error(errorData.message || 'Failed to resend code');
+    }
+
+    return response.json();
   },
 
   // Password reset

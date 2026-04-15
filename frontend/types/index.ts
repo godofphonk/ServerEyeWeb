@@ -24,6 +24,7 @@ export interface BackendUser {
   serverId?: string;
   isEmailVerified?: boolean;
   hasPassword?: boolean | string; // Может быть boolean или строка "f"/"t"
+  createdAt?: string;
 }
 
 export interface BackendAuthResponse {
