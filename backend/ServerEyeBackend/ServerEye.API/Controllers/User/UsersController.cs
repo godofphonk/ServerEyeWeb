@@ -99,14 +99,6 @@ public class UsersController(IUserService userService, IAuthService authService,
 
         var result = await ExecuteWithErrorHandling(() => userService.LoginUserAsync(userLoginDto));
 
-        // После успешного логина отправляем код на email для 2FA
-        var user = await userService.GetUserByEmailAsync(userLoginDto.Email);
-        if (user != null)
-        {
-            await authService.SendVerificationCodeAsync(user.Id);
-            this.logger.LogInformation("Verification code sent for 2FA: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
-        }
-
         this.logger.LogInformation("Login successful for user: {Email}", LogSanitizer.MaskEmail(userLoginDto.Email));
         return result;
     }
