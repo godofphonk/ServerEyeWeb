@@ -9,17 +9,23 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AxiosApiError } from '@/types';
+import { EmailVerificationModal } from '@/components/auth/EmailVerificationModal';
+import { useToast } from '@/hooks/useToast';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, getOAuthURL, loading } = useAuth();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
+  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // Handle OAuth callback errors
+  // Handle OAuth callback errors and auto-fill email from verification
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const oauthError = urlParams.get('error');
@@ -45,6 +51,15 @@ export default function LoginPage() {
       // Clean URL
       window.history.replaceState({}, document.title, '/login');
     }
+
+    // Auto-fill email from verification
+    if (typeof window !== 'undefined') {
+      const verifiedEmail = sessionStorage.getItem('verified_email');
+      if (verifiedEmail) {
+        setEmail(verifiedEmail);
+        sessionStorage.removeItem('verified_email'); // Очищаем после использования
+      }
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,8 +68,30 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const response = await fetch('/api/proxy/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid email or password');
+      }
+
+      // Проверяем флаг requiresTwoFactor
+      if (data.requiresTwoFactor) {
+        setPendingEmail(data.email);
+        setShowTwoFactorModal(true);
+        toast.success('Code Sent', 'A verification code has been sent to your email');
+      } else {
+        // Сохраняем токены и логинимся
+        await login(email, password);
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       const errorMessage = (err as AxiosApiError)?.message || 'Invalid email or password';
 
@@ -64,9 +101,10 @@ export default function LoginPage() {
         errorMessage.includes('verification') ||
         (err as AxiosApiError)?.response?.status === 401
       ) {
-        // Сохраняем email для страницы верификации
+        // Сохраняем email и пароль для страницы верификации
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('pending_verification_email', email);
+          sessionStorage.setItem('pending_verification_password', password);
         }
         router.push('/verify-email');
       } else {
@@ -74,6 +112,41 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTwoFactorSuccess = async (code: string) => {
+    try {
+      const response = await fetch('/api/proxy/users/login-2fa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: pendingEmail, code, rememberMe }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid verification code');
+      }
+
+      // Сохраняем токены через session route с rememberMe
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: data.token, refreshToken: data.refreshToken, rememberMe }),
+      });
+
+      // Обновляем auth context
+      await login(pendingEmail, password);
+
+      toast.success('Login Successful', 'You have been logged in successfully');
+      setShowTwoFactorModal(false);
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const errorMessage = (err as Error)?.message || 'Invalid verification code';
+      toast.error('Verification Failed', errorMessage);
     }
   };
 
@@ -158,8 +231,13 @@ export default function LoginPage() {
 
               <div className='flex items-center justify-between text-sm'>
                 <label className='flex items-center gap-2 cursor-pointer'>
-                  <input type='checkbox' className='rounded' />
-                  <span className='text-gray-400'>Remember me</span>
+                  <input
+                    type='checkbox'
+                    className='rounded'
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                  />
+                  <span className='text-gray-400'>Remember me for 30 days</span>
                 </label>
                 <Link href='/forgot-password' className='text-blue-400 hover:text-blue-300'>
                   Forgot password?
@@ -250,6 +328,16 @@ export default function LoginPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* 2FA Modal */}
+        {showTwoFactorModal && (
+          <EmailVerificationModal
+            isOpen={showTwoFactorModal}
+            email={pendingEmail}
+            onClose={() => setShowTwoFactorModal(false)}
+            onSuccess={handleTwoFactorSuccess}
+          />
+        )}
       </main>
     )
   );
