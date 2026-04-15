@@ -13,6 +13,15 @@ public class AuthResponseDto
 
     [JsonPropertyName("skipEmailVerification")]
     public bool SkipEmailVerification { get; set; }
+
+    [JsonPropertyName("requiresTwoFactor")]
+    public bool RequiresTwoFactor { get; set; }
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("rememberMe")]
+    public bool RememberMe { get; set; }
 }
 
 public class RefreshTokenRequestDto
@@ -40,4 +49,7 @@ public class AuthUserDto
 
     [JsonPropertyName("requiresEmailVerification")]
     public bool RequiresEmailVerification { get; init; }
+
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; init; }
 }
