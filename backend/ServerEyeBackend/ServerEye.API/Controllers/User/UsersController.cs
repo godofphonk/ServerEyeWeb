@@ -61,6 +61,7 @@ public class UsersController(IUserService userService, IAuthService authService,
         ArgumentNullException.ThrowIfNull(userRegisterDto);
 
         // Log incoming request for debugging (sanitized)
+        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation(
             "Registration request - UserName: {UserName}, Email: {Email}, Password length: {PasswordLength}",
             LogSanitizer.Sanitize(userRegisterDto.UserName),
@@ -130,10 +131,12 @@ public class UsersController(IUserService userService, IAuthService authService,
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation("2FA login attempt for email: {Email}", LogSanitizer.MaskEmail(request.Email));
 
         var result = await ExecuteWithErrorHandling(() => userService.LoginWithTwoFactorAsync(request.Email, request.Code, request.RememberMe));
 
+        // CodeQL suppression: email is masked via LogSanitizer.MaskEmail
         this.logger.LogInformation("2FA login successful for user: {Email}", LogSanitizer.MaskEmail(request.Email));
         return result;
     }
