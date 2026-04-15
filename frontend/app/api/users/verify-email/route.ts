@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     });
 
     const responseData = await response.text();
+
     return new NextResponse(responseData, {
       status: response.status,
       headers: {
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (_error) {
+    console.error('[verify-email] Error:', _error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
