@@ -164,7 +164,7 @@ public class UsersControllerTests : IClassFixture<TestApplicationFactory>, IAsyn
         var loginDto = new UserLoginDto
         {
             Email = registerDto.Email,
-            Password = "wrongpassword"
+            Password = "WrongPassword123!"
         };
 
         var response = await client.PostAsJsonAsync("/api/users/login", loginDto);
