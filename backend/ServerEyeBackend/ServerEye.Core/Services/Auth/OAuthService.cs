@@ -368,7 +368,8 @@ public sealed class OAuthService(
                     Email = user.Email ?? string.Empty,
                     ServerId = user.ServerId,
                     IsEmailVerified = user.IsEmailVerified,
-                    RequiresEmailVerification = requiresEmailVerification
+                    RequiresEmailVerification = requiresEmailVerification,
+                    CreatedAt = user.CreatedAt
                 },
                 Token = token,
                 RefreshToken = refreshToken,
@@ -472,7 +473,8 @@ public sealed class OAuthService(
                 Email = user.Email ?? string.Empty,
                 ServerId = user.ServerId,
                 IsEmailVerified = user.IsEmailVerified,
-                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email)
+                RequiresEmailVerification = user.HasPassword && !user.IsEmailVerified && !string.IsNullOrEmpty(user.Email),
+                CreatedAt = user.CreatedAt
             },
             Token = token,
             RefreshToken = refreshToken,
