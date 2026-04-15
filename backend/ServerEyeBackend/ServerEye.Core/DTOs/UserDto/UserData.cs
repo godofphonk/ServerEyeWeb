@@ -9,4 +9,5 @@ public class UserData
     public Guid ServerId { get; set; }
     public bool IsEmailVerified { get; set; }
     public DateTime? EmailVerifiedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
