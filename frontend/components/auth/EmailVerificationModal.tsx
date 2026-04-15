@@ -13,7 +13,9 @@ interface EmailVerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   email: string;
-  onSuccess: () => void;
+  onSuccess: (code: string) => void;
+  resendCooldown?: number;
+  onResend?: () => void;
 }
 
 export function EmailVerificationModal({
@@ -21,11 +23,12 @@ export function EmailVerificationModal({
   onClose,
   email,
   onSuccess,
+  resendCooldown = 0,
+  onResend,
 }: EmailVerificationModalProps) {
   const toast = useToast();
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,36 +48,25 @@ export function EmailVerificationModal({
       toast.success('Email Verified', 'Your email has been successfully verified!');
 
       setTimeout(() => {
-        onSuccess();
+        onSuccess(code);
         onClose();
       }, 1500);
     } catch (error: unknown) {
       const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message ||
-        (error as AxiosApiError)?.message ||
-        'Verification failed';
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        'Invalid or expired verification code';
 
       toast.error('Verification Failed', errorMessage);
+      // НЕ вызываем onSuccess и НЕ закрываем модал при ошибке
     } finally {
       setIsVerifying(false);
     }
   };
 
-  const handleResend = async () => {
-    setIsResending(true);
-
-    try {
-      await authApi.resendVerification({ email });
-      toast.success('Code Resent', 'A new verification code has been sent to your email');
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as AxiosApiError)?.response?.data?.message ||
-        (error as AxiosApiError)?.message ||
-        'Failed to resend code';
-
-      toast.error('Resend Failed', errorMessage);
-    } finally {
-      setIsResending(false);
+  const handleResend = () => {
+    if (onResend) {
+      onResend();
     }
   };
 
@@ -153,13 +145,13 @@ export function EmailVerificationModal({
                   <button
                     type='button'
                     onClick={handleResend}
-                    disabled={isResending}
+                    disabled={resendCooldown > 0}
                     className='text-sm text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50'
                   >
-                    {isResending ? (
+                    {resendCooldown > 0 ? (
                       <span className='flex items-center gap-2'>
-                        <RefreshCw className='w-4 h-4 animate-spin' />
-                        Sending...
+                        <RefreshCw className='w-4 h-4' />
+                        Wait {resendCooldown}s
                       </span>
                     ) : (
                       "Didn't receive the code? Resend"

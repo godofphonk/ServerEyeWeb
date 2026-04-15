@@ -41,7 +41,7 @@ export function Navbar() {
   };
 
   // Hide navbar on auth pages
-  if (pathname === '/login' || pathname === '/register') {
+  if (pathname === '/login' || pathname === '/register' || pathname === '/verify-email') {
     return null;
   }
 
