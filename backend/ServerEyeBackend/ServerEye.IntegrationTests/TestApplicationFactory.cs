@@ -82,6 +82,8 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 // Disable email verification for tests
                 ["Authentication:RequireEmailVerification"] = "false",
                 ["EmailSettings:EnableEmailVerification"] = "false",
+                // Disable 2FA for tests
+                ["Authentication:RequireTwoFactor"] = "false",
                 // Enable OAuth providers for tests - use environment variables or test values
                 ["OAuth:Google:Enabled"] = "true",
                 ["OAuth:Google:ClientId"] = "test-google-client-id",
