@@ -1,5 +1,7 @@
 namespace ServerEye.API.Middleware;
 
+using ServerEye.API.Configuration;
+
 /// <summary>
 /// Extension method for registering CSP middleware.
 /// </summary>
@@ -17,44 +19,29 @@ public static class CspMiddlewareExtensions
 public class CspMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IConfiguration _configuration;
+    private readonly SecuritySettings securitySettings;
 
-    public CspMiddleware(RequestDelegate next, IConfiguration configuration)
+    public CspMiddleware(RequestDelegate next, SecuritySettings securitySettings)
     {
         _next = next;
-        _configuration = configuration;
+        this.securitySettings = securitySettings;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
+        var environment = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
 
-        if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase) ||
-            environment.Equals("Docker", StringComparison.OrdinalIgnoreCase))
+        string csp;
+        if (environment.IsDevelopment() || environment.IsEnvironment("Docker"))
         {
-            // Allow localhost connections in development
-            var csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' " +
-                     "connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* " +
-                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
-                     "style-src 'self' 'unsafe-inline' " +
-                     "img-src 'self' data: blob: " +
-                     "font-src 'self' data:";
-
-            context.Response.Headers.ContentSecurityPolicy = csp;
+            csp = this.securitySettings.CspDevelopment;
         }
         else
         {
-            // Stricter CSP for production
-            var csp = "default-src 'self'; " +
-                     "connect-src 'self' https:; " +
-                     "script-src 'self' 'unsafe-inline'; " +
-                     "style-src 'self' 'unsafe-inline'; " +
-                     "img-src 'self' data: blob:; " +
-                     "font-src 'self' data:;";
-
-            context.Response.Headers.ContentSecurityPolicy = csp;
+            csp = this.securitySettings.CspProduction;
         }
 
+        context.Response.Headers.ContentSecurityPolicy = csp;
         await _next(context);
     }
 }

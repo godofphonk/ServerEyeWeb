@@ -3,6 +3,7 @@ namespace ServerEye.API.Controllers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServerEye.API.Configuration;
 using ServerEye.API.Helpers;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Auth;
@@ -32,8 +33,9 @@ public class AuthController : BaseApiController
     private readonly ILogger<AuthController> logger;
     private readonly FrontendSettings frontendSettings;
     private readonly OAuthMetrics metrics;
+    private readonly SecuritySettings securitySettings;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics, SecuritySettings securitySettings)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -43,6 +45,7 @@ public class AuthController : BaseApiController
         this.logger = logger;
         this.frontendSettings = frontendSettings;
         this.metrics = metrics;
+        this.securitySettings = securitySettings;
     }
 
     [HttpPost("refresh")]
@@ -755,10 +758,11 @@ public class AuthController : BaseApiController
                     response.User?.Id);
 
                 // Set JWT tokens in cookies with correct domain for frontend
+                var cookieSecure = this.securitySettings.ForceSecureCookies || this.Request.IsHttps;
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = this.Request.IsHttps, // Use secure only for HTTPS
+                    Secure = cookieSecure,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddHours(1),
 
@@ -769,7 +773,7 @@ public class AuthController : BaseApiController
                 var refreshTokenOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = this.Request.IsHttps, // Use secure only for HTTPS
+                    Secure = cookieSecure,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddDays(7),
 
@@ -801,13 +805,13 @@ public class AuthController : BaseApiController
 
                 var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                              this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-                if (validatedBaseUri.Scheme != "https" && !isLocal)
+                if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
                 {
                     this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
                     return this.BadRequest("HTTPS required for non-local requests");
                 }
 
-                var callbackUrl = $"{baseUrl}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+                var callbackUrl = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
                     callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
@@ -818,7 +822,6 @@ public class AuthController : BaseApiController
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error processing OAuth callback for provider: {Provider}", provider);
-            this.logger.LogInformation("Exception details - Message: {Message}, Type: {Type}", ex.Message, ex.GetType().Name);
 
             // Handle specific OAuth errors with secure redirects
             if (ex.Message == "user_not_found")
@@ -832,8 +835,8 @@ public class AuthController : BaseApiController
                 return this.SafeRedirect("register?error=user_already_exists");
             }
 
-            this.logger.LogWarning("OAuth failed with unknown error, redirecting to auth callback page");
-            return this.SafeRedirect("auth/callback?error=oauth_failed");
+            this.logger.LogWarning("OAuth failed with unknown error, redirecting to login page");
+            return this.SafeRedirect("login?error=oauth_failed");
         }
     }
 
@@ -1133,13 +1136,13 @@ public class AuthController : BaseApiController
 
         var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                      this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-        if (validatedBaseUri.Scheme != "https" && !isLocal)
+        if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
         {
             this.logger.LogWarning("Insecure frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
             return this.BadRequest("HTTPS required for redirects");
         }
 
-        var fullPath = $"{baseUrl}{path}";
+        var fullPath = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}{path}";
         if (!UriHelper.TryCreateAbsoluteUri(fullPath, out var fullUri) || fullUri == null)
         {
             this.logger.LogWarning("Invalid redirect URL constructed: {Url}", fullPath);

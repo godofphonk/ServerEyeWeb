@@ -50,7 +50,8 @@ public class PaymentServiceTests
             this.mockSubscriptionRepository.Object,
             this.mockUserRepository.Object,
             this.mockProviderFactory.Object,
-            this.mockLogger.Object);
+            this.mockLogger.Object,
+            new ServerEye.Core.Configuration.FrontendSettings());
     }
 
     #region CreatePaymentIntentAsync Tests
