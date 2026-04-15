@@ -1,19 +1,17 @@
-namespace ServerEye.Core.Entities.Billing;
+namespace ServerEye.Core.Configuration.Plans;
 
 using ServerEye.Core.Enums;
 
-public class SubscriptionPlanEntity
+/// <summary>
+/// Definition of a subscription plan with all configurable properties.
+/// These definitions are the source of truth and are synced to the database on application startup.
+/// </summary>
+public class SubscriptionPlanDefinition
 {
     public Guid Id { get; set; }
+    public SubscriptionPlan PlanType { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public string[] Features { get; set; } = Array.Empty<string>();
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-
-    // New fields for plan limits and features
     public decimal MonthlyPrice { get; set; }
     public decimal YearlyPrice { get; set; }
     public int MaxServers { get; set; }
@@ -21,4 +19,5 @@ public class SubscriptionPlanEntity
     public bool HasAlerts { get; set; }
     public bool HasApiAccess { get; set; }
     public bool HasPrioritySupport { get; set; }
+    public List<string> Features { get; set; } = new();
 }

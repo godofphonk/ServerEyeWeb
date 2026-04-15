@@ -33,6 +33,13 @@ public class BillingDbContext : DbContext
             entity.Property(e => e.IsActive).HasColumnName("isactive");
             entity.Property(e => e.CreatedAt).HasColumnName("createdat");
             entity.Property(e => e.UpdatedAt).HasColumnName("updatedat");
+            entity.Property(e => e.MonthlyPrice).HasColumnName("monthlyprice");
+            entity.Property(e => e.YearlyPrice).HasColumnName("yearlyprice");
+            entity.Property(e => e.MaxServers).HasColumnName("maxservers");
+            entity.Property(e => e.MetricsRetentionDays).HasColumnName("metricsretentiondays");
+            entity.Property(e => e.HasAlerts).HasColumnName("hasalerts");
+            entity.Property(e => e.HasApiAccess).HasColumnName("hasapiaccess");
+            entity.Property(e => e.HasPrioritySupport).HasColumnName("hasprioritysupport");
         });
 
         // Subscription configuration

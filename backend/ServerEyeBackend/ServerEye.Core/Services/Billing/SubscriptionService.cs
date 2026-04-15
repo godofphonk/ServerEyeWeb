@@ -3,6 +3,7 @@ namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration;
+using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
@@ -43,38 +44,22 @@ public class SubscriptionService : ISubscriptionService
             subscription.PlanId,
             subscription.Status);
 
-        // Map plan based on PlanId
-        SubscriptionPlan planType;
-        string planName;
-
-        switch (subscription.PlanId.ToString())
+        // Get plan definition from code
+        var planDefinition = SubscriptionPlanDefinitions.GetById(subscription.PlanId);
+        if (planDefinition == null)
         {
-            case var id when id == "f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c": // Free plan ID
-                planType = SubscriptionPlan.Free;
-                planName = "Free";
-                break;
-            case var id when id == "841bb3db-424c-46e5-a752-04641391c993": // Pro plan ID
-                planType = SubscriptionPlan.Pro;
-                planName = "Pro";
-                break;
-            case var id when id == "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d": // Enterprise plan ID
-                planType = SubscriptionPlan.Enterprise;
-                planName = "Enterprise";
-                break;
-            default:
-                planType = SubscriptionPlan.Free;
-                planName = "Free";
-                break;
+            this.logger.LogWarning("Plan definition not found for PlanId: {PlanId}", subscription.PlanId);
+            planDefinition = SubscriptionPlanDefinitions.Free; // Fallback to Free plan
         }
 
         return new SubscriptionDto
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
-            PlanType = planType,
-            PlanName = planName,
+            PlanType = planDefinition.PlanType,
+            PlanName = planDefinition.Name,
             Status = subscription.Status,
-            Amount = planType == SubscriptionPlan.Free ? 0 : 9.99m, // Default Pro price
+            Amount = planDefinition.MonthlyPrice,
             Currency = "usd",
             IsYearly = false,
             CurrentPeriodStart = subscription.CurrentPeriodStart,
@@ -102,7 +87,12 @@ public class SubscriptionService : ISubscriptionService
             this.logger.LogInformation("Subscription checkout created successfully for user: {UserId}, sessionId: {SessionId} in {ElapsedMs}ms", userId, result.SessionId, stopwatch.ElapsedMilliseconds);
 
             // Business metric: MRR impact tracking
-            var plan = GetHardcodedPlan(request.PlanType);
+            var plan = SubscriptionPlanDefinitions.GetByType(request.PlanType);
+            if (plan == null)
+            {
+                this.logger.LogWarning("Plan definition not found for PlanType: {PlanType}", request.PlanType);
+                plan = SubscriptionPlanDefinitions.Free;
+            }
             var monthlyRevenue = request.IsYearly ? plan.YearlyPrice / 12 : plan.MonthlyPrice;
 
             this.logger.LogInformation(
@@ -121,7 +111,8 @@ public class SubscriptionService : ISubscriptionService
             this.logger.LogError(ex, "Failed to create subscription checkout for user: {UserId} in {ElapsedMs}ms: {ErrorType}", userId, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
 
             // Business metric: Lost revenue opportunity
-            var plan = GetHardcodedPlan(request.PlanType);
+            var plan = SubscriptionPlanDefinitions.GetByType(request.PlanType);
+            plan ??= SubscriptionPlanDefinitions.Free;
             this.logger.LogWarning(
                 "Revenue opportunity lost: {PlanType} for user {UserId}, reason {ErrorType}",
                 request.PlanType,
@@ -155,13 +146,9 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<List<SubscriptionPlanDto>> GetAvailablePlansAsync()
     {
-        // Return hardcoded plans - no need for database storage
-        return new List<SubscriptionPlanDto>
-        {
-            GetHardcodedPlan(SubscriptionPlan.Free),
-            GetHardcodedPlan(SubscriptionPlan.Pro),
-            GetHardcodedPlan(SubscriptionPlan.Enterprise)
-        };
+        // Return plans from code definitions
+        var definitions = SubscriptionPlanDefinitions.GetAll();
+        return definitions.Select(MapToDto).ToList();
     }
 
     public async Task<bool> HasActiveSubscriptionAsync(Guid userId)
@@ -179,14 +166,19 @@ public class SubscriptionService : ISubscriptionService
             return false;
         }
 
-        // For now, all features are available for active subscriptions
-        // This should be enhanced to check plan features based on PlanId
+        var planDefinition = SubscriptionPlanDefinitions.GetById(subscription.PlanId);
+        if (planDefinition == null)
+        {
+            this.logger.LogWarning("Plan definition not found for PlanId: {PlanId}, denying feature access", subscription.PlanId);
+            return false;
+        }
+
         return featureName.ToUpperInvariant() switch
         {
-            "ALERTS" => false, // Only for paid plans
-            "API" => false,   // Only for paid plans
-            "PRIORITY_SUPPORT" => false, // Only for enterprise
-            _ => true // Basic features available for free
+            "ALERTS" => planDefinition.HasAlerts,
+            "API" => planDefinition.HasApiAccess,
+            "PRIORITY_SUPPORT" => planDefinition.HasPrioritySupport,
+            _ => true // Basic features available for all plans
         };
     }
 
@@ -195,12 +187,17 @@ public class SubscriptionService : ISubscriptionService
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null || subscription.Status != SubscriptionStatus.Active)
         {
-            return 1; // Default to 1 server for free/unsubscribed users
+            return SubscriptionPlanDefinitions.Free.MaxServers; // Default to Free plan limit
         }
 
-        // For now, return 1 for all plans
-        // This should be enhanced to check plan features based on PlanId
-        return 1;
+        var planDefinition = SubscriptionPlanDefinitions.GetById(subscription.PlanId);
+        if (planDefinition == null)
+        {
+            this.logger.LogWarning("Plan definition not found for PlanId: {PlanId}, using Free plan limit", subscription.PlanId);
+            return SubscriptionPlanDefinitions.Free.MaxServers;
+        }
+
+        return planDefinition.MaxServers;
     }
 
     public async Task CreateFreeSubscriptionAsync(Guid userId)
@@ -223,7 +220,7 @@ public class SubscriptionService : ISubscriptionService
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                PlanId = Guid.Parse("f5e8c3a1-2b4d-4e6f-8a9c-1d2e3f4a5b6c"), // Free plan ID from subscriptionplans table
+                PlanId = SubscriptionPlanDefinitions.Free.Id,
                 Status = SubscriptionStatus.Active,
                 CurrentPeriodStart = DateTime.UtcNow,
                 CurrentPeriodEnd = null, // No end date for free plan
@@ -258,56 +255,22 @@ public class SubscriptionService : ISubscriptionService
         }
     }
 
-    private static SubscriptionPlanDto GetHardcodedPlan(SubscriptionPlan planType)
+    private static SubscriptionPlanDto MapToDto(SubscriptionPlanDefinition definition)
     {
-        return planType switch
+        return new SubscriptionPlanDto
         {
-            SubscriptionPlan.Free => new SubscriptionPlanDto
-            {
-                Id = Guid.NewGuid(),
-                PlanType = SubscriptionPlan.Free,
-                Name = "Free",
-                Description = "Basic monitoring for single server",
-                MonthlyPrice = 0,
-                YearlyPrice = 0,
-                MaxServers = 1,
-                MetricsRetentionDays = 7,
-                HasAlerts = false,
-                HasApiAccess = false,
-                HasPrioritySupport = false,
-                Features = new List<string> { "1 server monitoring", "7 days retention" }
-            },
-            SubscriptionPlan.Pro => new SubscriptionPlanDto
-            {
-                Id = Guid.NewGuid(),
-                PlanType = SubscriptionPlan.Pro,
-                Name = "Pro",
-                Description = "Advanced monitoring for multiple servers",
-                MonthlyPrice = 9.99m,
-                YearlyPrice = 99.99m,
-                MaxServers = 10,
-                MetricsRetentionDays = 30,
-                HasAlerts = true,
-                HasApiAccess = true,
-                HasPrioritySupport = false,
-                Features = new List<string> { "10 servers", "30 days retention", "Real-time alerts", "API access" }
-            },
-            SubscriptionPlan.Enterprise => new SubscriptionPlanDto
-            {
-                Id = Guid.NewGuid(),
-                PlanType = SubscriptionPlan.Enterprise,
-                Name = "Enterprise",
-                Description = "Enterprise-grade monitoring with unlimited servers",
-                MonthlyPrice = 50,
-                YearlyPrice = 500,
-                MaxServers = -1,
-                MetricsRetentionDays = 90,
-                HasAlerts = true,
-                HasApiAccess = true,
-                HasPrioritySupport = true,
-                Features = new List<string> { "Unlimited servers", "90 days retention", "Advanced alerts", "Full API access", "Priority support" }
-            },
-            _ => throw new InvalidOperationException($"Unknown plan type: {planType}")
+            Id = definition.Id,
+            PlanType = definition.PlanType,
+            Name = definition.Name,
+            Description = definition.Description,
+            MonthlyPrice = definition.MonthlyPrice,
+            YearlyPrice = definition.YearlyPrice,
+            MaxServers = definition.MaxServers,
+            MetricsRetentionDays = definition.MetricsRetentionDays,
+            HasAlerts = definition.HasAlerts,
+            HasApiAccess = definition.HasApiAccess,
+            HasPrioritySupport = definition.HasPrioritySupport,
+            Features = definition.Features
         };
     }
 }
