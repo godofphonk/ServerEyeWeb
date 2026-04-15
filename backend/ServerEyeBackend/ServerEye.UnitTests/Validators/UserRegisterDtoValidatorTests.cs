@@ -19,7 +19,7 @@ public class UserRegisterDtoValidatorTests
         {
             UserName = "testuser",
             Email = "test@example.com",
-            Password = "Password123!"
+            Password = "password123!"
         };
 
         var result = this.sut.Validate(dto);
@@ -38,7 +38,7 @@ public class UserRegisterDtoValidatorTests
         {
             UserName = userName!,
             Email = "test@example.com",
-            Password = "Password123!"
+            Password = "password123!"
         };
 
         var result = this.sut.Validate(dto);
@@ -54,7 +54,7 @@ public class UserRegisterDtoValidatorTests
         {
             UserName = "ab",
             Email = "test@example.com",
-            Password = "Password123!"
+            Password = "password123!"
         };
 
         var result = this.sut.Validate(dto);
@@ -74,7 +74,7 @@ public class UserRegisterDtoValidatorTests
         {
             UserName = "testuser",
             Email = email,
-            Password = "Password123!"
+            Password = "password123!"
         };
 
         var result = this.sut.Validate(dto);
@@ -109,7 +109,7 @@ public class UserRegisterDtoValidatorTests
         {
             UserName = "testuser",
             Email = "test@example.com",
-            Password = "Pass1"
+            Password = "pass1"
         };
 
         var result = this.sut.Validate(dto);
