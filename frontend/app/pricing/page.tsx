@@ -14,8 +14,9 @@ import { cn } from '@/lib/utils';
 
 enum PlanType {
   Free = 0,
-  Pro = 1,
-  Enterprise = 2,
+  Lite = 1,
+  Pro = 2,
+  Enterprise = 3,
 }
 
 export default function PricingPage() {
@@ -187,7 +188,7 @@ export default function PricingPage() {
           {loading ? (
             <div className='text-center'>Loading plans...</div>
           ) : (
-            <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
+            <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto'>
               {plans?.map((plan, i) => {
                 const price = getPrice(plan);
                 const isPopular = plan.planType === PlanType.Pro;
@@ -198,10 +199,11 @@ export default function PricingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className='relative'
+                    className='relative h-full'
                   >
                     <Card
                       className={cn(
+                        'h-full',
                         isPopular ? 'border-blue-500/50 relative' : '',
                         isCurrentPlan(plan) &&
                           'border-green-500/50 bg-gradient-to-br from-green-500/5 to-emerald-500/5',
@@ -235,22 +237,41 @@ export default function PricingPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <Button
-                          variant={isPopular ? 'primary' : 'secondary'}
-                          fullWidth
-                          className='mb-6'
-                          onClick={() => handleSubscribe(plan)}
-                          disabled={subscription?.planType === plan.planType}
-                        >
-                          {getButtonText(plan)}
-                        </Button>
+                        {plan.planType === PlanType.Enterprise ? (
+                          <Link href='/contact'>
+                            <Button
+                              variant={isPopular ? 'primary' : 'secondary'}
+                              fullWidth
+                              className='mb-6'
+                            >
+                              Let's talk
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Button
+                            variant={isPopular ? 'primary' : 'secondary'}
+                            fullWidth
+                            className='mb-6'
+                            onClick={() => handleSubscribe(plan)}
+                            disabled={subscription?.planType === plan.planType}
+                          >
+                            {getButtonText(plan)}
+                          </Button>
+                        )}
                         <div className='space-y-3'>
-                          {getFeatures(plan).map((feature, j) => (
-                            <div key={j} className='flex items-start gap-3'>
-                              <Check className='w-5 h-5 text-green-400 flex-shrink-0 mt-0.5' />
-                              <span className='text-gray-300'>{feature}</span>
-                            </div>
-                          ))}
+                          {plan.planType === PlanType.Enterprise
+                            ? plan.features.map((feature, j) => (
+                                <div key={j} className='flex items-start gap-3'>
+                                  <Check className='w-5 h-5 text-green-400 flex-shrink-0 mt-0.5' />
+                                  <span className='text-gray-300'>{feature}</span>
+                                </div>
+                              ))
+                            : getFeatures(plan).map((feature, j) => (
+                                <div key={j} className='flex items-start gap-3'>
+                                  <Check className='w-5 h-5 text-green-400 flex-shrink-0 mt-0.5' />
+                                  <span className='text-gray-300'>{feature}</span>
+                                </div>
+                              ))}
                         </div>
                       </CardContent>
                     </Card>
