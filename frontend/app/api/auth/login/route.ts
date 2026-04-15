@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
       expiresIn: data.expiresIn,
     });
 
+    const refreshMaxAge = data.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days if rememberMe, else 7 days
+
     response.cookies.set('access_token', data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: refreshMaxAge,
       domain: undefined, // Позволяем браузеру установить домен автоматически
     });
 

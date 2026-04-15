@@ -59,10 +59,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Use rememberMe flag from response to determine refresh token duration
+    const refreshMaxAge = data.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days if rememberMe, else 7 days
+
     if (data.refreshToken) {
       nextResponse.cookies.set('refresh_token', data.refreshToken, {
         ...cookieOptions,
-        maxAge: 604800, // 7 days
+        maxAge: refreshMaxAge,
       });
     }
 
