@@ -265,6 +265,7 @@ public class AuthController : BaseApiController
             var user = await this.userRepository.GetByEmailAsync(request.Email) ?? throw new ArgumentException("User not found");
 
             await this.authService.SendVerificationCodeAsync(user.Id);
+
             // CodeQL[cs/log-injection] suppress: "log entries created from user input" reason: email is masked via LogSanitizer.MaskEmail
             this.logger.LogInformation("Verification code resent to user {Email}", LogSanitizer.MaskEmail(request.Email));
             return this.Ok(new { message = "Verification code sent" });
