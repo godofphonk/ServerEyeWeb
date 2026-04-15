@@ -7,7 +7,7 @@ const COOKIE_DOMAIN = process.env.NEXT_PUBLIC_COOKIE_DOMAIN;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, refreshToken } = body;
+    const { token, refreshToken, rememberMe } = body;
 
     if (!token) {
       return NextResponse.json({ error: 'No token provided' }, { status: 400 });
@@ -32,9 +32,10 @@ export async function POST(request: NextRequest) {
     response.cookies.set('access_token', token, cookieOptions);
 
     if (refreshToken) {
+      const refreshMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60; // 30 days if rememberMe, else 7 days
       response.cookies.set('refresh_token', refreshToken, {
         ...cookieOptions,
-        maxAge: 7 * 24 * 60 * 60, // 7 days
+        maxAge: refreshMaxAge,
       });
     }
 
