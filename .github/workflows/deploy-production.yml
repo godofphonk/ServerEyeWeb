@@ -73,6 +73,9 @@ jobs:
               --label org.opencontainers.image.version=production \
               --no-cache \
               --push \
+              --provenance=false \
+              --sbom=false \
+              --visibility=private \
               .; then
               echo "Build succeeded on attempt $attempt"
               exit 0
@@ -161,6 +164,9 @@ jobs:
               --label org.opencontainers.image.title=ServerEyeWeb \
               --label org.opencontainers.image.version=production \
               --push \
+              --provenance=false \
+              --sbom=false \
+              --visibility=private \
               ./frontend; then
               echo "Build succeeded on attempt $attempt"
               exit 0
