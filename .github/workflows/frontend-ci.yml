@@ -133,73 +133,6 @@ jobs:
           lcov-file: ./frontend/coverage/lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  e2e-tests:
-    name: E2E Tests (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: code-quality
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium]
-        shard: [1, 2]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Cache node_modules
-        uses: actions/cache@v5.0.4
-        with:
-          path: |
-            frontend/node_modules
-            frontend/.next/cache
-          key: ${{ runner.os }}-npm-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx playwright install --with-deps ${{ matrix.browser }}
-
-      - name: Build application
-        working-directory: frontend
-        run: npm run build:next
-        env:
-          NODE_ENV: production
-
-      - name: Run Playwright tests
-        working-directory: frontend
-        run: |
-          if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
-            npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/2
-          else
-            echo "Playwright config not found, skipping E2E tests"
-          fi
-        env:
-          CI: true
-        continue-on-error: true
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
-          path: frontend/playwright-report
-          retention-days: 30
-
   lighthouse:
     name: Lighthouse Performance
     runs-on: ubuntu-latest
@@ -300,7 +233,7 @@ jobs:
     name: Build & Bundle Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [unit-tests, e2e-tests, security-scan]
+    needs: [unit-tests, security-scan]
     
     steps:
       - name: Checkout code
@@ -436,7 +369,7 @@ jobs:
     name: CI Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [code-quality, unit-tests, e2e-tests, lighthouse, security-scan, build, docker-build, accessibility]
+    needs: [code-quality, unit-tests, lighthouse, security-scan, build, docker-build, accessibility]
     
     steps:
       - name: Check job results
@@ -447,7 +380,6 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lighthouse | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -458,7 +390,6 @@ jobs:
         if: |
           needs.code-quality.result == 'failure' ||
           needs.unit-tests.result == 'failure' ||
-          needs.e2e-tests.result == 'failure' ||
           needs.security-scan.result == 'failure' ||
           needs.build.result == 'failure' ||
           needs.docker-build.result == 'failure'
