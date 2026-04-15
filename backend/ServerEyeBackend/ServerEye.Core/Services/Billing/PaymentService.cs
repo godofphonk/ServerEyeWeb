@@ -2,6 +2,7 @@ using System.Diagnostics;
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
@@ -16,19 +17,22 @@ public class PaymentService : IPaymentService
     private readonly IUserRepository userRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<PaymentService> logger;
+    private readonly FrontendSettings frontendSettings;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
         ISubscriptionRepository subscriptionRepository,
         IUserRepository userRepository,
         IPaymentProviderFactory providerFactory,
-        ILogger<PaymentService> logger)
+        ILogger<PaymentService> logger,
+        FrontendSettings frontendSettings)
     {
         this.paymentRepository = paymentRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
+        this.frontendSettings = frontendSettings;
     }
 
     public async Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
@@ -136,8 +140,8 @@ public class PaymentService : IPaymentService
             // For now, always create a new customer ID since we don't store ProviderCustomerId
             var customerId = await provider.CreateCustomerAsync(userId, user.Email ?? string.Empty, user.UserName);
 
-            var successUrl = request.SuccessUrl ?? "https://localhost:3000/dashboard?subscription=success";
-            var cancelUrl = request.CancelUrl ?? "https://localhost:3000/pricing?subscription=canceled";
+            var successUrl = request.SuccessUrl ?? this.frontendSettings.SubscriptionSuccessUrl;
+            var cancelUrl = request.CancelUrl ?? this.frontendSettings.SubscriptionCancelUrl;
 
             var response = await provider.CreateCheckoutSessionAsync(
                 customerId,

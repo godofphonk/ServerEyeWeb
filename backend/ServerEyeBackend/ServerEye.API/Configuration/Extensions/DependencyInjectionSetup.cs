@@ -71,12 +71,15 @@ public static class DependencyInjectionSetup
             ?? new ServersConfiguration();
         var frontendSettings = configuration.GetSection("FrontendSettings").Get<FrontendSettings>()
             ?? new FrontendSettings();
+        var securitySettings = configuration.GetSection("Security").Get<ServerEye.API.Configuration.SecuritySettings>()
+            ?? new ServerEye.API.Configuration.SecuritySettings();
 
         services.AddSingleton(goApiSettings);
         services.AddSingleton(emailSettings);
         services.AddSingleton(encryptionSettings);
         services.AddSingleton(serversConfiguration);
         services.AddSingleton(frontendSettings);
+        services.AddSingleton(securitySettings);
 
         services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
             configuration.GetSection("Stripe"));

@@ -18,6 +18,8 @@ public static class MiddlewareSetup
     {
         var corsSettings = configuration.GetSection("Cors").Get<CorsSettings>()
             ?? new CorsSettings();
+        var securitySettings = configuration.GetSection("Security").Get<ServerEye.API.Configuration.SecuritySettings>()
+            ?? new ServerEye.API.Configuration.SecuritySettings();
 
         // Configure Response Compression
         services.AddResponseCompression(options =>
@@ -50,32 +52,35 @@ public static class MiddlewareSetup
         });
 
         // Configure Rate Limiting
-        services.AddRateLimiter(rateLimiterOptions =>
+        if (securitySettings.EnableRateLimiting)
         {
-            // Global rate limit - 100 requests per minute per IP
-            rateLimiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: partition => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 100,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 10
-                    }));
+            services.AddRateLimiter(rateLimiterOptions =>
+            {
+                // Global rate limit - configurable per environment
+                rateLimiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: partition => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = securitySettings.GlobalRateLimitPerMinute,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 10
+                        }));
 
-            // Strict rate limit for authentication endpoints
-            rateLimiterOptions.AddPolicy("auth", httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: partition => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 2
-                    }));
-        });
+                // Strict rate limit for authentication endpoints
+                rateLimiterOptions.AddPolicy("auth", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: partition => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = securitySettings.AuthRateLimitPerMinute,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 2
+                        }));
+            });
+        }
 
         // Configure Global Exception Handler
         services.AddExceptionHandler<Middleware.GlobalExceptionHandler>();
@@ -91,7 +96,14 @@ public static class MiddlewareSetup
     {
         app.UseResponseCompression();
         app.UseCors("AllowFrontend");
-        app.UseRateLimiter();
+        
+        // Only use RateLimiter if it was registered
+        var securitySettings = app.ApplicationServices.GetService<ServerEye.API.Configuration.SecuritySettings>();
+        if (securitySettings?.EnableRateLimiting == true)
+        {
+            app.UseRateLimiter();
+        }
+        
         app.UseExceptionHandler();
 
         return app;
