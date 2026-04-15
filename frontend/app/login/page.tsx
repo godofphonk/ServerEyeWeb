@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/Input';
 import { AxiosApiError } from '@/types';
 import { EmailVerificationModal } from '@/components/auth/EmailVerificationModal';
 import { useToast } from '@/hooks/useToast';
+import { Navbar } from '@/components/layout/Navbar';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, getOAuthURL, loading } = useAuth();
+  const { login, getOAuthURL, loading, refreshUserData } = useAuth();
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,6 +91,8 @@ export default function LoginPage() {
       } else {
         // Сохраняем токены и логинимся
         await login(email, password);
+        // Обновляем данные пользователя
+        await refreshUserData();
         router.push('/dashboard');
       }
     } catch (err: unknown) {
@@ -137,11 +140,15 @@ export default function LoginPage() {
         body: JSON.stringify({ token: data.token, refreshToken: data.refreshToken, rememberMe }),
       });
 
-      // Обновляем auth context
+      // Делаем обычный login для правильного обновления AuthContext
       await login(pendingEmail, password);
 
       toast.success('Login Successful', 'You have been logged in successfully');
       setShowTwoFactorModal(false);
+
+      // Ждем небольшую задержку перед переходом
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       router.push('/dashboard');
     } catch (err: unknown) {
       const errorMessage = (err as Error)?.message || 'Invalid verification code';
@@ -165,17 +172,22 @@ export default function LoginPage() {
   return (
     // Show loading while checking authentication
     loading ? (
-      <main className='min-h-screen bg-black text-white flex items-center justify-center p-6'>
-        <div className='text-center'>
-          <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
-          <p className='text-gray-400'>Checking authentication...</p>
-        </div>
-      </main>
+      <>
+        <Navbar />
+        <main className='min-h-screen bg-black text-white flex items-center justify-center p-6 pt-20'>
+          <div className='text-center'>
+            <div className='w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
+            <p className='text-gray-400'>Checking authentication...</p>
+          </div>
+        </main>
+      </>
     ) : (
-      <main className='min-h-screen bg-black text-white flex items-center justify-center p-6'>
-        {/* Background */}
-        <div className='absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 opacity-50' />
-        <div className='absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent' />
+      <>
+        <Navbar />
+        <main className='min-h-screen bg-black text-white flex items-center justify-center p-6 pt-20'>
+          {/* Background */}
+          <div className='absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 opacity-50' />
+          <div className='absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent' />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -338,6 +350,7 @@ export default function LoginPage() {
           />
         )}
       </main>
+      </>
     )
   );
 }
