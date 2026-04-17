@@ -1,5 +1,6 @@
 namespace ServerEye.Core.Services.Billing;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration.Plans;
@@ -10,29 +11,17 @@ using ServerEye.Core.Interfaces.Services.Billing;
 
 public class WebhookEventProcessor : BackgroundService
 {
-    private readonly IWebhookEventRepository webhookEventRepository;
-    private readonly IOutboxMessageRepository outboxRepository;
-    private readonly IPaymentRepository paymentRepository;
-    private readonly ISubscriptionRepository subscriptionRepository;
-    private readonly IPaymentProviderFactory providerFactory;
+    private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger<WebhookEventProcessor> logger;
     private readonly TimeSpan processingInterval = TimeSpan.FromSeconds(5);
     private readonly TimeSpan deadLetterThreshold = TimeSpan.FromMinutes(30);
     private readonly int maxRetries = 5;
 
     public WebhookEventProcessor(
-        IWebhookEventRepository webhookEventRepository,
-        IOutboxMessageRepository outboxRepository,
-        IPaymentRepository paymentRepository,
-        ISubscriptionRepository subscriptionRepository,
-        IPaymentProviderFactory providerFactory,
+        IServiceScopeFactory scopeFactory,
         ILogger<WebhookEventProcessor> logger)
     {
-        this.webhookEventRepository = webhookEventRepository;
-        this.outboxRepository = outboxRepository;
-        this.paymentRepository = paymentRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.providerFactory = providerFactory;
+        this.scopeFactory = scopeFactory;
         this.logger = logger;
     }
 
@@ -44,9 +33,10 @@ public class WebhookEventProcessor : BackgroundService
         {
             try
             {
-                await ProcessPendingEventsAsync(stoppingToken);
-                await ProcessOutboxMessagesAsync(stoppingToken);
-                await MoveFailedEventsToDeadLetterAsync();
+                using var scope = scopeFactory.CreateScope();
+                await ProcessPendingEventsAsync(scope.ServiceProvider, stoppingToken);
+                await ProcessOutboxMessagesAsync(scope.ServiceProvider, stoppingToken);
+                await MoveFailedEventsToDeadLetterAsync(scope.ServiceProvider);
             }
             catch (Exception ex)
             {
@@ -102,8 +92,9 @@ public class WebhookEventProcessor : BackgroundService
         };
     }
 
-    private async Task ProcessPendingEventsAsync(CancellationToken stoppingToken)
+    private async Task ProcessPendingEventsAsync(IServiceProvider serviceProvider, CancellationToken stoppingToken)
     {
+        var webhookEventRepository = serviceProvider.GetRequiredService<IWebhookEventRepository>();
         var pendingEvents = await webhookEventRepository.GetPendingEventsAsync(10);
 
         foreach (var webhookEvent in pendingEvents)
@@ -113,12 +104,14 @@ public class WebhookEventProcessor : BackgroundService
                 break;
             }
 
-            await ProcessEventWithIdempotencyAsync(webhookEvent);
+            await ProcessEventWithIdempotencyAsync(serviceProvider, webhookEvent);
         }
     }
 
-    private async Task ProcessEventWithIdempotencyAsync(WebhookEvent webhookEvent)
+    private async Task ProcessEventWithIdempotencyAsync(IServiceProvider serviceProvider, WebhookEvent webhookEvent)
     {
+        var webhookEventRepository = serviceProvider.GetRequiredService<IWebhookEventRepository>();
+        var providerFactory = serviceProvider.GetRequiredService<IPaymentProviderFactory>();
         var eventId = webhookEvent.EventId;
         var lockKey = $"webhook:{eventId}";
 
@@ -135,12 +128,12 @@ public class WebhookEventProcessor : BackgroundService
                 webhookEvent.EventType,
                 webhookEvent.ProcessingAttempts + 1);
 
-            // Parse the event data
+            // Deserialize event data based on provider
             var provider = providerFactory.GetProvider(webhookEvent.Provider);
-            var (eventType, data) = await provider.ParseWebhookEventAsync(webhookEvent.RawPayload);
+            var data = provider.DeserializeEvent(webhookEvent.RawPayload);
 
-            // Process based on event type with state machine validation
-            var result = await ProcessEventByTypeAsync(webhookEvent.EventType, data);
+            // Process based on event type
+            var result = await ProcessEventByTypeAsync(serviceProvider, webhookEvent.EventType, data);
 
             if (result.IsSuccess)
             {
@@ -197,24 +190,26 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessEventByTypeAsync(string eventType, object data)
+    private async Task<ProcessResult> ProcessEventByTypeAsync(IServiceProvider serviceProvider, string eventType, object data)
     {
         return eventType switch
         {
-            "checkout.session.completed" => await ProcessCheckoutSessionCompletedAsync(data),
-            "customer.subscription.created" => await ProcessSubscriptionCreatedAsync(data),
-            "customer.subscription.updated" => await ProcessSubscriptionUpdatedAsync(data),
-            "customer.subscription.deleted" => await ProcessSubscriptionDeletedAsync(data),
-            "invoice.payment_succeeded" => await ProcessInvoicePaymentSucceededAsync(data),
-            "invoice.payment_failed" => await ProcessInvoicePaymentFailedAsync(data),
+            "checkout.session.completed" => await ProcessCheckoutSessionCompletedAsync(serviceProvider, data),
+            "customer.subscription.created" => await ProcessSubscriptionCreatedAsync(serviceProvider, data),
+            "customer.subscription.updated" => await ProcessSubscriptionUpdatedAsync(serviceProvider, data),
+            "customer.subscription.deleted" => await ProcessSubscriptionDeletedAsync(serviceProvider, data),
+            "invoice.payment_succeeded" => await ProcessInvoicePaymentSucceededAsync(serviceProvider, data),
+            "invoice.payment_failed" => await ProcessInvoicePaymentFailedAsync(serviceProvider, data),
             "payment_intent.succeeded" => await ProcessPaymentIntentSucceededAsync(),
             "payment_intent.payment_failed" => await ProcessPaymentIntentFailedAsync(),
             _ => ProcessResult.Success() // Unhandled event types
         };
     }
 
-    private async Task<ProcessResult> ProcessCheckoutSessionCompletedAsync(object data)
+    private async Task<ProcessResult> ProcessCheckoutSessionCompletedAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
+        var paymentRepository = serviceProvider.GetRequiredService<IPaymentRepository>();
         try
         {
             var sessionId = StripeWebhookHelper.GetStringProperty(data, "Id");
@@ -281,8 +276,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessSubscriptionCreatedAsync(object data)
+    private async Task<ProcessResult> ProcessSubscriptionCreatedAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
         try
         {
             var subscriptionId = StripeWebhookHelper.GetStringProperty(data, "Id");
@@ -343,8 +339,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessSubscriptionUpdatedAsync(object data)
+    private async Task<ProcessResult> ProcessSubscriptionUpdatedAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
         try
         {
             var subscriptionId = StripeWebhookHelper.GetStringProperty(data, "Id");
@@ -397,8 +394,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessSubscriptionDeletedAsync(object data)
+    private async Task<ProcessResult> ProcessSubscriptionDeletedAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
         try
         {
             var metadata = StripeWebhookHelper.GetMetadata(data);
@@ -440,8 +438,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessInvoicePaymentSucceededAsync(object data)
+    private async Task<ProcessResult> ProcessInvoicePaymentSucceededAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
         try
         {
             var invoiceId = StripeWebhookHelper.GetStringProperty(data, "Id");
@@ -533,8 +532,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task<ProcessResult> ProcessInvoicePaymentFailedAsync(object data)
+    private async Task<ProcessResult> ProcessInvoicePaymentFailedAsync(IServiceProvider serviceProvider, object data)
     {
+        var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
         try
         {
             var invoiceId = StripeWebhookHelper.GetStringProperty(data, "Id");
@@ -589,8 +589,9 @@ public class WebhookEventProcessor : BackgroundService
         return Task.FromResult(ProcessResult.Success());
     }
 
-    private async Task ProcessOutboxMessagesAsync(CancellationToken stoppingToken)
+    private async Task ProcessOutboxMessagesAsync(IServiceProvider serviceProvider, CancellationToken stoppingToken)
     {
+        var outboxRepository = serviceProvider.GetRequiredService<IOutboxMessageRepository>();
         var pendingMessages = await outboxRepository.GetPendingMessagesAsync(10);
 
         foreach (var message in pendingMessages)
@@ -629,8 +630,9 @@ public class WebhookEventProcessor : BackgroundService
         }
     }
 
-    private async Task MoveFailedEventsToDeadLetterAsync()
+    private async Task MoveFailedEventsToDeadLetterAsync(IServiceProvider serviceProvider)
     {
+        var webhookEventRepository = serviceProvider.GetRequiredService<IWebhookEventRepository>();
         var failedEvents = await webhookEventRepository.GetFailedEventsAsync(
             maxRetries,
             deadLetterThreshold);
