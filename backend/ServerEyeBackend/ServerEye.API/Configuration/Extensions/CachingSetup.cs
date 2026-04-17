@@ -44,13 +44,6 @@ public static class CachingSetup
         // Register cache settings
         services.AddSingleton(cacheSettings);
 
-        // Add Redis health check
-        services.AddHealthChecks()
-            .AddRedis(
-                redisConnectionString: connectionString,
-                name: "redis",
-                tags: ["cache", "redis", "ready"]);
-
         return services;
     }
 }

@@ -130,7 +130,7 @@ public class WebhookEventProcessor : BackgroundService
 
             // Deserialize event data based on provider
             var provider = providerFactory.GetProvider(webhookEvent.Provider);
-            var data = provider.DeserializeEvent(webhookEvent.RawPayload);
+            var (eventType, data) = await provider.ParseWebhookEventAsync(webhookEvent.RawPayload);
 
             // Process based on event type
             var result = await ProcessEventByTypeAsync(serviceProvider, webhookEvent.EventType, data);
@@ -441,6 +441,7 @@ public class WebhookEventProcessor : BackgroundService
     private async Task<ProcessResult> ProcessInvoicePaymentSucceededAsync(IServiceProvider serviceProvider, object data)
     {
         var subscriptionRepository = serviceProvider.GetRequiredService<ISubscriptionRepository>();
+        var paymentRepository = serviceProvider.GetRequiredService<IPaymentRepository>();
         try
         {
             var invoiceId = StripeWebhookHelper.GetStringProperty(data, "Id");
