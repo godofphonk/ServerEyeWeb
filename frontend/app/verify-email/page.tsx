@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { EmailVerificationModal } from '@/components/auth/EmailVerificationModal';
 import { motion } from 'framer-motion';
-import { Mail, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { isOAuthUser } from '@/lib/authUtils';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
 
 export default function VerifyEmailPage() {
-  const { user, isEmailVerified, logout, loading, login } = useAuth();
+  const { user, isEmailVerified, logout, loading } = useAuth();
   const router = useRouter();
   const toast = useToast();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -20,7 +20,6 @@ export default function VerifyEmailPage() {
   const [isChecking, setIsChecking] = useState(true);
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const redirectAttempted = useRef(false);
   const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -85,14 +84,16 @@ export default function VerifyEmailPage() {
       setShowVerificationModal(true);
     } catch (error: unknown) {
       const errorMessage =
-        (error as any)?.response?.data?.message || (error as any)?.message || 'Failed to send code';
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to send code';
       toast.error('Send Failed', errorMessage);
     } finally {
       setIsSendingCode(false);
     }
   };
 
-  const handleVerificationSuccess = async (code: string) => {
+  const handleVerificationSuccess = async () => {
     // После успешной верификации перенаправляем на login для ввода пароля
     // (пароль не хранится в открытом виде для безопасности)
     const savedEmail =
@@ -110,11 +111,6 @@ export default function VerifyEmailPage() {
     } else {
       router.push('/login');
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
   };
 
   // Определяем email для отображения

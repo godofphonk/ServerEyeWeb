@@ -9,6 +9,7 @@ using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 using ServerAccessServiceImpl = ServerEye.Core.Services.ServerAccessService;
 
 public class ServerAccessServiceTests
@@ -18,6 +19,8 @@ public class ServerAccessServiceTests
     private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IGoApiClient> mockGoApiClient;
     private readonly Mock<IEncryptionService> mockEncryptionService;
+    private readonly Mock<IPlanLimitsService> mockPlanLimitsService;
+    private readonly Mock<ILogger<ServerAccessServiceImpl>> mockLogger;
     private readonly ServerAccessServiceImpl serverAccessService;
 
     public ServerAccessServiceTests()
@@ -28,7 +31,25 @@ public class ServerAccessServiceTests
         this.mockExternalLoginRepository = new Mock<IUserExternalLoginRepository>();
         this.mockGoApiClient = new Mock<IGoApiClient>();
         this.mockEncryptionService = new Mock<IEncryptionService>();
-        var mockLogger1 = new Mock<ILogger<ServerAccessServiceImpl>>();
+        this.mockPlanLimitsService = new Mock<IPlanLimitsService>();
+        this.mockLogger = new Mock<ILogger<ServerAccessServiceImpl>>();
+
+        // Setup default plan limits mock
+        this.mockPlanLimitsService
+            .Setup(x => x.CanAddServerAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(true);
+
+        this.mockPlanLimitsService
+            .Setup(x => x.GetUserLimitsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new ServerEye.Core.DTOs.Billing.UserPlanLimitsDto
+            {
+                MaxServers = 10,
+                CurrentServers = 0,
+                MetricsRetentionDays = 30,
+                PlanType = SubscriptionPlan.Pro,
+                PlanName = "Pro",
+                HasActiveSubscription = true
+            });
 
         this.serverAccessService = new ServerAccessServiceImpl(
             this.mockServerRepository.Object,
@@ -37,7 +58,8 @@ public class ServerAccessServiceTests
             this.mockExternalLoginRepository.Object,
             this.mockGoApiClient.Object,
             this.mockEncryptionService.Object,
-            mockLogger1.Object);
+            this.mockPlanLimitsService.Object,
+            this.mockLogger.Object);
     }
 
     [Fact]

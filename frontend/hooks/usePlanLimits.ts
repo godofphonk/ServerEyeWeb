@@ -24,7 +24,8 @@ export function usePlanLimits(): PlanLimits | undefined {
   }
 
   // -1 indicates unlimited (Enterprise)
-  const canAddServer = user.maxServers === -1 || (user.currentServers ?? 0) < (user.maxServers ?? 0);
+  const canAddServer =
+    user.maxServers === -1 || (user.currentServers ?? 0) < (user.maxServers ?? 0);
 
   return {
     maxServers: user.maxServers,

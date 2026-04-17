@@ -37,8 +37,8 @@ export default function TimeRangeSelector({
                 timeRange === value && !isLocked
                   ? 'bg-blue-600 text-white shadow-lg'
                   : isLocked
-                  ? 'text-gray-500 cursor-not-allowed'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    ? 'text-gray-500 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
               }
             `}
             title={isLocked ? `Available on plans with ${days}+ days retention` : undefined}

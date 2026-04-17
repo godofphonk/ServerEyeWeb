@@ -2,6 +2,7 @@ namespace ServerEye.API.Configuration.Extensions;
 
 using FluentValidation;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using ServerEye.API.HealthChecks;
 using ServerEye.API.Validators;
 using ServerEye.Core.Configuration;
@@ -46,7 +47,7 @@ public static class DependencyInjectionSetup
 
         // Register Go API services
         var logger = services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-        RegisterGoApiServices(services, configuration, logger);
+        RegisterGoApiServices(services, logger);
 
         // Register validators
         services.AddValidatorsFromAssemblyContaining<UserRegisterDtoValidator>();
@@ -59,8 +60,6 @@ public static class DependencyInjectionSetup
 
     private static void RegisterSettings(IServiceCollection services, IConfiguration configuration)
     {
-        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>()
-            ?? new GoApiSettings();
         var emailSettings = configuration.GetSection("EmailSettings").Get<EmailSettings>()
             ?? new EmailSettings();
         var encryptionSettings = new EncryptionSettings
@@ -74,7 +73,12 @@ public static class DependencyInjectionSetup
         var securitySettings = configuration.GetSection("Security").Get<ServerEye.API.Configuration.SecuritySettings>()
             ?? new ServerEye.API.Configuration.SecuritySettings();
 
-        services.AddSingleton(goApiSettings);
+        // Configure GoApiSettings with validation on startup
+        services.Configure<GoApiSettings>(configuration.GetSection("GoApiSettings"))
+            .AddOptions<GoApiSettings>()
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddSingleton(emailSettings);
         services.AddSingleton(encryptionSettings);
         services.AddSingleton(serversConfiguration);
@@ -229,16 +233,11 @@ public static class DependencyInjectionSetup
 #pragma warning restore IDE0060
     }
 
-    private static void RegisterGoApiServices(IServiceCollection services, IConfiguration configuration, ILogger logger)
+    private static void RegisterGoApiServices(IServiceCollection services, ILogger logger)
     {
-        var goApiSettings = configuration.GetSection("GoApiSettings").Get<GoApiSettings>()
-            ?? new GoApiSettings();
-
-        logger.LogInformation("GoApiSettings loaded - BaseUrl: {BaseUrl}, ProductionUrl: {ProductionUrl}", goApiSettings.BaseUrl, goApiSettings.ProductionUrl);
-
-        // Register Go API HttpClient
-        services.AddHttpClient<GoApiHttpHandler>(client =>
+        services.AddHttpClient<GoApiHttpHandler>((serviceProvider, client) =>
         {
+            var goApiSettings = serviceProvider.GetRequiredService<IOptions<GoApiSettings>>().Value;
             client.BaseAddress = goApiSettings.BaseUrl;
             client.Timeout = TimeSpan.FromSeconds(goApiSettings.TimeoutSeconds);
             logger.LogInformation("GoApiHttpClient configured with BaseAddress: {BaseAddress}", client.BaseAddress);

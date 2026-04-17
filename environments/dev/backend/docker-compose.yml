@@ -10,16 +10,10 @@ services:
     ports:
       - "5246:8080"
       - "5247:443"
-    env_file:
-      - ../secrets/backend.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=Docker
-      - ASPNETCORE_URLS=http://+:8080
-    volumes:
-      # Mount appsettings for hot reload
-      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.json:/app/appsettings.json:ro
-      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Development.json:/app/appsettings.Docker.json:ro
-      - ../../../backend/ServerEyeBackend/ServerEye.API/appsettings.Local.json:/app/appsettings.Local.json:ro
+      - ASPNETCORE_ENVIRONMENT=Development
+      - EMAIL_SETTINGS_FRONTEND_URL=${EMAIL_SETTINGS_FRONTEND_URL}
+      - GOAPI_SETTINGS_BASE_URL=${GOAPI_SETTINGS_BASE_URL}
     external_links:
       - ServerEyeWeb-redis-dev:redis
     restart: unless-stopped

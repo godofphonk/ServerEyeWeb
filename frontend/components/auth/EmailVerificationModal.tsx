@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
-import { AxiosApiError } from '@/types';
 
 interface EmailVerificationModalProps {
   isOpen: boolean;
@@ -53,8 +52,8 @@ export function EmailVerificationModal({
       }, 1500);
     } catch (error: unknown) {
       const errorMessage =
-        (error as any)?.response?.data?.message ||
-        (error as any)?.message ||
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (error as { message?: string })?.message ||
         'Invalid or expired verification code';
 
       toast.error('Verification Failed', errorMessage);

@@ -19,6 +19,7 @@ using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 using ServerEye.Core.Services;
 using Xunit;
 using UserServiceImpl = ServerEye.Core.Services.UserService;
@@ -30,6 +31,7 @@ public class UserServiceTests
     private readonly Mock<IJwtService> mockJwtService;
     private readonly Mock<IRefreshTokenRepository> mockRefreshTokenRepository;
     private readonly Mock<IAuthService> mockAuthService;
+    private readonly Mock<IPlanLimitsService> mockPlanLimitsService;
     private readonly IConfiguration configuration;
     private readonly UserServiceImpl userService;
 
@@ -40,6 +42,20 @@ public class UserServiceTests
         this.mockJwtService = new Mock<IJwtService>();
         this.mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
         this.mockAuthService = new Mock<IAuthService>();
+        this.mockPlanLimitsService = new Mock<IPlanLimitsService>();
+
+        // Setup default plan limits mock
+        this.mockPlanLimitsService
+            .Setup(x => x.GetUserLimitsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new ServerEye.Core.DTOs.Billing.UserPlanLimitsDto
+            {
+                MaxServers = 10,
+                CurrentServers = 0,
+                MetricsRetentionDays = 30,
+                PlanType = SubscriptionPlan.Pro,
+                PlanName = "Pro",
+                HasActiveSubscription = true
+            });
 
         // Create real configuration for testing
         var configData = new Dictionary<string, string?>
@@ -57,7 +73,8 @@ public class UserServiceTests
             this.mockRefreshTokenRepository.Object,
             this.mockAuthService.Object,
             this.configuration,
-            Mock.Of<ILogger<UserService>>());
+            Mock.Of<ILogger<UserService>>(),
+            this.mockPlanLimitsService.Object);
     }
 
     #region GetUserByIdAsync Tests
@@ -614,7 +631,8 @@ public class UserServiceTests
             this.mockRefreshTokenRepository.Object,
             this.mockAuthService.Object,
             disabledConfig,
-            Mock.Of<ILogger<UserService>>());
+            Mock.Of<ILogger<UserService>>(),
+            this.mockPlanLimitsService.Object);
 
         // Act
         var result = await userServiceWithDisabledVerification.CanUserAccessProtectedResourcesAsync(userId);

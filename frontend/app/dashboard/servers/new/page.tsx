@@ -201,7 +201,7 @@ export default function AddServerPage() {
       <UpgradePlanModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        limitType="servers"
+        limitType='servers'
         currentCount={planLimits?.currentServers}
         maxAllowed={planLimits?.maxServers}
         planName={planLimits?.planName}
