@@ -13,9 +13,8 @@ services:
       - PORT=3000
       - NEXT_TELEMETRY_DISABLED=1
       - INTERNAL_API_URL
-      - NEXT_PUBLIC_API_URL
-      - NEXT_PUBLIC_COOKIE_DOMAIN
       # Frontend secrets from Doppler
+      # Note: NEXT_PUBLIC_* variables are build-time only and should be set during build
     restart: unless-stopped
     networks:
       - servereye-network

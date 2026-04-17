@@ -37,7 +37,7 @@ async function proxyRequest(request: NextRequest, method: string) {
 
     if (backendResponse.status === 401) {
       const refreshToken = request.cookies.get('refresh_token')?.value;
-      if (refreshToken && accessToken) {
+      if (refreshToken) {
         const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -45,7 +45,20 @@ async function proxyRequest(request: NextRequest, method: string) {
         });
 
         if (refreshResponse.ok) {
-          const refreshData = await refreshResponse.json();
+          let refreshData;
+          try {
+            refreshData = await refreshResponse.json();
+          } catch (e) {
+            console.error('[proxy] Failed to parse refresh response:', e);
+            // Return original 401 if refresh response is not JSON
+            const responseData = await backendResponse.text();
+            return new NextResponse(responseData, {
+              status: backendResponse.status,
+              headers: {
+                'Content-Type': backendResponse.headers.get('Content-Type') || 'application/json',
+              },
+            });
+          }
 
           headers['Authorization'] = `Bearer ${refreshData.token}`;
           if (method !== 'GET' && method !== 'HEAD') {
@@ -91,7 +104,8 @@ async function proxyRequest(request: NextRequest, method: string) {
         'Content-Type': backendResponse.headers.get('Content-Type') || 'application/json',
       },
     });
-  } catch (_error) {
+  } catch (error) {
+    console.error('[proxy] error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
