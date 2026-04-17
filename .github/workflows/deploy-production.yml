@@ -32,13 +32,13 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4.1.0
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -46,7 +46,7 @@ jobs:
 
       - name: Extract metadata for backend
         id: meta-backend
-        uses: docker/metadata-action@v6.0.0
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_BACKEND }}
           tags: |
@@ -93,7 +93,7 @@ jobs:
 
       - name: Extract metadata for frontend
         id: meta-frontend
-        uses: docker/metadata-action@v6.0.0
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_FRONTEND }}
           tags: |
@@ -188,13 +188,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
     environment:
       name: production
       url: https://servereye.dev
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v4
@@ -205,7 +206,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Setup git repository on VPS
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -233,7 +234,7 @@ jobs:
             fi
 
       - name: Pull latest changes from git
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -247,7 +248,7 @@ jobs:
             echo "✅ Latest changes pulled successfully"
 
       - name: Verify git repository structure
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -271,7 +272,7 @@ jobs:
             fi
 
       - name: Verify docker-compose files exist
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -284,17 +285,18 @@ jobs:
             ls -la environments/prod/frontend/docker-compose.yml
 
       - name: Login to GitHub Container Registry
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Save current running images before deployment
-        uses: appleboy/ssh-action@v1.2.5
+        id: save-current-images
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -323,7 +325,7 @@ jobs:
             echo "Current deployment info saved"
 
       - name: Pull latest images
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -335,7 +337,7 @@ jobs:
             docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
 
       - name: Verify images pulled
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -347,7 +349,7 @@ jobs:
             docker images | grep servereyeweb/frontend
 
       - name: Tag images as latest
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -355,51 +357,11 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
-
-      - name: Stop existing containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker-compose -f environments/prod/backend/docker-compose.yml down
-            docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-
-      - name: Remove old images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
-
-      - name: Pull new images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
             docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
             docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
 
       - name: Start infrastructure containers
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -407,10 +369,10 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Verify infrastructure containers
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -422,7 +384,7 @@ jobs:
             docker ps | grep redis
 
       - name: Start observability stack
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -430,10 +392,10 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Start backend containers
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -442,10 +404,10 @@ jobs:
           script: |
             cd /opt/servereye
             # Inject secrets using doppler run
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd_backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_BACKEND }}" doppler run --project servereye --config prd_backend -- docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Start frontend containers
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -453,10 +415,10 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd_frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_FRONTEND }}" doppler run --project servereye --config prd_frontend -- docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Setup nginx and configuration
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -493,7 +455,7 @@ jobs:
             echo "✅ Nginx configuration updated and reloaded successfully"
 
       - name: Verify all containers
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -508,7 +470,7 @@ jobs:
             docker ps --filter "name=frontend" --format "{{.Image}}"
 
       - name: Cleanup old images
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -519,7 +481,7 @@ jobs:
             docker image prune -f
 
       - name: Health check
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -527,29 +489,59 @@ jobs:
           port: 22
           script: |
             echo "Waiting for services to start..."
-            sleep 30
+            
+            # Health check with exponential backoff retries
+            max_retries=5
+            retry_delay=10
             
             # Check backend health on port 5246
-            if curl -f http://localhost:5246/health; then
-              echo "✅ Backend health check passed"
-            else
-              echo "❌ Backend health check failed"
+            backend_healthy=false
+            for i in $(seq 1 $max_retries); do
+              echo "Backend health check attempt $i/$max_retries..."
+              if curl -f http://localhost:5246/health; then
+                echo "✅ Backend health check passed"
+                backend_healthy=true
+                break
+              else
+                echo "Backend not ready, waiting ${retry_delay}s..."
+                sleep $retry_delay
+                retry_delay=$((retry_delay * 2))
+              fi
+            done
+            
+            if [ "$backend_healthy" = false ]; then
+              echo "❌ Backend health check failed after $max_retries attempts"
               exit 1
             fi
             
+            # Reset retry delay for frontend
+            retry_delay=10
+            
             # Check frontend health on port 5247
-            if curl -f http://localhost:5247; then
-              echo "✅ Frontend health check passed"
-            else
-              echo "❌ Frontend health check failed"
+            frontend_healthy=false
+            for i in $(seq 1 $max_retries); do
+              echo "Frontend health check attempt $i/$max_retries..."
+              if curl -f http://localhost:5247; then
+                echo "✅ Frontend health check passed"
+                frontend_healthy=true
+                break
+              else
+                echo "Frontend not ready, waiting ${retry_delay}s..."
+                sleep $retry_delay
+                retry_delay=$((retry_delay * 2))
+              fi
+            done
+            
+            if [ "$frontend_healthy" = false ]; then
+              echo "❌ Frontend health check failed after $max_retries attempts"
               exit 1
             fi
             
             echo "✅ Deployment successful!"
 
       - name: Rollback on failure
-        if: failure()
-        uses: appleboy/ssh-action@v1.2.5
+        if: failure() && steps.save-current-images.outcome == 'success'
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -567,12 +559,6 @@ jobs:
               echo "Previous frontend: $CURRENT_FRONTEND"
               echo "Previous commit: $CURRENT_COMMIT_SHA"
               
-              # Stop current containers
-              docker-compose -f environments/prod/backend/docker-compose.yml down
-              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-              docker-compose -f environments/prod/frontend/docker-compose.yml down
-              docker-compose -f environments/prod/observability/docker-compose.yml down
-              
               # Rollback to previous images
               if [ -n "$CURRENT_BACKEND" ]; then
                 docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
@@ -581,18 +567,18 @@ jobs:
                 docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
               fi
               
-              # Start containers with previous images
+              # Start containers with previous images (force-recreate without downtime)
               # Inject secrets using doppler run
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd_backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd_frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_BACKEND }}" doppler run --project servereye --config prd_backend -- docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_FRONTEND }}" doppler run --project servereye --config prd_frontend -- docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
               
               echo "✅ Rollback completed successfully"
             else
               echo "⚠️ No previous deployment info found, stopping containers only"
-              docker-compose -f environments/prod/backend/docker-compose.yml down
-              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-              docker-compose -f environments/prod/frontend/docker-compose.yml down
-              docker-compose -f environments/prod/observability/docker-compose.yml down
+              docker compose -f environments/prod/backend/docker-compose.yml down
+              docker compose -f environments/prod/infrastructure/docker-compose.yml down
+              docker compose -f environments/prod/frontend/docker-compose.yml down
+              docker compose -f environments/prod/observability/docker-compose.yml down
             fi
