@@ -84,7 +84,8 @@ export default function VerifyEmailPage() {
       setShowVerificationModal(true);
     } catch (error: unknown) {
       const errorMessage =
-        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
         (error as { message?: string })?.message ||
         'Failed to send code';
       toast.error('Send Failed', errorMessage);

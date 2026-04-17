@@ -52,7 +52,8 @@ export function EmailVerificationModal({
       }, 1500);
     } catch (error: unknown) {
       const errorMessage =
-        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ||
         (error as { message?: string })?.message ||
         'Invalid or expired verification code';
 

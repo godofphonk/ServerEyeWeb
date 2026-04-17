@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Enums;
-using ServerEye.Core.Interfaces.Repository.Billing;
 using ServerEye.Core.Interfaces.Repository;
+using ServerEye.Core.Interfaces.Repository.Billing;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Interfaces.Services.Billing;
 
