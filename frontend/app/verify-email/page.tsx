@@ -12,7 +12,7 @@ import { authApi } from '@/lib/authApi';
 import { useToast } from '@/hooks/useToast';
 
 export default function VerifyEmailPage() {
-  const { user, isEmailVerified, logout, loading } = useAuth();
+  const { user, isEmailVerified, loading } = useAuth();
   const router = useRouter();
   const toast = useToast();
   const [showVerificationModal, setShowVerificationModal] = useState(false);

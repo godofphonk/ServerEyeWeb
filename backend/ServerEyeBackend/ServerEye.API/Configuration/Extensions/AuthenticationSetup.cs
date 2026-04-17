@@ -1,5 +1,6 @@
 namespace ServerEye.API.Configuration.Extensions;
 
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using ServerEye.Core.Configuration;
@@ -31,7 +32,18 @@ public static class AuthenticationSetup
         })
         .AddJwtBearer(options =>
         {
-            var rsaKey = JwtService.GetStaticRsaKey;
+            // Use the same RSA key logic as JwtService for consistency
+            RSA rsaKey;
+            if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
+            {
+                // Production: Load public key from Doppler for validation
+                rsaKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
+            }
+            else
+            {
+                // Development: Use static key
+                rsaKey = JwtService.GetStaticRsaKey;
+            }
 
             options.TokenValidationParameters = new TokenValidationParameters
             {
@@ -106,6 +118,42 @@ public static class AuthenticationSetup
         if (jwtSettings.RefreshTokenExpiration <= TimeSpan.Zero)
         {
             throw new InvalidOperationException("JWT RefreshTokenExpiration must be greater than 0.");
+        }
+    }
+
+    /// <summary>
+    /// Loads RSA key from Base64 string (same logic as JwtService for consistency).
+    /// </summary>
+    private static RSA LoadRsaKeyFromBase64(string base64Key)
+    {
+        try
+        {
+            var keyBytes = Convert.FromBase64String(base64Key);
+            var rsa = RSA.Create();
+
+            // Try to import as private key first
+            try
+            {
+                rsa.ImportPkcs8PrivateKey(keyBytes, out _);
+                return rsa;
+            }
+            catch
+            {
+                // If that fails, try as public key
+                try
+                {
+                    rsa.ImportSubjectPublicKeyInfo(keyBytes, out _);
+                    return rsa;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Invalid RSA key format", ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Failed to load RSA key", ex);
         }
     }
 }
