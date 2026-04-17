@@ -103,6 +103,47 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             return envVar;
         }
 
+        // Exact matches for compound names that shouldn't be processed by the general logic
+        var exactMatches = new Dictionary<string, string>
+        {
+            ["BILLING_DB_CONNECTION_STRING"] = "ConnectionStrings:BillingDbContext",
+            ["TICKET_DB_CONNECTION_STRING"] = "ConnectionStrings:TicketDbContext",
+            ["DATABASE_CONNECTION_STRING"] = "ConnectionStrings:ServerEyeDbContext",
+            ["REDIS_CONNECTION_STRING"] = "ConnectionStrings:Redis",
+            ["EMAIL_SETTINGS_FRONTEND_URL"] = "EmailSettings:FrontendUrl",
+            ["EMAIL_SETTINGS_AWS_ACCESS_KEY"] = "EmailSettings:AwsAccessKey",
+            ["EMAIL_SETTINGS_AWS_SECRET_KEY"] = "EmailSettings:AwsSecretKey",
+            ["EMAIL_SETTINGS_AWS_REGION"] = "EmailSettings:AwsRegion",
+            ["EMAIL_SETTINGS_FROM_EMAIL"] = "EmailSettings:FromEmail",
+            ["EMAIL_SETTINGS_FROM_NAME"] = "EmailSettings:FromName",
+            ["EMAIL_SETTINGS_SUPPORT_EMAIL"] = "EmailSettings:SupportEmail",
+            ["EMAIL_SETTINGS_USE_AWS_SES"] = "EmailSettings:UseAwsSes",
+            ["EMAIL_SETTINGS_ENABLE_SSL"] = "EmailSettings:EnableSsl",
+            ["GOAPI_SETTINGS_BASE_URL"] = "GoApiSettings:BaseUrl",
+            ["OAUTH_GOOGLE_CLIENT_ID"] = "OAuth:Google:ClientId",
+            ["OAUTH_GOOGLE_CLIENT_SECRET"] = "OAuth:Google:ClientSecret",
+            ["OAUTH_GOOGLE_ENABLED"] = "OAuth:Google:Enabled",
+            ["OAUTH_GOOGLE_REDIRECT_URI"] = "OAuth:Google:RedirectUri",
+            ["OAUTH_GITHUB_CLIENT_ID"] = "OAuth:GitHub:ClientId",
+            ["OAUTH_GITHUB_CLIENT_SECRET"] = "OAuth:GitHub:ClientSecret",
+            ["OAUTH_GITHUB_ENABLED"] = "OAuth:GitHub:Enabled",
+            ["OAUTH_GITHUB_REDIRECT_URI"] = "OAuth:GitHub:RedirectUri",
+            ["OAUTH_TELEGRAM_BOT_ID"] = "OAuth:Telegram:BotId",
+            ["OAUTH_TELEGRAM_BOT_TOKEN"] = "OAuth:Telegram:BotToken",
+            ["OAUTH_TELEGRAM_ENABLED"] = "OAuth:Telegram:Enabled",
+            ["OAUTH_TELEGRAM_REDIRECT_URI"] = "OAuth:Telegram:RedirectUri",
+            ["JWT_SECRET_KEY"] = "JwtSettings:SecretKey",
+            ["ENCRYPTION_KEY"] = "Encryption:Key",
+            ["STRIPE_SECRET_KEY"] = "Stripe:SecretKey",
+            ["STRIPE_PUBLISHABLE_KEY"] = "Stripe:PublishableKey",
+            ["STRIPE_WEBHOOK_SECRET"] = "Stripe:WebhookSecret"
+        };
+
+        if (exactMatches.TryGetValue(envVar, out var exactMatch))
+        {
+            return exactMatch;
+        }
+
         // Convert environment variable style to configuration sections
         // OAuth settings are read directly from environment variables in AuthenticationSetup.cs
         var replacements = new Dictionary<string, string>
@@ -111,13 +152,19 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             ["ENCRYPTION_"] = "Encryption:",
             ["DATABASE_"] = "ConnectionStrings:",
             ["REDIS_"] = "Redis:",
-            ["EMAIL_"] = "EmailSettings:",
+            ["BILLING_DB_"] = "ConnectionStrings:BillingDbContext:",
+            ["TICKET_DB_"] = "ConnectionStrings:TicketDbContext:",
             ["GO_API_"] = "GoApiSettings:",
+            ["GOAPI_SETTINGS_"] = "GoApiSettings:",
+            ["EMAIL_SETTINGS_"] = "EmailSettings:",
             ["CORS_"] = "Cors:",
             ["RATE_LIMITING_"] = "RateLimiting:",
             ["SECURITY_"] = "Security:",
             ["CACHE_"] = "CacheSettings:",
-            ["STRIPE_"] = "Stripe:"
+            ["STRIPE_"] = "Stripe:",
+            ["OAUTH_GOOGLE_"] = "OAuth:Google:",
+            ["OAUTH_GITHUB_"] = "OAuth:GitHub:",
+            ["OAUTH_TELEGRAM_"] = "OAuth:Telegram:"
         };
 
         var key = envVar;
