@@ -265,6 +265,7 @@ public static class DependencyInjectionSetup
         services.AddScoped<Core.Interfaces.Services.Billing.IWebhookService, Core.Services.Billing.WebhookService>();
         services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProviderFactory, Infrastructure.Services.Billing.PaymentProviderFactory>();
         services.AddScoped<Core.Interfaces.Services.Billing.IPaymentProvider, Infrastructure.ExternalServices.Stripe.StripePaymentProvider>();
+        services.AddScoped<Core.Interfaces.Services.Billing.IPlanLimitsService, Core.Services.Billing.PlanLimitsService>();
 
         // Register subscription plan seeder
         services.AddScoped<SubscriptionPlanSeeder>();

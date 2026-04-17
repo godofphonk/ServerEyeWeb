@@ -5,9 +5,11 @@ using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Entities;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Exceptions;
 using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 
 public class ServerAccessService(
     IMonitoredServerRepository serverRepository,
@@ -16,6 +18,7 @@ public class ServerAccessService(
     IUserExternalLoginRepository externalLoginRepository,
     IGoApiClient goApiClient,
     IEncryptionService encryptionService,
+    IPlanLimitsService planLimitsService,
     ILogger<ServerAccessService> logger)
     : IServerAccessService
 {
@@ -67,6 +70,18 @@ public class ServerAccessService(
     public async Task<ServerResponse> AddServerAsync(Guid userId, string serverKey)
     {
         logger.LogInformation("User {UserId} attempting to add server with key", userId);
+
+        // Check plan limits before proceeding
+        if (!await planLimitsService.CanAddServerAsync(userId))
+        {
+            var limits = await planLimitsService.GetUserLimitsAsync(userId);
+            throw new PlanLimitExceededException(
+                "servers",
+                limits.CurrentServers,
+                limits.MaxServers,
+                limits.PlanName,
+                limits.PlanType.ToString());
+        }
 
         var serverInfo = await goApiClient.ValidateServerKeyAsync(serverKey) ?? throw new InvalidOperationException("Invalid server key");
 

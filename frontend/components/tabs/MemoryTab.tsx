@@ -13,6 +13,7 @@ interface MemoryTabProps {
   historicalMetrics: MetricsResponse | null;
   staticInfo: ServerStaticInfo | null;
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
+  retentionDays?: number;
 }
 
 export default function MemoryTab({
@@ -20,6 +21,7 @@ export default function MemoryTab({
   historicalMetrics,
   staticInfo,
   loadHistoricalMetrics,
+  retentionDays,
 }: MemoryTabProps) {
   // Independent time range state for memory chart
   const [memoryTimeRange, setMemoryTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('1h');
@@ -92,6 +94,7 @@ export default function MemoryTab({
               <TimeRangeSelector
                 timeRange={memoryTimeRange}
                 onTimeRangeChange={setMemoryTimeRange}
+                retentionDays={retentionDays}
               />
             </div>
             <div className='h-80'>

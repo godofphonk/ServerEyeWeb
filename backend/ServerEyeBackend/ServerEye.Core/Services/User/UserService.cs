@@ -11,13 +11,15 @@ using ServerEye.Core.Enums;
 using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration, ILogger<UserService> logger) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration, ILogger<UserService> logger, IPlanLimitsService planLimitsService) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IJwtService jwtService = jwtService;
     private readonly IRefreshTokenRepository refreshTokenRepository = refreshTokenRepository;
+    private readonly IPlanLimitsService planLimitsService = planLimitsService;
     private readonly IAuthService authService = authService;
     private readonly IConfiguration configuration = configuration;
     private readonly ILogger<UserService> logger = logger;
@@ -29,6 +31,9 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         {
             return null;
         }
+
+        var limits = await this.planLimitsService.GetUserLimitsAsync(id);
+
         return new UserData()
         {
             Email = user.Email ?? string.Empty,
@@ -39,6 +44,12 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             IsEmailVerified = user.IsEmailVerified,
             EmailVerifiedAt = user.EmailVerifiedAt,
             CreatedAt = user.CreatedAt,
+            MaxServers = limits.MaxServers,
+            CurrentServers = limits.CurrentServers,
+            MetricsRetentionDays = limits.MetricsRetentionDays,
+            PlanName = limits.PlanName,
+            PlanType = limits.PlanType.ToString(),
+            HasActiveSubscription = limits.HasActiveSubscription,
         };
     }
 

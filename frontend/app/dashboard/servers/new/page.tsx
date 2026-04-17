@@ -10,15 +10,19 @@ import { motion } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 import { clearServersCache, clearMetricsCache } from '@/lib/serverApi';
 import { useToast } from '@/hooks/useToast';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import UpgradePlanModal from '@/components/modals/UpgradePlanModal';
 import { AxiosApiError } from '@/types';
 
 export default function AddServerPage() {
   const router = useRouter();
   const toast = useToast();
+  const planLimits = usePlanLimits();
   const [serverName, setServerName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleAddServer = async () => {
     if (!serverName.trim()) {
@@ -33,6 +37,12 @@ export default function AddServerPage() {
 
     if (!apiKey.startsWith('srv_') && !apiKey.startsWith('key_')) {
       setError("Invalid API key format. Key must start with 'srv_' or 'key_'");
+      return;
+    }
+
+    // Check plan limits before adding server
+    if (planLimits && !planLimits.canAddServer) {
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -187,6 +197,15 @@ export default function AddServerPage() {
           </div>
         </div>
       </div>
+
+      <UpgradePlanModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        limitType="servers"
+        currentCount={planLimits?.currentServers}
+        maxAllowed={planLimits?.maxServers}
+        planName={planLimits?.planName}
+      />
     </main>
   );
 }

@@ -10,4 +10,12 @@ public class UserData
     public bool IsEmailVerified { get; set; }
     public DateTime? EmailVerifiedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Plan limits (nullable for backward compatibility)
+    public int? MaxServers { get; set; }
+    public int? CurrentServers { get; set; }
+    public int? MetricsRetentionDays { get; set; }
+    public string? PlanName { get; set; }
+    public string? PlanType { get; set; }
+    public bool? HasActiveSubscription { get; set; }
 }

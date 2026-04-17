@@ -85,6 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createdAt: backendUser.createdAt || new Date().toISOString(),
       isEmailVerified: isOAuthUser ? true : Boolean(backendUser.isEmailVerified),
       hasPassword: hasPassword,
+      maxServers: backendUser.maxServers,
+      currentServers: backendUser.currentServers,
+      metricsRetentionDays: backendUser.metricsRetentionDays,
+      planName: backendUser.planName,
+      planType: backendUser.planType,
+      hasActiveSubscription: backendUser.hasActiveSubscription,
     };
 
     return user;

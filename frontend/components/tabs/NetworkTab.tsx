@@ -13,6 +13,7 @@ interface NetworkTabProps {
   historicalMetrics: MetricsResponse | null;
   networkDetails?: NetworkDetails | null;
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
+  retentionDays?: number;
 }
 
 export default function NetworkTab({
@@ -20,6 +21,7 @@ export default function NetworkTab({
   historicalMetrics,
   networkDetails,
   loadHistoricalMetrics,
+  retentionDays,
 }: NetworkTabProps) {
   // Independent time range states for network charts
   const [networkRxTimeRange, setNetworkRxTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
@@ -101,6 +103,7 @@ export default function NetworkTab({
               <TimeRangeSelector
                 timeRange={networkRxTimeRange}
                 onTimeRangeChange={setNetworkRxTimeRange}
+                retentionDays={retentionDays}
               />
             </div>
             <div className='h-80'>

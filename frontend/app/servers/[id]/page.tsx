@@ -14,6 +14,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 import {
   getServerStaticInfoCached,
   getServerKey,
@@ -55,6 +56,7 @@ export default function ServerDetailPage() {
   const params = useParams();
   const serverId = params.id as string;
   const { user, loading: authLoading } = useAuth();
+  const planLimits = usePlanLimits();
 
   const [server, setServer] = useState<MonitoredServer | null>(null);
   const [staticInfo, setStaticInfo] = useState<ServerStaticInfo | null>(null);
@@ -641,6 +643,7 @@ export default function ServerDetailPage() {
               activeTab={activeTab}
               onActiveTabChange={setActiveTab}
               loadHistoricalMetrics={loadHistoricalMetrics}
+              retentionDays={planLimits?.metricsRetentionDays}
             />
           </div>
         </div>

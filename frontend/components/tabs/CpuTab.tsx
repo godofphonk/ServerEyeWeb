@@ -13,6 +13,7 @@ interface CpuTabProps {
   historicalMetrics: MetricsResponse | null; // Unified metrics for all CPU charts
   staticInfo: ServerStaticInfo | null;
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
+  retentionDays?: number;
 }
 
 export default function CpuTab({
@@ -20,6 +21,7 @@ export default function CpuTab({
   historicalMetrics,
   staticInfo,
   loadHistoricalMetrics,
+  retentionDays,
 }: CpuTabProps) {
   // Independent time range states for each chart
   const [cpuUsageTimeRange, setCpuUsageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
@@ -146,6 +148,7 @@ export default function CpuTab({
                 <TimeRangeSelector
                   timeRange={cpuUsageTimeRange}
                   onTimeRangeChange={setCpuUsageTimeRange}
+                  retentionDays={retentionDays}
                 />
               </div>
               <div className='h-80'>
@@ -166,6 +169,7 @@ export default function CpuTab({
                 <TimeRangeSelector
                   timeRange={cpuLoadTimeRange}
                   onTimeRangeChange={setCpuLoadTimeRange}
+                  retentionDays={retentionDays}
                 />
               </div>
               <div className='h-80'>
@@ -185,6 +189,7 @@ export default function CpuTab({
                 <TimeRangeSelector
                   timeRange={cpuTemperatureTimeRange}
                   onTimeRangeChange={setCpuTemperatureTimeRange}
+                  retentionDays={retentionDays}
                 />
               </div>
               <div className='h-80'>

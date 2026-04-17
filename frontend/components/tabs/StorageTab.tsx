@@ -13,6 +13,7 @@ interface StorageTabProps {
   historicalMetrics: MetricsResponse | null;
   staticInfo?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
+  retentionDays?: number;
 }
 
 export default function StorageTab({
@@ -20,6 +21,7 @@ export default function StorageTab({
   historicalMetrics,
   staticInfo,
   loadHistoricalMetrics,
+  retentionDays,
 }: StorageTabProps) {
   // Independent time range state for storage chart
   const [storageTimeRange, setStorageTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>(
@@ -93,6 +95,7 @@ export default function StorageTab({
               <TimeRangeSelector
                 timeRange={storageTimeRange}
                 onTimeRangeChange={setStorageTimeRange}
+                retentionDays={retentionDays}
               />
             </div>
             <div className='h-80'>

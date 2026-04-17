@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerEye.Core.DTOs.Server;
 using ServerEye.Core.Enums;
+using ServerEye.Core.Exceptions;
 using ServerEye.Core.Interfaces.Services;
 
 [Authorize]
@@ -45,6 +46,20 @@ public class MonitoredServersController : ControllerBase
             var userId = this.GetUserId();
             var server = await this.serverAccessService.AddServerAsync(userId, request.ServerKey);
             return this.Ok(server);
+        }
+        catch (PlanLimitExceededException ex)
+        {
+            this.logger.LogWarning(ex, "Plan limit exceeded while adding server");
+            return this.StatusCode(403, new
+            {
+                message = ex.Message,
+                limitType = ex.LimitType,
+                currentCount = ex.CurrentValue,
+                maxAllowed = ex.MaxValue,
+                planName = ex.PlanName,
+                planType = ex.PlanType,
+                upgradeUrl = "/pricing"
+            });
         }
         catch (InvalidOperationException ex)
         {

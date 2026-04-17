@@ -19,4 +19,5 @@ public class RawMetricsResponse
     public TemperatureDetails? TemperatureDetails { get; set; }
     public NetworkDetails? NetworkDetails { get; set; }
     public DiskDetails? DiskDetails { get; set; }
+    public bool RetentionLimited { get; set; } // Indicates if start time was clamped due to retention limits
 }

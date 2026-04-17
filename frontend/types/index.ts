@@ -7,6 +7,13 @@ export interface User {
   createdAt: string;
   isEmailVerified?: boolean;
   hasPassword?: boolean; // Указывает есть ли у пользователя пароль (false для OAuth-only)
+  // Plan limits
+  maxServers?: number;
+  currentServers?: number;
+  metricsRetentionDays?: number;
+  planName?: string;
+  planType?: string;
+  hasActiveSubscription?: boolean;
 }
 
 export interface AuthResponse {
@@ -25,6 +32,13 @@ export interface BackendUser {
   isEmailVerified?: boolean;
   hasPassword?: boolean | string; // Может быть boolean или строка "f"/"t"
   createdAt?: string;
+  // Plan limits
+  maxServers?: number;
+  currentServers?: number;
+  metricsRetentionDays?: number;
+  planName?: string;
+  planType?: string;
+  hasActiveSubscription?: boolean;
 }
 
 export interface BackendAuthResponse {

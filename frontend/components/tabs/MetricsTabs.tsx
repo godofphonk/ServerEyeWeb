@@ -18,6 +18,7 @@ interface MetricsTabsProps {
   activeTab?: string;
   onActiveTabChange?: (tab: string) => void;
   loadHistoricalMetrics?: (range: '1h' | '6h' | '24h' | '7d' | '30d') => Promise<MetricsResponse>;
+  retentionDays?: number;
 }
 
 const tabs = [
@@ -37,6 +38,7 @@ export default function MetricsTabs({
   activeTab = 'cpu',
   onActiveTabChange,
   loadHistoricalMetrics,
+  retentionDays,
 }: MetricsTabsProps) {
   return (
     <div className='space-y-6'>
@@ -53,6 +55,7 @@ export default function MetricsTabs({
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
             loadHistoricalMetrics={loadHistoricalMetrics}
+            retentionDays={retentionDays}
           />
         </TabPanel>
 
@@ -62,6 +65,7 @@ export default function MetricsTabs({
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
             loadHistoricalMetrics={loadHistoricalMetrics}
+            retentionDays={retentionDays}
           />
         </TabPanel>
 
@@ -71,6 +75,7 @@ export default function MetricsTabs({
             historicalMetrics={historicalMetrics} // Use unified metrics
             staticInfo={staticInfo}
             loadHistoricalMetrics={loadHistoricalMetrics}
+            retentionDays={retentionDays}
           />
         </TabPanel>
 
@@ -80,6 +85,7 @@ export default function MetricsTabs({
             historicalMetrics={historicalMetrics} // Use unified metrics
             networkDetails={networkDetails}
             loadHistoricalMetrics={loadHistoricalMetrics}
+            retentionDays={retentionDays}
           />
         </TabPanel>
 

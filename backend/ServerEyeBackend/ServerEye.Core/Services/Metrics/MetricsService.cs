@@ -6,6 +6,7 @@ using ServerEye.Core.DTOs.Metrics;
 using ServerEye.Core.Helpers;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
+using ServerEye.Core.Interfaces.Services.Billing;
 
 public class MetricsService : IMetricsService
 {
@@ -13,6 +14,7 @@ public class MetricsService : IMetricsService
     private readonly IMetricsCacheService cacheService;
     private readonly IMonitoredServerRepository serverRepository;
     private readonly IUserServerAccessRepository accessRepository;
+    private readonly IPlanLimitsService planLimitsService;
     private readonly ILogger<MetricsService> logger;
 
     public MetricsService(
@@ -20,12 +22,14 @@ public class MetricsService : IMetricsService
         IMetricsCacheService cacheService,
         IMonitoredServerRepository serverRepository,
         IUserServerAccessRepository accessRepository,
+        IPlanLimitsService planLimitsService,
         ILogger<MetricsService> logger)
     {
         this.goApiClient = goApiClient;
         this.cacheService = cacheService;
         this.serverRepository = serverRepository;
         this.accessRepository = accessRepository;
+        this.planLimitsService = planLimitsService;
         this.logger = logger;
     }
 
@@ -83,6 +87,16 @@ public class MetricsService : IMetricsService
             accessCheckTime.Stop();
             this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
+            // Clamp start time to retention limit
+            var retentionDays = await planLimitsService.GetMetricsRetentionDaysAsync(userId);
+            var maxStartDate = DateTime.UtcNow.AddDays(-retentionDays);
+            var retentionLimited = start < maxStartDate;
+            if (retentionLimited)
+            {
+                start = maxStartDate;
+                this.logger.LogInformation("[RETENTION] Start time clamped to {MaxStartDate} due to plan limit of {RetentionDays} days", maxStartDate, retentionDays);
+            }
+
             // Generate cache key based on server key for tiered metrics
             var cacheKey = $"metrics:tiered:{serverKey}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}";
             var ttl = this.cacheService.CalculateTTL(start, endTime);
@@ -127,7 +141,8 @@ public class MetricsService : IMetricsService
                         NetworkDetails = goResponse.NetworkDetails,
                         DiskDetails = goResponse.DiskDetails,
                         IsCached = false,
-                        CachedAt = null
+                        CachedAt = null,
+                        RetentionLimited = retentionLimited
                     };
 
                     return rawResponse;
@@ -196,6 +211,16 @@ public class MetricsService : IMetricsService
             accessCheckTime.Stop();
             this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
+            // Clamp start time to retention limit
+            var retentionDays = await planLimitsService.GetMetricsRetentionDaysAsync(userId);
+            var maxStartDate = DateTime.UtcNow.AddDays(-retentionDays);
+            var retentionLimited = start < maxStartDate;
+            if (retentionLimited)
+            {
+                start = maxStartDate;
+                this.logger.LogInformation("[RETENTION] Start time clamped to {MaxStartDate} due to plan limit of {RetentionDays} days", maxStartDate, retentionDays);
+            }
+
             // Generate cache key based on server key
             var cacheKey = $"metrics:by-key:{serverKey}:{start:yyyyMMddHHmmss}:{endTime:yyyyMMddHHmmss}:{granularity ?? "auto"}";
             var ttl = this.cacheService.CalculateTTL(start, endTime);
@@ -238,7 +263,8 @@ public class MetricsService : IMetricsService
                         NetworkDetails = goResponse.NetworkDetails,
                         DiskDetails = goResponse.DiskDetails,
                         IsCached = false,
-                        CachedAt = null
+                        CachedAt = null,
+                        RetentionLimited = retentionLimited
                     };
 
                     return rawResponse;
