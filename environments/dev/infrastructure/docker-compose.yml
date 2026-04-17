@@ -8,11 +8,10 @@ services:
     container_name: ServerEyeWeb-postgres-main-dev
     ports:
       - "5433:5432"
-    env_file:
-      - ../secrets/infrastructure.env
     environment:
       POSTGRES_DB: ServerEyeWeb_Dev
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     command: postgres -c ssl=off
     volumes:
       - postgres_main_dev_data:/var/lib/postgresql/data
@@ -32,11 +31,10 @@ services:
     container_name: ServerEyeWeb-postgres-ticket-dev
     ports:
       - "5434:5432"
-    env_file:
-      - ../secrets/infrastructure.env
     environment:
       POSTGRES_DB: ServerEyeWeb_Dev_Ticket
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     command: postgres -c ssl=off
     volumes:
       - postgres_ticket_dev_data:/var/lib/postgresql/data
@@ -56,11 +54,10 @@ services:
     container_name: ServerEyeWeb-postgres-billing-dev
     ports:
       - "5436:5432"
-    env_file:
-      - ../secrets/infrastructure.env
     environment:
       POSTGRES_DB: ServerEyeWeb_Dev_Billing
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     command: postgres -c ssl=off
     volumes:
       - postgres_billing_dev_data:/var/lib/postgresql/data

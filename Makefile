@@ -88,13 +88,13 @@ dev-restart: dev-down dev-up
 dev-infra-up:
 	@echo "🏗️  Starting development infrastructure..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./infrastructure/docker-compose.yml up -d
+	cd ./environments/dev && doppler run -- docker compose -f ./infrastructure/docker-compose.yml up -d
 	@echo "✅ Infrastructure started!"
 
 dev-observability-up:
 	@echo "📊 Starting observability stack..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	docker compose -f ./environments/dev/observability/docker-compose.yml up -d
+	cd ./environments/dev && doppler run -- docker compose -f ./observability/docker-compose.yml up -d
 	@echo "✅ Observability stack started!"
 	@echo "📊 Grafana: http://localhost:3010 (admin/admin)"
 	@echo "📈 Prometheus: http://localhost:9090"
@@ -105,19 +105,19 @@ dev-observability-up:
 dev-backend-up:
 	@echo "🔧 Starting development backend..."
 	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./backend/docker-compose.yml up -d --build
+	cd ./environments/dev && doppler run -- docker compose -f ./backend/docker-compose.yml up -d --build
 	@echo "✅ Backend started!"
 
 dev-frontend-up:
 	@echo "🌐 Starting development frontend..."
 	@docker network create servereye-network 2>/dev/null || echo "Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./frontend/docker-compose.yml --env-file .env up -d --build
+	cd ./environments/dev && doppler run -- docker compose -f ./frontend/docker-compose.yml up -d --build
 	@echo "Frontend started!"
 
 dev-stripe-up:
 	@echo "Starting Stripe CLI for webhook forwarding..."
 	@docker network create servereye-network 2>/dev/null || echo "Network servereye-network already exists"
-	cd ./environments/dev && docker compose -f ./stripe/docker-compose.yml up -d
+	cd ./environments/dev && doppler run -- docker compose -f ./stripe/docker-compose.yml up -d
 	@echo "Stripe CLI started!"
 	@echo "Webhooks forwarding to: http://servereye-backend-dev:8080/api/webhooks/stripe"
 
