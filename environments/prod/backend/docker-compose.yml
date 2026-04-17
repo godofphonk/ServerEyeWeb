@@ -17,8 +17,9 @@ services:
       - BILLING_DB_CONNECTION_STRING=${BILLING_DB_CONNECTION_STRING}
       # Redis Configuration
       - REDIS_CONNECTION_STRING=${REDIS_CONNECTION_STRING}
-      # JWT Settings
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      # JWT Settings (RSA asymmetric signing)
+      - JWT_PRIVATE_KEY_BASE64=${JWT_PRIVATE_KEY_BASE64}
+      - JWT_PUBLIC_KEY_BASE64=${JWT_PUBLIC_KEY_BASE64}
       # Encryption Settings
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       # GoApi Settings
