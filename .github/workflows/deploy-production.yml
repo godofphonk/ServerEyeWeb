@@ -83,18 +83,7 @@ jobs:
 
           {
             echo "build_args<<EOF"
-            python3 - "$tmp_json" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-with open(path, "r", encoding="utf-8") as f:
-    data = json.load(f)
-
-for key, value in sorted(data.items()):
-    if key.startswith("NEXT_PUBLIC_"):
-        print(f"{key}={value}")
-PY
+            jq -r 'to_entries[] | select(.key | startswith("NEXT_PUBLIC_")) | "\(.key)=\(.value)"' "$tmp_json"
             echo "EOF"
             echo "secrets_hash=$secrets_hash"
           } >> "$GITHUB_OUTPUT"
