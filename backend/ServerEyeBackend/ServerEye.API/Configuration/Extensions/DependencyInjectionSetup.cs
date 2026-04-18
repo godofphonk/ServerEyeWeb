@@ -145,9 +145,8 @@ public static class DependencyInjectionSetup
         // JWT Service with factory
         services.AddScoped<IJwtService>(provider =>
         {
-            var jwtSettings = provider.GetRequiredService<IConfiguration>()
-                .GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var configuration = provider.GetRequiredService<IConfiguration>();
+            var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var logger = provider.GetService<ILogger<JwtService>>();
 
             // Log JWT settings for debugging

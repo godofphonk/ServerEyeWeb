@@ -46,6 +46,12 @@ public sealed class JwtService : IJwtService
         var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
         logger?.LogInformation("JWT_DEV_PRIVATE_KEY is {Status}", string.IsNullOrEmpty(devPrivateKey) ? "NOT SET" : "SET");
 
+        // Log JWT settings for debugging
+        logger?.LogInformation(
+            "JwtSettings condition check - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
+            jwtSettings.PrivateKeyBase64?.Length ?? 0,
+            jwtSettings.PublicKeyBase64?.Length ?? 0);
+
         // Load RSA keys from Doppler or use static key for development
         if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
         {
