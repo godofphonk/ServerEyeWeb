@@ -10,4 +10,5 @@ public class CacheSettings
     public TimeSpan UserSubscription { get; init; } = TimeSpan.FromHours(24);
     public TimeSpan UserLimits { get; init; } = TimeSpan.FromHours(24);
     public TimeSpan UserProfile { get; init; } = TimeSpan.FromHours(24);
+    public TimeSpan StaticInfo { get; init; } = TimeSpan.FromHours(1);
 }
