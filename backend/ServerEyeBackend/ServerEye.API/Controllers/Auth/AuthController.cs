@@ -34,8 +34,9 @@ public class AuthController : BaseApiController
     private readonly FrontendSettings frontendSettings;
     private readonly OAuthMetrics metrics;
     private readonly SecuritySettings securitySettings;
+    private readonly IMetricsCacheService cacheService;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics, SecuritySettings securitySettings)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics, SecuritySettings securitySettings, IMetricsCacheService cacheService)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -46,6 +47,7 @@ public class AuthController : BaseApiController
         this.frontendSettings = frontendSettings;
         this.metrics = metrics;
         this.securitySettings = securitySettings;
+        this.cacheService = cacheService;
     }
 
     [HttpPost("refresh")]
@@ -175,6 +177,12 @@ public class AuthController : BaseApiController
 
             // Revoke all refresh tokens for this user
             await this.refreshTokenRepository.RevokeAllUserTokensAsync(userId);
+
+            // Invalidate all user cache entries
+            await this.cacheService.RemoveAsync($"user:{userId}");
+            await this.cacheService.RemoveAsync($"subscription:{userId}");
+            await this.cacheService.RemoveAsync($"limits:{userId}");
+            await this.cacheService.RemoveAsync($"servers:{userId}");
 
             this.logger.LogInformation("User {UserId} logged out", userId);
 
