@@ -138,6 +138,8 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             ["OAUTH_TELEGRAM_BOT_TOKEN"] = "OAuth:Telegram:BotToken",
             ["OAUTH_TELEGRAM_ENABLED"] = "OAuth:Telegram:Enabled",
             ["OAUTH_TELEGRAM_REDIRECT_URI"] = "OAuth:Telegram:RedirectUri",
+            ["JWT_PRIVATE_KEY_BASE64"] = "JwtSettings:PrivateKeyBase64",
+            ["JWT_PUBLIC_KEY_BASE64"] = "JwtSettings:PublicKeyBase64",
             ["JWT_SECRET_KEY"] = "JwtSettings:SecretKey",
             ["ENCRYPTION_KEY"] = "Encryption:Key",
             ["STRIPE_SECRET_KEY"] = "Stripe:SecretKey",
