@@ -149,6 +149,13 @@ public static class DependencyInjectionSetup
                 .GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var configuration = provider.GetRequiredService<IConfiguration>();
             var logger = provider.GetService<ILogger<JwtService>>();
+
+            // Log JWT settings for debugging
+            logger?.LogInformation(
+                "Registering JwtService - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
+                jwtSettings.PrivateKeyBase64?.Length ?? 0,
+                jwtSettings.PublicKeyBase64?.Length ?? 0);
+
             return new JwtService(jwtSettings, configuration, logger);
         });
     }
