@@ -1,6 +1,5 @@
 # Backend Service for Production
-# ASP.NET Core Web API
-# Secrets are injected via doppler run -- docker-compose up
+# Secrets are injected by Doppler inside the container via DOPPLER_TOKEN
 
 services:
   backend:
