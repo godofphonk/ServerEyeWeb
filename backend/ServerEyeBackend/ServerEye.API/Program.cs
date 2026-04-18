@@ -25,6 +25,20 @@ var logger = loggerFactory.CreateLogger<Program>();
 
 builder.Configuration.AddDopplerSecretsFromEnvironment(logger);
 
+// Log JWT settings for debugging
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>();
+if (jwtSettings != null)
+{
+    logger.LogInformation(
+        "JwtSettings loaded - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
+        jwtSettings.PrivateKeyBase64?.Length ?? 0,
+        jwtSettings.PublicKeyBase64?.Length ?? 0);
+}
+else
+{
+    logger.LogWarning("JwtSettings section not found or is null");
+}
+
 // Add services to the container
 builder.Services.AddControllers();
 
