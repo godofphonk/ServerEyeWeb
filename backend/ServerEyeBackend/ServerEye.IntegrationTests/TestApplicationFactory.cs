@@ -23,8 +23,8 @@ using StackExchange.Redis;
 public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private static readonly System.Security.Cryptography.RSA TestRsa = System.Security.Cryptography.RSA.Create(2048);
-    private static readonly string TestPrivateKey = Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey());
-    private static readonly string TestPublicKey = Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo());
+    private static readonly string TestPrivateKey = $"-----BEGIN PRIVATE KEY-----\n{Convert.ToBase64String(TestRsa.ExportPkcs8PrivateKey())}\n-----END PRIVATE KEY-----";
+    private static readonly string TestPublicKey = $"-----BEGIN PUBLIC KEY-----\n{Convert.ToBase64String(TestRsa.ExportSubjectPublicKeyInfo())}\n-----END PUBLIC KEY-----";
 
     // In-memory collection for OpenTelemetry spans
     private readonly List<Activity> _exportedActivities = new();
@@ -160,13 +160,12 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 });
 
             // PostConfigure JWT options to use test keys
-            var publicKeyBytes = Convert.FromBase64String(TestPublicKey);
             services.PostConfigure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
                 Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
                 options =>
                 {
                     var rsaForValidation = System.Security.Cryptography.RSA.Create();
-                    rsaForValidation.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                    rsaForValidation.ImportFromPem(TestPublicKey);
 
                     options.TokenValidationParameters.IssuerSigningKey = new Microsoft.IdentityModel.Tokens.RsaSecurityKey(rsaForValidation);
                     options.TokenValidationParameters.ValidIssuer = "TestIssuer";

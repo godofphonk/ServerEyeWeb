@@ -51,6 +51,8 @@ public class ServerAccessServiceTests
                 HasActiveSubscription = true
             });
 
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+
         this.serverAccessService = new ServerAccessServiceImpl(
             this.mockServerRepository.Object,
             this.mockAccessRepository.Object,
@@ -59,7 +61,8 @@ public class ServerAccessServiceTests
             this.mockGoApiClient.Object,
             this.mockEncryptionService.Object,
             this.mockPlanLimitsService.Object,
-            this.mockLogger.Object);
+            this.mockLogger.Object,
+            mockCacheService.Object);
     }
 
     [Fact]
