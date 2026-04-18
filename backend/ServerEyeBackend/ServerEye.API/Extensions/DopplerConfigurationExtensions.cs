@@ -93,6 +93,14 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             }
 
             _logger?.LogInformation("Loaded {Count} secrets from environment variables", secrets.Count);
+
+            // Log JWT secrets specifically for debugging
+            var jwtPrivateKey = secrets.FirstOrDefault(s => s.Key == "JwtSettings:PrivateKeyBase64");
+            var jwtPublicKey = secrets.FirstOrDefault(s => s.Key == "JwtSettings:PublicKeyBase64");
+            _logger?.LogInformation(
+                "JWT secrets loaded - PrivateKeyBase64: {HasValue}, PublicKeyBase64: {HasValue}",
+                jwtPrivateKey.Value != null,
+                jwtPublicKey.Value != null);
         }
         catch (Exception ex)
         {
