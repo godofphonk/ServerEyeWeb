@@ -401,10 +401,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          envs: DOPPLER_TOKEN
           script: |
             cd /opt/servereye
-            export DOPPLER_TOKEN_BACKEND="${{ secrets.DOPPLER_TOKEN_BACKEND }}"
             docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_BACKEND }}
 
       - name: Start frontend containers
         uses: appleboy/ssh-action@v1
@@ -571,7 +573,6 @@ jobs:
               # Inject secrets using doppler run with eval
               DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure --command='docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans'
               DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure --command='docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans'
-              export DOPPLER_TOKEN_BACKEND="${{ secrets.DOPPLER_TOKEN_BACKEND }}"
               docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
               DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_FRONTEND }}" doppler run --project servereye --config prd_frontend --command='docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans'
               

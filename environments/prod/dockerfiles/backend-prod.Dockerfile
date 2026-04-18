@@ -62,5 +62,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production \
 
 # Start the application via doppler run for secret injection inside container
 # DOPPLER_TOKEN must be provided as environment variable
+# Service token is already associated with project/config, no need for --project/--config
 ENTRYPOINT ["doppler", "run", "--"]
 CMD ["dotnet", "ServerEye.API.dll"]
