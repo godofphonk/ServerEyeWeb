@@ -369,7 +369,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}\" doppler run --project servereye --config prd_infrastructure -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Verify infrastructure containers
         uses: appleboy/ssh-action@v1
@@ -392,7 +392,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}\" doppler run --project servereye --config prd_infrastructure -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Start backend containers
         uses: appleboy/ssh-action@v1
@@ -403,7 +403,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_BACKEND }}\" doppler run --project servereye --config prd_backend -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_BACKEND }}" doppler run --project servereye --config prd_backend -- docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Start frontend containers
         uses: appleboy/ssh-action@v1
@@ -414,7 +414,7 @@ jobs:
           port: 22
           script: |
             cd /opt/servereye
-            eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_FRONTEND }}\" doppler run --project servereye --config prd_frontend -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
+            DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_FRONTEND }}" doppler run --project servereye --config prd_frontend -- docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
 
       - name: Setup nginx and configuration
         uses: appleboy/ssh-action@v1
@@ -568,10 +568,10 @@ jobs:
               
               # Start containers with previous images (force-recreate without downtime)
               # Inject secrets using doppler run with eval
-              eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}\" doppler run --project servereye --config prd_infrastructure -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
-              eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}\" doppler run --project servereye --config prd_infrastructure -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
-              eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_BACKEND }}\" doppler run --project servereye --config prd_backend -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
-              eval "$(DOPPLER_TOKEN=\"${{ secrets.DOPPLER_TOKEN_FRONTEND }}\" doppler run --project servereye --config prd_frontend -- printenv | sed 's/^/export /')" && docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}" doppler run --project servereye --config prd_infrastructure -- docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_BACKEND }}" doppler run --project servereye --config prd_backend -- docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+              DOPPLER_TOKEN="${{ secrets.DOPPLER_TOKEN_FRONTEND }}" doppler run --project servereye --config prd_frontend -- docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
               
               echo "✅ Rollback completed successfully"
             else
