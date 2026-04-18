@@ -3,6 +3,7 @@ namespace ServerEye.Core.Services;
 using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs;
 using ServerEye.Core.DTOs.Auth;
 using ServerEye.Core.DTOs.UserDto;
@@ -13,7 +14,7 @@ using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Interfaces.Services.Billing;
 
-public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration, ILogger<UserService> logger, IPlanLimitsService planLimitsService) : IUserService
+public sealed class UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IConfiguration configuration, ILogger<UserService> logger, IPlanLimitsService planLimitsService, IMetricsCacheService cacheService, CacheSettings cacheSettings) : IUserService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
@@ -23,9 +24,20 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     private readonly IAuthService authService = authService;
     private readonly IConfiguration configuration = configuration;
     private readonly ILogger<UserService> logger = logger;
+    private readonly IMetricsCacheService cacheService = cacheService;
+    private readonly CacheSettings cacheSettings = cacheSettings;
 
     public async Task<UserData?> GetUserByIdAsync(Guid id)
     {
+        var cacheKey = $"user:{id}";
+        var cachedResult = await this.cacheService.GetAsync<UserData>(cacheKey);
+
+        if (cachedResult != null)
+        {
+            this.logger.LogDebug("Cache hit for user profile: {UserId}", id);
+            return cachedResult;
+        }
+
         var user = await this.userRepository.GetByIdAsync(id);
         if (user == null)
         {
@@ -34,7 +46,7 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
 
         var limits = await this.planLimitsService.GetUserLimitsAsync(id);
 
-        return new UserData()
+        var result = new UserData()
         {
             Email = user.Email ?? string.Empty,
             Id = user.Id,
@@ -51,6 +63,10 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
             PlanType = limits.PlanType.ToString(),
             HasActiveSubscription = limits.HasActiveSubscription,
         };
+
+        await this.cacheService.SetAsync(cacheKey, result, this.cacheSettings.UserProfile);
+
+        return result;
     }
 
     public async Task<UserData?> GetUserByEmailAsync(string email)
@@ -188,6 +204,9 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
         existingUser.ServerId = updateDto.ServerId;
 
         await this.userRepository.UpdateUserAsync(existingUser);
+
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{id}");
 
         this.logger.LogInformation("User updated successfully: {UserId}", id);
 

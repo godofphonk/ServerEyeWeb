@@ -72,6 +72,8 @@ public static class DependencyInjectionSetup
             ?? new FrontendSettings();
         var securitySettings = configuration.GetSection("Security").Get<ServerEye.API.Configuration.SecuritySettings>()
             ?? new ServerEye.API.Configuration.SecuritySettings();
+        var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>()
+            ?? new CacheSettings();
 
         // Configure GoApiSettings with validation on startup
         services.Configure<GoApiSettings>(configuration.GetSection("GoApiSettings"))
@@ -84,6 +86,7 @@ public static class DependencyInjectionSetup
         services.AddSingleton(serversConfiguration);
         services.AddSingleton(frontendSettings);
         services.AddSingleton(securitySettings);
+        services.AddSingleton(cacheSettings);
 
         services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
             configuration.GetSection("Stripe"));

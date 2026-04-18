@@ -9,6 +9,7 @@ using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Repository.Billing;
+using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Interfaces.Services.Billing;
 
 public class SubscriptionService : ISubscriptionService
@@ -16,20 +17,35 @@ public class SubscriptionService : ISubscriptionService
     private readonly ISubscriptionRepository subscriptionRepository;
     private readonly IPaymentService paymentService;
     private readonly ILogger<SubscriptionService> logger;
+    private readonly IMetricsCacheService cacheService;
+    private readonly CacheSettings cacheSettings;
 
     public SubscriptionService(
         ISubscriptionRepository subscriptionRepository,
         IPaymentService paymentService,
-        ILogger<SubscriptionService> logger)
+        ILogger<SubscriptionService> logger,
+        IMetricsCacheService cacheService,
+        CacheSettings cacheSettings)
     {
         this.subscriptionRepository = subscriptionRepository;
         this.paymentService = paymentService;
         this.logger = logger;
+        this.cacheService = cacheService;
+        this.cacheSettings = cacheSettings;
     }
 
     public async Task<SubscriptionDto?> GetUserSubscriptionAsync(Guid userId)
     {
         this.logger.LogInformation("Getting subscription for user: {UserId}", userId);
+
+        var cacheKey = $"subscription:{userId}";
+        var cachedResult = await this.cacheService.GetAsync<SubscriptionDto>(cacheKey);
+
+        if (cachedResult != null)
+        {
+            this.logger.LogDebug("Cache hit for user subscription: {UserId}", userId);
+            return cachedResult;
+        }
 
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         if (subscription == null)
@@ -52,7 +68,7 @@ public class SubscriptionService : ISubscriptionService
             planDefinition = SubscriptionPlanDefinitions.Free; // Fallback to Free plan
         }
 
-        return new SubscriptionDto
+        var result = new SubscriptionDto
         {
             Id = subscription.Id,
             UserId = subscription.UserId,
@@ -68,6 +84,10 @@ public class SubscriptionService : ISubscriptionService
             TrialEnd = null,
             CreatedAt = subscription.CreatedAt
         };
+
+        await this.cacheService.SetAsync(cacheKey, result, this.cacheSettings.UserSubscription);
+
+        return result;
     }
 
     public async Task<CreateSubscriptionResponse> CreateSubscriptionCheckoutAsync(
