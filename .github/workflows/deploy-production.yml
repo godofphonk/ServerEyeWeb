@@ -116,7 +116,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 15
     needs: build-and-push
     if: github.ref == 'refs/heads/production'
     environment:
