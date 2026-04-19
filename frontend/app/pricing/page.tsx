@@ -27,6 +27,7 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showFreeAnimation] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -520,6 +521,62 @@ export default function PricingPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Free Animation Overlay */}
+      {showFreeAnimation && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className='fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50'
+        >
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.8, type: 'spring' }}
+            className='text-center'
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className='mb-8'
+            >
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                className='w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/50'
+              >
+                <Sparkles className='w-12 h-12 text-white' />
+              </motion.div>
+              <h1 className='text-6xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 via-emerald-400 to-green-400 mb-4'>
+                IT'S ALL FREE
+              </h1>
+              <p className='text-2xl text-gray-300 mb-8'>Everything is free right now</p>
+            </motion.div>
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                window.location.href = '/';
+              }}
+              className='px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-full font-semibold text-xl transition-all duration-300 shadow-lg shadow-green-500/30'
+            >
+              Got it!
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Payment Method Modal */}
       {showPaymentModal && selectedPlan && (
