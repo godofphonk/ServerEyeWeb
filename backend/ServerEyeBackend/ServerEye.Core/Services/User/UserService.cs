@@ -225,6 +225,10 @@ public sealed class UserService(IUserRepository userRepository, IPasswordHasher 
     public async Task DeleteUserAsync(Guid id)
     {
         this.logger.LogWarning("Deleting user: {UserId}", id);
+
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{id}");
+
         await this.userRepository.DeleteAsync(id);
         this.logger.LogInformation("User deleted successfully: {UserId}", id);
     }
