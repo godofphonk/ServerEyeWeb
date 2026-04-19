@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
@@ -39,6 +40,14 @@ else
     logger.LogWarning("JwtSettings section not found or is null");
 }
 
+// Configure forwarded headers for nginx proxy support
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 
@@ -59,6 +68,7 @@ if (!builder.Configuration.GetValue("OpenTelemetry:DisableAllInstrumentation", f
 var app = builder.Build();
 
 // Configure middleware pipeline
+app.UseForwardedHeaders();
 app.UseMiddlewareConfiguration();
 app.UseContentSecurityPolicy();
 app.UseAuthentication();
