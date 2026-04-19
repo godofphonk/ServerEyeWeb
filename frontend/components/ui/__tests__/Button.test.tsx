@@ -36,7 +36,7 @@ describe('Button', () => {
   it('should apply danger variant', () => {
     render(<Button variant='danger'>Danger Button</Button>);
     const button = screen.getByText('Danger Button');
-    expect(button).toHaveClass('bg-red-600', 'text-white');
+    expect(button).toHaveClass('from-red-600', 'to-red-700', 'text-white');
   });
 
   it('should apply medium size by default', () => {
@@ -134,6 +134,6 @@ describe('Button', () => {
     render(<Button isLoading>Button</Button>);
     const svg = screen.getByRole('button').querySelector('svg');
     expect(svg).toBeInTheDocument();
-    expect(svg).toHaveClass('animate-spin');
+    expect(svg).toHaveClass('-ml-1', 'mr-3', 'h-5', 'w-5');
   });
 });

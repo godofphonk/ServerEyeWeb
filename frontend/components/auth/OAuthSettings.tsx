@@ -297,7 +297,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
                     <p className='font-medium'>{provider.name}</p>
                     {linkedAccount ? (
                       <div className='space-y-1'>
-                        <p className='text-sm text-gray-400 flex items-center gap-1'>
+                        <div className='text-sm text-gray-400 flex items-center gap-1'>
                           <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -305,7 +305,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
                             <CheckCircle className='w-3 h-3 text-green-400' />
                           </motion.div>
                           {linkedAccount.providerUsername || 'Connected'}
-                        </p>
+                        </div>
                         {linkedAccount.providerEmail ? (
                           <p className='text-sm text-gray-500'>{linkedAccount.providerEmail}</p>
                         ) : (

@@ -292,33 +292,33 @@ export default function PricingPage() {
                       rotateX: 5,
                       boxShadow: '0 25px 50px rgba(168, 85, 247, 0.3)',
                     }}
-                    className='relative h-full'
+                    className='relative h-full pt-12'
                     style={{ transformStyle: 'preserve-3d' }}
                   >
+                    {isPopular && !isCurrentPlan(plan) && (
+                      <motion.div
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                        className='absolute top-0 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-sm font-semibold z-10'
+                      >
+                        Most Popular
+                      </motion.div>
+                    )}
+                    {isCurrentPlan(plan) && (
+                      <div className='absolute top-0 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full text-sm font-semibold z-10 flex items-center gap-1'>
+                        <Check className='w-3 h-3' />
+                        Current Plan
+                      </div>
+                    )}
                     <Card
                       className={cn(
                         'h-full bg-gray-900/50 border border-white/10 backdrop-blur-xl',
-                        isPopular ? 'border-purple-500/50 relative' : '',
+                        isPopular ? 'border-purple-500/50' : '',
                         isCurrentPlan(plan) &&
                           'border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/10',
                       )}
                     >
                       <motion.div className='absolute inset-0 bg-gradient-to-br from-purple-600/10 to-pink-600/10 opacity-0 hover:opacity-100 transition-opacity rounded-lg' />
-                      {isPopular && !isCurrentPlan(plan) && (
-                        <motion.div
-                          animate={{ scale: [1, 1.05, 1] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                          className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-sm font-semibold z-10'
-                        >
-                          Most Popular
-                        </motion.div>
-                      )}
-                      {isCurrentPlan(plan) && (
-                        <div className='absolute -top-10 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full text-sm font-semibold z-10 flex items-center gap-1'>
-                          <Check className='w-3 h-3' />
-                          Current Plan
-                        </div>
-                      )}
                       <CardHeader>
                         <motion.div
                           animate={{ rotate: [0, 360] }}

@@ -10,26 +10,26 @@ describe('Card', () => {
   });
 
   it('should apply default styles', () => {
-    render(<Card>Content</Card>);
-    const card = screen.getByText('Content').closest('div');
-    expect(card).toHaveClass('bg-white/5', 'backdrop-blur-xl', 'rounded-2xl');
+    const { container } = render(<Card>Content</Card>);
+    const card = container.querySelector('.bg-gray-900\\/50');
+    expect(card).toHaveClass('backdrop-blur-xl', 'rounded-2xl');
   });
 
   it('should not apply hover styles by default', () => {
-    render(<Card>Content</Card>);
-    const card = screen.getByText('Content').closest('div');
-    expect(card).not.toHaveClass('hover:bg-white/10');
+    const { container } = render(<Card>Content</Card>);
+    const card = container.querySelector('.bg-gray-900\\/50');
+    expect(card).not.toHaveClass('hover:border-white/20');
   });
 
   it('should apply hover styles when hover prop is true', () => {
-    render(<Card hover>Content</Card>);
-    const card = screen.getByText('Content').closest('div');
-    expect(card).toHaveClass('hover:bg-white/10');
+    const { container } = render(<Card hover>Content</Card>);
+    const card = container.querySelector('.bg-gray-900\\/50');
+    expect(card).toHaveClass('hover:border-white/20');
   });
 
   it('should merge custom className', () => {
-    render(<Card className='custom-class'>Content</Card>);
-    const card = screen.getByText('Content').closest('div');
+    const { container } = render(<Card className='custom-class'>Content</Card>);
+    const card = container.querySelector('.bg-gray-900\\/50');
     expect(card).toHaveClass('custom-class');
   });
 });

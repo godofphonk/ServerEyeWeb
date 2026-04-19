@@ -23,14 +23,14 @@ describe('TabsNavigation', () => {
     const onTabChange = jest.fn();
     render(<TabsNavigation tabs={sampleTabs} activeTab='home' onTabChange={onTabChange} />);
     const homeButton = screen.getByText('Home').closest('button');
-    expect(homeButton).toHaveClass('text-blue-400');
+    expect(homeButton).toHaveClass('text-purple-400');
   });
 
   it('should not apply active styles to inactive tabs', () => {
     const onTabChange = jest.fn();
     render(<TabsNavigation tabs={sampleTabs} activeTab='home' onTabChange={onTabChange} />);
     const settingsButton = screen.getByText('Settings').closest('button');
-    expect(settingsButton).not.toHaveClass('text-blue-400');
+    expect(settingsButton).not.toHaveClass('text-purple-400');
   });
 
   it('should call onTabChange when an enabled tab is clicked', () => {

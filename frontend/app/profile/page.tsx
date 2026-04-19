@@ -503,12 +503,12 @@ export default function ProfilePage() {
                       Permanently delete your account and all associated data. This action cannot be
                       undone.
                     </p>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button variant='danger' onClick={() => setShowDeleteAccountModal(true)}>
                         <Trash2 className='w-4 h-4 mr-2' />
                         Delete Account
                       </Button>
-                    </motion.button>
+                    </motion.div>
                   </motion.div>
                 </div>
               </CardContent>
