@@ -184,6 +184,22 @@ public class AuthController : BaseApiController
             await this.cacheService.RemoveAsync($"limits:{userId}");
             await this.cacheService.RemoveAsync($"servers:{userId}");
 
+            // Delete OAuth cookies (access_token and refresh_token)
+            this.Response.Cookies.Delete("access_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = this.securitySettings.ForceSecureCookies,
+                SameSite = SameSiteMode.Lax,
+                Path = "/"
+            });
+            this.Response.Cookies.Delete("refresh_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = this.securitySettings.ForceSecureCookies,
+                SameSite = SameSiteMode.Lax,
+                Path = "/"
+            });
+
             this.logger.LogInformation("User {UserId} logged out", userId);
 
             return this.Ok(new { message = "Logged out successfully" });
