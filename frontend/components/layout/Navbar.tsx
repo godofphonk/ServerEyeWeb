@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, User, LogOut, AlertTriangle, Crown } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Menu, X, User, LogOut, AlertTriangle, Crown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -44,28 +45,51 @@ export function Navbar() {
   const showPremium = isAuthenticated && hasPremium && !loading;
 
   return (
-    <nav className='fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/10'>
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className='fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/10'
+    >
       <div className='container mx-auto px-6'>
         <div className='flex items-center justify-between h-16'>
           {/* Logo */}
-          <Link href='/' className='flex items-center gap-2'>
-            <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg' />
-            <span className='text-xl font-bold text-white'>ServerEye</span>
-          </Link>
+          <motion.div whileHover={{ scale: 1.05 }}>
+            <Link href='/' className='flex items-center gap-2'>
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30'
+              >
+                <Sparkles className='w-5 h-5 text-white' />
+              </motion.div>
+              <span className='text-xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400'>
+                ServerEye
+              </span>
+            </Link>
+          </motion.div>
 
           {/* Desktop Navigation */}
           <div className='hidden md:flex items-center gap-8'>
-            {links.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-sm font-medium transition-colors',
-                  pathname === link.href ? 'text-white' : 'text-gray-400 hover:text-white',
-                )}
-              >
-                {link.label}
-              </Link>
+            {links.map((link, _i) => (
+              <motion.div key={link.href} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  href={link.href}
+                  className={cn(
+                    'text-sm font-medium transition-colors relative',
+                    pathname === link.href ? 'text-white' : 'text-gray-400 hover:text-white',
+                  )}
+                >
+                  {link.label}
+                  {pathname === link.href && (
+                    <motion.div
+                      layoutId='activeLink'
+                      className='absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500'
+                      initial={false}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
+                </Link>
+              </motion.div>
             ))}
           </div>
 
@@ -127,30 +151,42 @@ export function Navbar() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className='md:hidden text-white'
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X className='w-6 h-6' /> : <Menu className='w-6 h-6' />}
-          </button>
+          </motion.button>
         </div>
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className='md:hidden py-4 border-t border-white/10'>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className='md:hidden py-4 border-t border-white/10'
+          >
             <div className='flex flex-col gap-4'>
-              {links.map(link => (
-                <Link
+              {links.map((link, i) => (
+                <motion.div
                   key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'text-sm font-medium transition-colors',
-                    pathname === link.href ? 'text-white' : 'text-gray-400',
-                  )}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
                 >
-                  {link.label}
-                </Link>
+                  <Link
+                    href={link.href}
+                    className={cn(
+                      'text-sm font-medium transition-colors',
+                      pathname === link.href ? 'text-white' : 'text-gray-400',
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
               ))}
 
               <div className='pt-4 border-t border-white/10 flex flex-col gap-2'>
@@ -206,9 +242,9 @@ export function Navbar() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
-    </nav>
+    </motion.nav>
   );
 }

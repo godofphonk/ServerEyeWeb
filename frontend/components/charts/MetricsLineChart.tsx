@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { MetricsDataPoint, ChartTooltipPayload } from '@/types';
 import { formatTimeByRange, getTickCountByRange } from '@/utils/timeFormat';
 
@@ -73,7 +74,7 @@ export default function MetricsLineChart({
     }) => {
       if (active && payload && payload.length) {
         return (
-          <div className='bg-gray-900 border border-white/20 rounded-lg p-3 shadow-xl'>
+          <div className='bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-lg p-3 shadow-2xl shadow-black/50'>
             <p className='text-sm text-gray-400 mb-2'>{payload[0]?.payload?.time}</p>
             <div className='space-y-1'>
               <p className='text-sm'>
@@ -119,7 +120,13 @@ export default function MetricsLineChart({
 
   return (
     <div className='w-full h-full min-h-[200px]'>
-      <h3 className='text-lg font-semibold mb-4'>{title}</h3>
+      <motion.h3
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className='text-lg font-semibold mb-4'
+      >
+        {title}
+      </motion.h3>
       <ResponsiveContainer width='100%' height={300}>
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray='3 3' stroke='#ffffff10' />

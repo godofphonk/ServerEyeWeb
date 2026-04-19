@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Notification, AxiosApiError } from '@/types';
 import { notificationApi } from '@/lib/notificationApi';
 import { NotificationItem } from './NotificationItem';
@@ -93,59 +94,87 @@ export function NotificationDropdown({
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <>
-      <div className='fixed inset-0 z-40' onClick={onClose} />
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className='fixed inset-0 z-40'
+            onClick={onClose}
+          />
 
-      <div className='absolute right-0 mt-2 w-96 bg-gray-900 border border-white/10 rounded-lg shadow-xl z-50 max-h-[600px] flex flex-col'>
-        <div className='p-4 border-b border-white/10 flex items-center justify-between'>
-          <div>
-            <h3 className='text-lg font-semibold text-white'>Уведомления</h3>
-            {unreadCount > 0 && (
-              <p className='text-sm text-gray-400'>{unreadCount} непрочитанных</p>
-            )}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className='absolute right-0 mt-2 w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 z-50 max-h-[600px] flex flex-col overflow-hidden'
+          >
+            <div className='p-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-blue-500/5 to-purple-500/5'>
+              <div>
+                <h3 className='text-lg font-semibold text-white'>Уведомления</h3>
+                {unreadCount > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className='text-sm text-gray-400'
+                  >
+                    {unreadCount} непрочитанных
+                  </motion.p>
+                )}
+              </div>
 
-          {unreadCount > 0 && (
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={handleMarkAllAsRead}
-              disabled={isMarkingAllRead}
-              className='gap-2'
-            >
-              {isMarkingAllRead ? (
-                <Loader2 className='w-4 h-4 animate-spin' />
-              ) : (
-                <CheckCheck className='w-4 h-4' />
+              {unreadCount > 0 && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={handleMarkAllAsRead}
+                  disabled={isMarkingAllRead}
+                  className='gap-2'
+                >
+                  {isMarkingAllRead ? (
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                  ) : (
+                    <CheckCheck className='w-4 h-4' />
+                  )}
+                  Прочитать все
+                </Button>
               )}
-              Прочитать все
-            </Button>
-          )}
-        </div>
+            </div>
 
-        <div className='flex-1 overflow-y-auto'>
-          {isLoading ? (
-            <div className='flex items-center justify-center py-12'>
-              <Loader2 className='w-6 h-6 animate-spin text-blue-400' />
+            <div className='flex-1 overflow-y-auto'>
+              {isLoading ? (
+                <div className='flex items-center justify-center py-12'>
+                  <Loader2 className='w-6 h-6 animate-spin text-blue-400' />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className='flex flex-col items-center justify-center py-12 px-4'>
+                  <Inbox className='w-12 h-12 text-gray-600 mb-4' />
+                  <p className='text-gray-400 text-center'>Нет уведомлений</p>
+                </div>
+              ) : (
+                <div className='divide-y divide-white/5'>
+                  {notifications.map((notification, index) => (
+                    <motion.div
+                      key={notification.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <NotificationItem
+                        notification={notification}
+                        onClick={handleNotificationClick}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : notifications.length === 0 ? (
-            <div className='flex flex-col items-center justify-center py-12 px-4'>
-              <Inbox className='w-12 h-12 text-gray-600 mb-4' />
-              <p className='text-gray-400 text-center'>Нет уведомлений</p>
-            </div>
-          ) : (
-            <div className='divide-y divide-white/5'>
-              {notifications.map(notification => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onClick={handleNotificationClick}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

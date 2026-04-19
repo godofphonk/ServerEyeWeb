@@ -192,9 +192,13 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className='relative z-10 w-full max-w-md'
           >
-            <div className='bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8'>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className='bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl shadow-black/50'
+            >
               {/* Header */}
               <div className='text-center mb-8'>
                 <Link href='/' className='inline-block mb-6'>
@@ -337,7 +341,7 @@ export default function LoginPage() {
                   Sign up
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* 2FA Modal */}

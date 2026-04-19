@@ -65,15 +65,26 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6'
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          whileHover={{ scale: 1.01 }}
+          className='bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 relative overflow-hidden'
         >
-          <div className='flex items-start gap-3'>
-            <div className='flex-shrink-0'>
+          <motion.div
+            className='absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5'
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className='flex items-start gap-3 relative z-10'>
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className='flex-shrink-0'
+            >
               <AlertTriangle className='w-5 h-5 text-yellow-400 mt-0.5' />
-            </div>
+            </motion.div>
 
             <div className='flex-1 min-w-0'>
               <h3 className='text-sm font-semibold text-yellow-400 mb-1'>
@@ -90,7 +101,7 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
                   <Button
                     size='sm'
                     onClick={() => setShowChangeModal(true)}
-                    className='bg-yellow-500 hover:bg-yellow-600 text-black'
+                    className='bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black shadow-lg shadow-yellow-500/30'
                   >
                     <Mail className='w-4 h-4 mr-2' />
                     Add Email
@@ -100,7 +111,7 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
                     <Button
                       size='sm'
                       onClick={() => setShowVerificationModal(true)}
-                      className='bg-yellow-500 hover:bg-yellow-600 text-black'
+                      className='bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black shadow-lg shadow-yellow-500/30'
                     >
                       <Mail className='w-4 h-4 mr-2' />
                       Verify Email
@@ -111,11 +122,16 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
                       size='sm'
                       onClick={handleResend}
                       disabled={isResending}
-                      className='text-yellow-400 hover:text-yellow-300'
+                      className='text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10'
                     >
                       {isResending ? (
                         <>
-                          <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <RefreshCw className='w-4 h-4 mr-2' />
+                          </motion.div>
                           Sending...
                         </>
                       ) : (
@@ -130,12 +146,14 @@ export function EmailVerificationBanner({ email, onVerified }: EmailVerification
               </div>
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setIsDismissed(true)}
               className='flex-shrink-0 text-gray-400 hover:text-white transition-colors'
             >
               <X className='w-4 h-4' />
-            </button>
+            </motion.button>
           </div>
         </motion.div>
       </AnimatePresence>

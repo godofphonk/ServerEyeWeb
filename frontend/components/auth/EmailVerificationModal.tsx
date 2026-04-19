@@ -82,22 +82,38 @@ export function EmailVerificationModal({
     <AnimatePresence>
       <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className='w-full max-w-md mx-4'
         >
-          <div className='bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6'>
+          <div className='bg-black/90 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden shadow-2xl shadow-blue-500/20'>
+            <motion.div
+              className='absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5'
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            />
             {/* Header */}
-            <div className='flex items-center justify-between mb-6'>
-              <div className='flex items-center gap-3'>
-                <div className='w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center'>
+            <div className='flex items-center justify-between mb-6 relative z-10'>
+              <motion.div whileHover={{ scale: 1.02 }} className='flex items-center gap-3'>
+                <motion.div
+                  animate={isVerified ? { scale: [1, 1.1, 1] } : { rotate: [0, 360] }}
+                  transition={{
+                    duration: isVerified ? 2 : 20,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    isVerified ? 'bg-green-500/20' : 'bg-blue-500/20'
+                  } border ${isVerified ? 'border-green-500/30' : 'border-blue-500/30'}`}
+                >
                   {isVerified ? (
                     <CheckCircle className='w-6 h-6 text-green-400' />
                   ) : (
                     <Mail className='w-6 h-6 text-blue-400' />
                   )}
-                </div>
+                </motion.div>
                 <div>
                   <h3 className='text-xl font-bold text-white'>
                     {isVerified ? 'Email Verified!' : 'Verify Your Email'}
@@ -108,20 +124,27 @@ export function EmailVerificationModal({
                       : `We sent a code to ${email}`}
                   </p>
                 </div>
-              </div>
+              </motion.div>
               {!isVerified && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={onClose}
                   className='text-gray-400 hover:text-white transition-colors'
                 >
                   <X className='w-5 h-5' />
-                </button>
+                </motion.button>
               )}
             </div>
 
             {/* Content */}
             {!isVerified ? (
-              <form onSubmit={handleSubmit} className='space-y-6'>
+              <motion.form
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleSubmit}
+                className='space-y-6 relative z-10'
+              >
                 {/* 6-digit code input */}
                 <div>
                   <Input
@@ -142,7 +165,9 @@ export function EmailVerificationModal({
 
                 {/* Resend link */}
                 <div className='text-center'>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     type='button'
                     onClick={handleResend}
                     disabled={resendCooldown > 0}
@@ -150,13 +175,18 @@ export function EmailVerificationModal({
                   >
                     {resendCooldown > 0 ? (
                       <span className='flex items-center gap-2'>
-                        <RefreshCw className='w-4 h-4' />
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <RefreshCw className='w-4 h-4' />
+                        </motion.div>
                         Wait {resendCooldown}s
                       </span>
                     ) : (
                       "Didn't receive the code? Resend"
                     )}
-                  </button>
+                  </motion.button>
                 </div>
 
                 {/* Submit button */}
@@ -165,15 +195,26 @@ export function EmailVerificationModal({
                   fullWidth
                   isLoading={isVerifying}
                   disabled={code.length !== 6}
+                  className='shadow-lg shadow-blue-500/30'
                 >
                   Verify Email
                 </Button>
-              </form>
+              </motion.form>
             ) : (
-              <div className='text-center py-4'>
-                <CheckCircle className='w-16 h-16 text-green-400 mx-auto mb-4' />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className='text-center py-4 relative z-10'
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                  className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30 shadow-lg shadow-green-500/30'
+                >
+                  <CheckCircle className='w-10 h-10 text-green-400' />
+                </motion.div>
                 <p className='text-gray-300'>You can now access all features of your account.</p>
-              </div>
+              </motion.div>
             )}
           </div>
         </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { GitBranch, Globe, MessageCircle, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { GitBranch, Globe, MessageCircle, Mail, Sparkles } from 'lucide-react';
 
 export default function Footer() {
   const links = {
@@ -32,30 +33,41 @@ export default function Footer() {
   ];
 
   return (
-    <footer className='relative border-t border-white/10 bg-black'>
-      <div className='container mx-auto px-6 py-20'>
+    <footer className='relative border-t border-white/10 bg-black overflow-hidden'>
+      <div className='absolute inset-0 bg-gradient-to-b from-purple-900/5 to-transparent' />
+      <div className='container mx-auto px-6 py-20 relative z-10'>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12'>
           {/* Brand */}
           <div className='lg:col-span-2'>
-            <div className='flex items-center gap-2 mb-4'>
-              <div className='w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg' />
-              <span className='text-2xl font-bold'>ServerEye</span>
-            </div>
+            <motion.div whileHover={{ scale: 1.05 }} className='flex items-center gap-2 mb-4'>
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                className='w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30'
+              >
+                <Sparkles className='w-6 h-6 text-white' />
+              </motion.div>
+              <span className='text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400'>
+                ServerEye
+              </span>
+            </motion.div>
             <p className='text-gray-400 mb-6 max-w-sm'>
               Modern server monitoring made simple. Open source, secure, and built for developers.
             </p>
             <div className='flex gap-4'>
               {socials.map((social, i) => (
-                <a
+                <motion.a
                   key={i}
                   href={social.href}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110'
+                  whileHover={{ scale: 1.1, y: -5 }}
+                  whileTap={{ scale: 0.95 }}
+                  className='w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg flex items-center justify-center transition-all duration-300 shadow-lg hover:shadow-purple-500/20'
                   aria-label={social.label}
                 >
                   <social.icon className='w-5 h-5' />
-                </a>
+                </motion.a>
               ))}
             </div>
           </div>
@@ -66,9 +78,13 @@ export default function Footer() {
             <ul className='space-y-3'>
               {links.product.map((link, i) => (
                 <li key={i}>
-                  <a href={link.href} className='text-gray-400 hover:text-white transition-colors'>
+                  <motion.a
+                    whileHover={{ x: 5 }}
+                    href={link.href}
+                    className='text-gray-400 hover:text-white transition-colors inline-block'
+                  >
                     {link.name}
-                  </a>
+                  </motion.a>
                 </li>
               ))}
             </ul>
@@ -79,9 +95,13 @@ export default function Footer() {
             <ul className='space-y-3'>
               {links.company.map((link, i) => (
                 <li key={i}>
-                  <a href={link.href} className='text-gray-400 hover:text-white transition-colors'>
+                  <motion.a
+                    whileHover={{ x: 5 }}
+                    href={link.href}
+                    className='text-gray-400 hover:text-white transition-colors inline-block'
+                  >
                     {link.name}
-                  </a>
+                  </motion.a>
                 </li>
               ))}
             </ul>
@@ -92,9 +112,13 @@ export default function Footer() {
             <ul className='space-y-3'>
               {links.legal.map((link, i) => (
                 <li key={i}>
-                  <a href={link.href} className='text-gray-400 hover:text-white transition-colors'>
+                  <motion.a
+                    whileHover={{ x: 5 }}
+                    href={link.href}
+                    className='text-gray-400 hover:text-white transition-colors inline-block'
+                  >
                     {link.name}
-                  </a>
+                  </motion.a>
                 </li>
               ))}
             </ul>
@@ -107,9 +131,13 @@ export default function Footer() {
           <div className='flex items-center gap-6 text-sm text-gray-500'>
             <span>Made with ❤️ by developers</span>
             <span>•</span>
-            <a href='#' className='hover:text-white transition-colors'>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              href='#'
+              className='hover:text-white transition-colors'
+            >
               Open Source
-            </a>
+            </motion.a>
           </div>
         </div>
       </div>

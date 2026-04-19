@@ -1,13 +1,7 @@
 'use client';
 
 import { ArrowRight, Activity, Sparkles, Zap, Shield, Server } from 'lucide-react';
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useMotionTemplate,
-  useMotionValue,
-} from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 
 // Animated particle component
