@@ -47,9 +47,10 @@ export default function SystemTab({
   const uptimeUnit = uptimeValue.includes('d') ? 'days' : 'hours';
 
   // GPU temperature from historicalMetrics temperatureDetails
-  const gpuTemp = _historicalMetrics?.temperatureDetails?.gpu_temperature ||
-                  dashboardMetrics?.current?.gpu_temperature ||
-                  0;
+  const gpuTemp =
+    _historicalMetrics?.temperatureDetails?.gpu_temperature ||
+    dashboardMetrics?.current?.gpu_temperature ||
+    0;
 
   return (
     <div className='space-y-6'>
@@ -108,11 +109,15 @@ export default function SystemTab({
               <div className='grid grid-cols-2 gap-4 text-sm'>
                 <div>
                   <span className='text-gray-400'>Hostname:</span>
-                  <p className='font-medium'>{staticInfo?.hostname || server?.hostname || 'Unknown'}</p>
+                  <p className='font-medium'>
+                    {staticInfo?.hostname || server?.hostname || 'Unknown'}
+                  </p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Operating System:</span>
-                  <p className='font-medium'>{staticInfo?.operating_system || server?.operatingSystem || 'Linux'}</p>
+                  <p className='font-medium'>
+                    {staticInfo?.operating_system || server?.operatingSystem || 'Linux'}
+                  </p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Kernel Version:</span>

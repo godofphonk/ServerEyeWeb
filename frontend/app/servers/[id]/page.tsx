@@ -163,7 +163,11 @@ export default function ServerDetailPage() {
         disk: metricsData?.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
         network: lastDataPoint?.network?.avg || lastDataPoint?.network_avg || 0,
         load: lastDataPoint?.loadAverage?.avg || lastDataPoint?.load_avg || 0,
-        temperature: temperatureDetails?.cpu_temperature || lastDataPoint?.temperature?.avg || lastDataPoint?.temp_avg || 0,
+        temperature:
+          temperatureDetails?.cpu_temperature ||
+          lastDataPoint?.temperature?.avg ||
+          lastDataPoint?.temp_avg ||
+          0,
         gpu_temperature: temperatureDetails?.gpu_temperature || 0,
       },
       trends: {
