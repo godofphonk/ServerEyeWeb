@@ -813,37 +813,8 @@ public class AuthController : BaseApiController
                     "OAuth callback processed successfully - User: {UserId}",
                     response.User?.Id);
 
-                // Set JWT tokens in cookies with correct domain for frontend
-                var cookieSecure = this.securitySettings.ForceSecureCookies || this.Request.IsHttps;
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = cookieSecure,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.UtcNow.AddHours(1),
-
-                    // Domain removed - browser will set it for current host
-                    Path = "/"
-                };
-
-                var refreshTokenOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = cookieSecure,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.UtcNow.AddDays(30),
-
-                    // Domain removed - browser will set it for current host
-                    Path = "/"
-                };
-
-                this.Response.Cookies.Append("access_token", response.Token, cookieOptions);
-                this.Response.Cookies.Append("refresh_token", response.RefreshToken ?? string.Empty, refreshTokenOptions);
-
-                this.logger.LogInformation(
-                    "JWT cookies set for OAuth callback - Access token expires: {Expires}, Refresh token expires: {RefreshExpires}",
-                    cookieOptions.Expires,
-                    refreshTokenOptions.Expires);
+                // Cookies will be set by frontend via /api/auth/session
+                // This prevents duplicate cookies on production
 
                 // Validate and construct secure callback URL
                 string? baseUrl = this.frontendSettings.BaseUrl;
