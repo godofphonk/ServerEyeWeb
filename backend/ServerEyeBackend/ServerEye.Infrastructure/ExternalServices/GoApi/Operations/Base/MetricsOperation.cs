@@ -46,7 +46,7 @@ public abstract class MetricsOperation : GoApiOperation<GoApiMetricsResponse?>
 
         if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
         {
-            Logger.LogEmptyData(GetOperationName(), GetServerIdentifier(), 0);
+            Logger.LogEmptyData(GetOperationName(), 0);
         }
 
         return result;
