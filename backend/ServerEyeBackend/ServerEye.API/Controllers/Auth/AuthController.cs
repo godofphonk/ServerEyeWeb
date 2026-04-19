@@ -820,9 +820,19 @@ public class AuthController : BaseApiController
 
                 var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                              this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-                if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
+
+                // Use Request.Scheme instead of BaseUrl.Scheme to properly detect HTTPS behind nginx proxy
+                this.logger.LogInformation(
+                    "OAuth callback HTTPS check - Request.Scheme: {RequestScheme}, BaseUrl: {BaseUrl}, RemoteIpAddress: {RemoteIpAddress}, IsLocal: {IsLocal}, AllowHttpForLocalOAuth: {AllowHttpForLocalOAuth}",
+                    this.HttpContext.Request.Scheme,
+                    baseUrl,
+                    this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "null",
+                    isLocal,
+                    this.securitySettings.AllowHttpForLocalOAuth);
+
+                if (this.HttpContext.Request.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
                 {
-                    this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
+                    this.logger.LogWarning("Insecure request scheme for non-local request: {Scheme}", this.HttpContext.Request.Scheme);
                     return this.BadRequest("HTTPS required for non-local requests");
                 }
 
@@ -1152,9 +1162,19 @@ public class AuthController : BaseApiController
 
         var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                      this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-        if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
+
+        // Use Request.Scheme instead of BaseUrl.Scheme to properly detect HTTPS behind nginx proxy
+        this.logger.LogInformation(
+            "SafeRedirect HTTPS check - Request.Scheme: {RequestScheme}, BaseUrl: {BaseUrl}, RemoteIpAddress: {RemoteIpAddress}, IsLocal: {IsLocal}, AllowHttpForLocalOAuth: {AllowHttpForLocalOAuth}",
+            this.HttpContext.Request.Scheme,
+            baseUrl,
+            this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "null",
+            isLocal,
+            this.securitySettings.AllowHttpForLocalOAuth);
+
+        if (this.HttpContext.Request.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
         {
-            this.logger.LogWarning("Insecure frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
+            this.logger.LogWarning("Insecure request scheme for redirect: {Scheme}", this.HttpContext.Request.Scheme);
             return this.BadRequest("HTTPS required for redirects");
         }
 
