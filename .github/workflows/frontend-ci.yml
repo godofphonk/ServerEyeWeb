@@ -308,8 +308,7 @@ jobs:
           push: false
           load: true
           tags: servereye-frontend:${{ github.sha }}
-          cache-from: type=gha,ref=servereye-frontend-buildx-${{ hashFiles('frontend/package-lock.json') }}
-          cache-to: type=gha,ref=servereye-frontend-buildx-${{ hashFiles('frontend/package-lock.json') }},mode=max
+          no-cache: true
           build-args: |
             NODE_ENV=production
 
