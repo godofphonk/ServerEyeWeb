@@ -6,6 +6,7 @@ services:
     build:
       context: ../../../backend/ServerEyeBackend
       dockerfile: ../../environments/dev/dockerfiles/backend-dev.Dockerfile
+      no_cache: true
     container_name: ServerEyeWeb-backend-dev
     ports:
       - "5246:8080"

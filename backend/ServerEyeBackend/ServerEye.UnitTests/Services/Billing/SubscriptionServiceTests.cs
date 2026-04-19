@@ -29,11 +29,15 @@ public class SubscriptionServiceTests
         this.mockSubscriptionRepository = new Mock<ISubscriptionRepository>();
         this.mockPaymentService = new Mock<IPaymentService>();
         this.mockLogger = new Mock<ILogger<SubscriptionService>>();
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+        var cacheSettings = new Core.Configuration.CacheSettings();
 
         this.subscriptionService = new SubscriptionService(
             this.mockSubscriptionRepository.Object,
             this.mockPaymentService.Object,
-            this.mockLogger.Object);
+            this.mockLogger.Object,
+            mockCacheService.Object,
+            cacheSettings);
     }
 
     #region GetUserSubscriptionAsync Tests

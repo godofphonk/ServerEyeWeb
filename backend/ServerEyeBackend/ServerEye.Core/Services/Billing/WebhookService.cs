@@ -6,6 +6,7 @@ using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
+using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Interfaces.Services.Billing;
 
 public class WebhookService : IWebhookService
@@ -15,19 +16,22 @@ public class WebhookService : IWebhookService
     private readonly ISubscriptionRepository subscriptionRepository;
     private readonly IPaymentProviderFactory providerFactory;
     private readonly ILogger<WebhookService> logger;
+    private readonly IMetricsCacheService cacheService;
 
     public WebhookService(
         IWebhookEventRepository webhookEventRepository,
         IPaymentRepository paymentRepository,
         ISubscriptionRepository subscriptionRepository,
         IPaymentProviderFactory providerFactory,
-        ILogger<WebhookService> logger)
+        ILogger<WebhookService> logger,
+        IMetricsCacheService cacheService)
     {
         this.webhookEventRepository = webhookEventRepository;
         this.paymentRepository = paymentRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.providerFactory = providerFactory;
         this.logger = logger;
+        this.cacheService = cacheService;
     }
 
     public async Task<bool> ProcessWebhookAsync(
@@ -249,6 +253,11 @@ public class WebhookService : IWebhookService
             subscription.UpdatedAt = DateTime.UtcNow;
 
             await subscriptionRepository.UpdateAsync(subscription);
+
+            // Invalidate cache for user's subscription, limits, and profile
+            await cacheService.RemoveAsync($"subscription:{userId}");
+            await cacheService.RemoveAsync($"limits:{userId}");
+            await cacheService.RemoveAsync($"user:{userId}");
 
             logger.LogInformation(
                 "Updated subscription {SubscriptionId} for user {UserId} to plan {PlanId}",

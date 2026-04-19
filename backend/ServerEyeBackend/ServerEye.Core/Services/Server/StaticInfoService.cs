@@ -1,6 +1,7 @@
 namespace ServerEye.Core.Services;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.DTOs.GoApi;
 using ServerEye.Core.Interfaces.Repository;
 using ServerEye.Core.Interfaces.Services;
@@ -10,15 +11,21 @@ public class StaticInfoService : IStaticInfoService
     private readonly IGoApiClient goApiClient;
     private readonly IUserServerAccessRepository accessRepository;
     private readonly ILogger<StaticInfoService> logger;
+    private readonly IMetricsCacheService cacheService;
+    private readonly CacheSettings cacheSettings;
 
     public StaticInfoService(
         IGoApiClient goApiClient,
         IUserServerAccessRepository accessRepository,
-        ILogger<StaticInfoService> logger)
+        ILogger<StaticInfoService> logger,
+        IMetricsCacheService cacheService,
+        CacheSettings cacheSettings)
     {
         this.goApiClient = goApiClient;
         this.accessRepository = accessRepository;
         this.logger = logger;
+        this.cacheService = cacheService;
+        this.cacheSettings = cacheSettings;
     }
 
     public async Task<GoApiStaticInfo?> GetStaticInfoAsync(Guid userId, string serverKey)
@@ -30,10 +37,38 @@ public class StaticInfoService : IStaticInfoService
 
         try
         {
+            var cacheKey = $"staticInfo:{serverKey}";
+            var cachedResult = await this.cacheService.GetAsync<GoApiStaticInfo>(cacheKey);
+
+            if (cachedResult != null)
+            {
+                stopwatch.Stop();
+                this.logger.LogInformation("[PERF] Cache hit for static info: {ServerKey}, completed in {Ms}ms", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null", stopwatch.ElapsedMilliseconds);
+                return cachedResult;
+            }
+
             // Validate access by server key
             var accessCheckTime = System.Diagnostics.Stopwatch.StartNew();
-            await this.ValidateAccessByServerKeyAsync(userId, serverKey ?? string.Empty);
+            var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey ?? string.Empty);
             accessCheckTime.Stop();
+
+            // If server not found in Go API (404), return null
+            if (serverInfo == null)
+            {
+                this.logger.LogWarning("[PERF] Server not found in Go API for key {ServerKey} (404), returning null", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
+                stopwatch.Stop();
+                return null;
+            }
+
+            // Check user access to this server
+            var hasAccess = await this.accessRepository.HasAccessAsync(userId, serverInfo.ServerId);
+            if (!hasAccess)
+            {
+                this.logger.LogWarning("[PERF] User {UserId} does not have access to server {ServerId}", userId, serverInfo.ServerId);
+                stopwatch.Stop();
+                return null;
+            }
+
             this.logger.LogInformation("[PERF] Access validation took {Ms}ms", accessCheckTime.ElapsedMilliseconds);
 
             // Get static info from Go API
@@ -44,7 +79,8 @@ public class StaticInfoService : IStaticInfoService
             if (staticInfo == null)
             {
                 this.logger.LogWarning("[PERF] Go API returned null for static info after {Ms}ms", goApiTime.ElapsedMilliseconds);
-                throw new InvalidOperationException("Failed to retrieve static info from Go API");
+                stopwatch.Stop();
+                return null;
             }
 
             // Get server status to retrieve agent version
@@ -83,6 +119,8 @@ public class StaticInfoService : IStaticInfoService
                 };
             }
 
+            await this.cacheService.SetAsync(cacheKey, staticInfo, this.cacheSettings.StaticInfo);
+
             stopwatch.Stop();
             this.logger.LogInformation(
                 "[PERF] GetStaticInfoAsync completed in {TotalMs}ms (access: {AccessMs}ms, goApi: {GoApiMs}ms) for server {ServerId}",
@@ -97,26 +135,9 @@ public class StaticInfoService : IStaticInfoService
         {
             stopwatch.Stop();
             this.logger.LogError(ex, "[PERF] Error in GetStaticInfoAsync after {Ms}ms", stopwatch.ElapsedMilliseconds);
-            throw;
-        }
-    }
 
-    private async Task ValidateAccessByServerKeyAsync(Guid userId, string serverKey)
-    {
-        // First validate the server key and get server info
-        var serverInfo = await this.goApiClient.ValidateServerKeyAsync(serverKey);
-#pragma warning disable IDE0270 // Simplify null check
-        if (serverInfo is null)
-#pragma warning restore IDE0270 // Simplify null check
-        {
-            throw new UnauthorizedAccessException("Invalid server key");
-        }
-
-        // Then check user access to this server
-        var hasAccess = await this.accessRepository.HasAccessAsync(userId, serverInfo.ServerId);
-        if (!hasAccess)
-        {
-            throw new UnauthorizedAccessException("You don't have access to this server");
+            // Return null on error instead of throwing to prevent infinite loading
+            return null;
         }
     }
 }

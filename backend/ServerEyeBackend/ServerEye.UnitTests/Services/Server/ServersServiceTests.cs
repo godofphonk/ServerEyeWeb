@@ -39,11 +39,16 @@ public class ServersServiceTests
             MockDataDelayMs = 0
         };
 
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+        var cacheSettings = new Core.Configuration.CacheSettings();
+
         this.serversService = new ServersServiceImpl(
             this.mockServerAccessService.Object,
             this.mockDataProvider.Object,
             this.configuration,
-            this.mockLogger.Object);
+            this.mockLogger.Object,
+            mockCacheService.Object,
+            cacheSettings);
     }
 
     #region GetUserServersAsync Tests
@@ -387,11 +392,16 @@ public class ServersServiceTests
             MockDataDelayMs = 100
         };
 
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+        var cacheSettings = new Core.Configuration.CacheSettings();
+
         var serviceWithDelay = new ServersServiceImpl(
             this.mockServerAccessService.Object,
             this.mockDataProvider.Object,
             configWithDelay,
-            this.mockLogger.Object);
+            this.mockLogger.Object,
+            mockCacheService.Object,
+            cacheSettings);
 
         var mockResponse = new ServersResponseDto
         {

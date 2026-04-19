@@ -72,6 +72,8 @@ public static class DependencyInjectionSetup
             ?? new FrontendSettings();
         var securitySettings = configuration.GetSection("Security").Get<ServerEye.API.Configuration.SecuritySettings>()
             ?? new ServerEye.API.Configuration.SecuritySettings();
+        var cacheSettings = configuration.GetSection("CacheSettings").Get<CacheSettings>()
+            ?? new CacheSettings();
 
         // Configure GoApiSettings with validation on startup
         services.Configure<GoApiSettings>(configuration.GetSection("GoApiSettings"))
@@ -84,6 +86,7 @@ public static class DependencyInjectionSetup
         services.AddSingleton(serversConfiguration);
         services.AddSingleton(frontendSettings);
         services.AddSingleton(securitySettings);
+        services.AddSingleton(cacheSettings);
 
         services.Configure<Infrastructure.ExternalServices.Stripe.StripeConfiguration>(
             configuration.GetSection("Stripe"));
@@ -142,10 +145,16 @@ public static class DependencyInjectionSetup
         // JWT Service with factory
         services.AddScoped<IJwtService>(provider =>
         {
-            var jwtSettings = provider.GetRequiredService<IConfiguration>()
-                .GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var configuration = provider.GetRequiredService<IConfiguration>();
+            var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? new JwtSettings();
             var logger = provider.GetService<ILogger<JwtService>>();
+
+            // Log JWT settings for debugging
+            logger?.LogInformation(
+                "Registering JwtService - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
+                jwtSettings.PrivateKeyBase64?.Length ?? 0,
+                jwtSettings.PublicKeyBase64?.Length ?? 0);
+
             return new JwtService(jwtSettings, configuration, logger);
         });
     }

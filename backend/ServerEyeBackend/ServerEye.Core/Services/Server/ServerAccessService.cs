@@ -19,7 +19,8 @@ public class ServerAccessService(
     IGoApiClient goApiClient,
     IEncryptionService encryptionService,
     IPlanLimitsService planLimitsService,
-    ILogger<ServerAccessService> logger)
+    ILogger<ServerAccessService> logger,
+    IMetricsCacheService cacheService)
     : IServerAccessService
 {
     public async Task<bool> HasAccessAsync(Guid userId, string serverId) => await accessRepository.HasAccessAsync(userId, serverId);
@@ -141,6 +142,10 @@ public class ServerAccessService(
 
             logger.LogInformation("User {UserId} added access to existing server {ServerId}", userId, LogSanitizer.Sanitize(serverInfo.ServerId));
 
+            // Invalidate cache for user's servers list and limits
+            await cacheService.RemoveAsync($"servers:{userId}");
+            await cacheService.RemoveAsync($"limits:{userId}");
+
             return new ServerResponse
             {
                 Id = existingServer.Id,
@@ -222,6 +227,10 @@ public class ServerAccessService(
         });
 
         logger.LogInformation("User {UserId} added new server {ServerId} as owner", userId, LogSanitizer.Sanitize(serverInfo.ServerId));
+
+        // Invalidate cache for user's servers list and limits
+        await cacheService.RemoveAsync($"servers:{userId}");
+        await cacheService.RemoveAsync($"limits:{userId}");
 
         return new ServerResponse
         {
@@ -309,6 +318,10 @@ public class ServerAccessService(
         // Always remove access from DB (even if API call failed)
         await accessRepository.RemoveAccessAsync(userId, serverId ?? string.Empty);
 
+        // Invalidate cache for user's servers list and limits
+        await cacheService.RemoveAsync($"servers:{userId}");
+        await cacheService.RemoveAsync($"limits:{userId}");
+
         logger.LogInformation("User {UserId} removed access to server {ServerId}", userId, LogSanitizer.Sanitize(serverId));
     }
 
@@ -346,6 +359,12 @@ public class ServerAccessService(
 
             logger.LogInformation("User {UserId} shared server {ServerId} with {TargetUserEmail} at level {AccessLevel}", ownerId, LogSanitizer.Sanitize(serverId), LogSanitizer.MaskEmail(targetUserEmail), level);
         }
+
+        // Invalidate cache for both owner and target user (servers and limits)
+        await cacheService.RemoveAsync($"servers:{ownerId}");
+        await cacheService.RemoveAsync($"servers:{targetUser.Id}");
+        await cacheService.RemoveAsync($"limits:{ownerId}");
+        await cacheService.RemoveAsync($"limits:{targetUser.Id}");
     }
 
     private async Task<long?> GetUserTelegramIdAsync(Guid userId)

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
@@ -25,6 +26,28 @@ var logger = loggerFactory.CreateLogger<Program>();
 
 builder.Configuration.AddDopplerSecretsFromEnvironment(logger);
 
+// Log JWT settings for debugging
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<ServerEye.Core.Services.JwtSettings>();
+if (jwtSettings != null)
+{
+    logger.LogInformation(
+        "JwtSettings loaded - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
+        jwtSettings.PrivateKeyBase64?.Length ?? 0,
+        jwtSettings.PublicKeyBase64?.Length ?? 0);
+}
+else
+{
+    logger.LogWarning("JwtSettings section not found or is null");
+}
+
+// Configure forwarded headers for nginx proxy support
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 
@@ -45,6 +68,7 @@ if (!builder.Configuration.GetValue("OpenTelemetry:DisableAllInstrumentation", f
 var app = builder.Build();
 
 // Configure middleware pipeline
+app.UseForwardedHeaders();
 app.UseMiddlewareConfiguration();
 app.UseContentSecurityPolicy();
 app.UseAuthentication();

@@ -66,6 +66,9 @@ public class UserServiceTests
             .AddInMemoryCollection(configData)
             .Build();
 
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+        var cacheSettings = new Core.Configuration.CacheSettings();
+
         this.userService = new UserServiceImpl(
             this.mockUserRepository.Object,
             this.mockPasswordHasher.Object,
@@ -74,7 +77,9 @@ public class UserServiceTests
             this.mockAuthService.Object,
             this.configuration,
             Mock.Of<ILogger<UserService>>(),
-            this.mockPlanLimitsService.Object);
+            this.mockPlanLimitsService.Object,
+            mockCacheService.Object,
+            cacheSettings);
     }
 
     #region GetUserByIdAsync Tests
@@ -624,6 +629,9 @@ public class UserServiceTests
             .AddInMemoryCollection(configData)
             .Build();
 
+        var mockCacheService = new Mock<Core.Interfaces.Services.IMetricsCacheService>();
+        var cacheSettings = new Core.Configuration.CacheSettings();
+
         var userServiceWithDisabledVerification = new UserServiceImpl(
             this.mockUserRepository.Object,
             this.mockPasswordHasher.Object,
@@ -632,7 +640,9 @@ public class UserServiceTests
             this.mockAuthService.Object,
             disabledConfig,
             Mock.Of<ILogger<UserService>>(),
-            this.mockPlanLimitsService.Object);
+            Mock.Of<Core.Interfaces.Services.Billing.IPlanLimitsService>(),
+            mockCacheService.Object,
+            cacheSettings);
 
         // Act
         var result = await userServiceWithDisabledVerification.CanUserAccessProtectedResourcesAsync(userId);

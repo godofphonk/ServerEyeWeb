@@ -93,6 +93,14 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             }
 
             _logger?.LogInformation("Loaded {Count} secrets from environment variables", secrets.Count);
+
+            // Log JWT secrets specifically for debugging
+            var jwtPrivateKey = secrets.FirstOrDefault(s => s.Key == "JwtSettings:PrivateKeyBase64");
+            var jwtPublicKey = secrets.FirstOrDefault(s => s.Key == "JwtSettings:PublicKeyBase64");
+            _logger?.LogInformation(
+                "JWT secrets loaded - PrivateKeyBase64: {HasValue}, PublicKeyBase64: {HasValue}",
+                jwtPrivateKey.Value != null,
+                jwtPublicKey.Value != null);
         }
         catch (Exception ex)
         {
@@ -138,6 +146,8 @@ public class DopplerEnvironmentConfigurationProvider : ConfigurationProvider
             ["OAUTH_TELEGRAM_BOT_TOKEN"] = "OAuth:Telegram:BotToken",
             ["OAUTH_TELEGRAM_ENABLED"] = "OAuth:Telegram:Enabled",
             ["OAUTH_TELEGRAM_REDIRECT_URI"] = "OAuth:Telegram:RedirectUri",
+            ["JWT_PRIVATE_KEY_BASE64"] = "JwtSettings:PrivateKeyBase64",
+            ["JWT_PUBLIC_KEY_BASE64"] = "JwtSettings:PublicKeyBase64",
             ["JWT_SECRET_KEY"] = "JwtSettings:SecretKey",
             ["ENCRYPTION_KEY"] = "Encryption:Key",
             ["STRIPE_SECRET_KEY"] = "Stripe:SecretKey",

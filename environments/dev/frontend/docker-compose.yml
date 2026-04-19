@@ -6,6 +6,7 @@ services:
     build:
       context: ${PATH_FRONTEND}
       dockerfile: ${PATH_PROJECT}/environments/dev/dockerfiles/frontend-dev.Dockerfile
+      no_cache: true
     container_name: ServerEyeWeb-frontend-dev
     ports:
       - "3000:3000"

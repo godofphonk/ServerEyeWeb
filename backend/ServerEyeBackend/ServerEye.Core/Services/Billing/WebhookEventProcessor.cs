@@ -7,6 +7,7 @@ using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.Entities.Billing;
 using ServerEye.Core.Enums;
 using ServerEye.Core.Interfaces.Repository.Billing;
+using ServerEye.Core.Interfaces.Services;
 using ServerEye.Core.Interfaces.Services.Billing;
 
 public class WebhookEventProcessor : BackgroundService
@@ -325,6 +326,11 @@ public class WebhookEventProcessor : BackgroundService
 
             await subscriptionRepository.UpdateAsync(subscription);
 
+            // Invalidate cache for subscription and limits
+            var cacheService = serviceProvider.GetRequiredService<IMetricsCacheService>();
+            await cacheService.RemoveAsync($"subscription:{userId}");
+            await cacheService.RemoveAsync($"limits:{userId}");
+
             logger.LogInformation(
                 "Updated subscription {SubscriptionId} for user {UserId} to plan {PlanId}, status Active",
                 subscription.Id,
@@ -380,6 +386,11 @@ public class WebhookEventProcessor : BackgroundService
 
             await subscriptionRepository.UpdateAsync(subscription);
 
+            // Invalidate cache for subscription and limits
+            var cacheService = serviceProvider.GetRequiredService<IMetricsCacheService>();
+            await cacheService.RemoveAsync($"subscription:{userId}");
+            await cacheService.RemoveAsync($"limits:{userId}");
+
             logger.LogInformation(
                 "Updated subscription {SubscriptionId} for user {UserId} to status {Status}",
                 subscription.Id,
@@ -424,6 +435,11 @@ public class WebhookEventProcessor : BackgroundService
             subscription.UpdatedAt = DateTime.UtcNow;
 
             await subscriptionRepository.UpdateAsync(subscription);
+
+            // Invalidate cache for subscription and limits
+            var cacheService = serviceProvider.GetRequiredService<IMetricsCacheService>();
+            await cacheService.RemoveAsync($"subscription:{userId}");
+            await cacheService.RemoveAsync($"limits:{userId}");
 
             logger.LogInformation(
                 "Canceled subscription {SubscriptionId} for user {UserId}",

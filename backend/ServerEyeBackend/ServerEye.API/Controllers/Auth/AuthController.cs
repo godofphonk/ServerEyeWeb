@@ -34,8 +34,9 @@ public class AuthController : BaseApiController
     private readonly FrontendSettings frontendSettings;
     private readonly OAuthMetrics metrics;
     private readonly SecuritySettings securitySettings;
+    private readonly IMetricsCacheService cacheService;
 
-    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics, SecuritySettings securitySettings)
+    public AuthController(IJwtService jwtService, IRefreshTokenRepository refreshTokenRepository, IAuthService authService, IOAuthService oauthService, IUserRepository userRepository, ILogger<AuthController> logger, FrontendSettings frontendSettings, OAuthMetrics metrics, SecuritySettings securitySettings, IMetricsCacheService cacheService)
     {
         this.jwtService = jwtService;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -46,6 +47,7 @@ public class AuthController : BaseApiController
         this.frontendSettings = frontendSettings;
         this.metrics = metrics;
         this.securitySettings = securitySettings;
+        this.cacheService = cacheService;
     }
 
     [HttpPost("refresh")]
@@ -175,6 +177,53 @@ public class AuthController : BaseApiController
 
             // Revoke all refresh tokens for this user
             await this.refreshTokenRepository.RevokeAllUserTokensAsync(userId);
+
+            // Invalidate all user cache entries
+            await this.cacheService.RemoveAsync($"user:{userId}");
+            await this.cacheService.RemoveAsync($"subscription:{userId}");
+            await this.cacheService.RemoveAsync($"limits:{userId}");
+            await this.cacheService.RemoveAsync($"servers:{userId}");
+
+            // Add current access token to blacklist to prevent reuse
+            var accessToken = this.Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", string.Empty, StringComparison.Ordinal);
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                try
+                {
+                    // Decode JWT to get expiration time
+                    var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                    var jsonToken = tokenHandler.ReadJwtToken(accessToken);
+                    var expiration = jsonToken.ValidTo;
+
+                    // Calculate TTL until token expiration
+                    var ttl = expiration - DateTime.UtcNow;
+                    if (ttl > TimeSpan.Zero)
+                    {
+                        await this.cacheService.SetAsync($"blacklist:{accessToken}", "revoked", ttl);
+                        this.logger.LogInformation("Added access token to blacklist - Expires in: {TTL}", ttl);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Failed to blacklist access token during logout");
+                }
+            }
+
+            // Delete OAuth cookies (access_token and refresh_token)
+            this.Response.Cookies.Delete("access_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = this.securitySettings.ForceSecureCookies,
+                SameSite = SameSiteMode.Lax,
+                Path = "/"
+            });
+            this.Response.Cookies.Delete("refresh_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = this.securitySettings.ForceSecureCookies,
+                SameSite = SameSiteMode.Lax,
+                Path = "/"
+            });
 
             this.logger.LogInformation("User {UserId} logged out", userId);
 
@@ -764,37 +813,8 @@ public class AuthController : BaseApiController
                     "OAuth callback processed successfully - User: {UserId}",
                     response.User?.Id);
 
-                // Set JWT tokens in cookies with correct domain for frontend
-                var cookieSecure = this.securitySettings.ForceSecureCookies || this.Request.IsHttps;
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = cookieSecure,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.UtcNow.AddHours(1),
-
-                    // Domain removed - browser will set it for current host
-                    Path = "/"
-                };
-
-                var refreshTokenOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = cookieSecure,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTime.UtcNow.AddDays(30),
-
-                    // Domain removed - browser will set it for current host
-                    Path = "/"
-                };
-
-                this.Response.Cookies.Append("access_token", response.Token, cookieOptions);
-                this.Response.Cookies.Append("refresh_token", response.RefreshToken ?? string.Empty, refreshTokenOptions);
-
-                this.logger.LogInformation(
-                    "JWT cookies set for OAuth callback - Access token expires: {Expires}, Refresh token expires: {RefreshExpires}",
-                    cookieOptions.Expires,
-                    refreshTokenOptions.Expires);
+                // Cookies will be set by frontend via /api/auth/session
+                // This prevents duplicate cookies on production
 
                 // Validate and construct secure callback URL
                 string? baseUrl = this.frontendSettings.BaseUrl;
@@ -812,18 +832,29 @@ public class AuthController : BaseApiController
 
                 var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                              this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-                if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
+
+                // Use Request.Scheme instead of BaseUrl.Scheme to properly detect HTTPS behind nginx proxy
+                this.logger.LogInformation(
+                    "OAuth callback HTTPS check - Request.Scheme: {RequestScheme}, BaseUrl: {BaseUrl}, RemoteIpAddress: {RemoteIpAddress}, IsLocal: {IsLocal}, AllowHttpForLocalOAuth: {AllowHttpForLocalOAuth}",
+                    this.HttpContext.Request.Scheme,
+                    baseUrl,
+                    this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "null",
+                    isLocal,
+                    this.securitySettings.AllowHttpForLocalOAuth);
+
+                if (this.HttpContext.Request.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
                 {
-                    this.logger.LogWarning("Insecure frontend BaseUrl scheme for non-local request: {BaseUrl}", baseUrl);
+                    this.logger.LogWarning("Insecure request scheme for non-local request: {Scheme}", this.HttpContext.Request.Scheme);
                     return this.BadRequest("HTTPS required for non-local requests");
                 }
 
-                var callbackUrl = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+                // Pass only path to SafeRedirect to avoid URL duplication
+                var callbackPath = $"oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
-                    callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
+                    callbackPath += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
                 }
-                return this.SafeRedirect(callbackUrl);
+                return this.SafeRedirect(callbackPath);
             }
         }
         catch (Exception ex)
@@ -1144,24 +1175,30 @@ public class AuthController : BaseApiController
 
         var isLocal = this.HttpContext.Connection.RemoteIpAddress?.ToString() == "127.0.0.1" ||
                      this.HttpContext.Connection.RemoteIpAddress?.ToString() == "::1";
-        if (validatedBaseUri.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
+
+        // Use Request.Scheme instead of BaseUrl.Scheme to properly detect HTTPS behind nginx proxy
+        this.logger.LogInformation(
+            "SafeRedirect HTTPS check - Request.Scheme: {RequestScheme}, BaseUrl: {BaseUrl}, RemoteIpAddress: {RemoteIpAddress}, IsLocal: {IsLocal}, AllowHttpForLocalOAuth: {AllowHttpForLocalOAuth}",
+            this.HttpContext.Request.Scheme,
+            baseUrl,
+            this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "null",
+            isLocal,
+            this.securitySettings.AllowHttpForLocalOAuth);
+
+        if (this.HttpContext.Request.Scheme != "https" && !isLocal && !this.securitySettings.AllowHttpForLocalOAuth)
         {
-            this.logger.LogWarning("Insecure frontend BaseUrl for redirect: {BaseUrl}", baseUrl);
+            this.logger.LogWarning("Insecure request scheme for redirect: {Scheme}", this.HttpContext.Request.Scheme);
             return this.BadRequest("HTTPS required for redirects");
         }
 
-        var fullPath = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}{path}";
+        // Use current Request to build redirect URL with actual domain instead of Doppler/appsettings
+        var requestHost = this.HttpContext.Request.Host.Value;
+        var fullPath = $"{this.HttpContext.Request.Scheme}://{requestHost}{(path.StartsWith('/') ? string.Empty : "/")}{path}";
+
         if (!UriHelper.TryCreateAbsoluteUri(fullPath, out var fullUri) || fullUri == null)
         {
             this.logger.LogWarning("Invalid redirect URL constructed: {Url}", fullPath);
             return this.BadRequest("Invalid redirect URL");
-        }
-
-        // Ensure the redirect is to the same base domain
-        if (fullUri.Host != validatedBaseUri.Host || fullUri.Scheme != validatedBaseUri.Scheme)
-        {
-            this.logger.LogWarning("Redirect URL points to different domain: {Url}", LogSanitizer.Sanitize(fullPath));
-            return this.BadRequest("Cross-domain redirects not allowed");
         }
 
         return this.Redirect(fullPath);

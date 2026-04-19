@@ -1,6 +1,7 @@
 namespace ServerEye.Core.Services.Billing;
 
 using Microsoft.Extensions.Logging;
+using ServerEye.Core.Configuration;
 using ServerEye.Core.Configuration.Plans;
 using ServerEye.Core.DTOs.Billing;
 using ServerEye.Core.Enums;
@@ -15,14 +16,27 @@ using ServerEye.Core.Interfaces.Services.Billing;
 public class PlanLimitsService(
     ISubscriptionRepository subscriptionRepository,
     IUserServerAccessRepository userServerAccessRepository,
-    ILogger<PlanLimitsService> logger) : IPlanLimitsService
+    ILogger<PlanLimitsService> logger,
+    IMetricsCacheService cacheService,
+    CacheSettings cacheSettings) : IPlanLimitsService
 {
     private readonly ISubscriptionRepository subscriptionRepository = subscriptionRepository;
     private readonly IUserServerAccessRepository userServerAccessRepository = userServerAccessRepository;
     private readonly ILogger<PlanLimitsService> logger = logger;
+    private readonly IMetricsCacheService cacheService = cacheService;
+    private readonly CacheSettings cacheSettings = cacheSettings;
 
     public async Task<UserPlanLimitsDto> GetUserLimitsAsync(Guid userId)
     {
+        var cacheKey = $"limits:{userId}";
+        var cachedResult = await cacheService.GetAsync<UserPlanLimitsDto>(cacheKey);
+
+        if (cachedResult != null)
+        {
+            logger.LogDebug("Cache hit for user limits: {UserId}", userId);
+            return cachedResult;
+        }
+
         var subscription = await subscriptionRepository.GetByUserIdAsync(userId);
         SubscriptionPlanDefinition? planDefinition;
 
@@ -45,7 +59,7 @@ public class PlanLimitsService(
         var servers = await userServerAccessRepository.GetUserServersAsync(userId);
         var currentServers = servers.Count;
 
-        return new UserPlanLimitsDto
+        var result = new UserPlanLimitsDto
         {
             MaxServers = planDefinition.MaxServers,
             CurrentServers = currentServers,
@@ -54,6 +68,10 @@ public class PlanLimitsService(
             PlanName = planDefinition.Name,
             HasActiveSubscription = subscription?.Status == SubscriptionStatus.Active
         };
+
+        await cacheService.SetAsync(cacheKey, result, cacheSettings.UserLimits);
+
+        return result;
     }
 
     public async Task<bool> CanAddServerAsync(Guid userId)

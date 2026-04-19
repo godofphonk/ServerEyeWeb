@@ -2,6 +2,7 @@ namespace ServerEye.API.Configuration.Extensions;
 
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.Services;
@@ -32,17 +33,17 @@ public static class AuthenticationSetup
         })
         .AddJwtBearer(options =>
         {
-            // Use the same RSA key logic as JwtService for consistency
+            // Load RSA key from JwtSettings
             RSA rsaKey;
             if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
             {
-                // Production: Load public key from Doppler for validation
                 rsaKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
             }
             else
             {
-                // Development: Use static key
-                rsaKey = JwtService.GetStaticRsaKey;
+                throw new InvalidOperationException(
+                    "JWT PrivateKeyBase64 and PublicKeyBase64 must be configured. " +
+                    "Please add them to Doppler dev config.");
             }
 
             options.TokenValidationParameters = new TokenValidationParameters
@@ -56,6 +57,24 @@ public static class AuthenticationSetup
                 IssuerSigningKey = new RsaSecurityKey(rsaKey),
                 ClockSkew = TimeSpan.Zero,
                 RequireSignedTokens = true
+            };
+
+            // Add blacklist check using OnTokenValidated event
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+                    if (context.SecurityToken is System.IdentityModel.Tokens.Jwt.JwtSecurityToken token)
+                    {
+                        var tokenString = token.RawData;
+                        var blacklisted = await cache.GetStringAsync($"blacklist:{tokenString}");
+                        if (!string.IsNullOrEmpty(blacklisted))
+                        {
+                            context.Fail("Token has been revoked");
+                        }
+                    }
+                }
             };
         });
 
@@ -128,28 +147,28 @@ public static class AuthenticationSetup
     {
         try
         {
-            var keyBytes = Convert.FromBase64String(base64Key);
-            var rsa = RSA.Create();
-
-            // Try to import as private key first
-            try
+            // Check if key has PEM headers
+            if (base64Key.Contains("-----BEGIN", StringComparison.Ordinal))
             {
-                rsa.ImportPkcs8PrivateKey(keyBytes, out _);
+                var rsa = RSA.Create();
+                rsa.ImportFromPem(base64Key);
                 return rsa;
             }
-            catch
-            {
-                // If that fails, try as public key
-                try
-                {
-                    rsa.ImportSubjectPublicKeyInfo(keyBytes, out _);
-                    return rsa;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException("Invalid RSA key format", ex);
-                }
-            }
+
+            // Remove whitespace and newlines
+            var cleanedKey = base64Key.Replace("\n", string.Empty, StringComparison.Ordinal)
+                                      .Replace("\r", string.Empty, StringComparison.Ordinal)
+                                      .Replace(" ", string.Empty, StringComparison.Ordinal)
+                                      .Replace("\t", string.Empty, StringComparison.Ordinal);
+
+            // Key is in pure Base64 format, add PEM headers
+            var pemKey = cleanedKey.Contains("MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJd", StringComparison.Ordinal)
+                ? $"-----BEGIN PRIVATE KEY-----\n{cleanedKey}\n-----END PRIVATE KEY-----"
+                : $"-----BEGIN PUBLIC KEY-----\n{cleanedKey}\n-----END PUBLIC KEY-----";
+
+            var rsaPem = RSA.Create();
+            rsaPem.ImportFromPem(pemKey);
+            return rsaPem;
         }
         catch (Exception ex)
         {

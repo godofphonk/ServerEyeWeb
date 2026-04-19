@@ -28,8 +28,8 @@ public class JwtServiceTests
         };
 
         using var keyPair = System.Security.Cryptography.RSA.Create(2048);
-        this.jwtSettings.PrivateKeyBase64 = Convert.ToBase64String(keyPair.ExportPkcs8PrivateKey());
-        this.jwtSettings.PublicKeyBase64 = Convert.ToBase64String(keyPair.ExportSubjectPublicKeyInfo());
+        this.jwtSettings.PrivateKeyBase64 = $"-----BEGIN PRIVATE KEY-----\n{Convert.ToBase64String(keyPair.ExportPkcs8PrivateKey())}\n-----END PRIVATE KEY-----";
+        this.jwtSettings.PublicKeyBase64 = $"-----BEGIN PUBLIC KEY-----\n{Convert.ToBase64String(keyPair.ExportSubjectPublicKeyInfo())}\n-----END PUBLIC KEY-----";
 
         this.sut = new JwtService(this.jwtSettings, configurationMock1.Object);
     }

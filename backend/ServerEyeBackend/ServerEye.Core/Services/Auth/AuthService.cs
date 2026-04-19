@@ -18,7 +18,8 @@ public sealed class AuthService(
     IUserExternalLoginRepository externalLoginRepository,
     IEmailService emailService,
     IPasswordHasher passwordHasher,
-    ILogger<AuthService> logger) : IAuthService
+    ILogger<AuthService> logger,
+    IMetricsCacheService cacheService) : IAuthService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IEmailVerificationRepository emailVerificationRepository = emailVerificationRepository;
@@ -28,6 +29,7 @@ public sealed class AuthService(
     private readonly IEmailService emailService = emailService;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly ILogger<AuthService> logger = logger;
+    private readonly IMetricsCacheService cacheService = cacheService;
 
     public async Task SendVerificationCodeAsync(Guid userId)
     {
@@ -187,6 +189,9 @@ public sealed class AuthService(
         user.PendingEmail = newEmail ?? string.Empty;
         await this.userRepository.UpdateUserAsync(user);
 
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{userId}");
+
         var code = GenerateVerificationCode();
         var verification = new EmailVerification
         {
@@ -233,6 +238,9 @@ public sealed class AuthService(
         user.EmailVerifiedAt = DateTime.UtcNow;
 
         await this.userRepository.UpdateUserAsync(user);
+
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{userId}");
 
         this.logger.LogInformation("Email changed successfully for user: {UserId}, from {OldEmail} to {NewEmail}", userId, LogSanitizer.MaskEmail(oldEmail), LogSanitizer.MaskEmail(user.Email));
 
@@ -332,6 +340,12 @@ public sealed class AuthService(
         }
 
         // Delete account immediately without code confirmation
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{userId}");
+        await this.cacheService.RemoveAsync($"subscription:{userId}");
+        await this.cacheService.RemoveAsync($"limits:{userId}");
+        await this.cacheService.RemoveAsync($"servers:{userId}");
+
         await this.userRepository.DeleteAsync(userId);
     }
 
@@ -352,6 +366,13 @@ public sealed class AuthService(
         }
 
         deletion.IsUsed = true;
+
+        // Invalidate cache for user profile
+        await this.cacheService.RemoveAsync($"user:{userId}");
+        await this.cacheService.RemoveAsync($"subscription:{userId}");
+        await this.cacheService.RemoveAsync($"limits:{userId}");
+        await this.cacheService.RemoveAsync($"servers:{userId}");
+
         await this.userRepository.DeleteAsync(userId);
 
         return true;

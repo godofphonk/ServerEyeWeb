@@ -42,93 +42,63 @@ public sealed class JwtService : IJwtService
         this.logger = logger;
         staticLogger = logger;
 
-        // Check if JWT_DEV_PRIVATE_KEY is set
-        var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
-        logger?.LogInformation("JWT_DEV_PRIVATE_KEY is {Status}", string.IsNullOrEmpty(devPrivateKey) ? "NOT SET" : "SET");
-
-        // Load RSA keys from Doppler or use static key for development
+        // Load RSA keys from JwtSettings
         if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
         {
-            // Production: Load keys from Doppler
             this.rsaPrivateKey = LoadRsaKeyFromBase64(jwtSettings.PrivateKeyBase64);
             this.rsaPublicKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
-            logger?.LogInformation("Loaded RSA keys from JwtSettings (Production)");
+            logger?.LogInformation("Loaded RSA keys from JwtSettings");
         }
         else
         {
-            // Development: Use static key
-            this.rsaPrivateKey = StaticRsaKey;
-            this.rsaPublicKey = StaticRsaKey;
-            logger?.LogInformation("Loaded RSA static key (Development)");
+            throw new InvalidOperationException(
+                "JWT PrivateKeyBase64 and PublicKeyBase64 must be configured. " +
+                "Please add them to appsettings.Development.json or set via environment variables.");
         }
     }
-
-    public static RSA GetStaticRsaKey => StaticRsaKey;
-
-    private static RSA StaticRsaKey { get; } = CreateStaticRsaKey();
-
-#pragma warning disable CA1303
-    private static RSA CreateStaticRsaKey()
-    {
-        // For development, load RSA key from environment variable
-        // This ensures JWT tokens remain valid between development sessions
-        // and removes hardcoded secrets from source code
-        var devPrivateKey = Environment.GetEnvironmentVariable("JWT_DEV_PRIVATE_KEY");
-
-        if (string.IsNullOrEmpty(devPrivateKey))
-        {
-            // Fallback: generate dynamic key if environment variable not set
-            Console.WriteLine("[JwtService] JWT_DEV_PRIVATE_KEY not set, generating dynamic RSA key");
-            return RSA.Create(2048);
-        }
-
-        try
-        {
-            // Convert \n escaped string to actual newlines
-            var formattedKey = devPrivateKey.Replace("\\n", "\n", StringComparison.Ordinal);
-            var rsa = RSA.Create();
-            rsa.ImportFromPem(formattedKey);
-            Console.WriteLine("[JwtService] Successfully loaded RSA key from JWT_DEV_PRIVATE_KEY");
-            return rsa;
-        }
-        catch (Exception ex)
-        {
-            // Fallback to dynamic key if key import fails
-            Console.WriteLine($"[JwtService] Failed to load RSA key from JWT_DEV_PRIVATE_KEY: {ex.Message}, generating dynamic RSA key");
-            return RSA.Create(2048);
-        }
-    }
-#pragma warning restore CA1303
 
     private static RSA LoadRsaKeyFromBase64(string base64Key)
     {
         try
         {
-            var keyBytes = Convert.FromBase64String(base64Key);
-            var rsa = RSA.Create();
+            staticLogger?.LogInformation("Original key length: {Length}", base64Key.Length);
 
-            // Try to import as private key first
-            try
+            // Remove whitespace and newlines
+            var cleanedKey = base64Key.Replace("\n", string.Empty, StringComparison.Ordinal)
+                                      .Replace("\r", string.Empty, StringComparison.Ordinal)
+                                      .Replace(" ", string.Empty, StringComparison.Ordinal)
+                                      .Replace("\t", string.Empty, StringComparison.Ordinal);
+
+            staticLogger?.LogInformation("Cleaned key length: {Length}", cleanedKey.Length);
+
+            // Log first 100 characters for debugging
+            var keyPreview = cleanedKey.Length > 100 ? cleanedKey[..100] : cleanedKey;
+            staticLogger?.LogInformation("Key preview (first 100 chars): {Preview}", keyPreview);
+
+            // Check if key has PEM headers
+            if (base64Key.Contains("-----BEGIN", StringComparison.Ordinal))
             {
-                rsa.ImportPkcs8PrivateKey(keyBytes, out _);
+                staticLogger?.LogInformation("Key has PEM headers, importing directly");
+                var rsa = RSA.Create();
+                rsa.ImportFromPem(base64Key);
+                staticLogger?.LogInformation("Successfully loaded RSA key from PEM");
                 return rsa;
             }
-            catch
-            {
-                // If that fails, try as public key
-                try
-                {
-                    rsa.ImportSubjectPublicKeyInfo(keyBytes, out _);
-                    return rsa;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException("Invalid RSA key format", ex);
-                }
-            }
+
+            // Key is in pure Base64 format, add PEM headers
+            staticLogger?.LogInformation("Key is pure Base64, adding PEM headers");
+            var pemKey = cleanedKey.Contains("MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJd", StringComparison.Ordinal)
+                ? $"-----BEGIN PRIVATE KEY-----\n{cleanedKey}\n-----END PRIVATE KEY-----"
+                : $"-----BEGIN PUBLIC KEY-----\n{cleanedKey}\n-----END PUBLIC KEY-----";
+
+            var rsaPem = RSA.Create();
+            rsaPem.ImportFromPem(pemKey);
+            staticLogger?.LogInformation("Successfully loaded RSA key from PEM with added headers");
+            return rsaPem;
         }
         catch (Exception ex)
         {
+            staticLogger?.LogError(ex, "Failed to load RSA key");
             throw new InvalidOperationException("Failed to load RSA key", ex);
         }
     }

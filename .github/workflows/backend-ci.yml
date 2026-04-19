@@ -293,8 +293,7 @@ jobs:
           push: false
           load: true
           tags: servereye-backend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
 
       - name: Run Trivy vulnerability scanner on image
         uses: aquasecurity/trivy-action@v0.35.0

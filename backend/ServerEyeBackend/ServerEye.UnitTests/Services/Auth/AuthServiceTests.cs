@@ -27,6 +27,7 @@ public class AuthServiceTests
     private readonly Mock<IUserExternalLoginRepository> mockExternalLoginRepository;
     private readonly Mock<IEmailService> mockEmailService;
     private readonly Mock<IPasswordHasher> mockPasswordHasher;
+    private readonly Mock<IMetricsCacheService> mockCacheService;
     private readonly AuthServiceImpl authService;
 
     public AuthServiceTests()
@@ -38,6 +39,7 @@ public class AuthServiceTests
         this.mockExternalLoginRepository = new Mock<IUserExternalLoginRepository>();
         this.mockEmailService = new Mock<IEmailService>();
         this.mockPasswordHasher = new Mock<IPasswordHasher>();
+        this.mockCacheService = new Mock<IMetricsCacheService>();
 
         this.authService = new AuthServiceImpl(
             this.mockUserRepository.Object,
@@ -47,7 +49,8 @@ public class AuthServiceTests
             this.mockExternalLoginRepository.Object,
             this.mockEmailService.Object,
             this.mockPasswordHasher.Object,
-            Mock.Of<ILogger<AuthService>>());
+            Mock.Of<ILogger<AuthService>>(),
+            this.mockCacheService.Object);
     }
 
     #region SendVerificationCodeAsync Tests

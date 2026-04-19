@@ -9,12 +9,16 @@ public class ServersService(
     IServerAccessService serverAccessService,
     IMockDataProvider mockDataProvider,
     ServersConfiguration configuration,
-    ILogger<ServersService> logger) : IServersService
+    ILogger<ServersService> logger,
+    IMetricsCacheService cacheService,
+    CacheSettings cacheSettings) : IServersService
 {
     private readonly IServerAccessService serverAccessService = serverAccessService;
     private readonly IMockDataProvider mockDataProvider = mockDataProvider;
     private readonly ServersConfiguration configuration = configuration;
     private readonly ILogger<ServersService> logger = logger;
+    private readonly IMetricsCacheService cacheService = cacheService;
+    private readonly CacheSettings cacheSettings = cacheSettings;
 
     public async Task<ServersResponseDto> GetUserServersAsync(Guid userId)
     {
@@ -23,6 +27,18 @@ public class ServersService(
             if (configuration.EnableDetailedLogging)
             {
                 logger.LogInformation("Getting servers for user {UserId}", userId);
+            }
+
+            var cacheKey = $"servers:{userId}";
+            var cachedResult = await cacheService.GetAsync<ServersResponseDto>(cacheKey);
+
+            if (cachedResult != null)
+            {
+                if (configuration.EnableDetailedLogging)
+                {
+                    logger.LogInformation("Cache hit for user servers: {UserId}", userId);
+                }
+                return cachedResult;
             }
 
             var userServers = await serverAccessService.GetUserServersAsync(userId);
@@ -47,15 +63,19 @@ public class ServersService(
                 UpdatedAt = server.LastSeen ?? DateTime.UtcNow
             }).ToList();
 
+            var result = new ServersResponseDto
+            {
+                Servers = serverDtos.AsReadOnly()
+            };
+
+            await cacheService.SetAsync(cacheKey, result, cacheSettings.ServerList);
+
             if (configuration.EnableDetailedLogging)
             {
                 logger.LogInformation("Successfully retrieved {Count} servers for user {UserId}", serverDtos.Count, userId);
             }
 
-            return new ServersResponseDto
-            {
-                Servers = serverDtos.AsReadOnly()
-            };
+            return result;
         }
         catch (Exception ex)
         {

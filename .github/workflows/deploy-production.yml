@@ -1,9 +1,6 @@
 name: Deploy to Production
 
 on:
-  pull_request:
-    branches:
-      - production
   push:
     branches:
       - production
@@ -21,578 +18,328 @@ env:
   REGISTRY: ghcr.io
   IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/backend
   IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend
-  DOTNET_VERSION: '10.0.0'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
+    timeout-minutes: 40
+    if: github.ref == 'refs/heads/production'
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.0.0
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4.1.0
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for backend
-        id: meta-backend
-        uses: docker/metadata-action@v6.0.0
-        with:
-          images: ${{ env.IMAGE_BACKEND }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push backend image
-        shell: bash
-        run: |
-          max_attempts=3
-          attempt=1
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt of $max_attempts"
-            if docker buildx build \
-              --file ./environments/prod/dockerfiles/backend-prod.Dockerfile \
-              --iidfile /tmp/backend-iidfile \
-              --tag ${{ env.IMAGE_BACKEND }}:production \
-              --tag ${{ env.IMAGE_BACKEND }}:production-${{ github.sha }} \
-              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-              --label org.opencontainers.image.revision=${{ github.sha }} \
-              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
-              --label org.opencontainers.image.title=ServerEyeWeb \
-              --label org.opencontainers.image.version=production \
-              --no-cache \
-              --push \
-              --provenance=false \
-              --sbom=false \
-              --visibility=private \
-              .; then
-              echo "Build succeeded on attempt $attempt"
-              exit 0
-            else
-              echo "Build failed on attempt $attempt"
-              if [ $attempt -lt $max_attempts ]; then
-                echo "Retrying in 30 seconds..."
-                sleep 30
-                attempt=$((attempt + 1))
-              else
-                echo "Max attempts reached, giving up"
-                exit 1
-              fi
-            fi
-          done
-
-      - name: Extract metadata for frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v6.0.0
+        uses: docker/build-push-action@v6
         with:
-          images: ${{ env.IMAGE_FRONTEND }}
+          context: .
+          file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
+          push: true
           tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            ${{ env.IMAGE_BACKEND }}:production
+            ${{ env.IMAGE_BACKEND }}:production-${{ github.sha }}
+          no-cache: true
+          provenance: false
+          sbom: false
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=ServerEyeWeb Backend
+            org.opencontainers.image.version=production
 
-      - name: Install Doppler CLI
+      - name: Install Doppler CLI for frontend build
         uses: dopplerhq/cli-action@v4
         with:
           version: latest
 
-      - name: Build and push frontend image
+      - name: Prepare frontend build args from Doppler
+        id: frontend-args
         shell: bash
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_FRONTEND }}
         run: |
-          export PATH="$PATH:/home/runner/work/ServerEyeWeb/ServerEyeWeb/bin"
-          max_attempts=3
-          attempt=1
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt of $max_attempts"
-            # Get all NEXT_PUBLIC_* secrets from Doppler dynamically
-            export DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }}
-            
-            # Download secrets as JSON and extract NEXT_PUBLIC_* variables
-            SECRETS_JSON=$(doppler secrets download --no-file --format json --project servereye --config prd_frontend 2>/dev/null || echo '{}')
-            
-            # Build build-args string from NEXT_PUBLIC_* variables
-            BUILD_ARGS=""
-            if [ -n "$SECRETS_JSON" ] && [ "$SECRETS_JSON" != "{}" ]; then
-              BUILD_ARGS=$(echo "$SECRETS_JSON" | jq -r 'to_entries[] | select(.key | startswith("NEXT_PUBLIC_")) | "--build-arg \(.key)=\(.value)"' | tr '\n' ' ')
-            fi
-            
-            # Fallback to manual extraction if jq fails
-            if [ -z "$BUILD_ARGS" ]; then
-              echo "Falling back to manual secret extraction"
-              NEXT_PUBLIC_API_URL=$(doppler secrets get NEXT_PUBLIC_API_URL --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
-              NEXT_PUBLIC_WS_URL=$(doppler secrets get NEXT_PUBLIC_WS_URL --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
-              NEXT_PUBLIC_COOKIE_DOMAIN=$(doppler secrets get NEXT_PUBLIC_COOKIE_DOMAIN --project servereye --config prd_frontend --plain 2>/dev/null || echo "")
-              
-              BUILD_ARGS=""
-              [ -n "$NEXT_PUBLIC_API_URL" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
-              [ -n "$NEXT_PUBLIC_WS_URL" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL"
-              [ -n "$NEXT_PUBLIC_COOKIE_DOMAIN" ] && BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN"
-            fi
-            
-            echo "Build args: $BUILD_ARGS"
-            
-            # Generate cache key based on secrets hash to invalidate cache when secrets change
-            SECRETS_HASH=$(echo "$SECRETS_JSON" | md5sum | cut -d' ' -f1)
-            CACHE_FROM=type=gha,mode=max,ref=ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:buildcache
-            CACHE_TO=type=gha,mode=max,ref=ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:buildcache,ignore-error=true
-            
-            # Build with secrets as build-args and cache invalidation
-            if docker buildx build \
-              --file ./environments/prod/dockerfiles/frontend-prod.Dockerfile \
-              $BUILD_ARGS \
-              --build-arg BUILDKIT_INLINE_CACHE=1 \
-              --build-arg SECRETS_HASH=$SECRETS_HASH \
-              --cache-from $CACHE_FROM \
-              --cache-to $CACHE_TO \
-              --iidfile /tmp/frontend-iidfile \
-              --tag ${{ env.IMAGE_FRONTEND }}:production \
-              --tag ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }} \
-              --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-              --label org.opencontainers.image.revision=${{ github.sha }} \
-              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
-              --label org.opencontainers.image.title=ServerEyeWeb \
-              --label org.opencontainers.image.version=production \
-              --push \
-              --provenance=false \
-              --sbom=false \
-              --visibility=private \
-              ./frontend; then
-              echo "Build succeeded on attempt $attempt"
-              exit 0
-            else
-              echo "Build failed on attempt $attempt"
-              if [ $attempt -lt $max_attempts ]; then
-                echo "Retrying in 30 seconds..."
-                sleep 30
-                attempt=$((attempt + 1))
-              else
-                echo "Max attempts reached, giving up"
-                exit 1
-              fi
-            fi
-          done
+          set -Eeuo pipefail
+
+          tmp_json="$(mktemp)"
+          doppler secrets download \
+            --no-file \
+            --project servereye \
+            --config prd_frontend \
+            --format json > "$tmp_json"
+
+          secrets_hash="$(sha256sum "$tmp_json" | cut -d' ' -f1)"
+
+          {
+            echo "build_args<<EOF"
+            jq -r 'to_entries[] | select(.key | startswith("NEXT_PUBLIC_")) | "\(.key)=\(.value)"' "$tmp_json"
+            echo "EOF"
+            echo "secrets_hash=$secrets_hash"
+          } >> "$GITHUB_OUTPUT"
+
+          rm -f "$tmp_json"
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_FRONTEND }}:production
+            ${{ env.IMAGE_FRONTEND }}:production-${{ github.sha }}
+          build-args: |
+            ${{ steps.frontend-args.outputs.build_args }}
+            SECRETS_HASH=${{ steps.frontend-args.outputs.secrets_hash }}
+          no-cache: true
+          provenance: false
+          sbom: false
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=ServerEyeWeb Frontend
+            org.opencontainers.image.version=production
 
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: build-and-push
+    if: github.ref == 'refs/heads/production'
     environment:
       name: production
       url: https://servereye.dev
-    
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.2
-
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v4
-
-      - name: Add VPS to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Setup git repository on VPS
-        uses: appleboy/ssh-action@v1.2.5
+      - name: Deploy stacks on VPS
+        uses: appleboy/ssh-action@v1
+        env:
+          REMOTE_GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          REMOTE_GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DOPPLER_TOKEN_BACKEND: ${{ secrets.DOPPLER_TOKEN_BACKEND }}
+          DOPPLER_TOKEN_FRONTEND: ${{ secrets.DOPPLER_TOKEN_FRONTEND }}
+          DOPPLER_TOKEN_INFRASTRUCTURE: ${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}
+          REPO_URL: https://github.com/${{ github.repository }}.git
+          REPO_REF: ${{ github.ref_name }}
+          DEPLOY_SHA: ${{ github.sha }}
+          IMAGE_BACKEND: ${{ env.IMAGE_BACKEND }}
+          IMAGE_FRONTEND: ${{ env.IMAGE_FRONTEND }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          command_timeout: 40m
+          envs: REMOTE_GHCR_USERNAME,REMOTE_GHCR_TOKEN,DOPPLER_TOKEN_BACKEND,DOPPLER_TOKEN_FRONTEND,DOPPLER_TOKEN_INFRASTRUCTURE,REPO_URL,REPO_REF,DEPLOY_SHA,IMAGE_BACKEND,IMAGE_FRONTEND
           script: |
-            # Check if git is installed
-            if ! command -v git &> /dev/null; then
-              echo "❌ Git is not installed on VPS"
+            set -Eeuo pipefail
+
+            APP_DIR="/opt/servereye"
+
+            if command -v sudo >/dev/null 2>&1; then
+              SUDO="sudo"
+            else
+              SUDO=""
+            fi
+
+            echo "==> Validating prerequisites"
+            command -v git >/dev/null 2>&1 || { echo "git is required"; exit 1; }
+            command -v docker >/dev/null 2>&1 || { echo "docker is required"; exit 1; }
+            docker compose version >/dev/null 2>&1 || { echo "docker compose v2 is required"; exit 1; }
+            command -v doppler >/dev/null 2>&1 || { echo "doppler CLI is required on VPS for infrastructure/frontend"; exit 1; }
+
+            echo "==> Preparing application directory"
+            mkdir -p "$APP_DIR"
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone --branch "$REPO_REF" "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin
+            git checkout "$REPO_REF"
+            git reset --hard "origin/$REPO_REF"
+
+            echo "==> Verifying compose files"
+            test -f environments/prod/backend/docker-compose.yml
+            test -f environments/prod/infrastructure/docker-compose.yml
+            test -f environments/prod/frontend/docker-compose.yml
+            test -f environments/prod/observability/docker-compose.yml
+
+            echo "==> Saving rollback information"
+            BACKEND_CID="$(docker compose -f environments/prod/backend/docker-compose.yml ps -q backend 2>/dev/null || true)"
+            FRONTEND_CID="$(docker compose -f environments/prod/frontend/docker-compose.yml ps -q frontend 2>/dev/null || true)"
+
+            PREV_BACKEND_IMAGE_ID=""
+            PREV_FRONTEND_IMAGE_ID=""
+
+            if [ -n "$BACKEND_CID" ]; then
+              PREV_BACKEND_IMAGE_ID="$(docker inspect -f '{{.Image}}' "$BACKEND_CID")"
+            fi
+
+            if [ -n "$FRONTEND_CID" ]; then
+              PREV_FRONTEND_IMAGE_ID="$(docker inspect -f '{{.Image}}' "$FRONTEND_CID")"
+            fi
+
+            cat > "$APP_DIR/deployment-info.env" <<EOF
+            PREV_BACKEND_IMAGE_ID=$PREV_BACKEND_IMAGE_ID
+            PREV_FRONTEND_IMAGE_ID=$PREV_FRONTEND_IMAGE_ID
+            PREV_DEPLOY_SHA=$DEPLOY_SHA
+            EOF
+
+            echo "==> Logging in to GHCR"
+            echo "$REMOTE_GHCR_TOKEN" | docker login ghcr.io -u "$REMOTE_GHCR_USERNAME" --password-stdin
+
+            echo "==> Pulling exact images for this commit"
+            docker pull "$IMAGE_BACKEND:production-$DEPLOY_SHA"
+            docker pull "$IMAGE_FRONTEND:production-$DEPLOY_SHA"
+
+            echo "==> Tagging pulled images as production locally"
+            docker tag "$IMAGE_BACKEND:production-$DEPLOY_SHA" "$IMAGE_BACKEND:production"
+            docker tag "$IMAGE_FRONTEND:production-$DEPLOY_SHA" "$IMAGE_FRONTEND:production"
+
+            echo "==> Starting infrastructure"
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_INFRASTRUCTURE" \
+            doppler run --project servereye --config prd_infrastructure -- \
+            docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            echo "==> Starting observability"
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_INFRASTRUCTURE" \
+            doppler run --project servereye --config prd_infrastructure -- \
+            docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            echo "==> Starting backend"
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_BACKEND" \
+            docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            echo "==> Starting frontend"
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_FRONTEND" \
+            doppler run --project servereye --config prd_frontend -- \
+            docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            echo "==> Configuring nginx"
+            if ! command -v nginx >/dev/null 2>&1; then
+              $SUDO apt-get update
+              $SUDO apt-get install -y nginx
+              $SUDO systemctl enable nginx
+            fi
+
+            $SUDO mkdir -p /etc/nginx/ssl
+            $SUDO cp "$APP_DIR/environments/prod/nginx/servereye.dev.conf" /etc/nginx/sites-available/servereye.dev.conf
+
+            if [ ! -L /etc/nginx/sites-enabled/servereye.dev.conf ]; then
+              $SUDO ln -s /etc/nginx/sites-available/servereye.dev.conf /etc/nginx/sites-enabled/servereye.dev.conf
+            fi
+
+            $SUDO rm -f /etc/nginx/sites-enabled/default
+            $SUDO nginx -t
+            $SUDO systemctl reload nginx
+
+            echo "==> Verifying running containers"
+            docker compose -f environments/prod/backend/docker-compose.yml ps
+            docker compose -f environments/prod/frontend/docker-compose.yml ps
+            docker compose -f environments/prod/infrastructure/docker-compose.yml ps
+            docker compose -f environments/prod/observability/docker-compose.yml ps
+
+            echo "==> Backend health check"
+            backend_ok=false
+            for i in 1 2 3 4 5 6; do
+              if curl -fsS http://127.0.0.1:5246/health >/dev/null; then
+                backend_ok=true
+                break
+              fi
+              sleep $((i * 5))
+            done
+
+            if [ "$backend_ok" != "true" ]; then
+              echo "Backend health check failed"
+              docker compose -f environments/prod/backend/docker-compose.yml logs --tail=200 || true
               exit 1
             fi
-            echo "✅ Git is installed: $(git --version)"
-            
-            # Create deployment directory
-            mkdir -p /opt/servereye
-            
-            # Setup git repository if not exists
-            if [ ! -d /opt/servereye/.git ]; then
-              cd /opt/servereye
-              echo "Cloning repository with branch: ${{ github.ref_name }}"
-              git clone --branch ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }}.git .
-              echo "✅ Repository cloned successfully"
-            else
-              echo "✅ Repository already exists, will pull latest changes"
-            fi
 
-      - name: Pull latest changes from git
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            git fetch origin
-            git checkout ${{ github.ref_name }}
-            git pull origin ${{ github.ref_name }}
-            echo "✅ Latest changes pulled successfully"
-
-      - name: Verify git repository structure
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            echo "Current directory structure:"
-            ls -la
-            echo ""
-            echo "Checking environments directory:"
-            if [ -d environments ]; then
-              ls -la environments
-              if [ -d environments/prod ]; then
-                ls -la environments/prod
-              else
-                echo "❌ environments/prod directory does not exist"
+            echo "==> Frontend health check"
+            frontend_ok=false
+            for i in 1 2 3 4 5 6; do
+              if curl -fsS http://127.0.0.1:5247 >/dev/null; then
+                frontend_ok=true
+                break
               fi
-            else
-              echo "❌ environments directory does not exist"
+              sleep $((i * 5))
+            done
+
+            if [ "$frontend_ok" != "true" ]; then
+              echo "Frontend health check failed"
+              docker compose -f environments/prod/frontend/docker-compose.yml logs --tail=200 || true
+              exit 1
             fi
 
-      - name: Verify docker-compose files exist
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            ls -la environments/prod/backend/docker-compose.yml
-            ls -la environments/prod/infrastructure/docker-compose.yml
-            ls -la environments/prod/frontend/docker-compose.yml
-
-      - name: Login to GitHub Container Registry
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Save current running images before deployment
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            # Get current running images
-            CURRENT_BACKEND=$(docker ps --filter "name=backend" --format "{{.Image}}")
-            CURRENT_FRONTEND=$(docker ps --filter "name=frontend" --format "{{.Image}}")
-            
-            # Save current deployment info
-            echo "CURRENT_BACKEND=$CURRENT_BACKEND" > /opt/servereye/deployment-info.txt
-            echo "CURRENT_FRONTEND=$CURRENT_FRONTEND" >> /opt/servereye/deployment-info.txt
-            echo "CURRENT_COMMIT_SHA=${{ github.sha }}" >> /opt/servereye/deployment-info.txt
-            echo "DEPLOYMENT_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> /opt/servereye/deployment-info.txt
-            
-            # Tag current images as production-previous if they exist
-            if [ -n "$CURRENT_BACKEND" ]; then
-              docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-previous || true
-            fi
-            if [ -n "$CURRENT_FRONTEND" ]; then
-              docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-previous || true
-            fi
-            
-            echo "Current deployment info saved"
-
-      - name: Pull latest images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
-
-      - name: Verify images pulled
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            echo "Verifying images pulled..."
-            docker images | grep servereyeweb/backend
-            docker images | grep servereyeweb/frontend
-
-      - name: Tag images as latest
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
-
-      - name: Stop existing containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker-compose -f environments/prod/backend/docker-compose.yml down
-            docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-
-      - name: Remove old images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
-            docker rmi ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
-
-      - name: Pull new images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }}
-            docker pull ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }}
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production
-            docker tag ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production-${{ github.sha }} ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production
-
-      - name: Start infrastructure containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate
-
-      - name: Verify infrastructure containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            echo "Verifying infrastructure containers..."
-            docker ps | grep postgres
-            docker ps | grep redis
-
-      - name: Start observability stack
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate
-
-      - name: Start backend containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            # Inject secrets using doppler run
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd_backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate
-
-      - name: Start frontend containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
-            DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd_frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate
-
-      - name: Setup nginx and configuration
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            # Install nginx if not installed
-            if ! command -v nginx &> /dev/null; then
-              apt-get update
-              apt-get install -y nginx
-              systemctl enable nginx
-            fi
-
-            # Create nginx ssl directory
-            mkdir -p /etc/nginx/ssl
-
-            # Always copy nginx configuration (ensures latest changes are applied)
-            cp /opt/servereye/environments/prod/nginx/servereye.dev.conf /etc/nginx/sites-available/
-
-            # Create symlink if not exists
-            if [ ! -L /etc/nginx/sites-enabled/servereye.dev.conf ]; then
-              ln -s /etc/nginx/sites-available/servereye.dev.conf /etc/nginx/sites-enabled/
-            fi
-
-            # Remove default nginx site
-            rm -f /etc/nginx/sites-enabled/default
-
-            # Test nginx configuration before reload
-            nginx -t
-
-            # Reload nginx (zero-downtime) - applies new configuration
-            systemctl reload nginx
-
-            echo "✅ Nginx configuration updated and reloaded successfully"
-
-      - name: Verify all containers
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            echo "Verifying backend containers..."
-            docker ps | grep backend
-            docker ps | grep frontend
-            echo "Verifying deployment..."
-            docker ps --filter "name=backend" --format "{{.Image}}"
-            docker ps --filter "name=frontend" --format "{{.Image}}"
-
-      - name: Cleanup old images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            cd /opt/servereye
+            echo "==> Cleaning up dangling images"
             docker image prune -f
 
-      - name: Health check
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            echo "Waiting for services to start..."
-            sleep 30
-            
-            # Check backend health on port 5246
-            if curl -f http://localhost:5246/health; then
-              echo "✅ Backend health check passed"
-            else
-              echo "❌ Backend health check failed"
-              exit 1
-            fi
-            
-            # Check frontend health on port 5247
-            if curl -f http://localhost:5247; then
-              echo "✅ Frontend health check passed"
-            else
-              echo "❌ Frontend health check failed"
-              exit 1
-            fi
-            
-            echo "✅ Deployment successful!"
+            echo "✅ Deployment successful"
 
       - name: Rollback on failure
         if: failure()
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@v1
+        env:
+          DOPPLER_TOKEN_BACKEND: ${{ secrets.DOPPLER_TOKEN_BACKEND }}
+          DOPPLER_TOKEN_FRONTEND: ${{ secrets.DOPPLER_TOKEN_FRONTEND }}
+          DOPPLER_TOKEN_INFRASTRUCTURE: ${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }}
+          IMAGE_BACKEND: ${{ env.IMAGE_BACKEND }}
+          IMAGE_FRONTEND: ${{ env.IMAGE_FRONTEND }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          command_timeout: 30m
+          envs: DOPPLER_TOKEN_BACKEND,DOPPLER_TOKEN_FRONTEND,DOPPLER_TOKEN_INFRASTRUCTURE,IMAGE_BACKEND,IMAGE_FRONTEND
           script: |
-            echo "❌ Deployment failed, initiating rollback..."
-            cd /opt/servereye
-            
-            # Load previous deployment info
-            if [ -f /opt/servereye/deployment-info.txt ]; then
-              source /opt/servereye/deployment-info.txt
-              echo "Rolling back to previous deployment:"
-              echo "Previous backend: $CURRENT_BACKEND"
-              echo "Previous frontend: $CURRENT_FRONTEND"
-              echo "Previous commit: $CURRENT_COMMIT_SHA"
-              
-              # Stop current containers
-              docker-compose -f environments/prod/backend/docker-compose.yml down
-              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-              docker-compose -f environments/prod/frontend/docker-compose.yml down
-              docker-compose -f environments/prod/observability/docker-compose.yml down
-              
-              # Rollback to previous images
-              if [ -n "$CURRENT_BACKEND" ]; then
-                docker tag $CURRENT_BACKEND ghcr.io/${{ github.repository_owner }}/servereyeweb/backend:production || true
-              fi
-              if [ -n "$CURRENT_FRONTEND" ]; then
-                docker tag $CURRENT_FRONTEND ghcr.io/${{ github.repository_owner }}/servereyeweb/frontend:production || true
-              fi
-              
-              # Start containers with previous images
-              # Inject secrets using doppler run
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/infrastructure/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_INFRASTRUCTURE }} doppler run --project servereye --config prd_infrastructure -- docker-compose -f environments/prod/observability/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_BACKEND }} doppler run --project servereye --config prd_backend -- docker-compose -f environments/prod/backend/docker-compose.yml up -d
-              DOPPLER_TOKEN=${{ secrets.DOPPLER_TOKEN_FRONTEND }} doppler run --project servereye --config prd_frontend -- docker-compose -f environments/prod/frontend/docker-compose.yml up -d
-              
-              echo "✅ Rollback completed successfully"
-            else
-              echo "⚠️ No previous deployment info found, stopping containers only"
-              docker-compose -f environments/prod/backend/docker-compose.yml down
-              docker-compose -f environments/prod/infrastructure/docker-compose.yml down
-              docker-compose -f environments/prod/frontend/docker-compose.yml down
-              docker-compose -f environments/prod/observability/docker-compose.yml down
+            set -Eeuo pipefail
+
+            APP_DIR="/opt/servereye"
+
+            if [ ! -f "$APP_DIR/deployment-info.env" ]; then
+              echo "No rollback metadata found"
+              exit 1
             fi
+
+            cd "$APP_DIR"
+            source "$APP_DIR/deployment-info.env"
+
+            echo "==> Rolling back"
+
+            if [ -n "${PREV_BACKEND_IMAGE_ID:-}" ]; then
+              docker tag "$PREV_BACKEND_IMAGE_ID" "$IMAGE_BACKEND:production"
+            fi
+
+            if [ -n "${PREV_FRONTEND_IMAGE_ID:-}" ]; then
+              docker tag "$PREV_FRONTEND_IMAGE_ID" "$IMAGE_FRONTEND:production"
+            fi
+
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_INFRASTRUCTURE" \
+            doppler run --project servereye --config prd_infrastructure -- \
+            docker compose -f environments/prod/infrastructure/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_INFRASTRUCTURE" \
+            doppler run --project servereye --config prd_infrastructure -- \
+            docker compose -f environments/prod/observability/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_BACKEND" \
+            docker compose -f environments/prod/backend/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            DOPPLER_TOKEN="$DOPPLER_TOKEN_FRONTEND" \
+            doppler run --project servereye --config prd_frontend -- \
+            docker compose -f environments/prod/frontend/docker-compose.yml up -d --force-recreate --remove-orphans
+
+            echo "✅ Rollback finished"
