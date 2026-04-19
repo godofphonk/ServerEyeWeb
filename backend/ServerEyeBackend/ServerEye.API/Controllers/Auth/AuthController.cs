@@ -836,7 +836,9 @@ public class AuthController : BaseApiController
                     return this.BadRequest("HTTPS required for non-local requests");
                 }
 
-                var callbackUrl = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+                // Use current Request to build callback URL with actual domain instead of Doppler settings
+                var requestHost = this.HttpContext.Request.Host.Value;
+                var callbackUrl = $"{this.HttpContext.Request.Scheme}://{requestHost}/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
                     callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
