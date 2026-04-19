@@ -1180,18 +1180,14 @@ public class AuthController : BaseApiController
             return this.BadRequest("HTTPS required for redirects");
         }
 
-        var fullPath = $"{baseUrl}{(baseUrl.EndsWith('/') ? string.Empty : "/")}{path}";
+        // Use current Request to build redirect URL with actual domain instead of Doppler/appsettings
+        var requestHost = this.HttpContext.Request.Host.Value;
+        var fullPath = $"{this.HttpContext.Request.Scheme}://{requestHost}{(path.StartsWith('/') ? string.Empty : "/")}{path}";
+
         if (!UriHelper.TryCreateAbsoluteUri(fullPath, out var fullUri) || fullUri == null)
         {
             this.logger.LogWarning("Invalid redirect URL constructed: {Url}", fullPath);
             return this.BadRequest("Invalid redirect URL");
-        }
-
-        // Ensure the redirect is to the same base domain
-        if (fullUri.Host != validatedBaseUri.Host || fullUri.Scheme != validatedBaseUri.Scheme)
-        {
-            this.logger.LogWarning("Redirect URL points to different domain: {Url}", LogSanitizer.Sanitize(fullPath));
-            return this.BadRequest("Cross-domain redirects not allowed");
         }
 
         return this.Redirect(fullPath);
