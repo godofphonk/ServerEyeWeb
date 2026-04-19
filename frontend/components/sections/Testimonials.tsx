@@ -21,7 +21,7 @@ const testimonials = [
     name: 'Mike Rodriguez',
     role: 'SRE Lead',
     rating: 5,
-    text: 'The real-time alerts via Telegram are a game-changer. I know about issues before my users do.',
+    text: 'The real-time alerts via Telegram (coming soon) are a game-changer. I know about issues before my users do.',
   },
   {
     name: 'Emma Williams',

@@ -51,6 +51,7 @@ public static class SubscriptionPlanDefinitions
         MaxServers = 10,
         MetricsRetentionDays = 30,
         HasAlerts = true,
+        HasApiAccess = true,
         HasPrioritySupport = false,
         Features = new List<string> { "Unlimited alerts" }
     };

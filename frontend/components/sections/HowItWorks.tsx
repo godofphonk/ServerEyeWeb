@@ -9,7 +9,7 @@ export default function HowItWorks() {
       icon: Download,
       title: 'Install Agent',
       description: 'One command to install our lightweight agent on your servers',
-      code: 'curl -sSL https://servereye.dev/install | bash',
+      code: 'wget -qO- https://raw.githubusercontent.com/godofphonk/ServerEye/master/scripts/install-agent.sh | sudo bash',
     },
     {
       icon: Zap,
@@ -25,7 +25,7 @@ export default function HowItWorks() {
     },
     {
       icon: Bell,
-      title: 'Get Alerts',
+      title: 'Get Alerts (Coming Soon)',
       description: 'Receive instant notifications via Telegram, Email, or Webhooks',
       highlight: 'Never miss an issue',
     },

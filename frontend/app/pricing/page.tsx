@@ -151,7 +151,7 @@ export default function PricingPage() {
       `${plan.metricsRetentionDays}-day data retention`,
     ];
 
-    if (plan.hasAlerts) features.push('Custom alerts');
+    if (plan.hasAlerts) features.push('Custom alerts (coming soon)');
     if (plan.hasApiAccess) features.push('API access');
     if (plan.hasPrioritySupport) features.push('Priority support');
 
@@ -440,10 +440,6 @@ export default function PricingPage() {
                 {
                   q: 'What payment methods do you accept?',
                   a: 'We accept all major credit cards, PayPal, and wire transfers for Enterprise plans.',
-                },
-                {
-                  q: 'Is there a free trial?',
-                  a: 'Yes, Pro plan comes with a 14-day free trial. No credit card required.',
                 },
                 {
                   q: 'What happens if I exceed my server limit?',

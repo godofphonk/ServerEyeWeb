@@ -155,7 +155,6 @@ export default function StorageTab({
           <p className='text-gray-400'>Storage metrics will appear here once available.</p>
         </Card>
       )}
-
     </div>
   );
 }

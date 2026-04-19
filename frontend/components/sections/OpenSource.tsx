@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GitBranch, Star, GitFork, Users, Heart, BookOpen } from 'lucide-react';
+import { GitBranch, Heart } from 'lucide-react';
 
 export default function OpenSource() {
   return (
@@ -48,46 +48,6 @@ export default function OpenSource() {
             community of developers building the future of server monitoring.
           </p>
 
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12'>
-            {[
-              { icon: Star, value: '1.2K+', label: 'GitHub Stars' },
-              { icon: GitFork, value: '150+', label: 'Forks' },
-              { icon: Users, value: '50+', label: 'Contributors' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.6 }}
-                whileHover={{
-                  scale: 1.05,
-                  y: -5,
-                  boxShadow: '0 20px 40px rgba(168, 85, 247, 0.2)',
-                }}
-                className='bg-gray-900/50 border border-white/10 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300'
-              >
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                  className='w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 mx-auto'
-                >
-                  <stat.icon className='w-6 h-6 text-purple-400' />
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15 + 0.3 }}
-                  className='text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400'
-                >
-                  {stat.value}
-                </motion.div>
-                <div className='text-gray-400'>{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -106,14 +66,6 @@ export default function OpenSource() {
               <GitBranch className='w-5 h-5' />
               View on GitHub
             </motion.a>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className='px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full font-semibold transition-all duration-300 flex items-center gap-2 justify-center'
-            >
-              <BookOpen className='w-5 h-5' />
-              Read Documentation
-            </motion.button>
           </motion.div>
 
           <motion.div

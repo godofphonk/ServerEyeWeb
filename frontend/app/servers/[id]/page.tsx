@@ -167,7 +167,10 @@ export default function ServerDetailPage() {
           lastDataPoint?.temp_avg ||
           0,
         gpu_temperature: temperatureDetails?.gpu_temperature || 0,
-        storage_temperature: temperatureDetails?.storage?.[0]?.temperature || lastDataPoint?.temperatureDetails?.storage?.[0]?.temperature || 0,
+        storage_temperature:
+          temperatureDetails?.storage?.[0]?.temperature ||
+          lastDataPoint?.temperatureDetails?.storage?.[0]?.temperature ||
+          0,
       },
       trends: {
         cpu: metricsData?.summary?.avgCpu || 0,
@@ -605,7 +608,7 @@ export default function ServerDetailPage() {
               </div>
             </div>
           )}
-          {/* Alerts */}
+          {/* Alerts (Coming Soon) */}
           {dashboardMetrics?.alerts && dashboardMetrics.alerts.length > 0 && (
             <div className='mb-6'>
               {dashboardMetrics.alerts.map((alert, i) => (

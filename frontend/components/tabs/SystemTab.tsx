@@ -22,9 +22,10 @@ export default function SystemTab({
   const uptimeHours = dashboardMetrics?.uptime || 0;
   const uptimeNumeric = uptimeHours;
   const uptimeUnit = uptimeHours >= 24 ? 'days' : 'hours';
-  const uptimeDisplay = uptimeHours >= 24
-    ? `${Math.floor(uptimeHours / 24)}d ${Math.floor(uptimeHours % 24)}h`
-    : `${Math.floor(uptimeHours)}h`;
+  const uptimeDisplay =
+    uptimeHours >= 24
+      ? `${Math.floor(uptimeHours / 24)}d ${Math.floor(uptimeHours % 24)}h`
+      : `${Math.floor(uptimeHours)}h`;
   const _processes = 'N/A'; // Not available in current API
 
   // GPU temperature from historicalMetrics temperatureDetails

@@ -138,7 +138,7 @@ export default function Visualization() {
             </motion.span>
           </h2>
           <p className='text-xl text-gray-400 max-w-2xl mx-auto'>
-            Beautiful dashboards with live metrics, charts, and alerts
+            Beautiful dashboards with live metrics, charts, and alerts (coming soon)
           </p>
         </motion.div>
 
@@ -260,7 +260,7 @@ export default function Visualization() {
                 <AlertCircle className='w-6 h-6 text-yellow-400' />
               </motion.div>
               <div>
-                <div className='font-medium text-yellow-300'>System Alert</div>
+                <div className='font-medium text-yellow-300'>System Alert (Coming Soon)</div>
                 <div className='text-sm text-yellow-400/70'>
                   High CPU usage detected on server-01
                 </div>

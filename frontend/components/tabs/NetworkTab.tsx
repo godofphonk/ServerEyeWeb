@@ -167,7 +167,6 @@ export default function NetworkTab({
           <p className='text-gray-400'>Network metrics will appear here once available.</p>
         </Card>
       )}
-
     </div>
   );
 }

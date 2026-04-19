@@ -231,7 +231,7 @@ export default function Hero() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className='text-xl md:text-2xl lg:text-3xl text-gray-300 mb-14 max-w-4xl mx-auto leading-relaxed font-light'
           >
-            Real-time metrics, instant alerts, and powerful insights.
+            Real-time metrics, instant alerts (coming soon), and powerful insights.
             <br />
             <span className='text-white font-medium'>Keep your infrastructure healthy</span> with
             ServerEye.
@@ -256,14 +256,6 @@ export default function Hero() {
               </span>
               <motion.div className='absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300' />
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className='px-10 py-5 bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/20 rounded-full font-semibold text-xl transition-all duration-300 flex items-center gap-3 hover:border-purple-400/50 group'
-            >
-              <Zap className='w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform' />
-              View Demo
-            </motion.button>
           </motion.div>
 
           {/* Stats with animated counters */}
@@ -274,7 +266,7 @@ export default function Hero() {
             className='mt-24 grid grid-cols-3 gap-8 max-w-3xl mx-auto'
           >
             {[
-              { value: '10K+', label: 'Servers Monitored', icon: Server },
+              { value: '500+', label: 'Servers Monitored', icon: Server },
               { value: '99.9%', label: 'Uptime', icon: Shield },
               { value: '<1s', label: 'Response Time', icon: Zap },
             ].map((stat, i) => (

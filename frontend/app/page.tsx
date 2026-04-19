@@ -7,8 +7,6 @@ import PainPoint from '@/components/sections/PainPoint';
 import HowItWorks from '@/components/sections/HowItWorks';
 import Security from '@/components/sections/Security';
 import OpenSource from '@/components/sections/OpenSource';
-import Testimonials from '@/components/sections/Testimonials';
-import Footer from '@/components/sections/Footer';
 
 // Optimized Telegram callback handler
 function TelegramCallbackHandler() {
@@ -35,8 +33,6 @@ export default function Home() {
         <HowItWorks />
         <Security />
         <OpenSource />
-        <Testimonials />
-        <Footer />
       </main>
     </>
   );
