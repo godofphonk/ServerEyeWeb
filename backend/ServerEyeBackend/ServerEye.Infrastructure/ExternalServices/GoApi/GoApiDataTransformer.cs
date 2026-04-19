@@ -129,6 +129,10 @@ public static class GoApiDataTransformer
         var finalHighestTemp = highestTemp;
         var finalLoad = load1Min;
 
+        var networkValue = snapshot.Metrics?.Network ?? 0;
+        var loadValue = finalLoad;
+        var tempValue = finalTemp;
+
         dataPoints.Add(new GoApiDataPoint
         {
             Timestamp = validTimestamp,
@@ -140,13 +144,28 @@ public static class GoApiDataTransformer
             MemoryMin = snapshot.Metrics?.Memory ?? 0,
             DiskAvg = snapshot.Metrics?.Disk ?? 0,
             DiskMax = snapshot.Metrics?.Disk ?? 0,
-            NetworkAvg = snapshot.Metrics?.Network ?? 0,
-            NetworkMax = snapshot.Metrics?.Network ?? 0,
-            TempAvg = finalTemp,
+            NetworkAvg = networkValue,
+            NetworkMax = networkValue,
+            TempAvg = tempValue,
             TempMax = finalHighestTemp,
-            LoadAvg = finalLoad,
-            LoadMax = finalLoad,
+            LoadAvg = loadValue,
+            LoadMax = loadValue,
             SampleCount = 1,
+
+            // Nested objects for frontend compatibility
+            Network = new NetworkMetrics { Avg = networkValue, Max = networkValue },
+            LoadAverage = new LoadAverageMetrics { Avg = loadValue, Max = loadValue },
+            Temperature = new TemperatureMetrics { Avg = tempValue, Max = finalHighestTemp },
+            TemperatureDetails = snapshot.Metrics?.TemperatureDetails != null
+                ? new TemperatureDetails
+                {
+                    CpuTemperature = snapshot.Metrics.TemperatureDetails.CpuTemperature,
+                    GpuTemperature = snapshot.Metrics.TemperatureDetails.GpuTemperature,
+                    SystemTemperature = snapshot.Metrics.TemperatureDetails.SystemTemperature,
+                    HighestTemperature = snapshot.Metrics.TemperatureDetails.HighestTemperature,
+                    TemperatureUnit = snapshot.Metrics.TemperatureDetails.TemperatureUnit
+                }
+                : null,
 
             // Memory details from snapshot
             MemoryCacheGb = snapshot.Metrics?.MemoryDetails?.CachedGb ?? 0,

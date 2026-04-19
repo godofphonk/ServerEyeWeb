@@ -82,13 +82,13 @@ public class GoApiCpuUsage
 
 public class GoApiLoadAverage
 {
-    [JsonPropertyName("load_1min")]
+    [JsonPropertyName("1m")]
     public double Load1Min { get; init; }
 
-    [JsonPropertyName("load_5min")]
+    [JsonPropertyName("5m")]
     public double Load5Min { get; init; }
 
-    [JsonPropertyName("load_15min")]
+    [JsonPropertyName("15m")]
     public double Load15Min { get; init; }
 }
 
@@ -173,10 +173,10 @@ public class GoApiNetworkInterface
 
 public class GoApiTemperatureDetails
 {
-    [JsonPropertyName("cpu_temperature")]
+    [JsonPropertyName("cpu")]
     public double CpuTemperature { get; init; }
 
-    [JsonPropertyName("gpu_temperature")]
+    [JsonPropertyName("gpu")]
     public double GpuTemperature { get; init; }
 
     [JsonPropertyName("system_temperature")]
@@ -185,7 +185,7 @@ public class GoApiTemperatureDetails
     [JsonPropertyName("storage_temperatures")]
     public List<GoApiStorageTemperature> StorageTemperatures { get; init; } = new();
 
-    [JsonPropertyName("highest_temperature")]
+    [JsonPropertyName("highest")]
     public double HighestTemperature { get; init; }
 
     [JsonPropertyName("temperature_unit")]

@@ -13,9 +13,9 @@ public class GoApiClient(GoApiOperationFactory operationFactory) : IGoApiClient
 {
     private readonly GoApiOperationFactory operationFactory = operationFactory ?? throw new ArgumentNullException(nameof(operationFactory));
 
-    public async Task<GoApiMetricsResponse?> GetMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null)
+    public async Task<GoApiUnifiedResponse?> GetUnifiedMetricsAsync(string serverKey, bool includeMetrics = true, bool includeStatus = true, bool includeStatic = true)
     {
-        var operation = operationFactory.CreateGetMetricsByKey(serverKey, start, endTime, granularity);
+        var operation = operationFactory.CreateGetUnifiedMetrics(serverKey, includeMetrics, includeStatus, includeStatic);
         return await operation.ExecuteAsync();
     }
 

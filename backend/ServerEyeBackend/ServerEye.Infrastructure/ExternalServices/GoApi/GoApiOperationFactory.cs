@@ -22,29 +22,14 @@ public class GoApiOperationFactory
     }
 
     // Metrics Operations
-    public GetMetricsOperation CreateGetMetrics(string serverId, DateTime startTime, DateTime endTime, string? granularity = null)
+    public GetUnifiedMetricsOperation CreateGetUnifiedMetrics(string serverKey, bool includeMetrics = true, bool includeStatus = true, bool includeStatic = true)
     {
-        return new GetMetricsOperation(httpHandler, logger, serverId, startTime, endTime, granularity);
-    }
-
-    public GetMetricsByKeyOperation CreateGetMetricsByKey(string serverKey, DateTime startTime, DateTime endTime, string? granularity = null)
-    {
-        return new GetMetricsByKeyOperation(httpHandler, logger, serverKey, startTime, endTime, granularity);
+        return new GetUnifiedMetricsOperation(httpHandler, logger, serverKey, includeMetrics, includeStatus, includeStatic);
     }
 
     public GetTieredMetricsByKeyOperation CreateGetTieredMetricsByKey(string serverKey, DateTime startTime, DateTime endTime, string? granularity = null)
     {
         return new GetTieredMetricsByKeyOperation(httpHandler, logger, serverKey, startTime, endTime, granularity);
-    }
-
-    public GetRealtimeMetricsOperation CreateGetRealtimeMetrics(string serverId, TimeSpan? duration = null)
-    {
-        return new GetRealtimeMetricsOperation(httpHandler, logger, serverId, duration);
-    }
-
-    public GetDashboardMetricsOperation CreateGetDashboardMetrics(string serverId)
-    {
-        return new GetDashboardMetricsOperation(httpHandler, logger, serverId);
     }
 
     // Server Info Operations

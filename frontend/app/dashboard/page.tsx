@@ -115,18 +115,18 @@ export default function DashboardPage() {
 
         // Transform unified API response to expected format
         const metricsData = response.metrics;
+        const lastDataPoint = metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1];
+        const temperatureDetails = lastDataPoint?.temperature_details;
         const dashboardMetrics: DashboardMetrics = {
           current: {
             cpu: metricsData?.summary?.avgCpu || 0,
             memory: metricsData?.summary?.avgMemory || 0,
             disk: metricsData?.summary?.avgDisk || 0,
-            network:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.network?.avg || 0,
-            load:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+            network: lastDataPoint?.network?.avg || 0,
+            load: lastDataPoint?.loadAverage?.avg || 0,
             temperature:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature_details
-                ?.cpu_temperature ||
+              temperatureDetails?.cpu_temperature ||
+              lastDataPoint?.temperature?.avg ||
               metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature?.avg ||
               0,
           },

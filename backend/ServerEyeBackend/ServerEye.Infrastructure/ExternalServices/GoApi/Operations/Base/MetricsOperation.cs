@@ -32,6 +32,18 @@ public abstract class MetricsOperation : GoApiOperation<GoApiMetricsResponse?>
             }
         }
 
+        // Transform flat snake_case fields to nested camelCase objects for frontend compatibility
+        if (result?.DataPoints != null)
+        {
+            foreach (var dataPoint in result.DataPoints)
+            {
+                // If nested objects are null, populate them from flat fields
+                dataPoint.Network ??= new NetworkMetrics { Avg = dataPoint.NetworkAvg, Max = dataPoint.NetworkMax };
+                dataPoint.LoadAverage ??= new LoadAverageMetrics { Avg = dataPoint.LoadAvg, Max = dataPoint.LoadMax };
+                dataPoint.Temperature ??= new TemperatureMetrics { Avg = dataPoint.TempAvg, Max = dataPoint.TempMax };
+            }
+        }
+
         if (result == null || result.DataPoints == null || result.DataPoints.Count == 0)
         {
             Logger.LogEmptyData(GetOperationName(), GetServerIdentifier(), 0);

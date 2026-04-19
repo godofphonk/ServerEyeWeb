@@ -51,21 +51,21 @@ public static class MetricsMapper
             },
             Network = new MetricValue
             {
-                Avg = goPoint.NetworkAvg,
-                Max = goPoint.NetworkMax,
-                Min = goPoint.NetworkAvg
+                Avg = goPoint.Network?.Avg ?? goPoint.NetworkAvg,
+                Max = goPoint.Network?.Max ?? goPoint.NetworkMax,
+                Min = goPoint.Network?.Avg ?? goPoint.NetworkAvg
             },
             Temperature = new MetricValue
             {
-                Avg = goPoint.TempAvg,
-                Max = goPoint.TempMax,
-                Min = goPoint.TempAvg
+                Avg = goPoint.Temperature?.Avg ?? goPoint.TempAvg,
+                Max = goPoint.Temperature?.Max ?? goPoint.TempMax,
+                Min = goPoint.Temperature?.Avg ?? goPoint.TempAvg
             },
             LoadAverage = new MetricValue
             {
-                Avg = goPoint.LoadAvg,
-                Max = goPoint.LoadMax,
-                Min = goPoint.LoadAvg
+                Avg = goPoint.LoadAverage?.Avg ?? goPoint.LoadAvg,
+                Max = goPoint.LoadAverage?.Max ?? goPoint.LoadMax,
+                Min = goPoint.LoadAverage?.Avg ?? goPoint.LoadAvg
             },
             SampleCount = goPoint.SampleCount
         };

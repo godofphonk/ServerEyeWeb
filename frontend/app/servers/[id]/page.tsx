@@ -20,6 +20,7 @@ import {
   getServerKey,
   getCachedMonitoredServers,
   getCachedTieredMetrics,
+  getServerUnifiedData,
 } from '@/lib/serverApi';
 import { MonitoredServer, DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
@@ -137,43 +138,57 @@ export default function ServerDetailPage() {
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
 
-    const end = new Date();
-    const startTime = new Date(end.getTime() - 5 * 60 * 1000);
+    // Use unified endpoint for current metrics (metrics + status + static in 1 request)
+    const response = await getServerUnifiedData(serverKey, {
+      includeMetrics: true,
+      includeStatus: true,
+      includeStatic: false, // Static info loaded separately via static-info endpoint
+    });
 
-    // Use tiered endpoint for consistency with historical metrics
-    const response = (await getCachedTieredMetrics(
-      serverKey,
-      startTime.toISOString(),
-      end.toISOString(),
-      'minute', // Use minute granularity for dashboard
-    )) as MetricsResponse;
+    // Get full static info including memory type and speed
+    const fullStaticInfo = await getServerStaticInfoCached(serverKey);
 
-    // Transform API response to expected format
-    const lastDataPoint = response.data?.[response.data.length - 1];
+    // Transform unified API response to expected format
+    const metricsData = response.metrics;
+    const lastDataPoint = metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1];
+    const temperatureDetails = metricsData?.temperatureDetails;
+    const status = response.status;
+
+    setStaticInfo(fullStaticInfo);
 
     const result: DashboardMetrics = {
       current: {
-        cpu: response.summary?.avgCpu || lastDataPoint?.cpu.avg || 0,
-        memory: response.summary?.avgMemory || lastDataPoint?.memory.avg || 0,
-        disk: response.summary?.avgDisk || lastDataPoint?.disk.avg || 0,
-        network: lastDataPoint?.network.avg || 0,
-        load: lastDataPoint?.loadAverage.avg || 0,
-        temperature: response.summary?.avgTemperature || lastDataPoint?.temperature.avg || 0,
-        gpu_temperature: 0,
+        cpu: metricsData?.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
+        memory: metricsData?.summary?.avgMemory || lastDataPoint?.memory_avg || 0,
+        disk: metricsData?.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
+        network: lastDataPoint?.network?.avg || lastDataPoint?.network_avg || 0,
+        load: lastDataPoint?.loadAverage?.avg || lastDataPoint?.load_avg || 0,
+        temperature: temperatureDetails?.cpu_temperature || lastDataPoint?.temperature?.avg || lastDataPoint?.temp_avg || 0,
+        gpu_temperature: temperatureDetails?.gpu_temperature || 0,
       },
       trends: {
-        cpu: response.summary?.avgCpu || 0,
-        memory: response.summary?.avgMemory || 0,
-        disk: response.summary?.avgDisk || 0,
+        cpu: metricsData?.summary?.avgCpu || 0,
+        memory: metricsData?.summary?.avgMemory || 0,
+        disk: metricsData?.summary?.avgDisk || 0,
         network: 0,
         load: 0,
         temperature: 0,
       },
-      timestamp: response.timeRange.end || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       alerts: [],
+      // Add uptime from status
+      uptime: status?.lastSeen ? calculateUptime(status.lastSeen) : 0,
     };
 
     return result;
+  };
+
+  // Helper function to calculate uptime from lastSeen timestamp
+  const calculateUptime = (lastSeen: string | Date): number => {
+    const lastSeenDate = typeof lastSeen === 'string' ? new Date(lastSeen) : lastSeen;
+    const now = new Date();
+    const diffMs = now.getTime() - lastSeenDate.getTime();
+    return diffMs / (1000 * 60 * 60); // Convert to hours
   };
 
   // Функция для округления timestamp до заданной гранулярности
@@ -350,18 +365,18 @@ export default function ServerDetailPage() {
     )) as MetricsResponse;
 
     // Детальное логирование timestamps для проверки актуальности данных
-    if (response.data && response.data.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // Фильтр переустановки агента отключен - показываем все данные
     }
 
     // Детальное логирование первых и последних точек данных
-    if (response.data && response.data.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // data points available for logging
     }
 
-    if (response.data?.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // Проверяем если данных меньше ожидаемых
-      if (response.data.length < expectedPoints * 0.1) {
+      if (response.dataPoints.length < expectedPoints * 0.1) {
         // Меньше 10% от ожидаемых
         // Ограниченные данные
       }
@@ -369,7 +384,7 @@ export default function ServerDetailPage() {
 
     // Заполняем пропущенные данные нулями
     const filledDataPoints = fillMissingDataPoints(
-      response.data || [],
+      response.dataPoints || [],
       start,
       end,
       config.minutes,

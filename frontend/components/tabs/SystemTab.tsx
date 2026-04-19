@@ -3,7 +3,7 @@
 import { Monitor, Thermometer, Clock, Cpu } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
-import { DashboardMetrics, MetricsResponse } from '@/types';
+import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 // Helper function to calculate uptime from lastSeen
 const calculateUptime = (lastSeen: string): string => {
@@ -24,16 +24,32 @@ interface SystemTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics?: MetricsResponse | null;
   server: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  staticInfo?: ServerStaticInfo | null;
 }
 
 export default function SystemTab({
   dashboardMetrics,
   historicalMetrics: _historicalMetrics,
   server,
+  staticInfo,
 }: SystemTabProps) {
   // TODO: Get real data from API when available
   const uptime = server?.lastSeen ? calculateUptime(server.lastSeen) : 'N/A';
   const _processes = 'N/A'; // Not available in current API
+
+  // Parse uptime for display
+  const uptimeValue = uptime !== 'N/A' ? uptime : '0h';
+  const uptimeNumeric = uptimeValue.includes('d')
+    ? parseInt(uptimeValue.split('d')[0])
+    : uptimeValue.includes('h')
+      ? parseInt(uptimeValue.split('h')[0])
+      : 0;
+  const uptimeUnit = uptimeValue.includes('d') ? 'days' : 'hours';
+
+  // GPU temperature from historicalMetrics temperatureDetails
+  const gpuTemp = _historicalMetrics?.temperatureDetails?.gpu_temperature ||
+                  dashboardMetrics?.current?.gpu_temperature ||
+                  0;
 
   return (
     <div className='space-y-6'>
@@ -47,7 +63,7 @@ export default function SystemTab({
           <CurrentMetricsCard
             icon={Thermometer}
             label='GPU Temperature'
-            value={dashboardMetrics?.current?.gpu_temperature || 0}
+            value={gpuTemp}
             unit='°C'
             trend='N/A'
             color='orange'
@@ -55,8 +71,8 @@ export default function SystemTab({
           <CurrentMetricsCard
             icon={Clock}
             label='Uptime'
-            value={uptime.includes('d') ? parseInt(uptime.split('d')[0]) : 0}
-            unit={uptime.includes('d') ? 'days' : 'hours'}
+            value={uptimeNumeric}
+            unit={uptimeUnit}
             color='blue'
           />
           <CurrentMetricsCard
@@ -92,19 +108,19 @@ export default function SystemTab({
               <div className='grid grid-cols-2 gap-4 text-sm'>
                 <div>
                   <span className='text-gray-400'>Hostname:</span>
-                  <p className='font-medium'>{server?.hostname || 'Unknown'}</p>
+                  <p className='font-medium'>{staticInfo?.hostname || server?.hostname || 'Unknown'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Operating System:</span>
-                  <p className='font-medium'>{server?.operatingSystem || 'Linux'}</p>
+                  <p className='font-medium'>{staticInfo?.operating_system || server?.operatingSystem || 'Linux'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Kernel Version:</span>
-                  <p className='font-medium'>N/A</p>
+                  <p className='font-medium'>{staticInfo?.kernel || 'N/A'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Architecture:</span>
-                  <p className='font-medium'>N/A</p>
+                  <p className='font-medium'>{staticInfo?.architecture || 'N/A'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Uptime:</span>

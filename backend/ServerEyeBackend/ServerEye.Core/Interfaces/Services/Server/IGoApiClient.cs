@@ -4,7 +4,7 @@ using ServerEye.Core.DTOs.GoApi;
 
 public interface IGoApiClient
 {
-    public Task<GoApiMetricsResponse?> GetMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null);
+    public Task<GoApiUnifiedResponse?> GetUnifiedMetricsAsync(string serverKey, bool includeMetrics = true, bool includeStatus = true, bool includeStatic = true);
     public Task<GoApiMetricsResponse?> GetTieredMetricsByKeyAsync(string serverKey, DateTime start, DateTime endTime, string? granularity = null);
     public Task<GoApiServerInfo?> ValidateServerKeyAsync(string serverKey);
     public Task<GoApiServerInfo?> GetServerInfoAsync(string serverId);

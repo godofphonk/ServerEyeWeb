@@ -15,17 +15,14 @@ using ServerEye.Core.Interfaces.Services;
 [Authorize]
 public class UnifiedServerController : ControllerBase
 {
-    private readonly IMetricsService metricsService;
-    private readonly IStaticInfoService staticInfoService;
+    private readonly IGoApiClient goApiClient;
     private readonly ILogger<UnifiedServerController> logger;
 
     public UnifiedServerController(
-        IMetricsService metricsService,
-        IStaticInfoService staticInfoService,
+        IGoApiClient goApiClient,
         ILogger<UnifiedServerController> logger)
     {
-        this.metricsService = metricsService;
-        this.staticInfoService = staticInfoService;
+        this.goApiClient = goApiClient;
         this.logger = logger;
     }
 
@@ -42,138 +39,23 @@ public class UnifiedServerController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
-            {
-                return Unauthorized("Invalid user identifier");
-            }
-
             this.logger.LogInformation(
-                "GetUnifiedData called: ServerKey={ServerKey}, UserId={UserId}, IncludeMetrics={IncludeMetrics}, IncludeStatus={IncludeStatus}, IncludeStatic={IncludeStatic}",
+                "GetUnifiedData called: ServerKey={ServerKey}, IncludeMetrics={IncludeMetrics}, IncludeStatus={IncludeStatus}, IncludeStatic={IncludeStatic}",
                 serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null",
-                userGuid,
                 request.IncludeMetrics,
                 request.IncludeStatus,
                 request.IncludeStatic);
 
-            var response = new GoApiUnifiedResponse
+            // Proxy request to Go API unified endpoint
+            var response = await this.goApiClient.GetUnifiedMetricsAsync(
+                serverKey ?? string.Empty,
+                request.IncludeMetrics,
+                request.IncludeStatus,
+                request.IncludeStatic);
+
+            if (response == null)
             {
-                ServerKey = serverKey ?? string.Empty
-            };
-
-            // Handle metrics request
-            if (request.IncludeMetrics)
-            {
-                try
-                {
-                    // Set default time range if not provided
-                    DateTime? start = request.Start;
-                    DateTime? end = request.End;
-                    string? granularity = request.Granularity;
-
-                    if (!start.HasValue || !end.HasValue)
-                    {
-                        end = DateTime.UtcNow;
-                        start = end.Value.AddMinutes(-5); // Default: last 5 minutes
-                        granularity ??= "minute";
-                    }
-
-                    var metrics = await metricsService.GetMetricsByKeyAsync(userGuid, serverKey ?? string.Empty, start.Value, end.Value, granularity);
-
-                    // Create new response with metrics
-                    response = new GoApiUnifiedResponse
-                    {
-                        ServerKey = serverKey ?? string.Empty,
-                        Metrics = metrics,
-                        Status = response.Status,
-                        StaticInfo = response.StaticInfo,
-                        Timestamp = response.Timestamp
-                    };
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "Error retrieving metrics for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
-
-                    // Continue without metrics rather than failing the entire request
-                }
-            }
-
-            // Handle status request
-            if (request.IncludeStatus)
-            {
-                try
-                {
-                    // For now, we can derive status from metrics or create a separate status service
-                    // This would need to be implemented based on your status logic
-                    // response.Status = await statusService.GetServerStatusAsync(userGuid, serverKey);
-
-                    // Temporary: create basic status from metrics if available
-                    if (response.Metrics?.DataPoints?.Count > 0)
-                    {
-                        var latestPoint = response.Metrics.DataPoints.LastOrDefault();
-
-                        // Create new response with status
-                        response = new GoApiUnifiedResponse
-                        {
-                            ServerKey = serverKey ?? string.Empty,
-                            Metrics = response.Metrics,
-                            Status = new GoApiServerStatus
-                            {
-                                Online = true,
-                                LastSeen = latestPoint?.Timestamp ?? DateTime.UtcNow
-                            },
-                            StaticInfo = response.StaticInfo,
-                            Timestamp = response.Timestamp
-                        };
-                    }
-                    else
-                    {
-                        // Create new response with offline status
-                        response = new GoApiUnifiedResponse
-                        {
-                            ServerKey = serverKey ?? string.Empty,
-                            Metrics = response.Metrics,
-                            Status = new GoApiServerStatus
-                            {
-                                Online = false,
-                                LastSeen = DateTime.UtcNow
-                            },
-                            StaticInfo = response.StaticInfo,
-                            Timestamp = response.Timestamp
-                        };
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "Error retrieving status for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
-
-                    // Continue without status
-                }
-            }
-
-            // Handle static info request
-            if (request.IncludeStatic)
-            {
-                try
-                {
-                    var staticInfo = await staticInfoService.GetStaticInfoAsync(userGuid, serverKey ?? string.Empty);
-
-                    // Create new response with static info
-                    response = new GoApiUnifiedResponse
-                    {
-                        ServerKey = serverKey ?? string.Empty,
-                        Metrics = response.Metrics,
-                        Status = response.Status,
-                        StaticInfo = staticInfo,
-                        Timestamp = response.Timestamp
-                    };
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "Error retrieving static info for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");
-
-                    // Continue without static info
-                }
+                return NotFound("Server not found or no data available");
             }
 
             this.logger.LogInformation("GetUnifiedData completed successfully for server {ServerKey}", serverKey?.Replace("\r", string.Empty, StringComparison.Ordinal)?.Replace("\n", string.Empty, StringComparison.Ordinal) ?? "null");

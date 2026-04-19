@@ -12,7 +12,7 @@ public class GoApiUnifiedResponse
     public string ServerKey { get; init; } = string.Empty;
 
     [JsonPropertyName("metrics")]
-    public RawMetricsResponse? Metrics { get; init; }
+    public RawMetricsResponse? Metrics { get; set; }
 
     [JsonPropertyName("status")]
     public GoApiServerStatus? Status { get; init; }
