@@ -14,4 +14,5 @@ public class ServerResponse
     public DateTime AddedAt { get; set; }
     public DateTime? LastSeen { get; set; }
     public bool IsActive { get; set; }
+    public bool? Online { get; set; } // Online status from Go API
 }

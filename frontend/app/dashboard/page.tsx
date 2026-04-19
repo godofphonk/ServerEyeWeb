@@ -537,14 +537,14 @@ export default function DashboardPage() {
             {[
               { label: 'Total Servers', value: servers.length, icon: ServerIcon, color: 'blue' },
               {
-                label: 'Active',
-                value: servers.filter(s => s.isActive).length,
+                label: 'Online',
+                value: servers.filter(s => s.online === true).length,
                 icon: Activity,
                 color: 'green',
               },
               {
-                label: 'Inactive',
-                value: servers.filter(s => !s.isActive).length,
+                label: 'Offline',
+                value: servers.filter(s => s.online !== true).length,
                 icon: Activity,
                 color: 'red',
               },
@@ -678,10 +678,10 @@ export default function DashboardPage() {
                               <motion.div
                                 animate={{ scale: [1, 1.2, 1] }}
                                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                                className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
+                                className={`w-3 h-3 rounded-full ${server.online === true ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
                               />
                               <span className='text-sm capitalize'>
-                                {server.isActive ? 'active' : 'inactive'}
+                                {server.online === true ? 'online' : 'offline'}
                               </span>
                             </div>
                             <motion.button

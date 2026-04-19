@@ -168,61 +168,6 @@ export default function NetworkTab({
         </Card>
       )}
 
-      {/* Network Details */}
-      <Card className='p-6'>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Activity className='w-5 h-5' />
-            Network Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='space-y-4'>
-              <h4 className='font-semibold text-gray-300'>Network Configuration</h4>
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Primary Interface:</span>
-                  <span>eth0</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>IP Address:</span>
-                  <span>192.168.1.100</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Gateway:</span>
-                  <span>192.168.1.1</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>DNS:</span>
-                  <span>8.8.8.8, 8.8.4.4</span>
-                </div>
-              </div>
-            </div>
-            <div className='space-y-4'>
-              <h4 className='font-semibold text-gray-300'>Connection Statistics</h4>
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Active Connections:</span>
-                  <span>42</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Total Bandwidth:</span>
-                  <span>1000 Mbps</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Packet Loss:</span>
-                  <span className='text-green-400'>0.1%</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Latency:</span>
-                  <span className='text-green-400'>2ms</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

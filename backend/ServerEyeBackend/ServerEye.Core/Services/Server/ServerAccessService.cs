@@ -51,6 +51,21 @@ public class ServerAccessService(
                 decryptedKey = string.Empty;
             }
 
+            // Get online status from Go API
+            bool? onlineStatus = null;
+            if (!string.IsNullOrEmpty(decryptedKey))
+            {
+                try
+                {
+                    var serverStatus = await goApiClient.GetServerStatusAsync(decryptedKey);
+                    onlineStatus = serverStatus?.Online;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to get online status for server {ServerId}", LogSanitizer.Sanitize(server.ServerId));
+                }
+            }
+
             result.Add(new ServerResponse
             {
                 Id = server.Id,
@@ -61,7 +76,8 @@ public class ServerAccessService(
                 AccessLevel = accessLevel ?? AccessLevel.Viewer,
                 AddedAt = server.CreatedAt,
                 LastSeen = server.LastSeen,
-                IsActive = server.IsActive
+                IsActive = server.IsActive,
+                Online = onlineStatus
             });
         }
 

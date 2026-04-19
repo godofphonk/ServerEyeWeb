@@ -142,6 +142,7 @@ export interface MonitoredServer {
   addedAt: string;
   lastSeen: string;
   isActive: boolean;
+  online?: boolean; // Online status from Go API
   serverName?: string; // Custom server name
   sources?: string[]; // List of sources (Web, Telegram, etc.)
 }
@@ -320,6 +321,9 @@ export interface CurrentMetrics {
   // Disk I/O metrics
   diskReadSpeed?: number;
   diskWriteSpeed?: number;
+
+  // Storage temperature
+  storage_temperature?: number;
 }
 
 export interface MetricTrends {

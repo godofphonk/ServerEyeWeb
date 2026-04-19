@@ -193,6 +193,7 @@ public static class GoApiJsonSerializer
                 ServerKey = snapshot.ServerKey,
                 Status = snapshot.Status,
                 StaticInfo = snapshot.StaticInfo,
+                UptimeSeconds = snapshot.UptimeSeconds,
                 Timestamp = snapshot.Timestamp
             };
         }
@@ -232,7 +233,8 @@ public static class GoApiJsonSerializer
                     GpuTemperature = tempDetails.GpuTemperature,
                     SystemTemperature = tempDetails.SystemTemperature,
                     HighestTemperature = tempDetails.HighestTemperature,
-                    TemperatureUnit = tempDetails.TemperatureUnit
+                    TemperatureUnit = tempDetails.TemperatureUnit,
+                    Storage = tempDetails.Storage
                 }
                 : null,
 
@@ -277,7 +279,8 @@ public static class GoApiJsonSerializer
                         GpuTemperature = snap.Temperatures.GpuTemperature,
                         SystemTemperature = snap.Temperatures.SystemTemperature,
                         HighestTemperature = snap.Temperatures.HighestTemperature,
-                        TemperatureUnit = snap.Temperatures.TemperatureUnit
+                        TemperatureUnit = snap.Temperatures.TemperatureUnit,
+                        Storage = snap.Temperatures.Storage
                     }
                     : new TemperatureDetails
                     {
@@ -322,6 +325,7 @@ public static class GoApiJsonSerializer
             },
             Status = snapshot.Status,
             StaticInfo = snapshot.StaticInfo,
+            UptimeSeconds = snap.UptimeSeconds,
             Timestamp = snapshot.Timestamp
         };
     }
@@ -343,6 +347,9 @@ public class GoApiUnifiedSnapshotFormat
 
     [JsonPropertyName("static_info")]
     public GoApiStaticInfo? StaticInfo { get; init; }
+
+    [JsonPropertyName("uptime_seconds")]
+    public long? UptimeSeconds { get; init; }
 
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
@@ -397,4 +404,7 @@ public class GoApiUnifiedSnapshotMetrics
 
     [JsonPropertyName("temperature_details")]
     public GoApiTemperatureDetails? TemperatureDetails { get; init; }
+
+    [JsonPropertyName("uptime_seconds")]
+    public long? UptimeSeconds { get; init; }
 }

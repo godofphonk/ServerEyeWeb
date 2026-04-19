@@ -5,21 +5,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
-// Helper function to calculate uptime from lastSeen
-const calculateUptime = (lastSeen: string): string => {
-  const now = new Date();
-  const lastSeenDate = new Date(lastSeen);
-  const diffMs = now.getTime() - lastSeenDate.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-  const remainingHours = diffHours % 24;
-
-  if (diffDays > 0) {
-    return `${diffDays}d ${remainingHours}h`;
-  }
-  return `${diffHours}h`;
-};
-
 interface SystemTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics?: MetricsResponse | null;
@@ -33,18 +18,14 @@ export default function SystemTab({
   server,
   staticInfo,
 }: SystemTabProps) {
-  // TODO: Get real data from API when available
-  const uptime = server?.lastSeen ? calculateUptime(server.lastSeen) : 'N/A';
+  // Use uptime from dashboardMetrics (calculated from uptime_seconds from API)
+  const uptimeHours = dashboardMetrics?.uptime || 0;
+  const uptimeNumeric = uptimeHours;
+  const uptimeUnit = uptimeHours >= 24 ? 'days' : 'hours';
+  const uptimeDisplay = uptimeHours >= 24
+    ? `${Math.floor(uptimeHours / 24)}d ${Math.floor(uptimeHours % 24)}h`
+    : `${Math.floor(uptimeHours)}h`;
   const _processes = 'N/A'; // Not available in current API
-
-  // Parse uptime for display
-  const uptimeValue = uptime !== 'N/A' ? uptime : '0h';
-  const uptimeNumeric = uptimeValue.includes('d')
-    ? parseInt(uptimeValue.split('d')[0])
-    : uptimeValue.includes('h')
-      ? parseInt(uptimeValue.split('h')[0])
-      : 0;
-  const uptimeUnit = uptimeValue.includes('d') ? 'days' : 'hours';
 
   // GPU temperature from historicalMetrics temperatureDetails
   const gpuTemp =
@@ -129,7 +110,7 @@ export default function SystemTab({
                 </div>
                 <div>
                   <span className='text-gray-400'>Uptime:</span>
-                  <p className='font-medium'>{uptime}</p>
+                  <p className='font-medium'>{uptimeDisplay}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Last Boot:</span>

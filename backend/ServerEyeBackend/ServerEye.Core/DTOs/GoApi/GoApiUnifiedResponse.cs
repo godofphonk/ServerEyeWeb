@@ -20,6 +20,9 @@ public class GoApiUnifiedResponse
     [JsonPropertyName("static_info")]
     public GoApiStaticInfo? StaticInfo { get; init; }
 
+    [JsonPropertyName("uptime_seconds")]
+    public long? UptimeSeconds { get; init; }
+
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
 }

@@ -11,7 +11,6 @@ import {
   Cpu,
   HardDrive,
   MemoryStick,
-  Wifi,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -152,7 +151,6 @@ export default function ServerDetailPage() {
     const metricsData = response.metrics;
     const lastDataPoint = metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1];
     const temperatureDetails = metricsData?.temperatureDetails;
-    const status = response.status;
 
     setStaticInfo(fullStaticInfo);
 
@@ -169,6 +167,7 @@ export default function ServerDetailPage() {
           lastDataPoint?.temp_avg ||
           0,
         gpu_temperature: temperatureDetails?.gpu_temperature || 0,
+        storage_temperature: temperatureDetails?.storage?.[0]?.temperature || lastDataPoint?.temperatureDetails?.storage?.[0]?.temperature || 0,
       },
       trends: {
         cpu: metricsData?.summary?.avgCpu || 0,
@@ -180,19 +179,11 @@ export default function ServerDetailPage() {
       },
       timestamp: new Date().toISOString(),
       alerts: [],
-      // Add uptime from status
-      uptime: status?.lastSeen ? calculateUptime(status.lastSeen) : 0,
+      // Add uptime from response (uptime_seconds from API in seconds, convert to hours)
+      uptime: response.uptime_seconds ? response.uptime_seconds / 3600 : 0,
     };
 
     return result;
-  };
-
-  // Helper function to calculate uptime from lastSeen timestamp
-  const calculateUptime = (lastSeen: string | Date): number => {
-    const lastSeenDate = typeof lastSeen === 'string' ? new Date(lastSeen) : lastSeen;
-    const now = new Date();
-    const diffMs = now.getTime() - lastSeenDate.getTime();
-    return diffMs / (1000 * 60 * 60); // Convert to hours
   };
 
   // Функция для округления timestamp до заданной гранулярности
@@ -500,10 +491,10 @@ export default function ServerDetailPage() {
                     </h1>
                     <div className='flex items-center gap-2'>
                       <div
-                        className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
+                        className={`w-3 h-3 rounded-full ${server.online === true ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
                       />
                       <span className='text-sm capitalize'>
-                        {server.isActive ? 'Active' : 'Inactive'}
+                        {server.online === true ? 'Online' : 'Offline'}
                       </span>
                     </div>
                   </div>
@@ -572,8 +563,6 @@ export default function ServerDetailPage() {
                     </div>
                     <div className='space-y-1 text-sm'>
                       <p>Total: {staticInfo.memory_info?.total_gb || 'N/A'} GB</p>
-                      <p>Type: {staticInfo.memory_info?.type || 'N/A'}</p>
-                      <p>Speed: {staticInfo.memory_info?.speed_mhz || 'N/A'} MHz</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -598,23 +587,18 @@ export default function ServerDetailPage() {
                 <Card>
                   <CardContent className='p-6'>
                     <div className='flex items-center gap-3 mb-4'>
-                      <Wifi className='w-8 h-8 text-yellow-400' />
-                      <h3 className='font-semibold'>Network</h3>
+                      <Cpu className='w-8 h-8 text-blue-400' />
+                      <h3 className='font-semibold'>Hardware</h3>
                     </div>
                     <div className='space-y-2 text-sm'>
-                      {(staticInfo.network_interfaces || []).slice(0, 3).map((iface, i) => (
-                        <div key={i} className='flex items-center justify-between'>
-                          <span>{iface.name}</span>
-                          <span
-                            className={`w-2 h-2 rounded-full ${iface.status === 'up' ? 'bg-green-400' : 'bg-red-400'}`}
-                          />
-                        </div>
-                      ))}
-                      {(staticInfo.network_interfaces || []).length > 3 && (
-                        <p className='text-gray-400'>
-                          +{(staticInfo.network_interfaces || []).length - 3} more
-                        </p>
-                      )}
+                      <div>
+                        <span className='text-gray-400'>SSD Model:</span>
+                        <p className='font-medium'>{staticInfo.disk_info?.[0]?.model || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className='text-gray-400'>GPU Model:</span>
+                        <p className='font-medium'>{staticInfo.gpu_info?.model || 'N/A'}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

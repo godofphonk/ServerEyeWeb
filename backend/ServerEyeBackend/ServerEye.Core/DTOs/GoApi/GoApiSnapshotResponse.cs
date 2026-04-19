@@ -185,6 +185,9 @@ public class GoApiTemperatureDetails
     [JsonPropertyName("storage_temperatures")]
     public List<GoApiStorageTemperature> StorageTemperatures { get; init; } = new();
 
+    [JsonPropertyName("storage")]
+    public List<StorageTemperature> Storage { get; init; }
+
     [JsonPropertyName("highest")]
     public double HighestTemperature { get; init; }
 

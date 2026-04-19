@@ -33,7 +33,15 @@ export default function MetricsAreaChart({
 }: MetricsAreaChartProps) {
   // Memoize chart data to prevent unnecessary recalculations
   const chartData = useMemo(() => {
-    return data.map(point => {
+    const filteredData =
+      timeRange === '1h'
+        ? data.filter(point => {
+            const threeMinutesAgo = Date.now() - 3 * 60 * 1000;
+            return new Date(point.timestamp).getTime() < threeMinutesAgo;
+          })
+        : data;
+
+    return filteredData.map(point => {
       // Handle different field names (loadAverage vs load, cpu_frequency)
       let metricData;
       if (metricType === 'load') {
