@@ -836,14 +836,13 @@ public class AuthController : BaseApiController
                     return this.BadRequest("HTTPS required for non-local requests");
                 }
 
-                // Use current Request to build callback URL with actual domain instead of Doppler settings
-                var requestHost = this.HttpContext.Request.Host.Value;
-                var callbackUrl = $"{this.HttpContext.Request.Scheme}://{requestHost}/oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
+                // Pass only path to SafeRedirect to avoid URL duplication
+                var callbackPath = $"oauth/callback?auth=success&token={Uri.EscapeDataString(response.Token)}&provider={provider}";
                 if (!string.IsNullOrEmpty(response.RefreshToken))
                 {
-                    callbackUrl += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
+                    callbackPath += $"&refresh_token={Uri.EscapeDataString(response.RefreshToken)}";
                 }
-                return this.SafeRedirect(callbackUrl);
+                return this.SafeRedirect(callbackPath);
             }
         }
         catch (Exception ex)
