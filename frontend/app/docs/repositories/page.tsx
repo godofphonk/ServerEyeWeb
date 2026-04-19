@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { GitBranch, ExternalLink, Code, Terminal, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { createPortal } from 'react-dom';
+import { useState, useRef } from 'react';
 
 const repositories = [
   {
@@ -97,6 +99,116 @@ const repositories = [
   },
 ];
 
+function RepositoryCard({ repo, index }: { repo: (typeof repositories)[0]; index: number }) {
+  const [hovered, setHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+
+  const handleMouseMove = (_e: React.MouseEvent) => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.top - 10,
+        left: rect.left + rect.width / 2,
+      });
+    }
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+      >
+        <div
+          ref={cardRef}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onMouseMove={handleMouseMove}
+        >
+          <Card hover className='h-full relative group'>
+            <div className='mb-4'>
+              <div className='flex items-start justify-between mb-4'>
+                <div className='flex items-center gap-3'>
+                  <div
+                    className={`w-12 h-12 ${repo.languageColor}/20 rounded-xl flex items-center justify-center`}
+                  >
+                    <repo.icon className='w-6 h-6 text-white' />
+                  </div>
+                  <div>
+                    <h3 className='text-xl font-bold'>{repo.name}</h3>
+                    <div className='flex items-center gap-2 mt-1'>
+                      <span
+                        className={`px-2 py-1 ${repo.languageColor} text-white text-xs rounded-full`}
+                      >
+                        {repo.language}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href={repo.href}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors'
+                >
+                  <ExternalLink className='w-4 h-4' />
+                </Link>
+              </div>
+            </div>
+            <div>
+              <p className='text-gray-400 mb-6'>{repo.description}</p>
+
+              {/* Features */}
+              <div className='space-y-2'>
+                {repo.features.map((feature, j) => (
+                  <div key={j} className='flex items-center gap-2 text-sm text-gray-300'>
+                    <div className='w-1.5 h-1.5 bg-blue-400 rounded-full' />
+                    {feature}
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className='mt-6'>
+                <Link
+                  href={repo.href}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium text-center transition-colors'
+                >
+                  View Repository
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Portal Tooltip */}
+      {hovered &&
+        createPortal(
+          <div
+            className='fixed px-4 py-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-xl pointer-events-none max-w-xs text-left z-[9999] shadow-xl border border-gray-700/50'
+            style={{
+              top: `${tooltipPosition.top}px`,
+              left: `${tooltipPosition.left}px`,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            {repo.tooltip}
+            <div
+              className='absolute top-full left-1/2 w-2 h-2 bg-gray-900/95 border-r border-b border-gray-700/50 transform rotate-45'
+              style={{ transform: 'translate(-50%, -50%) rotate(45deg)' }}
+            ></div>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 export default function RepositoriesPage() {
   return (
     <main className='min-h-screen bg-black text-white'>
@@ -129,74 +241,7 @@ export default function RepositoriesPage() {
           {/* Repository Cards */}
           <div className='grid md:grid-cols-2 gap-8 mb-16'>
             {repositories.map((repo, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Card hover className='h-full relative group'>
-                  {/* Custom Tooltip */}
-                  <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-gray-700'>
-                    {repo.tooltip}
-                    <div className='absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 border-r border-b border-gray-700 transform rotate-45'></div>
-                  </div>
-                  <div className='mb-4'>
-                    <div className='flex items-start justify-between mb-4'>
-                      <div className='flex items-center gap-3'>
-                        <div
-                          className={`w-12 h-12 ${repo.languageColor}/20 rounded-xl flex items-center justify-center`}
-                        >
-                          <repo.icon className='w-6 h-6 text-white' />
-                        </div>
-                        <div>
-                          <h3 className='text-xl font-bold'>{repo.name}</h3>
-                          <div className='flex items-center gap-2 mt-1'>
-                            <span
-                              className={`px-2 py-1 ${repo.languageColor} text-white text-xs rounded-full`}
-                            >
-                              {repo.language}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <Link
-                        href={repo.href}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors'
-                      >
-                        <ExternalLink className='w-4 h-4' />
-                      </Link>
-                    </div>
-                  </div>
-                  <div>
-                    <p className='text-gray-400 mb-6'>{repo.description}</p>
-
-                    {/* Features */}
-                    <div className='space-y-2'>
-                      {repo.features.map((feature, j) => (
-                        <div key={j} className='flex items-center gap-2 text-sm text-gray-300'>
-                          <div className='w-1.5 h-1.5 bg-blue-400 rounded-full' />
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className='mt-6'>
-                      <Link
-                        href={repo.href}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium text-center transition-colors'
-                      >
-                        View Repository
-                      </Link>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+              <RepositoryCard key={i} repo={repo} index={i} />
             ))}
           </div>
         </div>

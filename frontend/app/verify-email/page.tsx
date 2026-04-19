@@ -137,14 +137,22 @@ export default function VerifyEmailPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className='w-full max-w-md'
       >
-        <div className='bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8'>
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className='bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/50'
+        >
           {/* Header */}
           <div className='text-center mb-8'>
-            <div className='w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4'>
+            <motion.div
+              whileHover={{ rotate: 360, scale: 1.1 }}
+              transition={{ duration: 0.5 }}
+              className='w-16 h-16 bg-yellow-500/20 border border-yellow-500/30 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30'
+            >
               <Mail className='w-8 h-8 text-yellow-400' />
-            </div>
+            </motion.div>
             <h1 className='text-3xl font-bold text-white mb-2'>Verify Your Email</h1>
             <p className='text-gray-300'>We sent a verification code to</p>
             <p className='text-blue-400 font-mono text-sm mt-1'>{displayEmail}</p>
@@ -193,14 +201,14 @@ export default function VerifyEmailPage() {
               {resendCooldown > 0 ? `${resendCooldown} seconds` : 'immediately'}.
             </p>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* Email Verification Modal */}
       <EmailVerificationModal
         isOpen={showVerificationModal}
         onClose={() => setShowVerificationModal(false)}
-        email={displayEmail}
+        email={displayEmail || ''}
         onSuccess={handleVerificationSuccess}
         resendCooldown={resendCooldown}
         onResend={handleSendCode}

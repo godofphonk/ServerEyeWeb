@@ -142,6 +142,7 @@ export interface MonitoredServer {
   addedAt: string;
   lastSeen: string;
   isActive: boolean;
+  online?: boolean; // Online status from Go API
   serverName?: string; // Custom server name
   sources?: string[]; // List of sources (Web, Telegram, etc.)
 }
@@ -288,9 +289,18 @@ export interface MetricsResponse {
   start_time?: string;
   end_time?: string;
   data_points?: MetricsDataPoint[];
+  dataPoints?: MetricsDataPoint[];
   total_points?: number;
   status?: string;
   cached_at?: string;
+  temperatureDetails?: {
+    cpu_temperature?: number;
+    gpu_temperature?: number;
+    system_temperature?: number;
+    highest_temperature?: number;
+  };
+  networkDetails?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  diskDetails?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface CurrentMetrics {
@@ -311,6 +321,9 @@ export interface CurrentMetrics {
   // Disk I/O metrics
   diskReadSpeed?: number;
   diskWriteSpeed?: number;
+
+  // Storage temperature
+  storage_temperature?: number;
 }
 
 export interface MetricTrends {
@@ -335,6 +348,7 @@ export interface DashboardMetrics {
   alerts?: MetricAlert[];
   timestamp?: string;
   summary?: { totalServers: number; healthyServers: number; offlineServers: number };
+  uptime?: number; // Server uptime in hours
 }
 
 // WebSocket types
@@ -342,17 +356,6 @@ export interface WebSocketTokenResponse {
   token: string;
   wsUrl: string;
   expiresAt: string;
-}
-
-export interface LiveMetrics {
-  serverId: string;
-  timestamp: string;
-  cpu: number;
-  memory: number;
-  disk: number;
-  network: number;
-  temperature: number;
-  load: number;
 }
 
 // Subscription types

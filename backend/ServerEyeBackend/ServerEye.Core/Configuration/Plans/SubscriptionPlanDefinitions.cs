@@ -16,7 +16,7 @@ public static class SubscriptionPlanDefinitions
         Description = "Basic monitoring for single server",
         MonthlyPrice = 0,
         YearlyPrice = 0,
-        MaxServers = 1,
+        MaxServers = -1,
         MetricsRetentionDays = 7,
         HasAlerts = false,
         HasApiAccess = false,
@@ -53,7 +53,7 @@ public static class SubscriptionPlanDefinitions
         HasAlerts = true,
         HasApiAccess = true,
         HasPrioritySupport = false,
-        Features = new List<string> { "Custom alerts", "Unlimited alerts" }
+        Features = new List<string> { "Unlimited alerts" }
     };
 
     public static readonly SubscriptionPlanDefinition Enterprise = new()

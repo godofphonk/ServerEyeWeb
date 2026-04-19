@@ -31,6 +31,7 @@ public class GoApiDataPoint
     [JsonPropertyName("disk_max")]
     public double DiskMax { get; init; }
 
+    // Flat properties for backward compatibility
     [JsonPropertyName("network_avg")]
     public double NetworkAvg { get; init; }
 
@@ -48,6 +49,19 @@ public class GoApiDataPoint
 
     [JsonPropertyName("load_max")]
     public double LoadMax { get; init; }
+
+    // Nested objects for frontend compatibility
+    [JsonPropertyName("network")]
+    public NetworkMetrics? Network { get; set; }
+
+    [JsonPropertyName("loadAverage")]
+    public LoadAverageMetrics? LoadAverage { get; set; }
+
+    [JsonPropertyName("temperature")]
+    public TemperatureMetrics? Temperature { get; set; }
+
+    [JsonPropertyName("temperature_details")]
+    public TemperatureDetails? TemperatureDetails { get; set; }
 
     [JsonPropertyName("sample_count")]
     public int SampleCount { get; init; }
@@ -77,4 +91,32 @@ public class GoApiDataPoint
 
     [JsonPropertyName("disk_write_bytes_sec")]
     public double DiskWriteBytesSec { get; init; }
+}
+
+// Nested classes for frontend compatibility
+public class NetworkMetrics
+{
+    [JsonPropertyName("avg")]
+    public double Avg { get; init; }
+
+    [JsonPropertyName("max")]
+    public double Max { get; init; }
+}
+
+public class LoadAverageMetrics
+{
+    [JsonPropertyName("avg")]
+    public double Avg { get; init; }
+
+    [JsonPropertyName("max")]
+    public double Max { get; init; }
+}
+
+public class TemperatureMetrics
+{
+    [JsonPropertyName("avg")]
+    public double Avg { get; init; }
+
+    [JsonPropertyName("max")]
+    public double Max { get; init; }
 }

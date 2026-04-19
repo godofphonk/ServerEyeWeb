@@ -11,7 +11,6 @@ import {
   Cpu,
   HardDrive,
   MemoryStick,
-  Wifi,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -20,6 +19,7 @@ import {
   getServerKey,
   getCachedMonitoredServers,
   getCachedTieredMetrics,
+  getServerUnifiedData,
 } from '@/lib/serverApi';
 import { MonitoredServer, DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
@@ -137,40 +137,53 @@ export default function ServerDetailPage() {
     // Get serverKey using helper function
     const serverKey = await getServerKey(serverId);
 
-    const end = new Date();
-    const startTime = new Date(end.getTime() - 5 * 60 * 1000);
+    // Use unified endpoint for current metrics (metrics + status + static in 1 request)
+    const response = await getServerUnifiedData(serverKey, {
+      includeMetrics: true,
+      includeStatus: true,
+      includeStatic: false, // Static info loaded separately via static-info endpoint
+    });
 
-    // Use tiered endpoint for consistency with historical metrics
-    const response = (await getCachedTieredMetrics(
-      serverKey,
-      startTime.toISOString(),
-      end.toISOString(),
-      'minute', // Use minute granularity for dashboard
-    )) as MetricsResponse;
+    // Get full static info including memory type and speed
+    const fullStaticInfo = await getServerStaticInfoCached(serverKey);
 
-    // Transform API response to expected format
-    const lastDataPoint = response.data?.[response.data.length - 1];
+    // Transform unified API response to expected format
+    const metricsData = response.metrics;
+    const lastDataPoint = metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1];
+    const temperatureDetails = metricsData?.temperatureDetails;
+
+    setStaticInfo(fullStaticInfo);
 
     const result: DashboardMetrics = {
       current: {
-        cpu: response.summary?.avgCpu || lastDataPoint?.cpu.avg || 0,
-        memory: response.summary?.avgMemory || lastDataPoint?.memory.avg || 0,
-        disk: response.summary?.avgDisk || lastDataPoint?.disk.avg || 0,
-        network: lastDataPoint?.network.avg || 0,
-        load: lastDataPoint?.loadAverage.avg || 0,
-        temperature: response.summary?.avgTemperature || lastDataPoint?.temperature.avg || 0,
-        gpu_temperature: 0,
+        cpu: metricsData?.summary?.avgCpu || lastDataPoint?.cpu_avg || 0,
+        memory: metricsData?.summary?.avgMemory || lastDataPoint?.memory_avg || 0,
+        disk: metricsData?.summary?.avgDisk || lastDataPoint?.disk_avg || 0,
+        network: lastDataPoint?.network?.avg || lastDataPoint?.network_avg || 0,
+        load: lastDataPoint?.loadAverage?.avg || lastDataPoint?.load_avg || 0,
+        temperature:
+          temperatureDetails?.cpu_temperature ||
+          lastDataPoint?.temperature?.avg ||
+          lastDataPoint?.temp_avg ||
+          0,
+        gpu_temperature: temperatureDetails?.gpu_temperature || 0,
+        storage_temperature:
+          temperatureDetails?.storage?.[0]?.temperature ||
+          lastDataPoint?.temperatureDetails?.storage?.[0]?.temperature ||
+          0,
       },
       trends: {
-        cpu: response.summary?.avgCpu || 0,
-        memory: response.summary?.avgMemory || 0,
-        disk: response.summary?.avgDisk || 0,
+        cpu: metricsData?.summary?.avgCpu || 0,
+        memory: metricsData?.summary?.avgMemory || 0,
+        disk: metricsData?.summary?.avgDisk || 0,
         network: 0,
         load: 0,
         temperature: 0,
       },
-      timestamp: response.timeRange.end || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       alerts: [],
+      // Add uptime from response (uptime_seconds from API in seconds, convert to hours)
+      uptime: response.uptime_seconds ? response.uptime_seconds / 3600 : 0,
     };
 
     return result;
@@ -350,18 +363,18 @@ export default function ServerDetailPage() {
     )) as MetricsResponse;
 
     // Детальное логирование timestamps для проверки актуальности данных
-    if (response.data && response.data.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // Фильтр переустановки агента отключен - показываем все данные
     }
 
     // Детальное логирование первых и последних точек данных
-    if (response.data && response.data.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // data points available for logging
     }
 
-    if (response.data?.length > 0) {
+    if (response.dataPoints && response.dataPoints.length > 0) {
       // Проверяем если данных меньше ожидаемых
-      if (response.data.length < expectedPoints * 0.1) {
+      if (response.dataPoints.length < expectedPoints * 0.1) {
         // Меньше 10% от ожидаемых
         // Ограниченные данные
       }
@@ -369,7 +382,7 @@ export default function ServerDetailPage() {
 
     // Заполняем пропущенные данные нулями
     const filledDataPoints = fillMissingDataPoints(
-      response.data || [],
+      response.dataPoints || [],
       start,
       end,
       config.minutes,
@@ -481,10 +494,10 @@ export default function ServerDetailPage() {
                     </h1>
                     <div className='flex items-center gap-2'>
                       <div
-                        className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
+                        className={`w-3 h-3 rounded-full ${server.online === true ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
                       />
                       <span className='text-sm capitalize'>
-                        {server.isActive ? 'Active' : 'Inactive'}
+                        {server.online === true ? 'Online' : 'Offline'}
                       </span>
                     </div>
                   </div>
@@ -553,8 +566,6 @@ export default function ServerDetailPage() {
                     </div>
                     <div className='space-y-1 text-sm'>
                       <p>Total: {staticInfo.memory_info?.total_gb || 'N/A'} GB</p>
-                      <p>Type: {staticInfo.memory_info?.type || 'N/A'}</p>
-                      <p>Speed: {staticInfo.memory_info?.speed_mhz || 'N/A'} MHz</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -579,30 +590,25 @@ export default function ServerDetailPage() {
                 <Card>
                   <CardContent className='p-6'>
                     <div className='flex items-center gap-3 mb-4'>
-                      <Wifi className='w-8 h-8 text-yellow-400' />
-                      <h3 className='font-semibold'>Network</h3>
+                      <Cpu className='w-8 h-8 text-blue-400' />
+                      <h3 className='font-semibold'>Hardware</h3>
                     </div>
                     <div className='space-y-2 text-sm'>
-                      {(staticInfo.network_interfaces || []).slice(0, 3).map((iface, i) => (
-                        <div key={i} className='flex items-center justify-between'>
-                          <span>{iface.name}</span>
-                          <span
-                            className={`w-2 h-2 rounded-full ${iface.status === 'up' ? 'bg-green-400' : 'bg-red-400'}`}
-                          />
-                        </div>
-                      ))}
-                      {(staticInfo.network_interfaces || []).length > 3 && (
-                        <p className='text-gray-400'>
-                          +{(staticInfo.network_interfaces || []).length - 3} more
-                        </p>
-                      )}
+                      <div>
+                        <span className='text-gray-400'>SSD Model:</span>
+                        <p className='font-medium'>{staticInfo.disk_info?.[0]?.model || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className='text-gray-400'>GPU Model:</span>
+                        <p className='font-medium'>{staticInfo.gpu_info?.model || 'N/A'}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             </div>
           )}
-          {/* Alerts */}
+          {/* Alerts (Coming Soon) */}
           {dashboardMetrics?.alerts && dashboardMetrics.alerts.length > 0 && (
             <div className='mb-6'>
               {dashboardMetrics.alerts.map((alert, i) => (

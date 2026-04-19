@@ -276,26 +276,36 @@ export function DeleteAccountModal({
     <AnimatePresence>
       <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className='w-full max-w-md mx-4'
         >
-          <div className='bg-black/90 backdrop-blur-xl border border-red-500/20 rounded-2xl p-6'>
+          <div className='bg-black/90 backdrop-blur-xl border border-red-500/20 rounded-2xl p-6 relative overflow-hidden shadow-2xl shadow-red-500/20'>
+            <motion.div
+              className='absolute inset-0 bg-gradient-to-br from-red-500/5 to-orange-500/5'
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            />
             {/* Header */}
-            <div className='flex items-center justify-between mb-6'>
-              <div className='flex items-center gap-3'>
-                <div
+            <div className='flex items-center justify-between mb-6 relative z-10'>
+              <motion.div whileHover={{ scale: 1.02 }} className='flex items-center gap-3'>
+                <motion.div
+                  animate={
+                    step === 'success' ? { scale: [1, 1.1, 1] } : { rotate: [0, 10, -10, 0] }
+                  }
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   className={`w-12 h-12 rounded-full flex items-center justify-center ${
                     step === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
-                  }`}
+                  } border ${step === 'success' ? 'border-green-500/30' : 'border-red-500/30'}`}
                 >
                   {step === 'success' ? (
                     <CheckCircle className='w-6 h-6 text-green-400' />
                   ) : (
                     <AlertTriangle className='w-6 h-6 text-red-400' />
                   )}
-                </div>
+                </motion.div>
                 <div>
                   <h3 className='text-xl font-bold text-white'>
                     {step === 'initial' && 'Delete Account'}
@@ -305,23 +315,37 @@ export function DeleteAccountModal({
                     {step === 'success' && 'Account Deleted'}
                   </h3>
                 </div>
-              </div>
+              </motion.div>
               {step !== 'processing' && step !== 'success' && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={handleClose}
                   className='text-gray-400 hover:text-white transition-colors'
                 >
                   <X className='w-5 h-5' />
-                </button>
+                </motion.button>
               )}
             </div>
 
             {/* Content */}
             {step === 'initial' && (
-              <div className='space-y-6'>
-                <div className='bg-red-500/10 border border-red-500/20 rounded-lg p-4'>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className='space-y-6 relative z-10'
+              >
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className='bg-red-500/10 border border-red-500/20 rounded-xl p-4'
+                >
                   <div className='flex items-start gap-3'>
-                    <AlertTriangle className='w-5 h-5 text-red-400 flex-shrink-0 mt-0.5' />
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <AlertTriangle className='w-5 h-5 text-red-400 flex-shrink-0 mt-0.5' />
+                    </motion.div>
                     <div className='space-y-2'>
                       <p className='text-sm font-semibold text-red-400'>
                         ⚠️ WARNING: This action cannot be undone
@@ -337,7 +361,7 @@ export function DeleteAccountModal({
                       </ul>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 <div className='flex gap-3'>
                   <Button variant='secondary' onClick={handleClose} className='flex-1'>
@@ -345,20 +369,32 @@ export function DeleteAccountModal({
                   </Button>
                   <Button
                     onClick={() => (email ? setStep('password') : setStep('direct-confirm'))}
-                    className='flex-1 bg-red-600 hover:bg-red-700'
+                    className='flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
                   >
                     <Trash2 className='w-4 h-4 mr-2' />
                     {email ? 'Delete Account' : 'Delete Account (Immediate)'}
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {step === 'direct-confirm' && (
-              <div className='space-y-6'>
-                <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4'>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className='space-y-6 relative z-10'
+              >
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className='bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4'
+                >
                   <div className='flex items-start gap-3'>
-                    <AlertTriangle className='w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5' />
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <AlertTriangle className='w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5' />
+                    </motion.div>
                     <div className='space-y-2'>
                       <p className='text-sm font-semibold text-yellow-400'>
                         ⚠️ No Email Confirmation Available
@@ -372,7 +408,7 @@ export function DeleteAccountModal({
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 <div className='flex gap-3'>
                   <Button
@@ -386,16 +422,21 @@ export function DeleteAccountModal({
                   <Button
                     onClick={handleDirectDeletion}
                     isLoading={isLoading}
-                    className='flex-1 bg-red-600 hover:bg-red-700'
+                    className='flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
                   >
                     Yes, Delete Now
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {step === 'password' && (
-              <form onSubmit={handleRequestDeletion} className='space-y-6'>
+              <motion.form
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleRequestDeletion}
+                className='space-y-6 relative z-10'
+              >
                 <div>
                   <Input
                     label='Enter your password'
@@ -424,26 +465,41 @@ export function DeleteAccountModal({
                   <Button
                     type='submit'
                     isLoading={isLoading}
-                    className='flex-1 bg-red-600 hover:bg-red-700'
+                    className='flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
                   >
                     Send Deletion Code
                   </Button>
                 </div>
-              </form>
+              </motion.form>
             )}
 
             {step === 'code' && (
-              <form onSubmit={handleConfirmDeletion} className='space-y-6'>
+              <motion.form
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleConfirmDeletion}
+                className='space-y-6 relative z-10'
+              >
                 <div className='text-center space-y-3'>
-                  <Mail className='w-12 h-12 text-blue-400 mx-auto' />
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <Mail className='w-12 h-12 text-blue-400 mx-auto' />
+                  </motion.div>
                   <p className='text-sm text-gray-300'>
                     A 6-digit confirmation code has been sent to:
                   </p>
-                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2'>
+                  <p className='font-mono text-sm bg-white/10 rounded-lg p-2 border border-blue-500/30'>
                     {email || 'your email'}
                   </p>
                   <div className='flex items-center justify-center gap-2 text-xs text-yellow-400'>
-                    <Clock className='w-3 h-3' />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Clock className='w-3 h-3' />
+                    </motion.div>
                     <span>Expires in {formatTime(timeRemaining)}</span>
                   </div>
                 </div>
@@ -466,7 +522,9 @@ export function DeleteAccountModal({
                 </div>
 
                 <div className='text-center'>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     type='button'
                     onClick={handleResendCode}
                     disabled={isLoading || codeResendTimer > 0}
@@ -475,7 +533,7 @@ export function DeleteAccountModal({
                     {codeResendTimer > 0
                       ? `Resend code in ${codeResendTimer}s`
                       : "Didn't receive the code? Resend"}
-                  </button>
+                  </motion.button>
                 </div>
 
                 <div className='flex gap-3'>
@@ -492,31 +550,49 @@ export function DeleteAccountModal({
                     type='submit'
                     isLoading={isLoading}
                     disabled={confirmationCode.length !== 6}
-                    className='flex-1 bg-red-600 hover:bg-red-700'
+                    className='flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30'
                   >
                     Delete Account
                   </Button>
                 </div>
-              </form>
+              </motion.form>
             )}
 
             {step === 'processing' && (
-              <div className='text-center py-8 space-y-4'>
-                <div className='w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto' />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className='text-center py-8 space-y-4 relative z-10'
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className='w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full mx-auto shadow-lg shadow-red-500/30'
+                />
                 <p className='text-lg font-semibold'>Deleting your account...</p>
                 <p className='text-sm text-gray-400'>
                   Please wait while we permanently delete your data
                 </p>
-              </div>
+              </motion.div>
             )}
 
             {step === 'success' && (
-              <div className='text-center py-8 space-y-4'>
-                <CheckCircle className='w-16 h-16 text-green-400 mx-auto' />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className='text-center py-8 space-y-4 relative z-10'
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                  className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto border border-green-500/30 shadow-lg shadow-green-500/30'
+                >
+                  <CheckCircle className='w-10 h-10 text-green-400' />
+                </motion.div>
                 <p className='text-lg font-semibold'>Account Successfully Deleted</p>
                 <p className='text-sm text-gray-400'>All your data has been permanently removed.</p>
                 <p className='text-xs text-gray-500'>Redirecting to login page...</p>
-              </div>
+              </motion.div>
             )}
           </div>
         </motion.div>

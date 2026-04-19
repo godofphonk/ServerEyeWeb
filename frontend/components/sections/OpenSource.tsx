@@ -1,27 +1,45 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GitBranch, Star, GitFork, Users } from 'lucide-react';
+import { GitBranch, Heart } from 'lucide-react';
 
 export default function OpenSource() {
   return (
     <section className='py-32 relative overflow-hidden'>
-      {/* Background gradient */}
       <div className='absolute inset-0 bg-gradient-to-br from-purple-600/10 via-transparent to-blue-600/10' />
+      <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl' />
 
       <div className='container mx-auto px-6 relative z-10'>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
           className='max-w-4xl mx-auto text-center'
         >
-          <GitBranch className='w-20 h-20 mx-auto mb-8 text-white' />
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className='w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/50'
+          >
+            <GitBranch className='w-12 h-12 text-white' />
+          </motion.div>
 
-          <h2 className='text-5xl md:text-6xl font-bold mb-6'>
-            <span className='bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400'>
+          <h2 className='text-5xl md:text-6xl lg:text-7xl font-bold mb-6'>
+            <motion.span
+              className='bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400'
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              style={{ backgroundSize: '200% auto' }}
+            >
               Open Source
-            </span>{' '}
+            </motion.span>{' '}
             & Community Driven
           </h2>
 
@@ -30,54 +48,37 @@ export default function OpenSource() {
             community of developers building the future of server monitoring.
           </p>
 
-          {/* GitHub stats */}
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12'>
-            {[
-              { icon: Star, value: '1.2K+', label: 'GitHub Stars' },
-              { icon: GitFork, value: '150+', label: 'Forks' },
-              { icon: Users, value: '50+', label: 'Contributors' },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className='bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-6'
-              >
-                <stat.icon className='w-10 h-10 text-purple-400 mx-auto mb-4' />
-                <div className='text-3xl font-bold mb-2'>{stat.value}</div>
-                <div className='text-gray-400'>{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* CTA */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
             className='flex flex-col sm:flex-row gap-4 justify-center'
           >
-            <a
+            <motion.a
               href='https://github.com/godofphonk/ServerEye'
               target='_blank'
               rel='noopener noreferrer'
-              className='inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-all duration-300 hover:scale-105'
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className='inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-full font-semibold hover:bg-gray-200 transition-all duration-300 shadow-lg shadow-white/20'
             >
               <GitBranch className='w-5 h-5' />
               View on GitHub
-            </a>
-            <button className='px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full font-semibold transition-all duration-300'>
-              Read Documentation
-            </button>
+            </motion.a>
           </motion.div>
 
-          {/* License badge */}
-          <div className='mt-12 inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-full'>
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.8 }}
+            className='mt-12 inline-flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-full'
+          >
+            <Heart className='w-4 h-4 text-purple-400' />
             <span className='text-gray-400'>Licensed under </span>
             <span className='text-white font-semibold'>MIT License</span>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>

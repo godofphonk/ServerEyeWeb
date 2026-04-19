@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'ServerEye - Modern Server Monitoring',
-  description: 'Monitor your servers in real-time with powerful insights and alerts',
+  description: 'Monitor your servers in real-time with powerful insights and alerts (coming soon)',
 };
 
 export default function RootLayout({

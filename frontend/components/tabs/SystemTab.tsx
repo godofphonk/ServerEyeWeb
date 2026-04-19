@@ -3,37 +3,36 @@
 import { Monitor, Thermometer, Clock, Cpu } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
-import { DashboardMetrics, MetricsResponse } from '@/types';
-
-// Helper function to calculate uptime from lastSeen
-const calculateUptime = (lastSeen: string): string => {
-  const now = new Date();
-  const lastSeenDate = new Date(lastSeen);
-  const diffMs = now.getTime() - lastSeenDate.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-  const remainingHours = diffHours % 24;
-
-  if (diffDays > 0) {
-    return `${diffDays}d ${remainingHours}h`;
-  }
-  return `${diffHours}h`;
-};
+import { DashboardMetrics, MetricsResponse, ServerStaticInfo } from '@/types';
 
 interface SystemTabProps {
   dashboardMetrics: DashboardMetrics | null;
   historicalMetrics?: MetricsResponse | null;
   server: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  staticInfo?: ServerStaticInfo | null;
 }
 
 export default function SystemTab({
   dashboardMetrics,
   historicalMetrics: _historicalMetrics,
   server,
+  staticInfo,
 }: SystemTabProps) {
-  // TODO: Get real data from API when available
-  const uptime = server?.lastSeen ? calculateUptime(server.lastSeen) : 'N/A';
+  // Use uptime from dashboardMetrics (calculated from uptime_seconds from API)
+  const uptimeHours = dashboardMetrics?.uptime || 0;
+  const uptimeNumeric = uptimeHours;
+  const uptimeUnit = uptimeHours >= 24 ? 'days' : 'hours';
+  const uptimeDisplay =
+    uptimeHours >= 24
+      ? `${Math.floor(uptimeHours / 24)}d ${Math.floor(uptimeHours % 24)}h`
+      : `${Math.floor(uptimeHours)}h`;
   const _processes = 'N/A'; // Not available in current API
+
+  // GPU temperature from historicalMetrics temperatureDetails
+  const gpuTemp =
+    _historicalMetrics?.temperatureDetails?.gpu_temperature ||
+    dashboardMetrics?.current?.gpu_temperature ||
+    0;
 
   return (
     <div className='space-y-6'>
@@ -47,7 +46,7 @@ export default function SystemTab({
           <CurrentMetricsCard
             icon={Thermometer}
             label='GPU Temperature'
-            value={dashboardMetrics?.current?.gpu_temperature || 0}
+            value={gpuTemp}
             unit='°C'
             trend='N/A'
             color='orange'
@@ -55,8 +54,8 @@ export default function SystemTab({
           <CurrentMetricsCard
             icon={Clock}
             label='Uptime'
-            value={uptime.includes('d') ? parseInt(uptime.split('d')[0]) : 0}
-            unit={uptime.includes('d') ? 'days' : 'hours'}
+            value={uptimeNumeric}
+            unit={uptimeUnit}
             color='blue'
           />
           <CurrentMetricsCard
@@ -92,23 +91,27 @@ export default function SystemTab({
               <div className='grid grid-cols-2 gap-4 text-sm'>
                 <div>
                   <span className='text-gray-400'>Hostname:</span>
-                  <p className='font-medium'>{server?.hostname || 'Unknown'}</p>
+                  <p className='font-medium'>
+                    {staticInfo?.hostname || server?.hostname || 'Unknown'}
+                  </p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Operating System:</span>
-                  <p className='font-medium'>{server?.operatingSystem || 'Linux'}</p>
+                  <p className='font-medium'>
+                    {staticInfo?.operating_system || server?.operatingSystem || 'Linux'}
+                  </p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Kernel Version:</span>
-                  <p className='font-medium'>N/A</p>
+                  <p className='font-medium'>{staticInfo?.kernel || 'N/A'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Architecture:</span>
-                  <p className='font-medium'>N/A</p>
+                  <p className='font-medium'>{staticInfo?.architecture || 'N/A'}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Uptime:</span>
-                  <p className='font-medium'>{uptime}</p>
+                  <p className='font-medium'>{uptimeDisplay}</p>
                 </div>
                 <div>
                   <span className='text-gray-400'>Last Boot:</span>

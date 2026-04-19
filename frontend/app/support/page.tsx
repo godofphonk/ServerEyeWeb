@@ -134,12 +134,21 @@ export default function SupportPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className='text-center max-w-3xl mx-auto'
             >
-              <div className='inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6'>
-                <MessageCircle className='w-4 h-4 text-blue-400' />
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className='inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6 shadow-lg shadow-blue-500/30'
+              >
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <MessageCircle className='w-4 h-4 text-blue-400' />
+                </motion.div>
                 <span className='text-sm text-blue-400'>Support</span>
-              </div>
+              </motion.div>
               <h1 className='text-5xl md:text-6xl font-bold mb-6'>How can we help?</h1>
               <p className='text-xl text-gray-400'>Get in touch with our support team</p>
             </motion.div>
@@ -183,123 +192,127 @@ export default function SupportPage() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Create a Support Ticket</CardTitle>
-                      <p className='text-sm text-gray-400 mt-2'>
-                        Fill out the form below and we'll get back to you as soon as possible
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      {submitStatus === 'success' && ticketNumber && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className='mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl'
-                        >
-                          <div className='flex items-center gap-3 mb-2'>
-                            <CheckCircle className='w-5 h-5 text-green-400' />
-                            <p className='text-sm font-semibold text-green-400'>
-                              Ticket created successfully!
-                            </p>
-                          </div>
-                          <div className='ml-8 space-y-1'>
-                            <div className='flex items-center gap-2'>
-                              <Ticket className='w-4 h-4 text-green-400' />
-                              <p className='text-sm text-green-300'>
-                                Your ticket number:{' '}
-                                <span className='font-mono font-bold'>{ticketNumber}</span>
+                  <motion.div whileHover={{ scale: 1.01 }}>
+                    <Card className='border border-white/5 hover:border-white/10 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300'>
+                      <CardHeader>
+                        <CardTitle>Create a Support Ticket</CardTitle>
+                        <p className='text-sm text-gray-400 mt-2'>
+                          Fill out the form below and we'll get back to you as soon as possible
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        {submitStatus === 'success' && ticketNumber && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className='mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl'
+                          >
+                            <div className='flex items-center gap-3 mb-2'>
+                              <CheckCircle className='w-5 h-5 text-green-400' />
+                              <p className='text-sm font-semibold text-green-400'>
+                                Ticket created successfully!
                               </p>
                             </div>
-                            <p className='text-xs text-gray-400'>
-                              A confirmation email has been sent to {formData.email || 'your email'}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
+                            <div className='ml-8 space-y-1'>
+                              <div className='flex items-center gap-2'>
+                                <Ticket className='w-4 h-4 text-green-400' />
+                                <p className='text-sm text-green-300'>
+                                  Your ticket number:{' '}
+                                  <span className='font-mono font-bold'>{ticketNumber}</span>
+                                </p>
+                              </div>
+                              <p className='text-xs text-gray-400'>
+                                A confirmation email has been sent to{' '}
+                                {formData.email || 'your email'}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
 
-                      {submitStatus === 'error' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className='mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl'
-                        >
-                          <div className='flex items-start gap-3'>
-                            <AlertCircle className='w-5 h-5 text-red-400 mt-0.5' />
+                        {submitStatus === 'error' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className='mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl'
+                          >
+                            <div className='flex items-start gap-3'>
+                              <AlertCircle className='w-5 h-5 text-red-400 mt-0.5' />
+                              <div>
+                                <p className='text-sm font-semibold text-red-400 mb-1'>
+                                  Failed to create ticket
+                                </p>
+                                <p className='text-xs text-red-300'>
+                                  {errorMessage ||
+                                    'Please try again or contact support@servereye.dev'}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className='space-y-6'>
+                          <div className='grid md:grid-cols-2 gap-6'>
                             <div>
-                              <p className='text-sm font-semibold text-red-400 mb-1'>
-                                Failed to create ticket
-                              </p>
-                              <p className='text-xs text-red-300'>
-                                {errorMessage ||
-                                  'Please try again or contact support@servereye.dev'}
-                              </p>
+                              <Input
+                                label='Name'
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                required
+                                disabled={isSubmitting || isAuthenticated}
+                                placeholder={isAuthenticated ? formData.name : 'Enter your name'}
+                              />
+                              {isAuthenticated && (
+                                <p className='text-xs text-gray-400 mt-1'>
+                                  Name is locked to your account profile
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <Input
+                                type='email'
+                                label='Email'
+                                value={formData.email}
+                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                required
+                                disabled={isSubmitting}
+                                placeholder='Enter your email'
+                              />
                             </div>
                           </div>
-                        </motion.div>
-                      )}
 
-                      <form onSubmit={handleSubmit} className='space-y-6'>
-                        <div className='grid md:grid-cols-2 gap-6'>
-                          <div>
-                            <Input
-                              label='Name'
-                              value={formData.name}
-                              onChange={e => setFormData({ ...formData, name: e.target.value })}
-                              required
-                              disabled={isSubmitting || isAuthenticated}
-                              placeholder={isAuthenticated ? formData.name : 'Enter your name'}
-                            />
-                            {isAuthenticated && (
-                              <p className='text-xs text-gray-400 mt-1'>
-                                Name is locked to your account profile
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <Input
-                              type='email'
-                              label='Email'
-                              value={formData.email}
-                              onChange={e => setFormData({ ...formData, email: e.target.value })}
-                              required
-                              disabled={isSubmitting}
-                              placeholder='Enter your email'
-                            />
-                          </div>
-                        </div>
-
-                        <Input
-                          label='Subject'
-                          value={formData.subject}
-                          onChange={e => setFormData({ ...formData, subject: e.target.value })}
-                          required
-                          disabled={isSubmitting}
-                        />
-
-                        <div>
-                          <label className='block text-sm font-medium mb-2'>
-                            Message <span className='text-red-400'>*</span>
-                          </label>
-                          <textarea
-                            value={formData.message}
-                            onChange={e => setFormData({ ...formData, message: e.target.value })}
+                          <Input
+                            label='Subject'
+                            value={formData.subject}
+                            onChange={e => setFormData({ ...formData, subject: e.target.value })}
                             required
                             disabled={isSubmitting}
-                            rows={6}
-                            className='w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50'
-                            placeholder='Describe your issue or question...'
                           />
-                        </div>
 
-                        <Button type='submit' fullWidth isLoading={isSubmitting}>
-                          <Send className='w-4 h-4 mr-2' />
-                          Send Message
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <label className='block text-sm font-medium mb-2'>
+                              Message <span className='text-red-400'>*</span>
+                            </label>
+                            <textarea
+                              value={formData.message}
+                              onChange={e => setFormData({ ...formData, message: e.target.value })}
+                              required
+                              disabled={isSubmitting}
+                              rows={6}
+                              className='w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50'
+                              placeholder='Describe your issue or question...'
+                            />
+                          </div>
+
+                          <Button type='submit' fullWidth isLoading={isSubmitting}>
+                            <Send className='w-4 h-4 mr-2' />
+                            Send Message
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
                   {/* Contact Info */}
                   <div className='grid md:grid-cols-2 gap-6 mt-8'>

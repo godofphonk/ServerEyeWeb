@@ -240,7 +240,7 @@ public class SubscriptionServiceTests
         freePlan.Name.Should().Be("Free");
         freePlan.MonthlyPrice.Should().Be(0);
         freePlan.YearlyPrice.Should().Be(0);
-        freePlan.MaxServers.Should().Be(1);
+        freePlan.MaxServers.Should().Be(-1);
         freePlan.HasAlerts.Should().BeFalse();
         freePlan.HasApiAccess.Should().BeFalse();
     }

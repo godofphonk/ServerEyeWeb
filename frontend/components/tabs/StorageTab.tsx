@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Database, HardDrive, Activity, TrendingUp } from 'lucide-react';
+import { Database, HardDrive, Thermometer } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import CurrentMetricsCard from '@/components/charts/CurrentMetricsCard';
 import MetricsLineChart from '@/components/charts/MetricsLineChart';
@@ -66,18 +66,10 @@ export default function StorageTab({
                 color='blue'
               />
               <CurrentMetricsCard
-                icon={Activity}
-                label='Read Speed'
-                value={dashboardMetrics.current.diskReadSpeed || 0}
-                unit='MB/s'
-                trend='-'
-                color='green'
-              />
-              <CurrentMetricsCard
-                icon={TrendingUp}
-                label='Write Speed'
-                value={dashboardMetrics.current.diskWriteSpeed || 0}
-                unit='MB/s'
+                icon={Thermometer}
+                label='Storage Temp'
+                value={dashboardMetrics.current.storage_temperature || 0}
+                unit='°C'
                 trend='-'
                 color='orange'
               />
@@ -163,62 +155,6 @@ export default function StorageTab({
           <p className='text-gray-400'>Storage metrics will appear here once available.</p>
         </Card>
       )}
-
-      {/* Storage Details */}
-      <Card className='p-6'>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <HardDrive className='w-5 h-5' />
-            Storage Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='space-y-4'>
-              <h4 className='font-semibold text-gray-300'>Disk Information</h4>
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Primary Disk:</span>
-                  <span>-</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Capacity:</span>
-                  <span>-</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>File System:</span>
-                  <span>-</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Mount Point:</span>
-                  <span>/</span>
-                </div>
-              </div>
-            </div>
-            <div className='space-y-4'>
-              <h4 className='font-semibold text-gray-300'>I/O Performance</h4>
-              <div className='space-y-2 text-sm'>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Read Speed:</span>
-                  <span>{(dashboardMetrics?.current?.diskReadSpeed || 0).toFixed(1)} MB/s</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Write Speed:</span>
-                  <span>{(dashboardMetrics?.current?.diskWriteSpeed || 0).toFixed(1)} MB/s</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>IOPS:</span>
-                  <span className='text-green-400'>-</span>
-                </div>
-                <div className='flex justify-between'>
-                  <span className='text-gray-400'>Latency:</span>
-                  <span className='text-green-400'>-</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

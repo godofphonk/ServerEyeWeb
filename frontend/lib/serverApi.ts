@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api';
 import { fetchWithRetry } from './retryUtils';
-import { ServerStaticInfo, MonitoredServer, AxiosApiError, MetricsResponse } from '@/types';
+import { ServerStaticInfo, MonitoredServer, AxiosApiError } from '@/types';
 
 // Cache for monitored servers
 let cachedServers: MonitoredServer[] | null = null;
@@ -289,87 +289,9 @@ export async function getCachedTieredMetrics(
   return fixedResponse;
 }
 
-// Get cached metrics or fetch new ones
-export async function getCachedMetrics(
-  serverKey: string,
-  startTime: string,
-  endTime: string,
-  granularity: string,
-): Promise<MetricsResponse> {
-  const cacheKey = `${serverKey}-${startTime}-${endTime}-${granularity}`;
-  const cached = metricsCache.get(cacheKey);
-  const now = Date.now();
-
-  // Return cached data if still valid
-  if (cached && now - cached.timestamp < METRICS_CACHE_DURATION) {
-    return cached.data;
-  }
-
-  // Fetch fresh data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const response = await apiClient.get<any>(
-    `/servers/by-key/${serverKey}/metrics?start=${startTime}&end=${endTime}&granularity=${granularity}`,
-  );
-
-  // Fix status - if we have data points, status should be success
-  const fixedResponse = {
-    ...response,
-    status: response.dataPoints && response.dataPoints.length > 0 ? 'success' : response.status,
-  };
-
-  // Update cache
-  metricsCache.set(cacheKey, { data: fixedResponse, timestamp: now });
-
-  return fixedResponse;
-}
-
 // Clear metrics cache
 export function clearMetricsCache() {
   metricsCache.clear();
-}
-
-// Get metrics using new serverKey endpoint
-export async function getServerMetrics(
-  serverKey: string,
-  startTime: string,
-  endTime: string,
-  granularity: string,
-): Promise<MetricsResponse> {
-  const params = new URLSearchParams({
-    start: startTime,
-    end: endTime,
-    granularity: granularity,
-  });
-
-  const response = await apiClient.get<MetricsResponse>(
-    `/servers/by-key/${serverKey}/metrics?${params.toString()}`,
-  );
-  return response;
-}
-
-// Parallel request for both static info and metrics
-export async function getServerCompleteData(
-  serverKey: string,
-  options?: {
-    start?: Date;
-    end?: Date;
-    granularity?: string;
-  },
-) {
-  const startTime =
-    options?.start?.toISOString() || new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const endTime = options?.end?.toISOString() || new Date().toISOString();
-  const granularity = options?.granularity || 'minute';
-
-  const [staticInfo, metrics] = await Promise.all([
-    getServerStaticInfoCached(serverKey),
-    getServerMetrics(serverKey, startTime, endTime, granularity),
-  ]);
-
-  return {
-    staticInfo,
-    metrics,
-  };
 }
 
 // Get unified server data (metrics + status + static info) in single request

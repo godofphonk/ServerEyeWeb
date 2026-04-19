@@ -301,186 +301,219 @@ export default function ProfilePage() {
           )}
 
           {/* Profile Information */}
-          <Card className='mb-8'>
-            <CardHeader>
-              <div className='flex items-center gap-3'>
-                <div className='w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center'>
-                  <User className='w-6 h-6' />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className='mb-8 border border-white/5 hover:border-white/10 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300'>
+              <CardHeader>
+                <div className='flex items-center gap-3'>
+                  <motion.div
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                    className='w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30'
+                  >
+                    <User className='w-6 h-6' />
+                  </motion.div>
+                  <div>
+                    <CardTitle>Profile Information</CardTitle>
+                    <p className='text-sm text-gray-400 mt-1'>Update your account details</p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>Profile Information</CardTitle>
-                  <p className='text-sm text-gray-400 mt-1'>Update your account details</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className='space-y-6'>
-                <Input
-                  label='Username'
-                  value={profileData.username}
-                  onChange={e => setProfileData({ ...profileData, username: e.target.value })}
-                  disabled={true}
-                />
-                <div className='space-y-2'>
-                  <div className='relative'>
-                    <Input
-                      label='Email'
-                      type='email'
-                      value={profileData.email}
-                      onChange={e => setProfileData({ ...profileData, email: e.target.value })}
-                      disabled={!isEditing || isSaving}
-                      placeholder={isOAuthUserProfile ? 'No email address' : ''}
-                    />
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleProfileUpdate} className='space-y-6'>
+                  <Input
+                    label='Username'
+                    value={profileData.username}
+                    onChange={e => setProfileData({ ...profileData, username: e.target.value })}
+                    disabled={true}
+                  />
+                  <div className='space-y-2'>
+                    <div className='relative'>
+                      <Input
+                        label='Email'
+                        type='email'
+                        value={profileData.email}
+                        onChange={e => setProfileData({ ...profileData, email: e.target.value })}
+                        disabled={!isEditing || isSaving}
+                        placeholder={isOAuthUserProfile ? 'No email address' : ''}
+                      />
+                      {!isEditing && (
+                        <div className='absolute top-8 right-3'>
+                          {isOAuthUserProfile ? (
+                            <div className='flex items-center gap-1 text-gray-400'>
+                              <AlertCircle className='w-4 h-4' />
+                              <span className='text-xs'>Not set</span>
+                            </div>
+                          ) : isEmailVerified ? (
+                            <div className='flex items-center gap-1 text-green-400'>
+                              <CheckCircle className='w-4 h-4' />
+                              <span className='text-xs'>Verified</span>
+                            </div>
+                          ) : (
+                            <div className='flex items-center gap-1 text-yellow-400'>
+                              <AlertCircle className='w-4 h-4' />
+                              <span className='text-xs'>Not verified</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     {!isEditing && (
-                      <div className='absolute top-8 right-3'>
-                        {isOAuthUserProfile ? (
-                          <div className='flex items-center gap-1 text-gray-400'>
-                            <AlertCircle className='w-4 h-4' />
-                            <span className='text-xs'>Not set</span>
-                          </div>
-                        ) : isEmailVerified ? (
-                          <div className='flex items-center gap-1 text-green-400'>
-                            <CheckCircle className='w-4 h-4' />
-                            <span className='text-xs'>Verified</span>
-                          </div>
-                        ) : (
-                          <div className='flex items-center gap-1 text-yellow-400'>
-                            <AlertCircle className='w-4 h-4' />
-                            <span className='text-xs'>Not verified</span>
-                          </div>
+                      <div className='flex gap-2'>
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          size='sm'
+                          onClick={() => setShowEmailChangeModal(true)}
+                          className='mt-2'
+                        >
+                          <Mail className='w-4 h-4 mr-2' />
+                          {isOAuthUserProfile ? 'Add Email' : 'Change Email'}
+                        </Button>
+                        {!isEmailVerified && !isOAuthUserProfile && (
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => setShowEmailChangeModal(true)}
+                            className='mt-2 text-yellow-400 hover:text-yellow-300'
+                          >
+                            <AlertCircle className='w-4 h-4 mr-2' />
+                            Verify Now
+                          </Button>
                         )}
                       </div>
                     )}
                   </div>
-                  {!isEditing && (
-                    <div className='flex gap-2'>
+                  {isEditing && (
+                    <div className='flex gap-4'>
+                      <Button type='submit' isLoading={isSaving}>
+                        <Save className='w-4 h-4 mr-2' />
+                        Save Changes
+                      </Button>
                       <Button
                         type='button'
                         variant='secondary'
-                        size='sm'
-                        onClick={() => setShowEmailChangeModal(true)}
-                        className='mt-2'
+                        onClick={() => {
+                          setIsEditing(false);
+                          setProfileData({
+                            username: user.username,
+                            email: user.email,
+                          });
+                        }}
+                        disabled={isSaving}
                       >
-                        <Mail className='w-4 h-4 mr-2' />
-                        {isOAuthUserProfile ? 'Add Email' : 'Change Email'}
+                        Cancel
                       </Button>
-                      {!isEmailVerified && !isOAuthUserProfile && (
-                        <Button
-                          type='button'
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => setShowEmailChangeModal(true)}
-                          className='mt-2 text-yellow-400 hover:text-yellow-300'
-                        >
-                          <AlertCircle className='w-4 h-4 mr-2' />
-                          Verify Now
-                        </Button>
-                      )}
                     </div>
                   )}
-                </div>
-                {isEditing && (
-                  <div className='flex gap-4'>
-                    <Button type='submit' isLoading={isSaving}>
-                      <Save className='w-4 h-4 mr-2' />
-                      Save Changes
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      onClick={() => {
-                        setIsEditing(false);
-                        setProfileData({
-                          username: user.username,
-                          email: user.email,
-                        });
-                      }}
-                      disabled={isSaving}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Change Password */}
-          <Card>
-            <CardHeader>
-              <div className='flex items-center gap-3'>
-                <div className='w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center'>
-                  <Lock className='w-6 h-6 text-purple-400' />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className='border border-white/5 hover:border-white/10 shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300'>
+              <CardHeader>
+                <div className='flex items-center gap-3'>
+                  <motion.div
+                    whileHover={{ rotate: 360, scale: 1.1 }}
+                    transition={{ duration: 0.5 }}
+                    className='w-12 h-12 bg-purple-500/20 border border-purple-500/30 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/30'
+                  >
+                    <Lock className='w-6 h-6 text-purple-400' />
+                  </motion.div>
+                  <div>
+                    <CardTitle>Change Password</CardTitle>
+                    <p className='text-sm text-gray-400 mt-1'>Update your password</p>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>Change Password</CardTitle>
-                  <p className='text-sm text-gray-400 mt-1'>Update your password</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className='space-y-6'>
-                <Input
-                  type='password'
-                  label='Current Password'
-                  value={passwordData.currentPassword}
-                  onChange={e =>
-                    setPasswordData({ ...passwordData, currentPassword: e.target.value })
-                  }
-                  required
-                  disabled={isSaving}
-                />
-                <Input
-                  type='password'
-                  label='New Password'
-                  value={passwordData.newPassword}
-                  onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  required
-                  disabled={isSaving}
-                  helperText='Must be at least 8 characters'
-                />
-                <Input
-                  type='password'
-                  label='Confirm New Password'
-                  value={passwordData.confirmPassword}
-                  onChange={e =>
-                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-                  }
-                  required
-                  disabled={isSaving}
-                />
-                <Button type='submit' isLoading={isSaving}>
-                  <Lock className='w-4 h-4 mr-2' />
-                  Change Password
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className='space-y-6'>
+                  <Input
+                    type='password'
+                    label='Current Password'
+                    value={passwordData.currentPassword}
+                    onChange={e =>
+                      setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                    }
+                    required
+                    disabled={isSaving}
+                  />
+                  <Input
+                    type='password'
+                    label='New Password'
+                    value={passwordData.newPassword}
+                    onChange={e =>
+                      setPasswordData({ ...passwordData, newPassword: e.target.value })
+                    }
+                    required
+                    disabled={isSaving}
+                    helperText='Must be at least 8 characters'
+                  />
+                  <Input
+                    type='password'
+                    label='Confirm New Password'
+                    value={passwordData.confirmPassword}
+                    onChange={e =>
+                      setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                    }
+                    required
+                    disabled={isSaving}
+                  />
+                  <Button type='submit' isLoading={isSaving}>
+                    <Lock className='w-4 h-4 mr-2' />
+                    Change Password
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Connected Accounts */}
           <OAuthSettings className='mb-8' />
 
           {/* Danger Zone */}
-          <Card className='mt-8 border-red-500/20'>
-            <CardHeader>
-              <CardTitle className='text-red-400'>Danger Zone</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-4'>
-                <div className='bg-red-500/10 border border-red-500/20 rounded-lg p-4'>
-                  <h4 className='font-semibold text-red-400 mb-2'>Delete Account</h4>
-                  <p className='text-sm text-gray-300 mb-4'>
-                    Permanently delete your account and all associated data. This action cannot be
-                    undone.
-                  </p>
-                  <Button variant='danger' onClick={() => setShowDeleteAccountModal(true)}>
-                    <Trash2 className='w-4 h-4 mr-2' />
-                    Delete Account
-                  </Button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className='mt-8 border-red-500/20 hover:border-red-500/40 shadow-lg hover:shadow-xl hover:shadow-red-500/20 transition-all duration-300'>
+              <CardHeader>
+                <CardTitle className='text-red-400'>Danger Zone</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='space-y-4'>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className='bg-red-500/10 border border-red-500/20 rounded-lg p-4'
+                  >
+                    <h4 className='font-semibold text-red-400 mb-2'>Delete Account</h4>
+                    <p className='text-sm text-gray-300 mb-4'>
+                      Permanently delete your account and all associated data. This action cannot be
+                      undone.
+                    </p>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant='danger' onClick={() => setShowDeleteAccountModal(true)}>
+                        <Trash2 className='w-4 h-4 mr-2' />
+                        Delete Account
+                      </Button>
+                    </motion.div>
+                  </motion.div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Account Info */}
           <Card className='mt-8'>

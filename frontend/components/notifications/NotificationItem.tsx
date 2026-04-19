@@ -1,6 +1,7 @@
 'use client';
 
 import { Notification, NotificationType } from '@/types';
+import { motion } from 'framer-motion';
 import { Bell, MessageSquare, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -26,13 +27,13 @@ const getNotificationIcon = (type: NotificationType) => {
 const getNotificationBg = (type: NotificationType) => {
   switch (type) {
     case NotificationType.TicketCreated:
-      return 'bg-blue-500/10';
+      return 'bg-blue-500/10 border-blue-500/30';
     case NotificationType.NewMessage:
-      return 'bg-green-500/10';
+      return 'bg-green-500/10 border-green-500/30';
     case NotificationType.StatusChanged:
-      return 'bg-orange-500/10';
+      return 'bg-orange-500/10 border-orange-500/30';
     default:
-      return 'bg-gray-500/10';
+      return 'bg-gray-500/10 border-gray-500/30';
   }
 };
 
@@ -43,7 +44,9 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
   });
 
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.02, x: 5 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => onClick(notification)}
       className={`
         p-4 cursor-pointer transition-all hover:bg-gray-800/50
@@ -52,11 +55,13 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
       `}
     >
       <div className='flex gap-3'>
-        <div
-          className={`flex-shrink-0 w-10 h-10 rounded-full ${getNotificationBg(notification.type)} flex items-center justify-center`}
+        <motion.div
+          whileHover={{ rotate: 360 }}
+          transition={{ duration: 0.5 }}
+          className={`flex-shrink-0 w-10 h-10 rounded-full ${getNotificationBg(notification.type)} flex items-center justify-center border`}
         >
           {getNotificationIcon(notification.type)}
-        </div>
+        </motion.div>
 
         <div className='flex-1 min-w-0'>
           <div className='flex items-start justify-between gap-2'>
@@ -66,7 +71,11 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
               {notification.title}
             </p>
             {!notification.isRead && (
-              <div className='flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1' />
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className='flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1'
+              />
             )}
           </div>
 
@@ -75,6 +84,6 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
           <p className='text-xs text-gray-500 mt-2'>{timeAgo}</p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

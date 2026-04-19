@@ -29,12 +29,48 @@ interface TicketChatProps {
 }
 
 const statusConfig = {
-  [TicketStatus.New]: { icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  [TicketStatus.Open]: { icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-  [TicketStatus.InProgress]: { icon: Loader2, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  [TicketStatus.Resolved]: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10' },
-  [TicketStatus.Closed]: { icon: X, color: 'text-gray-400', bg: 'bg-gray-500/10' },
-  [TicketStatus.Reopened]: { icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+  [TicketStatus.New]: {
+    icon: Clock,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/30',
+    shadow: 'shadow-blue-500/30',
+  },
+  [TicketStatus.Open]: {
+    icon: AlertCircle,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/30',
+    shadow: 'shadow-yellow-500/30',
+  },
+  [TicketStatus.InProgress]: {
+    icon: Loader2,
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/30',
+    shadow: 'shadow-purple-500/30',
+  },
+  [TicketStatus.Resolved]: {
+    icon: CheckCircle,
+    color: 'text-green-400',
+    bg: 'bg-green-500/10',
+    border: 'border-green-500/30',
+    shadow: 'shadow-green-500/30',
+  },
+  [TicketStatus.Closed]: {
+    icon: X,
+    color: 'text-gray-400',
+    bg: 'bg-gray-500/10',
+    border: 'border-gray-500/30',
+    shadow: 'shadow-gray-500/30',
+  },
+  [TicketStatus.Reopened]: {
+    icon: AlertCircle,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/30',
+    shadow: 'shadow-orange-500/30',
+  },
 };
 
 export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketChatProps) {
@@ -186,15 +222,20 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.3 }}
-            className='bg-gray-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden'
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className='bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl shadow-black/50 relative'
             onClick={e => e.stopPropagation()}
           >
+            <motion.div
+              className='absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5'
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            />
             {/* Header */}
-            <div className='flex items-center justify-between p-6 border-b border-white/10'>
+            <div className='flex items-center justify-between p-6 border-b border-white/10 relative z-10'>
               <div className='flex items-center gap-4'>
                 <Button variant='ghost' size='sm' onClick={onClose} className='lg:hidden'>
                   <ArrowLeft className='w-4 h-4' />
@@ -204,7 +245,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                   <div className='flex items-center gap-3 mt-1'>
                     <span className='text-sm text-gray-400'>#{ticket.ticketNumber}</span>
                     <div
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${statusConfig[ticket.status].bg} ${statusConfig[ticket.status].color}`}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${statusConfig[ticket.status].bg} ${statusConfig[ticket.status].border} ${statusConfig[ticket.status].color} shadow ${statusConfig[ticket.status].shadow}`}
                     >
                       <StatusIcon className='w-3 h-3' />
                       {ticket.statusDisplay}
@@ -212,13 +253,15 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                   </div>
                 </div>
               </div>
-              <Button variant='ghost' size='sm' onClick={onClose} className='hidden lg:flex'>
-                <X className='w-5 h-5' />
-              </Button>
+              <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}>
+                <Button variant='ghost' size='sm' onClick={onClose} className='hidden lg:flex'>
+                  <X className='w-5 h-5' />
+                </Button>
+              </motion.button>
             </div>
 
             {/* Messages Area */}
-            <div className='flex-1 overflow-hidden flex flex-col'>
+            <div className='flex-1 overflow-hidden flex flex-col relative z-10'>
               <div className='flex-1 overflow-y-auto p-6 space-y-4'>
                 {isLoading ? (
                   <div className='flex items-center justify-center py-12'>
@@ -241,19 +284,22 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                       {dateMessages.map((message, index) => (
                         <motion.div
                           key={message.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
                           transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.02 }}
                           className={`flex ${message.isStaffReply ? 'justify-start' : 'justify-end'}`}
                         >
                           <div
                             className={`flex items-start gap-3 max-w-[70%] ${message.isStaffReply ? 'flex-row' : 'flex-row-reverse'}`}
                           >
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            <motion.div
+                              whileHover={{ rotate: 360 }}
+                              transition={{ duration: 0.5 }}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${
                                 message.isStaffReply
-                                  ? 'bg-blue-500/20 text-blue-400'
-                                  : 'bg-purple-500/20 text-purple-400'
+                                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                  : 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                               }`}
                             >
                               {message.isStaffReply ? (
@@ -261,15 +307,15 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                               ) : (
                                 <User className='w-4 h-4' />
                               )}
-                            </div>
+                            </motion.div>
                             <div
                               className={`space-y-1 ${message.isStaffReply ? 'items-start' : 'items-end'} flex flex-col`}
                             >
                               <div
                                 className={`px-4 py-2 rounded-2xl ${
                                   message.isStaffReply
-                                    ? 'bg-gray-800 text-white border border-white/5'
-                                    : 'bg-blue-600 text-white'
+                                    ? 'bg-gray-800 text-white border border-white/5 shadow-lg'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
                                 }`}
                               >
                                 <p className='text-sm whitespace-pre-wrap'>{message.message}</p>
@@ -292,7 +338,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
               </div>
 
               {/* Message Input */}
-              <div className='border-t border-white/10 p-4'>
+              <div className='border-t border-white/10 p-4 bg-gradient-to-r from-blue-500/5 to-purple-500/5'>
                 <div className='flex items-end gap-3'>
                   <div className='flex-1'>
                     <Input
@@ -309,7 +355,7 @@ export function TicketChat({ ticket, isOpen, onClose, onTicketUpdate }: TicketCh
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || isSending}
                     size='sm'
-                    className='px-4'
+                    className='px-4 shadow-lg shadow-blue-500/30'
                   >
                     {isSending ? (
                       <Loader2 className='w-4 h-4 animate-spin' />

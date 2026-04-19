@@ -91,13 +91,12 @@ public class GoApiLogger(ILogger<GoApiLogger> logger)
     /// <summary>
     /// Logs empty data response.
     /// </summary>
-    public void LogEmptyData(string operation, string identifier, long elapsedMs)
+    public void LogEmptyData(string operation, long elapsedMs)
     {
         logger.LogWarning(
-            "[GoApi] {Operation} - Empty data after {ElapsedMs}ms for {Identifier}",
+            "[GoApi] {Operation} - Empty data after {ElapsedMs}ms",
             operation,
-            elapsedMs,
-            identifier);
+            elapsedMs);
     }
 
     /// <summary>

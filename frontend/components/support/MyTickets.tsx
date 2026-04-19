@@ -26,37 +26,43 @@ const statusConfig = {
     icon: Clock,
     color: 'text-blue-400',
     bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20',
+    border: 'border-blue-500/30',
+    shadow: 'shadow-blue-500/30',
   },
   [TicketStatus.Open]: {
     icon: AlertCircle,
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/20',
+    border: 'border-yellow-500/30',
+    shadow: 'shadow-yellow-500/30',
   },
   [TicketStatus.InProgress]: {
     icon: Loader2,
     color: 'text-purple-400',
     bg: 'bg-purple-500/10',
-    border: 'border-purple-500/20',
+    border: 'border-purple-500/30',
+    shadow: 'shadow-purple-500/30',
   },
   [TicketStatus.Resolved]: {
     icon: CheckCircle,
     color: 'text-green-400',
     bg: 'bg-green-500/10',
-    border: 'border-green-500/20',
+    border: 'border-green-500/30',
+    shadow: 'shadow-green-500/30',
   },
   [TicketStatus.Closed]: {
     icon: XCircle,
     color: 'text-gray-400',
     bg: 'bg-gray-500/10',
-    border: 'border-gray-500/20',
+    border: 'border-gray-500/30',
+    shadow: 'shadow-gray-500/30',
   },
   [TicketStatus.Reopened]: {
     icon: AlertCircle,
     color: 'text-orange-400',
     bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20',
+    border: 'border-orange-500/30',
+    shadow: 'shadow-orange-500/30',
   },
 };
 
@@ -273,18 +279,21 @@ export function MyTickets() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.02 }}
                 >
-                  <Card className='hover:bg-white/5 transition-colors'>
+                  <Card className='hover:bg-white/5 transition-colors border border-white/5 hover:border-white/10'>
                     <CardContent className='p-4'>
                       <div className='flex items-start justify-between'>
                         <div className='flex-1'>
                           <div className='flex items-center gap-3 mb-2'>
-                            <StatusIcon className={`w-4 h-4 ${config.color}`} />
+                            <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.5 }}>
+                              <StatusIcon className={`w-4 h-4 ${config.color}`} />
+                            </motion.div>
                             <span className='font-mono text-sm text-gray-400'>
                               {ticket.ticketNumber}
                             </span>
                             <span
-                              className={`text-xs font-semibold px-2 py-1 rounded-full ${config.bg} ${config.border} ${config.color}`}
+                              className={`text-xs font-semibold px-2 py-1 rounded-full ${config.bg} ${config.border} ${config.color} shadow ${config.shadow}`}
                             >
                               {ticket.statusDisplay}
                             </span>
@@ -323,7 +332,7 @@ export function MyTickets() {
                           variant='primary'
                           size='sm'
                           onClick={() => openChat(ticket)}
-                          className='ml-4 gap-2'
+                          className='ml-4 gap-2 shadow-lg shadow-blue-500/30'
                         >
                           <MessageCircle className='w-4 h-4' />
                           Open Chat
@@ -341,11 +350,14 @@ export function MyTickets() {
                           >
                             <div className='space-y-3'>
                               {ticket.messages?.map(msg => (
-                                <div
+                                <motion.div
                                   key={msg.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.1 }}
                                   className={`p-3 rounded-lg ${
                                     msg.isStaffReply
-                                      ? 'bg-blue-500/10 border border-blue-500/20'
+                                      ? 'bg-blue-500/10 border border-blue-500/30'
                                       : 'bg-white/5 border border-white/10'
                                   }`}
                                 >
@@ -358,7 +370,7 @@ export function MyTickets() {
                                     </span>
                                   </div>
                                   <p className='text-sm text-gray-400'>{msg.message}</p>
-                                </div>
+                                </motion.div>
                               ))}
                             </div>
                           </motion.div>

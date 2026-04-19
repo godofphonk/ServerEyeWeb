@@ -115,18 +115,18 @@ export default function DashboardPage() {
 
         // Transform unified API response to expected format
         const metricsData = response.metrics;
+        const lastDataPoint = metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1];
+        const temperatureDetails = lastDataPoint?.temperature_details;
         const dashboardMetrics: DashboardMetrics = {
           current: {
             cpu: metricsData?.summary?.avgCpu || 0,
             memory: metricsData?.summary?.avgMemory || 0,
             disk: metricsData?.summary?.avgDisk || 0,
-            network:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.network?.avg || 0,
-            load:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.loadAverage?.avg || 0,
+            network: lastDataPoint?.network?.avg || 0,
+            load: lastDataPoint?.loadAverage?.avg || 0,
             temperature:
-              metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature_details
-                ?.cpu_temperature ||
+              temperatureDetails?.cpu_temperature ||
+              lastDataPoint?.temperature?.avg ||
               metricsData?.dataPoints?.[metricsData.dataPoints?.length - 1]?.temperature?.avg ||
               0,
           },
@@ -537,14 +537,14 @@ export default function DashboardPage() {
             {[
               { label: 'Total Servers', value: servers.length, icon: ServerIcon, color: 'blue' },
               {
-                label: 'Active',
-                value: servers.filter(s => s.isActive).length,
+                label: 'Online',
+                value: servers.filter(s => s.online === true).length,
                 icon: Activity,
                 color: 'green',
               },
               {
-                label: 'Inactive',
-                value: servers.filter(s => !s.isActive).length,
+                label: 'Offline',
+                value: servers.filter(s => s.online !== true).length,
                 icon: Activity,
                 color: 'red',
               },
@@ -628,13 +628,18 @@ export default function DashboardPage() {
                 {servers.map((server, i) => (
                   <motion.div
                     key={server.serverId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: i * 0.1, type: 'spring', stiffness: 300, damping: 30 }}
+                    whileHover={{ scale: 1.02, y: -5 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => router.push(`/servers/${server.serverId}`)}
                     className='cursor-pointer'
                   >
-                    <Card hover>
+                    <Card
+                      hover
+                      className='border border-white/5 hover:border-white/10 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300'
+                    >
                       <CardHeader>
                         <div className='flex items-center justify-between'>
                           <div>
@@ -670,20 +675,24 @@ export default function DashboardPage() {
                           </div>
                           <div className='flex items-center gap-3'>
                             <div className='flex items-center gap-2'>
-                              <div
-                                className={`w-3 h-3 rounded-full ${server.isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
+                              <motion.div
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                className={`w-3 h-3 rounded-full ${server.online === true ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50'}`}
                               />
                               <span className='text-sm capitalize'>
-                                {server.isActive ? 'active' : 'inactive'}
+                                {server.online === true ? 'online' : 'offline'}
                               </span>
                             </div>
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.1, rotate: 90 }}
+                              whileTap={{ scale: 0.9 }}
                               onClick={e => handleDeleteClick(e, server)}
                               className='p-2 hover:bg-red-500/20 rounded-lg transition-colors group'
                               title='Delete server'
                             >
                               <Trash2 className='w-4 h-4 text-gray-400 group-hover:text-red-400' />
-                            </button>
+                            </motion.button>
                           </div>
                         </div>
                       </CardHeader>

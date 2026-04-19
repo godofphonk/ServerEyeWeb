@@ -98,7 +98,7 @@ public class MonitoredServersController : ControllerBase
                 await this.serverAccessService.RemoveServerAsync(userId, serverId);
             }
 
-            return this.NoContent();
+            return this.Ok(new { message = "Server deleted successfully" });
         }
         catch (UnauthorizedAccessException ex)
         {

@@ -245,15 +245,19 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <div className='flex items-center gap-3'>
-          <div className='w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center'>
+        <motion.div whileHover={{ scale: 1.02 }} className='flex items-center gap-3'>
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            className='w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center border border-blue-500/30'
+          >
             <LinkIcon className='w-6 h-6 text-blue-400' />
-          </div>
+          </motion.div>
           <div>
             <CardTitle>Connected Accounts</CardTitle>
             <p className='text-sm text-gray-400 mt-1'>Link your social accounts for easier login</p>
           </div>
-        </div>
+        </motion.div>
       </CardHeader>
       <CardContent>
         <div className='space-y-4'>
@@ -273,23 +277,35 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
             return (
               <motion.div
                 key={provider.key}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 10, rotateX: -10 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                whileHover={{ scale: 1.02, y: -5, rotateX: 5 }}
                 transition={{ delay: 0.1 * availableProviders.indexOf(provider) }}
-                className='flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5'
+                className='flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5 hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden'
+                style={{ transformStyle: 'preserve-3d' }}
               >
-                <div className='flex items-center gap-3'>
-                  <div className='w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center'>
+                <motion.div className='absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-0 hover:opacity-100 transition-opacity' />
+                <div className='flex items-center gap-3 relative z-10'>
+                  <motion.div
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.5 }}
+                    className='w-10 h-10 bg-gradient-to-br from-gray-700 to-gray-800 rounded-full flex items-center justify-center shadow-lg'
+                  >
                     {getProviderIcon(provider.name)}
-                  </div>
+                  </motion.div>
                   <div>
                     <p className='font-medium'>{provider.name}</p>
                     {linkedAccount ? (
                       <div className='space-y-1'>
-                        <p className='text-sm text-gray-400 flex items-center gap-1'>
-                          <CheckCircle className='w-3 h-3 text-green-400' />
+                        <div className='text-sm text-gray-400 flex items-center gap-1'>
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            <CheckCircle className='w-3 h-3 text-green-400' />
+                          </motion.div>
                           {linkedAccount.providerUsername || 'Connected'}
-                        </p>
+                        </div>
                         {linkedAccount.providerEmail ? (
                           <p className='text-sm text-gray-500'>{linkedAccount.providerEmail}</p>
                         ) : (
@@ -309,7 +325,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
                   </div>
                 </div>
 
-                <div>
+                <div className='relative z-10'>
                   {linkedAccount ? (
                     <Button
                       variant='ghost'
@@ -330,6 +346,7 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
                       size='sm'
                       onClick={() => handleLinkAccount(provider.key)}
                       disabled={isLinking === provider.key}
+                      className='shadow-lg shadow-purple-500/30'
                     >
                       {isLinking === provider.key ? (
                         <Loader2 className='w-4 h-4 animate-spin' />
@@ -348,12 +365,15 @@ export function OAuthSettings({ className }: OAuthSettingsProps) {
           })}
         </div>
 
-        <div className='mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg'>
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          className='mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl'
+        >
           <p className='text-sm text-blue-400'>
             <strong>Note:</strong> Connecting an account allows you to sign in with that provider.
             Your existing login method will continue to work.
           </p>
-        </div>
+        </motion.div>
       </CardContent>
     </Card>
   );

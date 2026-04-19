@@ -242,7 +242,7 @@ export default function SystemMonitoringPage() {
                 </a>
               </div>
               <p className='text-sm text-gray-400'>
-                View real-time metrics, queries, and alerts for all services
+                View real-time metrics, queries, and alerts (coming soon) for all services
               </p>
             </Card>
 

@@ -135,9 +135,13 @@ export default function RegisterPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className='relative z-10 w-full max-w-md'
       >
-        <div className='bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8'>
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className='bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl shadow-black/50'
+        >
           <div className='text-center mb-8'>
             <Link href='/' className='inline-block mb-6'>
               <div className='text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent'>
@@ -309,7 +313,7 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </div>
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* Email Verification Modal */}

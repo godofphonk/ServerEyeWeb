@@ -6,36 +6,11 @@ namespace ServerEye.Infrastructure.ExternalServices.GoApi;
 public static class GoApiUrlBuilder
 {
     /// <summary>
-    /// Builds metrics URL with parameters.
+    /// Builds unified endpoint URL by server key.
     /// </summary>
-    public static Uri BuildMetricsUrl(string serverId, DateTime start, DateTime end, string? granularity = null)
+    public static Uri BuildUnifiedUrl(string serverKey, bool includeMetrics = true, bool includeStatus = true, bool includeStatic = true)
     {
-        var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var endStr = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var url = $"/api/servers/{serverId}/metrics/tiered?start={startStr}&end={endStr}";
-
-        if (!string.IsNullOrEmpty(granularity))
-        {
-            url += $"&granularity={granularity}";
-        }
-
-        return new Uri(url, UriKind.Relative);
-    }
-
-    /// <summary>
-    /// Builds metrics URL by server key with parameters.
-    /// </summary>
-    public static Uri BuildMetricsByKeyUrl(string serverKey, DateTime start, DateTime end, string? granularity = null)
-    {
-        var startStr = start.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var endStr = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
-        var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/metrics?start={startStr}&end={endStr}";
-
-        if (!string.IsNullOrEmpty(granularity))
-        {
-            url += $"&granularity={granularity}";
-        }
-
+        var url = $"/api/servers/by-key/{Uri.EscapeDataString(serverKey)}/unified?include_metrics={includeMetrics.ToString().ToUpperInvariant()}&include_status={includeStatus.ToString().ToUpperInvariant()}&include_static={includeStatic.ToString().ToUpperInvariant()}";
         return new Uri(url, UriKind.Relative);
     }
 

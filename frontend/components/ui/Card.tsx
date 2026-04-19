@@ -1,4 +1,7 @@
+'use client';
+
 import { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface CardProps {
@@ -9,15 +12,18 @@ interface CardProps {
 
 export function Card({ children, className, hover = false }: CardProps) {
   return (
-    <div
+    <motion.div
+      whileHover={hover ? { scale: 1.02, y: -5 } : undefined}
+      transition={{ duration: 0.3 }}
       className={cn(
-        'bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6',
-        hover && 'hover:bg-white/10 hover:border-white/20 transition-all duration-300',
+        'bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 relative overflow-hidden',
+        hover && 'hover:border-white/20 transition-all duration-300',
         className,
       )}
     >
-      {children}
-    </div>
+      <motion.div className='absolute inset-0 bg-gradient-to-br from-purple-600/5 to-blue-600/5 opacity-0 hover:opacity-100 transition-opacity' />
+      <div className='relative z-10'>{children}</div>
+    </motion.div>
   );
 }
 

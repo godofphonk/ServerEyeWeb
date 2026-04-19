@@ -61,78 +61,86 @@ export default function ForgotPasswordPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           {/* Back button */}
-          <Button variant='secondary' onClick={() => router.back()} className='mb-6'>
-            <ArrowLeft className='w-4 h-4 mr-2' />
-            Back
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button variant='secondary' onClick={() => router.back()} className='mb-6'>
+              <ArrowLeft className='w-4 h-4 mr-2' />
+              Back
+            </Button>
+          </motion.div>
 
-          <Card>
-            <CardHeader className='text-center'>
-              <div className='w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <Mail className='w-8 h-8 text-blue-400' />
-              </div>
-              <CardTitle className='text-2xl'>Forgot Password</CardTitle>
-              <p className='text-gray-400 mt-2'>
-                Enter your email address and we'll send you a link to reset your password
-              </p>
-            </CardHeader>
-
-            <CardContent>
-              {!isSubmitted ? (
-                <form onSubmit={handleSubmit} className='space-y-6'>
-                  <Input
-                    label='Email Address'
-                    type='email'
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder='Enter your email'
-                    required
-                    disabled={isLoading}
-                  />
-
-                  <Button type='submit' fullWidth isLoading={isLoading} disabled={!email.trim()}>
-                    Send Reset Link
-                  </Button>
-                </form>
-              ) : (
+          <motion.div whileHover={{ scale: 1.02 }}>
+            <Card className='border border-white/5 hover:border-white/10 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300'>
+              <CardHeader className='text-center'>
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className='text-center py-6'
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                  className='w-16 h-16 bg-blue-500/20 border border-blue-500/30 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30'
                 >
-                  <CheckCircle className='w-16 h-16 text-green-400 mx-auto mb-4' />
-                  <h3 className='text-xl font-semibold mb-2'>Check Your Email</h3>
-                  <p className='text-gray-400 mb-6'>We've sent a password reset link to:</p>
-                  <div className='bg-white/10 rounded-lg p-3 mb-6'>
-                    <p className='font-mono text-sm'>{email}</p>
-                  </div>
-                  <p className='text-sm text-gray-400'>
-                    Didn't receive the email? Check your spam folder or try again.
-                  </p>
-
-                  <div className='mt-6 space-y-3'>
-                    <Button
-                      variant='secondary'
-                      fullWidth
-                      onClick={() => {
-                        setIsSubmitted(false);
-                        setEmail('');
-                      }}
-                    >
-                      Try Different Email
-                    </Button>
-
-                    <Button variant='ghost' fullWidth onClick={() => router.push('/login')}>
-                      Back to Login
-                    </Button>
-                  </div>
+                  <Mail className='w-8 h-8 text-blue-400' />
                 </motion.div>
-              )}
-            </CardContent>
-          </Card>
+                <CardTitle className='text-2xl'>Forgot Password</CardTitle>
+                <p className='text-gray-400 mt-2'>
+                  Enter your email address and we'll send you a link to reset your password
+                </p>
+              </CardHeader>
+
+              <CardContent>
+                {!isSubmitted ? (
+                  <form onSubmit={handleSubmit} className='space-y-6'>
+                    <Input
+                      label='Email Address'
+                      type='email'
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder='Enter your email'
+                      required
+                      disabled={isLoading}
+                    />
+
+                    <Button type='submit' fullWidth isLoading={isLoading} disabled={!email.trim()}>
+                      Send Reset Link
+                    </Button>
+                  </form>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className='text-center py-6'
+                  >
+                    <CheckCircle className='w-16 h-16 text-green-400 mx-auto mb-4' />
+                    <h3 className='text-xl font-semibold mb-2'>Check Your Email</h3>
+                    <p className='text-gray-400 mb-6'>We've sent a password reset link to:</p>
+                    <div className='bg-white/10 rounded-lg p-3 mb-6'>
+                      <p className='font-mono text-sm'>{email}</p>
+                    </div>
+                    <p className='text-sm text-gray-400'>
+                      Didn't receive the email? Check your spam folder or try again.
+                    </p>
+
+                    <div className='mt-6 space-y-3'>
+                      <Button
+                        variant='secondary'
+                        fullWidth
+                        onClick={() => {
+                          setIsSubmitted(false);
+                          setEmail('');
+                        }}
+                      >
+                        Try Different Email
+                      </Button>
+
+                      <Button variant='ghost' fullWidth onClick={() => router.push('/login')}>
+                        Back to Login
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
       </div>
     </main>

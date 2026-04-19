@@ -12,13 +12,16 @@ public class GoApiUnifiedResponse
     public string ServerKey { get; init; } = string.Empty;
 
     [JsonPropertyName("metrics")]
-    public RawMetricsResponse? Metrics { get; init; }
+    public RawMetricsResponse? Metrics { get; set; }
 
     [JsonPropertyName("status")]
     public GoApiServerStatus? Status { get; init; }
 
     [JsonPropertyName("static_info")]
     public GoApiStaticInfo? StaticInfo { get; init; }
+
+    [JsonPropertyName("uptime_seconds")]
+    public long? UptimeSeconds { get; init; }
 
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;

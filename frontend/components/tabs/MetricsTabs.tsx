@@ -94,6 +94,7 @@ export default function MetricsTabs({
             dashboardMetrics={dashboardMetrics}
             historicalMetrics={historicalMetrics}
             server={server}
+            staticInfo={staticInfo}
           />
         </TabPanel>
       </TabsContent>

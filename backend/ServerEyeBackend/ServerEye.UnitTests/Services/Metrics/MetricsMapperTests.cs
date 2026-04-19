@@ -34,6 +34,11 @@ public class MetricsMapperTests
             LoadAvg = loadAvg,
             LoadMax = loadMax,
             SampleCount = sampleCount,
+
+            // Nested objects for frontend compatibility
+            Network = new NetworkMetrics { Avg = networkAvg, Max = networkMax },
+            LoadAverage = new LoadAverageMetrics { Avg = loadAvg, Max = loadMax },
+            Temperature = new TemperatureMetrics { Avg = tempAvg, Max = tempMax },
         };
     }
 
