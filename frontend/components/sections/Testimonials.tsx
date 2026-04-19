@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 import { useState } from 'react';
 
 const testimonials = [
@@ -45,32 +45,43 @@ const testimonials = [
 
 export default function Testimonials() {
   const [isPaused, setIsPaused] = useState(false);
-
-  // Duplicate testimonials for seamless loop
   const allTestimonials = [...testimonials, ...testimonials];
 
   return (
     <section className='py-32 relative overflow-hidden'>
-      <div className='container mx-auto px-6'>
+      <div className='absolute inset-0 bg-gradient-to-b from-transparent via-yellow-900/5 to-transparent' />
+
+      <div className='container mx-auto px-6 relative z-10'>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
           className='text-center mb-20'
         >
-          <h2 className='text-5xl md:text-6xl font-bold mb-6'>
+          <h2 className='text-5xl md:text-6xl lg:text-7xl font-bold mb-6'>
             Loved By
-            <span className='bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-400'>
+            <motion.span
+              className='bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400'
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              style={{ backgroundSize: '200% auto' }}
+            >
               {' '}
               Thousands
-            </span>
+            </motion.span>
           </h2>
           <p className='text-xl text-gray-400 max-w-2xl mx-auto'>
             See what developers and teams are saying about ServerEye
           </p>
         </motion.div>
 
-        {/* Scrolling testimonials */}
         <div
           className='relative'
           onMouseEnter={() => setIsPaused(true)}
@@ -89,59 +100,79 @@ export default function Testimonials() {
               }}
             >
               {allTestimonials.map((testimonial, i) => (
-                <div
+                <motion.div
                   key={i}
-                  className='flex-shrink-0 w-96 bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-8'
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className='flex-shrink-0 w-96 bg-gray-900/50 border border-white/10 rounded-2xl p-8 hover:border-yellow-500/50 transition-all duration-300'
                 >
-                  {/* Stars */}
                   <div className='flex gap-1 mb-4'>
                     {[...Array(5)].map((_, starIndex) => (
-                      <Star
+                      <motion.div
                         key={starIndex}
-                        className={`w-5 h-5 ${
-                          starIndex < testimonial.rating
-                            ? 'text-yellow-400 fill-yellow-400'
-                            : 'text-gray-600'
-                        }`}
-                      />
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: starIndex * 0.1 }}
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            starIndex < testimonial.rating
+                              ? 'text-yellow-400 fill-yellow-400'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      </motion.div>
                     ))}
                   </div>
 
-                  {/* Text */}
-                  <p className='text-gray-300 mb-6 leading-relaxed'>"{testimonial.text}"</p>
+                  <div className='relative mb-6'>
+                    <Quote className='w-8 h-8 text-yellow-400/20 absolute -top-4 -left-2' />
+                    <p className='text-gray-300 leading-relaxed relative z-10'>
+                      "{testimonial.text}"
+                    </p>
+                  </div>
 
-                  {/* Author */}
                   <div className='flex items-center gap-4'>
-                    <div className='w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg'>
+                    <motion.div
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      className='w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-yellow-500/30'
+                    >
                       {testimonial.name[0]}
-                    </div>
+                    </motion.div>
                     <div>
                       <div className='font-semibold'>{testimonial.name}</div>
                       <div className='text-sm text-gray-500'>{testimonial.role}</div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </motion.div>
           </div>
 
-          {/* Gradient overlays */}
           <div className='absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent pointer-events-none' />
           <div className='absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-black to-transparent pointer-events-none' />
         </div>
 
-        {/* Average rating */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ delay: 0.6 }}
           className='text-center mt-16'
         >
-          <div className='inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-full'>
-            <Star className='w-5 h-5 text-yellow-400 fill-yellow-400' />
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className='inline-flex items-center gap-3 px-8 py-4 bg-yellow-500/10 border border-yellow-500/20 rounded-full hover:bg-yellow-500/20 transition-all'
+          >
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Star className='w-6 h-6 text-yellow-400 fill-yellow-400' />
+            </motion.div>
             <span className='text-xl font-bold text-white'>4.9/5</span>
             <span className='text-gray-400'>from 500+ reviews</span>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
