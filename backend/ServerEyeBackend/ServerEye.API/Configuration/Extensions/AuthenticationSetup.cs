@@ -2,6 +2,7 @@ namespace ServerEye.API.Configuration.Extensions;
 
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using ServerEye.Core.Configuration;
 using ServerEye.Core.Services;
@@ -56,6 +57,24 @@ public static class AuthenticationSetup
                 IssuerSigningKey = new RsaSecurityKey(rsaKey),
                 ClockSkew = TimeSpan.Zero,
                 RequireSignedTokens = true
+            };
+
+            // Add blacklist check using OnTokenValidated event
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var cache = context.HttpContext.RequestServices.GetRequiredService<IDistributedCache>();
+                    if (context.SecurityToken is System.IdentityModel.Tokens.Jwt.JwtSecurityToken token)
+                    {
+                        var tokenString = token.RawData;
+                        var blacklisted = await cache.GetStringAsync($"blacklist:{tokenString}");
+                        if (!string.IsNullOrEmpty(blacklisted))
+                        {
+                            context.Fail("Token has been revoked");
+                        }
+                    }
+                }
             };
         });
 

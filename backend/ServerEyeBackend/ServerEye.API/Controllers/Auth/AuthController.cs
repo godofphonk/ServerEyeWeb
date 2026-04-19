@@ -184,6 +184,31 @@ public class AuthController : BaseApiController
             await this.cacheService.RemoveAsync($"limits:{userId}");
             await this.cacheService.RemoveAsync($"servers:{userId}");
 
+            // Add current access token to blacklist to prevent reuse
+            var accessToken = this.Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", string.Empty, StringComparison.Ordinal);
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                try
+                {
+                    // Decode JWT to get expiration time
+                    var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                    var jsonToken = tokenHandler.ReadJwtToken(accessToken);
+                    var expiration = jsonToken.ValidTo;
+
+                    // Calculate TTL until token expiration
+                    var ttl = expiration - DateTime.UtcNow;
+                    if (ttl > TimeSpan.Zero)
+                    {
+                        await this.cacheService.SetAsync($"blacklist:{accessToken}", "revoked", ttl);
+                        this.logger.LogInformation("Added access token to blacklist - Expires in: {TTL}", ttl);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Failed to blacklist access token during logout");
+                }
+            }
+
             // Delete OAuth cookies (access_token and refresh_token)
             this.Response.Cookies.Delete("access_token", new CookieOptions
             {
