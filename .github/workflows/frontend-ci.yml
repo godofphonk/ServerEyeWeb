@@ -301,7 +301,7 @@ jobs:
 
       - name: Build Docker image
         continue-on-error: true
-        uses: docker/build-push-action@v7.1.0
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
