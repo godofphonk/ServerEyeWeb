@@ -28,15 +28,24 @@ public static class DatabaseSetup
             return services;
         }
 
-        // Register DbContexts
-        services.AddDbContext<ServerEyeDbContext>(options =>
-            options.UseNpgsql(serverEyeConnectionString));
+        // Register DbContexts with pooling for better performance and reduced memory allocations
+        services.AddDbContextPool<ServerEyeDbContext>(options =>
+        {
+            options.UseNpgsql(serverEyeConnectionString);
+            options.ConfigureWarnings(warnings => warnings.Default(WarningBehavior.Ignore));
+        });
 
-        services.AddDbContext<TicketDbContext>(options =>
-            options.UseNpgsql(ticketConnectionString));
+        services.AddDbContextPool<TicketDbContext>(options =>
+        {
+            options.UseNpgsql(ticketConnectionString);
+            options.ConfigureWarnings(warnings => warnings.Default(WarningBehavior.Ignore));
+        });
 
-        services.AddDbContext<BillingDbContext>(options =>
-            options.UseNpgsql(billingConnectionString));
+        services.AddDbContextPool<BillingDbContext>(options =>
+        {
+            options.UseNpgsql(billingConnectionString);
+            options.ConfigureWarnings(warnings => warnings.Default(WarningBehavior.Ignore));
+        });
 
         // Add Health Checks for all databases
         services.AddHealthChecks()

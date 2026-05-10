@@ -94,7 +94,7 @@ public class AuthController : BaseApiController
 
             if (!string.IsNullOrEmpty(request.Token))
             {
-                var principal = this.jwtService.ValidateToken(request.Token, validateLifetime: false);
+                var principal = this.jwtService.ValidateExpiredAccessToken(request.Token);
                 if (principal != null)
                 {
                     email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? string.Empty;

@@ -16,90 +16,101 @@ using ServerEye.Core.Interfaces.Services;
 
 public class JwtSettings
 {
-    public string SecretKey { get; set; } = string.Empty;
     public string Issuer { get; set; } = string.Empty;
     public string Audience { get; set; } = string.Empty;
     public TimeSpan AccessTokenExpiration { get; set; }
     public TimeSpan RefreshTokenExpiration { get; set; }
-    public string PrivateKeyBase64 { get; set; } = string.Empty;
-    public string PublicKeyBase64 { get; set; } = string.Empty;
+    public string PrivateKey { get; set; } = string.Empty;
+    public string PublicKey { get; set; } = string.Empty;
+    public string KeyId { get; set; } = string.Empty;
 }
 
-public sealed class JwtService : IJwtService
+public sealed class JwtService : IJwtService, IDisposable
 {
-    private static ILogger<JwtService>? staticLogger;
     private readonly JwtSettings jwtSettings;
     private readonly RSA rsaPublicKey;
     private readonly RSA rsaPrivateKey;
     private readonly ILogger<JwtService>? logger;
+    private bool disposed;
 
-    public JwtService(JwtSettings jwtSettings, IConfiguration configuration, ILogger<JwtService>? logger = null)
+    public JwtService(JwtSettings jwtSettings, ILogger<JwtService>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(jwtSettings);
-        ArgumentNullException.ThrowIfNull(configuration);
 
         this.jwtSettings = jwtSettings;
         this.logger = logger;
-        staticLogger = logger;
 
         // Load RSA keys from JwtSettings
-        if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
+        if (!string.IsNullOrEmpty(jwtSettings.PrivateKey) && !string.IsNullOrEmpty(jwtSettings.PublicKey))
         {
-            this.rsaPrivateKey = LoadRsaKeyFromBase64(jwtSettings.PrivateKeyBase64);
-            this.rsaPublicKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
+            this.rsaPrivateKey = LoadPrivateKey(jwtSettings.PrivateKey);
+            this.rsaPublicKey = LoadPublicKey(jwtSettings.PublicKey);
             logger?.LogInformation("Loaded RSA keys from JwtSettings");
         }
         else
         {
             throw new InvalidOperationException(
-                "JWT PrivateKeyBase64 and PublicKeyBase64 must be configured. " +
+                "JWT PrivateKey and PublicKey must be configured. " +
                 "Please add them to appsettings.Development.json or set via environment variables.");
         }
     }
 
-    private static RSA LoadRsaKeyFromBase64(string base64Key)
+    private static string RemoveWhitespace(string value)
+    {
+        var sb = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (c != '\n' && c != '\r' && c != ' ' && c != '\t')
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
+    }
+
+    private RSA LoadPrivateKey(string value)
     {
         try
         {
-            staticLogger?.LogInformation("Original key length: {Length}", base64Key.Length);
+            var rsa = RSA.Create();
 
-            // Remove whitespace and newlines
-            var cleanedKey = base64Key.Replace("\n", string.Empty, StringComparison.Ordinal)
-                                      .Replace("\r", string.Empty, StringComparison.Ordinal)
-                                      .Replace(" ", string.Empty, StringComparison.Ordinal)
-                                      .Replace("\t", string.Empty, StringComparison.Ordinal);
-
-            staticLogger?.LogInformation("Cleaned key length: {Length}", cleanedKey.Length);
-
-            // Log first 100 characters for debugging
-            var keyPreview = cleanedKey.Length > 100 ? cleanedKey[..100] : cleanedKey;
-            staticLogger?.LogInformation("Key preview (first 100 chars): {Preview}", keyPreview);
-
-            // Check if key has PEM headers
-            if (base64Key.Contains("-----BEGIN", StringComparison.Ordinal))
+            if (value.Contains("-----BEGIN", StringComparison.Ordinal))
             {
-                staticLogger?.LogInformation("Key has PEM headers, importing directly");
-                var rsa = RSA.Create();
-                rsa.ImportFromPem(base64Key);
-                staticLogger?.LogInformation("Successfully loaded RSA key from PEM");
+                rsa.ImportFromPem(value);
                 return rsa;
             }
 
-            // Key is in pure Base64 format, add PEM headers
-            staticLogger?.LogInformation("Key is pure Base64, adding PEM headers");
-            var pemKey = cleanedKey.Contains("MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJd", StringComparison.Ordinal)
-                ? $"-----BEGIN PRIVATE KEY-----\n{cleanedKey}\n-----END PRIVATE KEY-----"
-                : $"-----BEGIN PUBLIC KEY-----\n{cleanedKey}\n-----END PUBLIC KEY-----";
-
-            var rsaPem = RSA.Create();
-            rsaPem.ImportFromPem(pemKey);
-            staticLogger?.LogInformation("Successfully loaded RSA key from PEM with added headers");
-            return rsaPem;
+            var bytes = Convert.FromBase64String(RemoveWhitespace(value));
+            rsa.ImportPkcs8PrivateKey(bytes, out _);
+            return rsa;
         }
         catch (Exception ex)
         {
-            staticLogger?.LogError(ex, "Failed to load RSA key");
-            throw new InvalidOperationException("Failed to load RSA key", ex);
+            this.logger?.LogError(ex, "Failed to load private RSA key");
+            throw new InvalidOperationException("Failed to load private RSA key", ex);
+        }
+    }
+
+    private RSA LoadPublicKey(string value)
+    {
+        try
+        {
+            var rsa = RSA.Create();
+
+            if (value.Contains("-----BEGIN", StringComparison.Ordinal))
+            {
+                rsa.ImportFromPem(value);
+                return rsa;
+            }
+
+            var bytes = Convert.FromBase64String(RemoveWhitespace(value));
+            rsa.ImportSubjectPublicKeyInfo(bytes, out _);
+            return rsa;
+        }
+        catch (Exception ex)
+        {
+            this.logger?.LogError(ex, "Failed to load public RSA key");
+            throw new InvalidOperationException("Failed to load public RSA key", ex);
         }
     }
 
@@ -110,25 +121,27 @@ public sealed class JwtService : IJwtService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = new RsaSecurityKey(this.rsaPrivateKey)
         {
-            KeyId = Guid.NewGuid().ToString()
+            KeyId = this.jwtSettings.KeyId
         };
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 
         var now = DateTime.UtcNow;
         var expires = now.Add(this.jwtSettings.AccessTokenExpiration);
+        var nowOffset = new DateTimeOffset(now);
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Name, user.UserName),
-            new Claim("role", user.Role.ToString().ToUpperInvariant()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("type", "access"),
+            new Claim(System.Security.Claims.ClaimTypes.Role, user.Role.ToString().ToUpperInvariant()),
             new Claim("email_verified", user.IsEmailVerified.ToString().ToUpperInvariant()),
             new Claim("has_email", (!string.IsNullOrEmpty(user.Email)).ToString().ToUpperInvariant()),
             new Claim("has_password", user.HasPassword.ToString().ToUpperInvariant()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
-            new Claim(JwtRegisteredClaimNames.Exp, DateTimeOffset.UtcNow.Add(this.jwtSettings.AccessTokenExpiration).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
+            new Claim(JwtRegisteredClaimNames.Iat, nowOffset.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -160,24 +173,28 @@ public sealed class JwtService : IJwtService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = new RsaSecurityKey(this.rsaPrivateKey)
         {
-            KeyId = Guid.NewGuid().ToString()
+            KeyId = this.jwtSettings.KeyId
         };
 
         var credentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
+
+        var now = DateTime.UtcNow;
+        var expires = now.Add(this.jwtSettings.RefreshTokenExpiration);
+        var nowOffset = new DateTimeOffset(now);
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("type", "refresh"),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
-            new Claim(JwtRegisteredClaimNames.Exp, DateTimeOffset.UtcNow.Add(this.jwtSettings.RefreshTokenExpiration).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
+            new Claim(JwtRegisteredClaimNames.Iat, nowOffset.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.Add(this.jwtSettings.RefreshTokenExpiration),
+            Expires = expires,
             SigningCredentials = credentials,
             Issuer = this.jwtSettings.Issuer,
             Audience = this.jwtSettings.Audience
@@ -189,10 +206,56 @@ public sealed class JwtService : IJwtService
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
-        return ValidateToken(token, validateLifetime: true);
+        return ValidateTokenInternal(token, validateLifetime: true);
     }
 
-    public ClaimsPrincipal? ValidateToken(string token, bool validateLifetime)
+    public ClaimsPrincipal? ValidateAccessToken(string token)
+    {
+        var principal = ValidateTokenInternal(token, validateLifetime: true);
+
+        if (principal is null)
+        {
+            return null;
+        }
+
+        if (principal.FindFirst("type")?.Value != "access")
+        {
+            return null;
+        }
+
+        return principal;
+    }
+
+    public ClaimsPrincipal? ValidateRefreshToken(string token)
+    {
+        var principal = ValidateTokenInternal(token, validateLifetime: true);
+
+        if (principal is null)
+        {
+            return null;
+        }
+
+        if (principal.FindFirst("type")?.Value != "refresh")
+        {
+            return null;
+        }
+
+        return principal;
+    }
+
+    public ClaimsPrincipal? ValidateExpiredAccessToken(string token)
+    {
+        var principal = ValidateTokenInternal(token, validateLifetime: false);
+
+        if (principal?.FindFirst("type")?.Value != "access")
+        {
+            return null;
+        }
+
+        return principal;
+    }
+
+    private ClaimsPrincipal? ValidateTokenInternal(string token, bool validateLifetime)
     {
         if (string.IsNullOrEmpty(token))
         {
@@ -211,12 +274,20 @@ public sealed class JwtService : IJwtService
             ValidIssuer = this.jwtSettings.Issuer,
             ValidAudience = this.jwtSettings.Audience,
             IssuerSigningKey = key,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
 
         try
         {
             var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+
+            if (validatedToken is not JwtSecurityToken jwtToken ||
+                jwtToken.Header.Alg != SecurityAlgorithms.RsaSha256)
+            {
+                return null;
+            }
+
             return principal;
         }
         catch (SecurityTokenValidationException)
@@ -258,5 +329,18 @@ public sealed class JwtService : IJwtService
 
         var principal = ValidateToken(token);
         return principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? string.Empty;
+    }
+
+    public void Dispose()
+    {
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.rsaPrivateKey?.Dispose();
+        this.rsaPublicKey?.Dispose();
+        this.disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "ServerEye HEAVY Load Test Collection",
+    "description": "Serious load testing for memory profiling - Multiple endpoints with data processing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Readiness Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/health/ready",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["health", "ready"]
+        }
+      }
+    },
+    {
+      "name": "Liveness Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/health/live",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["health", "live"]
+        }
+      }
+    },
+    {
+      "name": "Prometheus Metrics (Large Response)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/metrics",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["metrics"]
+        }
+      }
+    },
+    {
+      "name": "Forgot Password - Heavy Processing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test{{$randomInt}}@example.com\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5246/api/auth/forgot-password",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["api", "auth", "forgot-password"]
+        }
+      }
+    },
+    {
+      "name": "OAuth Challenge - Config Processing",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/api/auth/oauth/google/challenge",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["api", "auth", "oauth", "google", "challenge"]
+        }
+      }
+    },
+    {
+      "name": "Get Session - Cache Read",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/api/auth/session",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["api", "auth", "session"]
+        }
+      }
+    },
+    {
+      "name": "Set Session - Cache Write",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5246/api/auth/session",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5246",
+          "path": ["api", "auth", "session"]
+        }
+      }
+    }
+  ]
+}

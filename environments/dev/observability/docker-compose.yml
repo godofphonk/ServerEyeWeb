@@ -51,13 +51,6 @@ services:
     networks:
       - servereye-network
       - docker-proxy-network
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
 
   # Loki - Log Aggregation
   loki:
@@ -128,13 +121,6 @@ services:
     restart: unless-stopped
     networks:
       - servereye-network
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
       interval: 10s

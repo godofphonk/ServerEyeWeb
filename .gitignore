@@ -154,3 +154,6 @@ security-scan-results.csv
 
 # MemoryLens MCP fork
 memorylens-mcp/
+
+# Profiling snapshots
+profiling/snapshots/
