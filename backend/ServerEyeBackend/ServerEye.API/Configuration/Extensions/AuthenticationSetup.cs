@@ -35,14 +35,14 @@ public static class AuthenticationSetup
         {
             // Load RSA key from JwtSettings
             RSA rsaKey;
-            if (!string.IsNullOrEmpty(jwtSettings.PrivateKeyBase64) && !string.IsNullOrEmpty(jwtSettings.PublicKeyBase64))
+            if (!string.IsNullOrEmpty(jwtSettings.PrivateKey) && !string.IsNullOrEmpty(jwtSettings.PublicKey))
             {
-                rsaKey = LoadRsaKeyFromBase64(jwtSettings.PublicKeyBase64);
+                rsaKey = LoadRsaKeyFromBase64(jwtSettings.PublicKey);
             }
             else
             {
                 throw new InvalidOperationException(
-                    "JWT PrivateKeyBase64 and PublicKeyBase64 must be configured. " +
+                    "JWT PrivateKey and PublicKey must be configured. " +
                     "Please add them to Doppler dev config.");
             }
 

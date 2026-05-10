@@ -48,13 +48,11 @@ public static class OpenTelemetryConfiguration
                         {
                             var path = httpContext.Request.Path;
 
-                            // Exclude health and OAuth endpoints from tracing
-                            return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase) &&
-                                   !path.StartsWithSegments("/api/auth/oauth", StringComparison.OrdinalIgnoreCase);
+                            // Exclude health endpoints from tracing
+                            return !path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
                         };
                         options.EnrichWithHttpRequest = (activity, httpRequest) =>
                         {
-                            activity.SetTag("http.request.path", httpRequest.Path);
                             activity.SetTag("http.request.query", httpRequest.QueryString.ToString());
                         };
                         options.EnrichWithHttpResponse = (activity, httpResponse) =>
@@ -73,17 +71,16 @@ public static class OpenTelemetryConfiguration
                     })
                     .AddEntityFrameworkCoreInstrumentation(options =>
                     {
-                        options.SetDbStatementForText = true;
+                        options.SetDbStatementForText = false;
                         options.SetDbStatementForStoredProcedure = true;
                         options.EnrichWithIDbCommand = (activity, command) =>
                         {
-                            activity.SetTag("db.command.text", command.CommandText);
                             activity.SetTag("db.command.type", command.CommandType.ToString());
                         };
                     })
                     .AddSource(serviceName)
                     .AddSource("ServerEye.OAuth") // Add OAuth activity source
-                    .SetSampler(new AlwaysOnSampler())
+                    .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(0.1)))
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otlpEndpoint);
@@ -94,8 +91,8 @@ public static class OpenTelemetryConfiguration
                 {
                     tracing.AddRedisInstrumentation(connection =>
                     {
-                        connection.SetVerboseDatabaseStatements = true;
-                        connection.EnrichActivityWithTimingEvents = true;
+                        connection.SetVerboseDatabaseStatements = false;
+                        connection.EnrichActivityWithTimingEvents = false;
                     });
                 }
             })
@@ -123,7 +120,6 @@ public static class OpenTelemetryConfiguration
         services.AddLogging(logging =>
         {
             logging.ClearProviders();
-            logging.AddConsole();
             logging.AddOpenTelemetry(options =>
             {
                 options.SetResourceBuilder(ResourceBuilder.CreateDefault()

@@ -1,7 +1,7 @@
 # ServerEye Web - Environment Management Makefile
 # Enterprise-level environment management with component separation
 
-.PHONY: help dev-up dev-down dev-logs dev-clean build test lint dev-infra-up dev-observability-up dev-backend-up dev-frontend-up dev-stripe-up dev-infra-down dev-observability-down dev-backend-down dev-frontend-down dev-stripe-down dev-infra-logs dev-observability-logs dev-backend-logs dev-frontend-logs dev-stripe-logs dev-shell
+.PHONY: help dev-up dev-down dev-logs dev-clean build test lint dev-infra-up dev-observability-up dev-backend-up dev-frontend-up dev-stripe-up dev-infra-down dev-observability-down dev-backend-down dev-frontend-down dev-stripe-down dev-infra-logs dev-observability-logs dev-backend-logs dev-frontend-logs dev-stripe-logs dev-shell prod-up prod-down prod-logs prod-clean prod-infra-up prod-observability-up prod-backend-up prod-frontend-up prod-stripe-up prof-memory prof-cpu
 
 # Default target
 help:
@@ -31,7 +31,13 @@ help:
 	@echo "  dev-backend-logs - Show backend logs"
 	@echo "  dev-frontend-logs - Show frontend logs"
 	@echo ""
-	@echo "� Build & Test:"
+	@echo "🚀 Production - Full Stack:"
+	@echo "  prod-up          - Start all production services (infra + stripe + observability + backend + frontend)"
+	@echo "  prod-down        - Stop all production services"
+	@echo "  prod-logs        - Show all production logs"
+	@echo "  prod-clean       - Clean all production services"
+	@echo ""
+	@echo "🏗️ Build & Test:"
 	@echo "  build            - Build all development services"
 	@echo "  test             - Run all tests (including Docker tests)"
 	@echo "  test-backend     - Run all backend tests"
@@ -43,6 +49,10 @@ help:
 	@echo "  clean            - Clean all environments"
 	@echo "  status           - Show status of all services"
 	@echo "  backup           - Backup databases"
+	@echo ""
+	@echo "🔍 Profiling:"
+	@echo "  prof-memory      - Create memory snapshot with manual load testing (60s)"
+	@echo "  prof-cpu         - Create CPU profiling snapshot with dotTrace (60s)"
 
 # ==============================================================================
 # DEVELOPMENT ENVIRONMENT
@@ -166,6 +176,71 @@ dev-shell:
 	docker exec -it servereye-backend-dev /bin/sh
 
 # ==============================================================================
+# PRODUCTION ENVIRONMENT
+# ==============================================================================
+
+# Full Stack Production
+prod-up: prod-infra-up prod-stripe-up prod-observability-up prod-backend-up prod-frontend-up
+	@echo "All production services started!"
+	@echo "Frontend: http://127.0.0.1:3001"
+	@echo "Backend:  http://127.0.0.1:5248"
+	@echo "PostgreSQL: 127.0.0.1:5435 (main), 127.0.0.1:5437 (tickets), 127.0.0.1:5438 (billing)"
+	@echo "Redis: 127.0.0.1:6381"
+	@echo "Grafana: http://localhost:3011"
+	@echo "Prometheus: http://localhost:9091"
+
+prod-down: prod-frontend-down prod-backend-down prod-stripe-down prod-observability-down prod-infra-down
+	@echo "✅ All production services stopped!"
+
+prod-logs:
+	@echo "Showing all production logs..."
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/stripe/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/observability/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/backend/docker-compose.yml logs -f & \
+	docker compose -f ./environments/prod/frontend/docker-compose.yml logs -f
+
+prod-clean: prod-down
+	@echo "Cleaning production environment..."
+	docker compose -f ./environments/prod/infrastructure/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/stripe/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/observability/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/backend/docker-compose.yml down -v --remove-orphans
+	docker compose -f ./environments/prod/frontend/docker-compose.yml down -v --remove-orphans
+	@echo "Production environment cleaned!"
+
+# Component-wise Production Commands
+prod-infra-up:
+	@echo "🏗️  Starting production infrastructure..."
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/prod && doppler run -- docker compose -f ./infrastructure/docker-compose.yml up -d
+	@echo "✅ Infrastructure started!"
+
+prod-observability-up:
+	@echo "📊 Starting production observability stack..."
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/prod && doppler run -- docker compose -f ./observability/docker-compose.yml up -d
+	@echo "✅ Observability stack started!"
+
+prod-backend-up:
+	@echo "🔧 Starting production backend..."
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/prod && doppler run -- docker compose -f ./backend/docker-compose.yml up -d --build
+	@echo "✅ Backend started!"
+
+prod-frontend-up:
+	@echo "🌐 Starting production frontend..."
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/prod && doppler run -- docker compose -f ./frontend/docker-compose.yml up -d --build
+	@echo "✅ Frontend started!"
+
+prod-stripe-up:
+	@echo "Starting Stripe CLI for production webhook forwarding..."
+	@docker network create servereye-network 2>/dev/null || echo "✅ Network servereye-network already exists"
+	cd ./environments/prod && doppler run -- docker compose -f ./stripe/docker-compose.yml up -d
+	@echo "✅ Stripe CLI started!"
+
+# ==============================================================================
 # BUILD COMMANDS
 # ==============================================================================
 
@@ -278,6 +353,18 @@ restore:
 	docker exec -i servereyeWeb-ticket-postgres psql -U postgres -c "CREATE DATABASE \"ServerEyeWeb_Dev_Ticket\";" && \
 	docker exec -i servereyeWeb-ticket-postgres psql -U postgres ServerEyeWeb_Dev_Ticket < "$$ticket_backup"
 	@echo "✅ Databases restored!"
+
+# ==============================================================================
+# PROFILING COMMANDS
+# ==============================================================================
+
+prof-memory:
+	@echo "🔍 Starting memory profiling..."
+	@./profiling/memory/memory-snapshot-auto-load.sh
+
+prof-cpu:
+	@echo "🔍 Starting CPU profiling with dotTrace..."
+	@./profiling/dottrace/prof-cpu.sh
 
 # ==============================================================================
 # DEVELOPMENT HELPERS

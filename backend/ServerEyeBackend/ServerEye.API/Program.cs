@@ -3,8 +3,8 @@
 using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ServerEye.API.Configuration.Extensions;
 using ServerEye.API.Extensions;
 using ServerEye.API.Middleware;
@@ -31,9 +31,9 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<ServerEye.
 if (jwtSettings != null)
 {
     logger.LogInformation(
-        "JwtSettings loaded - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
-        jwtSettings.PrivateKeyBase64?.Length ?? 0,
-        jwtSettings.PublicKeyBase64?.Length ?? 0);
+        "JwtSettings loaded - PrivateKey length: {Length}, PublicKey length: {Length}",
+        jwtSettings.PrivateKey?.Length ?? 0,
+        jwtSettings.PublicKey?.Length ?? 0);
 }
 else
 {

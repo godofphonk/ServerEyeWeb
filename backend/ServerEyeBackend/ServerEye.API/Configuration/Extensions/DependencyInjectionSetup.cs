@@ -151,11 +151,11 @@ public static class DependencyInjectionSetup
 
             // Log JWT settings for debugging
             logger?.LogInformation(
-                "Registering JwtService - PrivateKeyBase64 length: {Length}, PublicKeyBase64 length: {Length}",
-                jwtSettings.PrivateKeyBase64?.Length ?? 0,
-                jwtSettings.PublicKeyBase64?.Length ?? 0);
+                "Registering JwtService - PrivateKey length: {Length}, PublicKey length: {Length}",
+                jwtSettings.PrivateKey?.Length ?? 0,
+                jwtSettings.PublicKey?.Length ?? 0);
 
-            return new JwtService(jwtSettings, configuration, logger);
+            return new JwtService(jwtSettings, logger);
         });
     }
 
@@ -294,11 +294,15 @@ public static class DependencyInjectionSetup
             .AddCheck<DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>>("main_database", tags: DatabaseTags)
             .AddCheck<DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>>("ticket_database", tags: DatabaseTags);
 
-        // Register factory instances with database names
+        // Register factory instances with database names using IServiceScopeFactory
         services.AddSingleton(provider =>
-            new DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>(provider, "Main Database"));
+            new DatabaseHealthCheckFactory<Infrastructure.ServerEyeDbContext>(
+                provider.GetRequiredService<IServiceScopeFactory>(),
+                "Main Database"));
         services.AddSingleton(provider =>
-            new DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>(provider, "Ticket Database"));
+            new DatabaseHealthCheckFactory<Infrastructure.TicketDbContext>(
+                provider.GetRequiredService<IServiceScopeFactory>(),
+                "Ticket Database"));
 
         // Add Redis health check if configured
         var redisConnectionString = configuration.GetConnectionString("Redis");
