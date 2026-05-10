@@ -210,7 +210,7 @@ jobs:
         run: dotnet build backend/ServerEyeBackend/ServerEyeBackend.sln --no-restore -c Release
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: 'backend/'
@@ -296,7 +296,7 @@ jobs:
           no-cache: true
 
       - name: Run Trivy vulnerability scanner on image
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
         with:
           image-ref: servereye-backend:${{ github.sha }}
