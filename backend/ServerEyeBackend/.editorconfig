@@ -127,6 +127,7 @@ dotnet_diagnostic.IDE0002.severity = none
 dotnet_diagnostic.IDE0370.severity = none
 dotnet_diagnostic.CS8618.severity = none
 dotnet_diagnostic.JSON002.severity = none
+dotnet_diagnostic.IDE0391.severity = none
 
 # StyleCop Analyzer - disable blank line rules
 dotnet_diagnostic.SA1510.severity = none
