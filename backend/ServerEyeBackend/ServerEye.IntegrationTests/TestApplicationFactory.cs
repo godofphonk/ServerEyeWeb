@@ -69,8 +69,8 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["JwtSettings:Audience"] = "TestAudience",
                 ["JwtSettings:AccessTokenExpiration"] = "01:00:00",
                 ["JwtSettings:RefreshTokenExpiration"] = "7.00:00:00",
-                ["JwtSettings:PrivateKeyBase64"] = TestPrivateKey,
-                ["JwtSettings:PublicKeyBase64"] = TestPublicKey,
+                ["JwtSettings:PrivateKey"] = TestPrivateKey,
+                ["JwtSettings:PublicKey"] = TestPublicKey,
                 ["JWT_PRIVATE_KEY_BASE64"] = TestPrivateKey,
                 ["JWT_PUBLIC_KEY_BASE64"] = TestPublicKey,
                 // Use in-memory database
@@ -332,13 +332,12 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
             // Override JwtService with test settings to ensure token generation uses same keys as validation
             var testJwtSettings = new Core.Services.JwtSettings
             {
-                SecretKey = "ThisIsASecretKeyForDevelopment123456789",
                 Issuer = "TestIssuer",
                 Audience = "TestAudience",
                 AccessTokenExpiration = TimeSpan.Parse("01:00:00", CultureInfo.InvariantCulture),
                 RefreshTokenExpiration = TimeSpan.Parse("7.00:00:00", CultureInfo.InvariantCulture),
-                PrivateKeyBase64 = TestPrivateKey,
-                PublicKeyBase64 = TestPublicKey
+                PrivateKey = TestPrivateKey,
+                PublicKey = TestPublicKey
             };
 
             // Remove existing JwtSettings and JwtService
@@ -359,7 +358,7 @@ public class TestApplicationFactory : WebApplicationFactory<Program>, IAsyncLife
             services.AddSingleton<Core.Interfaces.Services.IJwtService>(provider =>
             {
                 var settings = provider.GetRequiredService<Core.Services.JwtSettings>();
-                return new Core.Services.JwtService(settings, provider.GetRequiredService<IConfiguration>());
+                return new Core.Services.JwtService(settings, provider.GetRequiredService<ILogger<Core.Services.JwtService>>());
             });
         });
 

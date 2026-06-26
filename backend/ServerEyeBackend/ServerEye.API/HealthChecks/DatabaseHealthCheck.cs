@@ -75,16 +75,21 @@ public class DatabaseHealthCheck<TContext> : IHealthCheck
 
 /// <summary>
 /// Factory for creating DatabaseHealthCheck instances with database name.
+/// Optimized to reuse scoped DbContext and cache results.
 /// </summary>
 public class DatabaseHealthCheckFactory<TContext> : IHealthCheck
     where TContext : DbContext
 {
-    private readonly IServiceProvider serviceProvider;
-    private readonly string databaseName;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(5);
 
-    public DatabaseHealthCheckFactory(IServiceProvider serviceProvider, string databaseName)
+    private readonly IServiceScopeFactory scopeFactory;
+    private readonly string databaseName;
+    private HealthCheckResult? cachedResult;
+    private DateTime lastCheckTime = DateTime.MinValue;
+
+    public DatabaseHealthCheckFactory(IServiceScopeFactory scopeFactory, string databaseName)
     {
-        this.serviceProvider = serviceProvider;
+        this.scopeFactory = scopeFactory;
         this.databaseName = databaseName;
     }
 
@@ -92,9 +97,21 @@ public class DatabaseHealthCheckFactory<TContext> : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        using var scope = serviceProvider.CreateScope();
+        // Return cached result if still valid
+        if (cachedResult != null && DateTime.UtcNow - lastCheckTime < CacheDuration)
+        {
+            return cachedResult.Value;
+        }
+
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
         var healthCheck = new DatabaseHealthCheck<TContext>(dbContext, databaseName);
-        return await healthCheck.CheckHealthAsync(context, cancellationToken);
+        var result = await healthCheck.CheckHealthAsync(context, cancellationToken);
+
+        // Cache the result
+        cachedResult = result;
+        lastCheckTime = DateTime.UtcNow;
+
+        return result;
     }
 }

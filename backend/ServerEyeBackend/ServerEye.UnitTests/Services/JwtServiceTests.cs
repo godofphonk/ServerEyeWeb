@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ServerEye.Core.Services;
 
-public class JwtServiceTests
+public class JwtServiceTests : IDisposable
 {
     private readonly Mock<ILogger<JwtService>> loggerMock;
     private readonly JwtSettings jwtSettings;
@@ -16,11 +16,9 @@ public class JwtServiceTests
     public JwtServiceTests()
     {
         this.loggerMock = new Mock<ILogger<JwtService>>();
-        var configurationMock1 = new Mock<IConfiguration>();
 
         this.jwtSettings = new JwtSettings
         {
-            SecretKey = "TestSecretKey123456789012345678901234567890",
             Issuer = "TestIssuer",
             Audience = "TestAudience",
             AccessTokenExpiration = TimeSpan.FromMinutes(60),
@@ -28,10 +26,16 @@ public class JwtServiceTests
         };
 
         using var keyPair = System.Security.Cryptography.RSA.Create(2048);
-        this.jwtSettings.PrivateKeyBase64 = $"-----BEGIN PRIVATE KEY-----\n{Convert.ToBase64String(keyPair.ExportPkcs8PrivateKey())}\n-----END PRIVATE KEY-----";
-        this.jwtSettings.PublicKeyBase64 = $"-----BEGIN PUBLIC KEY-----\n{Convert.ToBase64String(keyPair.ExportSubjectPublicKeyInfo())}\n-----END PUBLIC KEY-----";
+        this.jwtSettings.PrivateKey = $"-----BEGIN PRIVATE KEY-----\n{Convert.ToBase64String(keyPair.ExportPkcs8PrivateKey())}\n-----END PRIVATE KEY-----";
+        this.jwtSettings.PublicKey = $"-----BEGIN PUBLIC KEY-----\n{Convert.ToBase64String(keyPair.ExportSubjectPublicKeyInfo())}\n-----END PUBLIC KEY-----";
 
-        this.sut = new JwtService(this.jwtSettings, configurationMock1.Object);
+        this.sut = new JwtService(this.jwtSettings, this.loggerMock.Object);
+    }
+
+    public void Dispose()
+    {
+        this.sut?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]

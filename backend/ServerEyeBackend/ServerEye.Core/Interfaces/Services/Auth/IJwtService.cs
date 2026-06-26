@@ -8,7 +8,9 @@ public interface IJwtService
     public string GenerateAccessToken(User user);
     public string GenerateRefreshToken(User user);
     public ClaimsPrincipal? ValidateToken(string token);
-    public ClaimsPrincipal? ValidateToken(string token, bool validateLifetime);
+    public ClaimsPrincipal? ValidateAccessToken(string token);
+    public ClaimsPrincipal? ValidateRefreshToken(string token);
+    public ClaimsPrincipal? ValidateExpiredAccessToken(string token);
     public bool IsTokenExpired(string token);
     public string GetUserIdFromToken(string token);
 }
