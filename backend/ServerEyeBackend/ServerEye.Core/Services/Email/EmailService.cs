@@ -1,7 +1,6 @@
 namespace ServerEye.Core.Services;
 
 using System.Net;
-using System.Net.Mail;
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
 using Microsoft.Extensions.Logging;
@@ -15,12 +14,14 @@ public sealed class EmailService : IEmailService, IDisposable
     private readonly ILogger<EmailService> logger;
     private readonly IEmailTemplateService templateService;
     private readonly AmazonSimpleEmailServiceClient? sesClient;
+    private readonly HttpClient httpClient;
 
     public EmailService(EmailSettings settings, ILogger<EmailService> logger, IEmailTemplateService templateService)
     {
         this.settings = settings;
         this.logger = logger;
         this.templateService = templateService;
+        this.httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
         if (this.settings.UseAwsSes)
         {
@@ -127,6 +128,8 @@ public sealed class EmailService : IEmailService, IDisposable
 
     public async Task SendEmailVerificationCodeAsync(string userName, string userEmail, string code)
     {
+        this.logger.LogInformation("SendEmailVerificationCodeAsync called for {Email}", LogSanitizer.MaskEmail(userEmail));
+        
         var emailSubject = "Verify your email - ServerEye";
         var parameters = new Dictionary<string, string>
         {
@@ -135,8 +138,11 @@ public sealed class EmailService : IEmailService, IDisposable
             { "SupportEmail", this.settings.SupportEmail }
         };
 
+        this.logger.LogInformation("Rendering email template...");
         var emailBody = await this.templateService.RenderTemplateAsync("EmailVerification", parameters);
+        this.logger.LogInformation("Template rendered, sending email...");
         await this.SendEmailAsync(userEmail, emailSubject, emailBody);
+        this.logger.LogInformation("SendEmailAsync completed");
     }
 
     public async Task SendPasswordResetEmailAsync(string userName, string userEmail, string resetToken)
@@ -214,14 +220,29 @@ public sealed class EmailService : IEmailService, IDisposable
     public void Dispose()
     {
         this.sesClient?.Dispose();
+        this.httpClient?.Dispose();
     }
 
     private async Task SendEmailAsync(string toEmail, string subject, string body)
     {
         try
         {
+            this.logger.LogInformation(
+                "Starting email send to {Email} with subject: {Subject}",
+                LogSanitizer.MaskEmail(toEmail),
+                LogSanitizer.Sanitize(subject));
+
+            this.logger.LogInformation(
+                "Email settings - UseAwsSes: {UseAwsSes}, SmtpHost: {SmtpHost}, SmtpPort: {SmtpPort}, FromEmail: {FromEmail}",
+                this.settings.UseAwsSes,
+                this.settings.SmtpHost,
+                this.settings.SmtpPort,
+                this.settings.FromEmail);
+
             if (this.settings.UseAwsSes && this.sesClient != null)
             {
+                this.logger.LogInformation("Using AWS SES for email sending");
+
                 var sendRequest = new SendEmailRequest
                 {
                     Source = this.settings.FromEmail,
@@ -232,13 +253,14 @@ public sealed class EmailService : IEmailService, IDisposable
                     Message = new Message
                     {
                         Subject = new Content(subject),
-                        Body = new Body
+                        Body = new Amazon.SimpleEmail.Model.Body
                         {
                             Html = new Content(body)
                         }
                     }
                 };
 
+                this.logger.LogInformation("Sending SES request...");
                 var response = await this.sesClient.SendEmailAsync(sendRequest);
                 this.logger.LogInformation(
                     "Email sent successfully via AWS SES to {Email} with subject: {Subject}, MessageId: {MessageId}",
@@ -248,7 +270,38 @@ public sealed class EmailService : IEmailService, IDisposable
             }
             else
             {
-                throw new InvalidOperationException("AWS SES is not configured. Please set UseAwsSes=true and provide AWS credentials.");
+                this.logger.LogInformation("Using Brevo API for email sending");
+
+                this.httpClient.DefaultRequestHeaders.Clear();
+                this.httpClient.DefaultRequestHeaders.Add("api-key", this.settings.SmtpPassword);
+                this.httpClient.DefaultRequestHeaders.Add("accept", "application/json");
+
+                var payload = new
+                {
+                    sender = new { name = this.settings.FromName, email = this.settings.FromEmail },
+                    to = new[] { new { email = toEmail } },
+                    subject,
+                    htmlContent = body
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                this.logger.LogInformation(
+                    "Brevo configuration - FromEmail: {FromEmail}, ToEmail: {ToEmail}",
+                    this.settings.FromEmail,
+                    LogSanitizer.MaskEmail(toEmail));
+
+                this.logger.LogInformation("Sending email via Brevo API...");
+                var response = await this.httpClient.PostAsync(new Uri("https://api.brevo.com/v3/smtp/email"), content);
+                response.EnsureSuccessStatusCode();
+
+                var responseBody = await response.Content.ReadAsStringAsync();
+                this.logger.LogInformation(
+                    "Email sent successfully via Brevo to {Email} with subject: {Subject}, Response: {Response}",
+                    LogSanitizer.MaskEmail(toEmail),
+                    LogSanitizer.Sanitize(subject),
+                    responseBody);
             }
         }
         catch (Exception ex)
