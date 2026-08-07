@@ -41,7 +41,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./environments/prod/dockerfiles/backend-prod.Dockerfile
@@ -90,7 +90,7 @@ jobs:
           rm -f "$tmp_json"
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./environments/prod/dockerfiles/frontend-prod.Dockerfile
