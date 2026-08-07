@@ -44,7 +44,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v5.0.5
         with:
           path: |
             frontend/node_modules
@@ -92,7 +92,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v5.0.5
         with:
           path: |
             frontend/node_modules
@@ -151,7 +151,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v5.0.5
         with:
           path: |
             frontend/node_modules
@@ -247,7 +247,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v5.0.5
         with:
           path: |
             frontend/node_modules
